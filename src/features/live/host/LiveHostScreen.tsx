@@ -120,7 +120,7 @@ import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal'
 import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import { apiLiveGetDailyHearts, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
+import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -1866,23 +1866,28 @@ export default function LiveHostScreen() {
                                 hasJoinedToday={hasJoinedToday}
                                 onJoin={async (e) => {
                                   e.stopPropagation();
-                                  // Creator own live: Join opens team / membership status (not self-follow heart).
-                                  if (isBroadcast) {
-                                    setShowTeamStatus(true);
-                                    return;
-                                  }
-                                  if (!isFollowing) {
+                                  if (!user?.id) return;
+
+                                  // Creator own live: send today's membership heart (orange Join), then open team status.
+                                  // Spectators / battle joiners: Follow first, then send heart to this stream's creator.
+                                  const creatorId = isBroadcast
+                                    ? String(user.id).trim()
+                                    : String(effectiveStreamId || '').trim();
+
+                                  if (!isBroadcast && !isFollowing) {
                                     showToast('Follow first to give a membership heart');
                                     return;
                                   }
+
                                   if (hasJoinedToday) {
-                                    showToast('Already sent todayâ€™s membership heart');
+                                    showToast("Already sent today's membership heart");
                                     setShowTeamStatus(true);
                                     return;
                                   }
-                                  if (!user?.id || !effectiveStreamId) return;
-                                  const creatorId = String(effectiveStreamId).trim();
-                                  if (!creatorId || creatorId === 'broadcast' || creatorId === user.id) return;
+
+                                  if (!creatorId || creatorId === 'broadcast') return;
+                                  // Spectator must not send a heart to themselves as "creator".
+                                  if (!isBroadcast && creatorId === user.id) return;
 
                                   try {
                                     const { data: before } = await apiLiveGetDailyHearts(creatorId);
@@ -1893,7 +1898,7 @@ export default function LiveHostScreen() {
                                         `joined_stream_${effectiveStreamId}_${user.id}_${today0}`,
                                         'true',
                                       );
-                                      showToast('Already sent todayâ€™s membership heart');
+                                      showToast("Already sent today's membership heart");
                                       setShowTeamStatus(true);
                                       return;
                                     }
@@ -1928,12 +1933,22 @@ export default function LiveHostScreen() {
                                       '/royce/elix-mark.svg',
                                     );
 
+                                    // Refresh team heart counts immediately.
+                                    void apiLiveMembership(user.id)
+                                      .then(({ data: stats }) => {
+                                        if (!stats) return;
+                                        if (typeof stats.todayHearts === 'number') setDailyHeartCount(stats.todayHearts);
+                                        if (typeof stats.totalHearts === 'number') setMyHeartCount(stats.totalHearts);
+                                        if (Array.isArray(stats.heartMembers)) setHeartMembers(stats.heartMembers);
+                                      })
+                                      .catch(() => {});
+
                                     if (!already) {
                                       const joinBannerId = Date.now().toString();
                                       const newMessage: LiveMessage = {
                                         id: joinBannerId,
                                         username: 'You',
-                                        text: 'â¤ï¸ Joined the team!',
+                                        text: '\u2764\ufe0f Joined the team!',
                                         level: userLevel,
                                         isGift: false,
                                         avatar: '/royce/elix-mark.svg',
@@ -1948,7 +1963,7 @@ export default function LiveHostScreen() {
                                       }, 5000);
                                       showToast('Membership heart sent');
                                     } else {
-                                      showToast('Already sent todayâ€™s membership heart');
+                                      showToast("Already sent today's membership heart");
                                     }
                                   } catch {
                                     showToast('Could not send membership heart. Try again.');
@@ -2903,17 +2918,17 @@ export default function LiveHostScreen() {
                    </div>
                    <div>
                      <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Member Hearts</div>
-                     <div className="text-gold-metallic font-bold text-sm">
+                     <div className="text-[#FF6A3D] font-bold text-sm tabular-nums">
                       {dailyHeartCount} today
                     </div>
-                     <div className="text-white/50 text-[9px] font-bold mt-0.5">
-                      {myHeartCount} total hearts received
+                     <div className="text-[#FF6A3D]/80 text-[9px] font-bold mt-0.5 tabular-nums">
+                      {myHeartCount} total hearts
                     </div>
                    </div>
                  </div>
                </div>
 
-               {/* Heart senders â€” days each spectator gave a membership heart */}
+               {/* Heart senders — every membership heart counted per person */}
                <div className="mt-3">
                  <h4 className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Hearts Sent</h4>
                  <div className="space-y-1">
@@ -2927,8 +2942,8 @@ export default function LiveHostScreen() {
                        <div className="flex-1 min-w-0">
                          <div className="text-[10px] font-bold text-white truncate">{m.username || m.user_id.slice(0, 8)}</div>
                        </div>
-                       <div className="text-[#F5F5F7] text-[10px] font-bold whitespace-nowrap">
-                         {m.heart_days} {m.heart_days === 1 ? 'day' : 'days'}
+                       <div className="text-[#FF6A3D] text-[10px] font-bold whitespace-nowrap tabular-nums">
+                         {m.heart_days} {m.heart_days === 1 ? 'heart' : 'hearts'}
                        </div>
                      </div>
                    ))}

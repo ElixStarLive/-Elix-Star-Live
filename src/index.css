@@ -1742,6 +1742,123 @@ svg.lucide,
   box-shadow: none !important;
   filter: none !important;
 }
+
+/* Live thin capsules — transparent under writing; keep capsule border only */
+#root .elix-live-thin-capsule,
+#root button.elix-live-thin-capsule {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid #2A2D33 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Ranking Weekly/Daily/… tabs — no white fill; panel fundal stays */
+#root button.elix-live-rank-tab,
+#root button[data-elix-rank-tab='true'] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+#root button.elix-live-rank-tab[data-elix-rank-tab-active='true'],
+#root button[data-elix-rank-tab='true'][data-elix-rank-tab-active='true'] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border-color: rgba(216, 217, 221, 0.8) !important;
+}
+
+/* Live host name oval — covers avatar + name + Join; transparent + border; round on circle side */
+#root .elix-live-host-oval {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid #2A2D33 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  border-radius: 9999px !important;
+}
+
+/* Live header Join — taller + 1mm down (Join only; user oval untouched) */
+#root button[data-elix-join='true'],
+#root button.elix-live-join-capsule {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding-left: 8px !important;
+  padding-right: 10px !important;
+  border-radius: 9999px !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid #2A2D33 !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+  position: relative !important;
+  top: 1mm !important;
+}
+#root button[data-elix-join='true'] svg,
+#root button[data-elix-join='true'] .elix-join-heart {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+#root button[data-elix-join='true'] .elix-join-heart {
+  color: var(--elix-join-accent, #6B7280) !important;
+}
+#root button[data-elix-join='true'] .elix-join-heart path {
+  stroke: none !important;
+  fill: currentColor !important;
+}
+/* Not sent today — gray heart + Join */
+#root button[data-elix-join='true'][data-elix-join-sent='false'] {
+  --elix-join-accent: #6B7280;
+}
+#root button[data-elix-join='true'][data-elix-join-sent='false'] .elix-join-heart,
+#root button[data-elix-join='true'][data-elix-join-sent='false'] .elix-join-heart path {
+  color: #6B7280 !important;
+  fill: #6B7280 !important;
+}
+#root button[data-elix-join='true'][data-elix-join-sent='false'] > span:last-child {
+  color: #6B7280 !important;
+  -webkit-text-fill-color: #6B7280 !important;
+  background-image: none !important;
+}
+/* Sent today — orange heart + Join */
+#root button[data-elix-join='true'][data-elix-join-sent='true'] {
+  --elix-join-accent: #FF6A3D;
+}
+#root button[data-elix-join='true'][data-elix-join-sent='true'] .elix-join-heart,
+#root button[data-elix-join='true'][data-elix-join-sent='true'] .elix-join-heart path {
+  color: #FF6A3D !important;
+  fill: #FF6A3D !important;
+}
+#root button[data-elix-join='true'][data-elix-join-sent='true'] > span:last-child {
+  color: #FF6A3D !important;
+  -webkit-text-fill-color: #FF6A3D !important;
+  background-image: none !important;
+}
+/* Live verified badge — no black oval / icon disc fundal */
+#root svg.lucide[data-elix-live-verified='true'] {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  color: #F5F5F7 !important;
+  stroke: #F5F5F7 !important;
+  fill: none !important;
+}
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[aria-label="LIVE"] svg.lucide,
@@ -2262,6 +2379,19 @@ body,
   background-color: transparent !important;
   box-shadow: none !important;
   filter: none !important;
+}
+
+/* Live top chrome — same fundal picture as home top/bottom nav (top → under Weekly Ranking) */
+#root .elix-live-room .elix-live-top-chrome,
+#root .elix-live-top-chrome {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-fundal-image) !important;
+  background-size: 100% auto !important;
+  background-position: top center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: scroll !important;
 }
 
 /* More Options — For You chrome fundal (Share / user panel share this image) */

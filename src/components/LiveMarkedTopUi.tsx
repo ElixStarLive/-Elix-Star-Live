@@ -1,8 +1,10 @@
 import React from 'react';
-import { BadgeCheck, Heart, Plus } from 'lucide-react';
+import { BadgeCheck, Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 import type { GiftUiItem } from '../lib/giftsCatalog';
+import { resolveGiftAssetUrl } from '../lib/giftsCatalog';
 import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
+import type { LiveGiftGoal } from '../lib/liveGiftGoal';
 
 function formatLikesShort(count: number) {
   const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
@@ -17,13 +19,14 @@ function formatLikesShort(count: number) {
   return String(c);
 }
 
-/** Live ranking chips — transparent black glass over video. */
+/** Live ranking chips — transparent fill + capsule border (writing sits on clear). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
-  background: 'rgba(0, 0, 0, 0.35)',
+  background: 'transparent',
+  backgroundColor: 'transparent',
   border: '1px solid #2A2D33',
   boxShadow: 'none',
-  backdropFilter: 'blur(8px)',
-  WebkitBackdropFilter: 'blur(8px)',
+  backdropFilter: 'none',
+  WebkitBackdropFilter: 'none',
 };
 
 /** Shared capsule title / subtitle — half silver / half red writing. */
@@ -31,9 +34,9 @@ const CAPSULE_TITLE = 'elix-silver-red-text text-[8px] font-bold whitespace-nowr
 const CAPSULE_SUB = 'elix-silver-red-text text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
 const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-none';
 
-/** Same height / padding / round chip shape. */
+/** Same height / padding / round chip shape — taller + slightly wider capsules. */
 const THIN_CAPSULE_CLASS =
-  'inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-1.5 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform';
+  'elix-live-thin-capsule inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-2 pr-2.5 h-[28px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent shadow-none';
 
 /** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
 export function LiveFollowPill({
@@ -101,7 +104,8 @@ export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
  * name + blue verified, “N Likes • LIVE Pro”.
  * Level / Diamond tier live in the bottom creator panel (tap avatar), not here.
- * One action slot beside profile: Follow XOR Join — never both, never stacked.
+ * One action slot beside name: Follow first → after Follow, Join (membership).
+ * One big oval covers avatar + name + Join — round on the circle side.
  * Does not touch the 3 MVP circles.
  */
 export function LiveHostProfileHeader({
@@ -122,19 +126,28 @@ export function LiveHostProfileHeader({
   likes: number;
   level: number;
   avatarSize: number;
-  /** true = show Follow / Join action slot (spectators). */
+  /** true = show Follow → Join action slot (spectators). */
   showFollow: boolean;
   isFollowing?: boolean;
   onAvatarClick: () => void;
   onLike: (e: React.PointerEvent) => void;
   onFollow: (e: React.MouseEvent) => void;
-  /** Join (membership heart) — shown in the same slot after follow only. */
+  /** Join (membership) — shown in the same slot after Follow only. */
   joinSlot?: React.ReactNode;
 }) {
   const likesLabel = formatLikesShort(likes);
 
   return (
-    <div className="flex items-center gap-1.5 min-w-0 pointer-events-auto">
+    <div
+      className="elix-live-host-oval flex items-center gap-1.5 min-w-0 pointer-events-auto rounded-full pl-[2px] pr-2 py-[2px]"
+      style={{
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        border: '1px solid #2A2D33',
+        boxShadow: 'none',
+        minHeight: avatarSize + 4,
+      }}
+    >
       <button
         type="button"
         className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
@@ -147,22 +160,23 @@ export function LiveHostProfileHeader({
         <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
-      <div className="flex flex-col justify-center min-w-0 gap-[2px]">
+      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
           <span className="elix-silver-red-text text-[12px] font-bold truncate max-w-[118px] leading-tight">
             {name}
           </span>
           <BadgeCheck
             size={14}
-            className="text-[#F5F5F7] flex-shrink-0"
-            fill="#D8D9DD"
-            stroke="#FFFFFF"
-            strokeWidth={1.6}
+            data-elix-live-verified="true"
+            className="text-[#F5F5F7] flex-shrink-0 drop-shadow-none"
+            fill="none"
+            stroke="#F5F5F7"
+            strokeWidth={2}
           />
-          {/* Follow / Join — same slot, immediately beside name (spectators only) */}
-          {showFollow ? (
+          {/* Follow first → after Follow, Join. Creator own live: Join only (no self-Follow). */}
+          {(showFollow || joinSlot) ? (
             <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
-              {!isFollowing ? (
+              {showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
               ) : (
                 joinSlot ?? null
@@ -173,6 +187,7 @@ export function LiveHostProfileHeader({
         <button
           type="button"
           className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
+          style={{ position: 'relative', top: '-1.5mm' }}
           onPointerDown={(e) => {
             e.stopPropagation();
             onLike(e);
@@ -191,7 +206,7 @@ export function LiveHostProfileHeader({
   );
 }
 
-/** Compact Join control used after Follow (photo profile action slot). */
+/** Membership Join — gray until daily heart sent; orange after send (same day). */
 export function LiveJoinPill({
   hasJoinedToday,
   onJoin,
@@ -199,28 +214,55 @@ export function LiveJoinPill({
   hasJoinedToday: boolean;
   onJoin: (e: React.MouseEvent) => void;
 }) {
+  // Gray = not sent today. Orange = membership heart sent today.
+  const accent = hasJoinedToday ? '#FF6A3D' : '#6B7280';
   return (
     <button
       type="button"
-      className={`flex items-center justify-center gap-1 h-[28px] px-2.5 rounded-full active:scale-95 transition-transform elix-solid-accent ${
-        hasJoinedToday
-          ? 'bg-[#E6E9EE] border border-[#FFFFFF]'
-          : 'bg-[#E6E9EE] border border-[#FFFFFF] shadow-[0_0_10px_rgba(111,63,245,0.55)]'
-      }`}
+      data-elix-join="true"
+      data-elix-join-sent={hasJoinedToday ? 'true' : 'false'}
+      className="elix-live-join-capsule flex items-center justify-center gap-1 h-[36px] pl-2 pr-2.5 rounded-full active:scale-95 transition-transform shadow-none outline-none flex-shrink-0 bg-transparent"
+      style={{
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        boxShadow: 'none',
+        border: '1px solid #2A2D33',
+        position: 'relative',
+        top: '1mm',
+        marginTop: 0,
+        // Drive heart + label color (CSS !important reads these).
+        ['--elix-join-accent' as string]: accent,
+        color: accent,
+      }}
       onClick={onJoin}
+      aria-label="Join"
     >
-      <div className="relative">
-        <Heart
-          className="w-3.5 h-3.5 text-white fill-white"
-          strokeWidth={2.5}
-        />
-        {!hasJoinedToday && (
-          <div className="absolute -top-1 -right-1 w-2 h-2 bg-white rounded-full flex items-center justify-center border border-[#E6E9EE]">
-            <span className="text-[#E6E9EE] text-[6px] font-bold leading-none">+</span>
-          </div>
-        )}
-      </div>
-      <span className="text-white text-[10px] font-bold drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]">Join</span>
+      <span className="relative inline-flex items-center justify-center w-5 h-5 flex-shrink-0" aria-hidden>
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          className="elix-join-heart block"
+          aria-hidden
+          style={{ color: accent }}
+        >
+          <path
+            fill="currentColor"
+            d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+          />
+        </svg>
+        {!hasJoinedToday ? (
+          <span
+            className="absolute inset-0 flex items-center justify-center text-[9px] font-black leading-none pt-px"
+            style={{ color: '#D1D5DB' }}
+          >
+            +
+          </span>
+        ) : null}
+      </span>
+      <span className="text-[13px] font-semibold leading-none" style={{ color: accent }}>
+        Join
+      </span>
     </button>
   );
 }
@@ -247,10 +289,9 @@ export function LiveDiamondLeagueCapsule({
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Diamond League</span>
         <span className={CAPSULE_SUB}>
-          {rank != null ? `Rank ${rank}` : 'Rank —'}
+          {rank != null ? `Rank ${rank}` : 'Rank'}
         </span>
       </span>
-      <span className={CAPSULE_CHEVRON}>&gt;</span>
     </button>
   );
 }
@@ -350,10 +391,9 @@ export function LiveWeeklyRankingPill({
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Weekly Ranking</span>
         <span className={CAPSULE_SUB}>
-          {rank != null ? `No.${rank}` : 'No.—'}
+          {rank != null ? `No.${rank}` : 'No.'}
         </span>
       </span>
-      <span className={CAPSULE_CHEVRON}>&gt;</span>
     </button>
   );
 }
@@ -386,7 +426,47 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         <span className={CAPSULE_TITLE}>Explore</span>
         <span className={CAPSULE_SUB}>Live</span>
       </span>
-      <span className={CAPSULE_CHEVRON}>&gt;</span>
+    </button>
+  );
+}
+
+/** Gift Goal — small top-bar capsule (progress / set). */
+export function LiveGiftGoalCapsule({
+  goal,
+  onOpen,
+}: {
+  goal: LiveGiftGoal | null;
+  onOpen: () => void;
+}) {
+  const done = goal ? goal.currentCount >= goal.targetCount : false;
+  return (
+    <button
+      type="button"
+      className={THIN_CAPSULE_CLASS}
+      style={THIN_CAPSULE_STYLE}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+      aria-label="Gift Goal"
+    >
+      {goal?.giftIcon ? (
+        <img
+          src={resolveGiftAssetUrl(goal.giftIcon)}
+          alt=""
+          className="w-3.5 h-3.5 object-contain flex-shrink-0"
+        />
+      ) : (
+        <span className="text-[10px] leading-none flex-shrink-0" aria-hidden>
+          🎯
+        </span>
+      )}
+      <span className="flex flex-col items-start justify-center leading-none min-w-0">
+        <span className={CAPSULE_TITLE}>{goal ? (done ? 'Goal ✓' : 'Gift Goal') : 'Gift Goal'}</span>
+        <span className={CAPSULE_SUB}>
+          {goal ? `${goal.currentCount}/${goal.targetCount}` : 'Set'}
+        </span>
+      </span>
     </button>
   );
 }
@@ -394,8 +474,8 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
 /**
  * Photo sub-header: thin capsules on the same horizontal line (right-aligned).
  * Gap keeps them as individual pills, not one fused strip.
- * Weekly Ranking · Diamond League · Follow (optional) · Membership (optional) · Explore
- * When Membership lives in the profile Follow slot, pass showMembership={false}.
+ * Weekly Ranking · Diamond League · Gift Goal · Follow (optional) · Explore
+ * Membership VIP capsule removed from live (owner); showMembership stays for opt-in only.
  */
 export function LiveMarkedSubHeaderBar({
   rank,
@@ -404,8 +484,11 @@ export function LiveMarkedSubHeaderBar({
   onWeeklyRanking,
   onExplore,
   onFollow,
+  onGiftGoal,
+  giftGoal = null,
+  showGiftGoal = false,
   showFollow = false,
-  showMembership = true,
+  showMembership = false,
 }: {
   rank: number | null;
   onDiamond: () => void;
@@ -413,16 +496,23 @@ export function LiveMarkedSubHeaderBar({
   onWeeklyRanking: () => void;
   onExplore: () => void;
   onFollow?: (e: React.MouseEvent) => void;
-  /** Follow Creator thin capsule (same chrome as Membership). */
+  onGiftGoal?: () => void;
+  giftGoal?: LiveGiftGoal | null;
+  /** Show Gift Goal capsule in the top row. */
+  showGiftGoal?: boolean;
+  /** Follow Creator thin capsule. */
   showFollow?: boolean;
-  /** false when Membership is shown in the profile Follow slot instead. */
+  /** Membership VIP thin capsule — off by default (not used). */
   showMembership?: boolean;
 }) {
   return (
-    <div className="mt-1 -translate-y-[2mm] w-full pointer-events-auto relative z-20 flex justify-end">
+    <div className="mt-1 -translate-y-[0.5mm] w-full pointer-events-auto relative z-20 flex justify-end">
       <div className="flex items-center gap-1.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
+        {showGiftGoal && onGiftGoal ? (
+          <LiveGiftGoalCapsule goal={giftGoal} onOpen={onGiftGoal} />
+        ) : null}
         {showFollow && onFollow ? <LiveFollowCapsule onFollow={onFollow} /> : null}
         {showMembership ? <LiveMembershipVipCapsule onOpen={onMembership} /> : null}
         <LiveExplorePill onOpen={onExplore} />

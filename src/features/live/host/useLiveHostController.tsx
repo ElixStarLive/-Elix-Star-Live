@@ -148,6 +148,7 @@ import {
   apiLiveEngagementProgress,
   apiLiveEngagementWallet,
   apiLiveBlockUser,
+  apiLiveGetDailyHearts,
   apiLiveMembership,
   apiLiveModerationCheck,
   apiLiveProgressionMe,
@@ -589,8 +590,20 @@ export function useLiveHostController() {
       }
       // Personal join tally is only for watchers. While broadcasting, myHeartCount is
       // creator total from apiLiveMembership — do not overwrite with local viewer key.
+      // Still sync whether THIS account already sent today's membership heart (Join orange).
+      const creatorId = isBroadcast ? user.id : String(effectiveStreamId).trim();
+      if (creatorId && creatorId !== 'broadcast') {
+        void apiLiveGetDailyHearts(creatorId)
+          .then(({ data: d }) => {
+            if (d?.hasSent === true) {
+              setHasJoinedToday(true);
+              localStorage.setItem(storageKey, 'true');
+            }
+          })
+          .catch(() => {});
+      }
     }
-  }, [user?.id, effectiveStreamId]);
+  }, [user?.id, effectiveStreamId, isBroadcast]);
 
   /** Battle / opponent rooms — separate from host publish session. */
   const battleLifecycleRef = useRef(new LiveRoomLifecycle());
@@ -2079,16 +2092,21 @@ export function useLiveHostController() {
   // Refresh team stats when the panel opens so hearts/coins are current.
   useEffect(() => {
     if (!showTeamStatus || !user?.id) return;
-    void apiLiveMembership(user.id)
-      .then(({ data: d }) => {
-        if (!d) return;
-        if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
-        if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
-        if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
-        if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
-        if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
-      })
-      .catch(() => {});
+    const refresh = () => {
+      void apiLiveMembership(user.id)
+        .then(({ data: d }) => {
+          if (!d) return;
+          if (typeof d.todayHearts === 'number') setDailyHeartCount(d.todayHearts);
+          if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
+          if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
+          if (Array.isArray(d.topGifters)) setTopGifters(d.topGifters);
+          if (Array.isArray(d.heartMembers)) setHeartMembers(d.heartMembers);
+        })
+        .catch(() => {});
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(interval);
   }, [showTeamStatus, user?.id]);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
   const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);

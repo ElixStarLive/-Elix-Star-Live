@@ -35,7 +35,6 @@ import {
 } from 'lucide-react';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
-import { LiveGiftGoalBar } from '../../../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -104,7 +103,7 @@ import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
-import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
+import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
 import {
@@ -375,6 +374,8 @@ export function useLiveSpectatorController() {
   const [showViewersPanel, setShowViewersPanel] = useState(false);
   const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number; points?: number }[]>([]);
   const actualViewersRef = useRef<Map<string, { name: string; avatar: string; level: number }>>(new Map());
+  /** One "joined the stream" banner per user for the whole live session (not per reconnect). */
+  const joinAnnouncedRef = useRef<Set<string>>(new Set());
   /** Gift coins — global (top bar #1–3), host team, opponent team (battle rows). */
   const mvpGiftScoresRef = useRef<Record<string, number>>({});
   const mvpGiftScoresHostRef = useRef<Record<string, number>>({});
@@ -1968,6 +1969,7 @@ export function useLiveSpectatorController() {
       const hid = hostUserIdRef.current;
       if (Array.isArray(viewers)) {
         actualViewersRef.current.clear();
+        // Do not clear joinAnnouncedRef — one banner per user for the whole live.
         // Host is often omitted from the WS viewers list. Never wipe a prior
         // "host found" (or live video) just because another spectator joined
         // and we got a fresh room snapshot without the host id.
@@ -1982,6 +1984,7 @@ export function useLiveSpectatorController() {
               avatar: v.avatar_url || '',
               level: v.level || 1,
             });
+            joinAnnouncedRef.current.add(String(v.user_id));
             count++;
           }
         }
@@ -2006,24 +2009,34 @@ export function useLiveSpectatorController() {
       const wsLevel = Number(data.level);
       const initialLevel = Number.isFinite(wsLevel) && wsLevel >= 0 ? Math.floor(wsLevel) : 1;
       const uid = typeof data.user_id === 'string' ? data.user_id : String(data.user_id ?? '');
-      if (data.user_id) {
-        actualViewersRef.current.set(data.user_id, {
-          name: data.display_name || data.username || 'User',
-          avatar: data.avatar_url || '',
-          level: initialLevel,
-        });
-      }
-      const joinName = data.username || 'User';
-      const joinMsgId = `join-${Date.now()}`;
-      setMessages(prev => appendCapped(prev, {
-        id: joinMsgId,
-        username: joinName,
-        text: 'joined the stream',
-        isSystem: true,
+      if (!uid) return;
+      const alreadyAnnounced = joinAnnouncedRef.current.has(uid);
+      actualViewersRef.current.set(uid, {
+        name: data.display_name || data.username || 'User',
+        avatar: data.avatar_url || '',
         level: initialLevel,
-        avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-      }, LIVE_CHAT_MESSAGE_CAP));
-      if (uid && initialLevel <= 1) {
+      });
+      if (alreadyAnnounced) {
+        syncMvpSlots();
+        return;
+      }
+      joinAnnouncedRef.current.add(uid);
+      const joinName = data.username || 'User';
+      const joinMsgId = `join-${uid}`;
+      setMessages(prev => {
+        if (prev.some((m) => m.id === joinMsgId || (m.isSystem === true && m.text === 'joined the stream' && m.username === joinName))) {
+          return prev;
+        }
+        return appendCapped(prev, {
+          id: joinMsgId,
+          username: joinName,
+          text: 'joined the stream',
+          isSystem: true,
+          level: initialLevel,
+          avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
+        }, LIVE_CHAT_MESSAGE_CAP);
+      });
+      if (initialLevel <= 1) {
         void apiFetchProfileById(uid).then(({ body }) => {
           if (!mounted) return;
           const prof = (body?.profile || body?.data || {}) as Record<string, unknown>;
@@ -2031,10 +2044,8 @@ export function useLiveSpectatorController() {
           if (!Number.isFinite(lvl) || lvl <= 0) return;
           const fixed = Math.floor(lvl);
           setMessages((prev) => prev.map((m) => (m.id === joinMsgId ? { ...m, level: fixed } : m)));
-          if (data.user_id) {
-            const cached = actualViewersRef.current.get(data.user_id);
-            if (cached) actualViewersRef.current.set(data.user_id, { ...cached, level: fixed });
-          }
+          const cached = actualViewersRef.current.get(uid);
+          if (cached) actualViewersRef.current.set(uid, { ...cached, level: fixed });
           syncMvpSlotsRef.current();
         }).catch(() => {});
       }
@@ -2050,7 +2061,10 @@ export function useLiveSpectatorController() {
 
     const handleUserLeft = (data) => {
       if (!mounted) return;
-      if (data.user_id) actualViewersRef.current.delete(data.user_id);
+      if (data.user_id) {
+        actualViewersRef.current.delete(data.user_id);
+        // Keep announced — leave/rejoin must not show join banner again this live.
+      }
       setViewerCount(prev => Math.max(0, prev - 1));
       syncMvpSlots();
     };
@@ -2562,7 +2576,15 @@ export function useLiveSpectatorController() {
         return;
       }
       const parsed = parseLiveGiftGoal(data);
-      if (parsed) setGiftGoal(parsed);
+      if (parsed) {
+        setGiftGoal((prev) => {
+          const wasDone = prev ? isGiftGoalComplete(prev) : false;
+          if (!wasDone && isGiftGoalComplete(parsed)) {
+            playGiftGoalReachedSound();
+          }
+          return parsed;
+        });
+      }
     };
 
     const onConnected = () => {
@@ -2705,6 +2727,7 @@ export function useLiveSpectatorController() {
       unbindBattleWs();
       unbindBattleInviteWs();
       unbindCohostWs();
+      joinAnnouncedRef.current.clear();
       // Do NOT websocket.disconnect() here — battle/MVP callback identity churn was
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
@@ -2900,6 +2923,7 @@ export function useLiveSpectatorController() {
           return;
         }
 
+        // Orange Join immediately after a successful send (same day).
         setHasJoinedToday(true);
         if (storageKey) localStorage.setItem(storageKey, 'true');
 
@@ -2925,7 +2949,7 @@ export function useLiveSpectatorController() {
           }, 5000);
           showToast('Membership heart sent');
         } else {
-          showToast('Already sent today’s membership heart');
+          showToast("Already sent today's membership heart");
         }
 
         const { data: after } = await apiLiveGetDailyHearts(creatorId);
