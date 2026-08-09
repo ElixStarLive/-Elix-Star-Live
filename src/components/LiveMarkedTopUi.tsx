@@ -424,7 +424,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
 /**
  * Photo sub-header: thin capsules on the same horizontal line (right-aligned).
  * Gap keeps them as individual pills, not one fused strip.
- * Weekly Ranking · Diamond League · Membership (optional) · Explore
+ * Weekly Ranking · Diamond League · Follow (optional) · Membership (optional) · Explore
  * When Membership lives in the profile Follow slot, pass showMembership={false}.
  */
 export function LiveMarkedSubHeaderBar({
@@ -433,6 +433,8 @@ export function LiveMarkedSubHeaderBar({
   onMembership,
   onWeeklyRanking,
   onExplore,
+  onFollow,
+  showFollow = false,
   showMembership = true,
 }: {
   rank: number | null;
@@ -440,6 +442,9 @@ export function LiveMarkedSubHeaderBar({
   onMembership: () => void;
   onWeeklyRanking: () => void;
   onExplore: () => void;
+  onFollow?: (e: React.MouseEvent) => void;
+  /** Follow Creator thin capsule (same chrome as Membership). */
+  showFollow?: boolean;
   /** false when Membership is shown in the profile Follow slot instead. */
   showMembership?: boolean;
 }) {
@@ -448,6 +453,7 @@ export function LiveMarkedSubHeaderBar({
       <div className="flex items-center gap-1.5 flex-nowrap w-max max-w-full ml-auto overflow-x-auto no-scrollbar">
         <LiveWeeklyRankingPill rank={rank} onOpen={onWeeklyRanking} />
         <LiveDiamondLeagueCapsule rank={rank} onOpen={onDiamond} />
+        {showFollow && onFollow ? <LiveFollowCapsule onFollow={onFollow} /> : null}
         {showMembership ? <LiveMembershipVipCapsule onOpen={onMembership} /> : null}
         <LiveExplorePill onOpen={onExplore} />
       </div>

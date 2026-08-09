@@ -1634,7 +1634,10 @@ export function useLiveHostController() {
         showToast('Creator unavailable. Try again.');
         return;
       }
-      if (targetId === user.id) return;
+      if (targetId === user.id) {
+        showToast("That's your live");
+        return;
+      }
       if (isFollowing) return;
       setIsFollowing(true);
       const prevFollowing = useVideoStore.getState().followingUsers;

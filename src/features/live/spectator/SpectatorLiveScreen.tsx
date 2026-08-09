@@ -1637,6 +1637,12 @@ export default function SpectatorLiveScreen() {
               onExplore={() => {
                 navigate('/live');
               }}
+              showFollow={Boolean(user?.id && hostUserId && user.id !== hostUserId && !isFollowing)}
+              onFollow={(e) => {
+                e.stopPropagation();
+                followHost(e);
+              }}
+              showMembership={true}
             />
           </div>
         </div>
