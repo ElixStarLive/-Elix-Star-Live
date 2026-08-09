@@ -2484,8 +2484,6 @@ body,
 #root .elix-glass,
 #root .elix-glass-panel,
 #root .elix-surface,
-#root .elix-more-options-sheet,
-#root .elix-share-sheet,
 #root .elix-user-panel,
 #root .feed-story-strip,
 #root main.feed-column-width,
@@ -2564,14 +2562,19 @@ body,
   background-attachment: scroll !important;
 }
 
-/* More Options — For You chrome fundal (Share / user panel share this image) */
+/* More Options — opaque sheet; no video/banner leak on iPhone */
 #root .elix-more-options-sheet,
 #root .elix-glass.elix-more-options-sheet {
-  background-color: transparent;
-  background-image: var(--elix-feed-chrome-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
+  background-color: #080A0E !important;
+  background-image:
+    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
+    var(--elix-fundal-image) !important;
+  background-size: cover, cover !important;
+  background-position: center center, center center !important;
+  background-repeat: no-repeat, no-repeat !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
   border-left: none !important;
   border-right: none !important;
   border-bottom: none !important;
@@ -2580,13 +2583,19 @@ body,
   overflow: hidden;
 }
 
-/* Share panel — same For You chrome fundal */
-#root .elix-share-sheet {
-  background-color: transparent !important;
-  background-image: var(--elix-feed-chrome-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+/* Share panel — opaque sealed sheet (stops video + top-banner fundal leak) */
+#root .elix-share-sheet,
+#root .elix-panel.elix-share-sheet {
+  background-color: #080A0E !important;
+  background-image:
+    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
+    var(--elix-fundal-image) !important;
+  background-size: cover, cover !important;
+  background-position: center center, center center !important;
   background-repeat: no-repeat, no-repeat !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
 }
 
 /* User profile panel — fundal on app-width inner */

@@ -3726,7 +3726,7 @@ export default function LiveHostScreen() {
             onClick={closeSharePanel}
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-          <div className="elix-panel backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
+          <div className="elix-panel elix-share-sheet rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
             <div className="relative flex flex-col px-1 pt-0 pb-2 border-b border-white/10 flex-shrink-0">
               <div className="flex justify-center pb-2" aria-hidden>
                 <div className="w-10 h-1 rounded-full bg-white/25" />
