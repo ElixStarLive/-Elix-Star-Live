@@ -867,7 +867,7 @@ export default function Profile() {
           </SettingsOptionSheet>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
+        <div className="shrink-0">
         {/* ═══ AVATAR ═══ */}
         <div className="flex flex-col items-center mt-2 mb-3 overflow-visible">
           <div
@@ -1164,6 +1164,10 @@ export default function Profile() {
             </button>
           </div>
         )}
+        </div>
+
+        {/* Grid only scrolls — profile header / tabs stay fixed */}
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain">
 
         {/* ═══ VIDEO GRID ═══ */}
         {activeTab !== 'shop' && (
