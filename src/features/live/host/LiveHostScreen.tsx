@@ -2574,9 +2574,21 @@ export default function LiveHostScreen() {
                   </div>
                 ) : null}
                 {filteredCreators.length === 0 && creatorsLoadFailed ? (
-                  <div className="py-6 flex justify-center">
+                  <div className="py-6 flex flex-col items-center gap-2">
+                    <p className="text-white/50 text-[11px] text-center px-4">Could not load live creators</p>
                     <button type="button" onClick={() => loadCreators()} className="px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
                       Retry
+                    </button>
+                  </div>
+                ) : null}
+                {filteredCreators.length === 0 && !creatorsLoading && !creatorsLoadFailed ? (
+                  <div className="py-8 flex flex-col items-center gap-2 px-4">
+                    <p className="text-white/70 text-[12px] font-semibold text-center">No other creators live</p>
+                    <p className="text-white/40 text-[10px] text-center leading-snug">
+                      Only creators who are live with camera on can be invited to battle. This list refreshes automatically.
+                    </p>
+                    <button type="button" onClick={() => loadCreators()} className="mt-1 px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
+                      Refresh
                     </button>
                   </div>
                 ) : null}

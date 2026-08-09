@@ -120,9 +120,10 @@ import {
   apiFetchFollowingIds,
   apiFetchProfileById,
   apiFetchProfileByUsername,
+  apiFetchProfiles,
   apiToggleFollow,
 } from '../../feed/feedApi';
-import { isGenericLiveCreatorName, profileToLiveDisplay } from '../../../lib/liveCreatorDisplay';
+import { isGenericLiveCreatorName, liveNameFromStreamFields, profileToLiveDisplay, sanitizeLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import {
   fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
@@ -723,8 +724,23 @@ export function useLiveHostController() {
     setCreatorsLoading(true);
     setCreatorsLoadFailed(false);
     try {
-      const { streams, error } = await apiLiveStreams();
+      const [{ streams, error }, profilesResult] = await Promise.all([
+        apiLiveStreams(),
+        apiFetchProfiles().catch(() => ({ profiles: [] as Record<string, unknown>[], error: null })),
+      ]);
       if (error) throw new Error(error);
+
+      const byId = new Map<string, { name: string; avatar: string }>();
+      for (const p of profilesResult.profiles || []) {
+        const id = String(p.user_id ?? p.userId ?? p.id ?? '').trim();
+        if (!id) continue;
+        const disp = profileToLiveDisplay(p);
+        byId.set(id, {
+          name: disp.name || String(p.username ?? '').trim() || 'Creator',
+          avatar: sanitizeLiveAvatar(disp.avatar),
+        });
+      }
+
       // Support both snake_case and camelCase from /api/live/streams
       const liveCreators = streams
         .map((raw) => {
@@ -737,14 +753,25 @@ export function useLiveHostController() {
             title?: string;
             display_name?: string;
             displayName?: string;
+            username?: string;
+            avatar_url?: string;
+            avatarUrl?: string;
           };
           const streamKey = String(s.stream_key ?? s.room_id ?? '').trim();
           const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? streamKey).trim();
-          const title = s.title ?? s.display_name ?? s.displayName ?? '';
-          const label = title
-            ? String(title).slice(0, 20)
-            : (uid ? 'Creator' : 'Creator');
-          return { uid, streamKey, label };
+          const prof = byId.get(uid) || (streamKey ? byId.get(streamKey) : undefined);
+          const streamLabel = liveNameFromStreamFields(s.title, s.display_name ?? s.displayName, uid);
+          const label =
+            (prof?.name && !isGenericLiveCreatorName(prof.name) ? prof.name : '') ||
+            (typeof s.username === 'string' && s.username.trim()) ||
+            (!isGenericLiveCreatorName(streamLabel) ? streamLabel : '') ||
+            'Creator';
+          const avatar =
+            sanitizeLiveAvatar(prof?.avatar) ||
+            sanitizeLiveAvatar(s.avatar_url) ||
+            sanitizeLiveAvatar(s.avatarUrl) ||
+            resolveUiAvatarUrl('', label, 80);
+          return { uid, streamKey, label, avatar };
         })
         .filter(({ uid, streamKey }) => {
           if (!uid && !streamKey) return false;
@@ -752,18 +779,15 @@ export function useLiveHostController() {
           if (ids.some((id) => isSelfUser(id, user.id, isBroadcast ? effectiveStreamId : null))) return false;
           return true;
         })
-        .map(({ uid, streamKey, label }) => {
-          const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(label)}&background=121212&color=FFFFFF`;
-          return {
-            id: uid || streamKey,
-            streamKey: streamKey || uid,
-            name: label,
-            username: label,
-            followers: '0',
-            avatar,
-            isLive: true,
-          };
-        });
+        .map(({ uid, streamKey, label, avatar }) => ({
+          id: uid || streamKey,
+          streamKey: streamKey || uid,
+          name: label,
+          username: label,
+          followers: '0',
+          avatar,
+          isLive: true,
+        }));
       setCreators(liveCreators);
       setCreatorsLoadFailed(false);
     } catch {
@@ -778,11 +802,15 @@ export function useLiveHostController() {
     if (user?.id) loadCreators();
   }, [user?.id, loadCreators]);
 
-  // Refetch creators when opening Invite panel so list is fresh
+  // Keep invite list fresh while Creators panel is open (new live hosts appear when available)
   useEffect(() => {
-    if (isFindCreatorsOpen && user?.id) loadCreators();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isFindCreatorsOpen, loadCreators]);
+    if (!isFindCreatorsOpen || !user?.id) return;
+    void loadCreators();
+    const t = window.setInterval(() => {
+      void loadCreators();
+    }, 5000);
+    return () => window.clearInterval(t);
+  }, [isFindCreatorsOpen, user?.id, loadCreators]);
 
   const filteredCreators = creators.filter((c) => {
     if (isSelfUser(c.id, user?.id, isBroadcast ? effectiveStreamId : null)) return false;
@@ -4309,12 +4337,18 @@ export function useLiveHostController() {
       // creator. Host taps Start Match once every accepted creator is ready.
     };
 
-    const handleBattleInviteAck = (data: { targetUserId?: string; delivered?: boolean }) => {
+    const handleBattleInviteAck = (data: { targetUserId?: string; delivered?: boolean; reason?: string }) => {
       if (!mounted) return;
       const tid = typeof data?.targetUserId === 'string' ? data.targetUserId : '';
       if (!tid || data?.delivered !== false) return;
       clearInvitedBattleSlot(tid);
+      if (data?.reason === 'not_live') {
+        showToast('Creator must be live with camera on to battle');
+        void loadCreators();
+        return;
+      }
       showToast('Creator is not available for battle');
+      void loadCreators();
     };
 
     const handleBattleInviteDeclined = (data: { userId?: string }) => {
