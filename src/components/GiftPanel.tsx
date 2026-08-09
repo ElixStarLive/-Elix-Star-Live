@@ -217,14 +217,19 @@ export function GiftPanel({
   );
 
   return (
+    <>
+    {/* Hide gift sheet entirely while Top Up is open — do not change gift assets */}
     <div
       ref={panelRef}
-      className="elix-panel rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999]"
+      className={`elix-panel rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999] ${
+        showRecharge ? "hidden" : ""
+      }`}
       style={{ touchAction: "pan-y" }}
       onTouchMove={(e) => {
         // Keep gift panel vertical-only; do not let horizontal pans move the live page.
         e.stopPropagation();
       }}
+      aria-hidden={showRecharge || undefined}
     >
       {/* Top bar: Weekly Ranking / Membership */}
       {(onWeeklyRanking || onMembership) && (
@@ -335,14 +340,6 @@ export function GiftPanel({
           Promo gifts create zero Diamonds / creator earnings.
         </p>
       )}
-      <BuyCoinsModal
-        isOpen={showRecharge}
-        onClose={() => setShowRecharge(false)}
-        currentBalance={userCoins}
-        onSuccess={(newBalance) => {
-          if (onRechargeSuccess) onRechargeSuccess(newBalance);
-        }}
-      />
 
       {/* Tabs */}
       <div className="flex items-center gap-4 mb-2 px-1">
@@ -448,5 +445,14 @@ export function GiftPanel({
         </div>
       )}
     </div>
+    <BuyCoinsModal
+      isOpen={showRecharge}
+      onClose={() => setShowRecharge(false)}
+      currentBalance={userCoins}
+      onSuccess={(newBalance) => {
+        if (onRechargeSuccess) onRechargeSuccess(newBalance);
+      }}
+    />
+    </>
   );
 }

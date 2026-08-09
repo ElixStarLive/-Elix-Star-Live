@@ -112,20 +112,26 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
   return createPortal(
     <>
       <div
-        className="fixed inset-0 bg-black/40 pointer-events-auto"
+        className="fixed inset-0 bg-black/80 pointer-events-auto"
         style={{ zIndex: BUY_COINS_Z_BACKDROP }}
         onClick={onClose}
         aria-hidden
       />
       <div
         className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto"
-        style={{ zIndex: BUY_COINS_Z_PANEL, bottom: 'var(--bottom-nav-top)' }}
+        style={{ zIndex: BUY_COINS_Z_PANEL, bottom: 0 }}
         role="dialog"
         aria-modal="true"
         aria-label="Recharge Coins"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+        <div
+          className="elix-panel rounded-t-2xl min-h-[52vh] h-[min(58vh,calc(100dvh-18%))] flex flex-col shadow-2xl overflow-hidden relative"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          {/* Solid underlay — blocks gift sheet behind Top Up */}
+          <div className="absolute inset-0 bg-[#080A0E]" aria-hidden />
+          <div className="relative z-[1] flex flex-col h-full min-h-0">
           <div className="flex justify-center pt-2 pb-1">
             <div className="w-10 h-1 bg-white/20 rounded-full" />
           </div>
@@ -166,6 +172,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                 <p className="text-white/40 text-[10px] px-4">Coins are digital items and must be purchased through the Elix Star app on your mobile device.</p>
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

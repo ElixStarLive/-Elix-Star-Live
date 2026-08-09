@@ -717,44 +717,24 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host tiles — cut corners + thin silver edge along the EXACT cut path.
-   Small gap so tiles read separate; cuts still form hexagon joints. */
+/* Co-host tiles — connected flush grid, no corner cuts, thin silver edge */
 .elix-cohost-cut-corner {
-  --elix-cohost-cut-path: polygon(
-    5% 0%,
-    95% 0%,
-    100% 5%,
-    100% 95%,
-    95% 100%,
-    5% 100%,
-    0% 95%,
-    0% 5%
-  );
   position: relative;
   isolation: isolate;
+  border-radius: 0 !important;
+  -webkit-clip-path: none !important;
+  clip-path: none !important;
   border: none !important;
-  box-shadow: none !important;
-  -webkit-clip-path: var(--elix-cohost-cut-path);
-  clip-path: var(--elix-cohost-cut-path);
+  box-shadow: inset 0 0 0 1px rgba(216, 217, 221, 0.85) !important;
 }
-/* Thin-ish silver ring along cut path (a bit thicker for visibility) */
 .elix-cohost-cut-corner::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 40;
-  pointer-events: none;
-  background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill-rule='evenodd' fill='%23D8D9DD' fill-opacity='0.9' d='M5 0H95L100 5V95L95 100H5L0 95V5L5 0ZM6.4 1.4H93.6L98.6 6.4V93.6L93.6 98.6H6.4L1.4 93.6V6.4L6.4 1.4Z'/%3E%3C/svg%3E");
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
-}
-.elix-cohost-cut-corner.elix-speaking-pulse::after {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath fill-rule='evenodd' fill='%23F5F5F7' fill-opacity='1' d='M5 0H95L100 5V95L95 100H5L0 95V5L5 0ZM6.4 1.4H93.6L98.6 6.4V93.6L93.6 98.6H6.4L1.4 93.6V6.4L6.4 1.4Z'/%3E%3C/svg%3E");
-  filter: drop-shadow(0 0 4px rgba(229, 229, 231, 0.75));
+  content: none;
+  display: none;
 }
 .elix-cohost-cut-corner.elix-speaking-pulse {
-  box-shadow: none !important;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(245, 245, 247, 1),
+    0 0 6px rgba(229, 229, 231, 0.55) !important;
 }
 
 /* Premium Glow Pulse */

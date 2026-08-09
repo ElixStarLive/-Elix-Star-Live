@@ -618,6 +618,12 @@ export default function SpectatorLiveScreen() {
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
             aria-hidden
           />
+        ) : hasCoHostLowerFundal ? (
+          <div
+            className="elix-live-chat-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
+            style={{ top: 'calc(90px + 6mm + 36dvh + 10mm)' }}
+            aria-hidden
+          />
         ) : null}
 
         {/* Video container: transparent shell — glass overlays sit on top of live video */}
@@ -1460,7 +1466,7 @@ export default function SpectatorLiveScreen() {
                 : { top: '0px', bottom: '0px' }
               }
             >
-              <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-[2px]' : ''}`}>
+              <div ref={spectatorStageRef} className={`relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none${showGrid || spectatorBattle?.active ? ' gap-0' : ''}`}>
               {/* Left: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
                 className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${showGrid || spectatorBattle?.active ? 'w-1/2 elix-cohost-cut-corner' : 'w-full'} ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
@@ -1585,7 +1591,7 @@ export default function SpectatorLiveScreen() {
 
               {/* Right: 8-slot co-host grid — same as creator */}
               {showGrid && (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 bg-transparent">
                   {slots.slice(0, 8).map((slot, i) => {
                     const cellSpeaking =
                       (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||

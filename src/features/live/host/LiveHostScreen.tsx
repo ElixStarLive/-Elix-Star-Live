@@ -797,6 +797,12 @@ export default function LiveHostScreen() {
             style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
             aria-hidden
           />
+        ) : hasCoHostLowerFundal ? (
+          <div
+            className="elix-live-chat-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
+            style={{ top: 'calc(90px + 6mm + 36dvh + 10mm)' }}
+            aria-hidden
+          />
         ) : null}
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
@@ -818,7 +824,7 @@ export default function LiveHostScreen() {
           );
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]' : 'absolute inset-0 w-full h-full'}
+            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-0' : 'absolute inset-0 w-full h-full'}
             style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
@@ -1192,7 +1198,7 @@ export default function LiveHostScreen() {
               };
 
               return (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 bg-transparent">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =
