@@ -314,7 +314,10 @@ export function GiftPanel({
           {giftSource === "paid_coins" && (
             <button
               type="button"
-              onClick={() => setShowRecharge(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowRecharge(true);
+              }}
               className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded hover:bg-white transition"
             >
               Top Up

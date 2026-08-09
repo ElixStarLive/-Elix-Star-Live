@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Coins, Sparkles } from 'lucide-react';
 import { platform } from '@/lib/platform';
 import {
@@ -10,6 +11,10 @@ import {
   type IAPProduct,
 } from '@/lib/iap';
 import { showToast } from '@/lib/toast';
+
+/** Above live gift overlay (99999); below EngagementDrawer (1001000). */
+const BUY_COINS_Z_BACKDROP = 100050;
+const BUY_COINS_Z_PANEL = 100051;
 
 interface BuyCoinsModalProps {
   isOpen: boolean;
@@ -101,13 +106,24 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
 
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  // Portal to body: gift sheet uses overflow-x-hidden; iOS WKWebView clips nested fixed UI.
+  return createPortal(
     <>
-      <div className="fixed inset-0 bg-black/40 pointer-events-auto" style={{ zIndex: 99998 }} onClick={onClose} />
       <div
-        className="fixed left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto"
-        style={{ bottom: 'var(--bottom-nav-top)' }}
+        className="fixed inset-0 bg-black/40 pointer-events-auto"
+        style={{ zIndex: BUY_COINS_Z_BACKDROP }}
+        onClick={onClose}
+        aria-hidden
+      />
+      <div
+        className="fixed left-0 right-0 pointer-events-auto max-w-[480px] mx-auto"
+        style={{ zIndex: BUY_COINS_Z_PANEL, bottom: 'var(--bottom-nav-top)' }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Recharge Coins"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
           <div className="flex justify-center pt-2 pb-1">
@@ -125,6 +141,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
                 {nativeProducts.map((product) => (
                   <button
                     key={product.id}
+                    type="button"
                     onClick={() => handleNativePurchase(product)}
                     disabled={nativeLoading === product.id}
                     className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/10 hover:bg-white/5 transition-colors active:scale-[0.98] disabled:opacity-50"
@@ -152,6 +169,7 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 };
