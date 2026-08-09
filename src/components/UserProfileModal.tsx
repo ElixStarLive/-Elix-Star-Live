@@ -297,27 +297,15 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
           <div className="w-10 h-1 rounded-full bg-white/25" />
         </div>
         <header className="flex items-center justify-between px-4 pt-page-header pb-2 relative z-20 flex-shrink-0">
-          {isLiveNow ? (
-            <button
-              type="button"
-              onClick={handleJoinLive}
-              className="relative z-20 w-9 h-9 rounded-full bg-white/10 border border-[#D8D9DD]/35 flex items-center justify-center active:scale-95"
-              aria-label="Join Live"
-              title="Join Live"
-            >
-              <Play size={14} className="text-white ml-0.5" fill="white" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={goSearch}
-              className="relative z-20 p-1"
-              aria-label="Search"
-              title="Search"
-            >
-              <Search size={20} className="stroke-gold-metallic" strokeWidth={2} />
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={goSearch}
+            className="relative z-20 p-1"
+            aria-label="Search"
+            title="Search"
+          >
+            <Search size={20} className="stroke-gold-metallic" strokeWidth={2} />
+          </button>
           <h3 className="pointer-events-none text-[12px] font-bold text-gold-metallic absolute left-1/2 -translate-x-1/2 truncate max-w-[50%]">
             User Profile
           </h3>
@@ -385,6 +373,17 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
             <div className="flex items-center gap-2 mt-4 mx-auto w-full max-w-[300px]">
               {!isOwnProfile && (
                 <>
+                  {isLiveNow ? (
+                    <button
+                      type="button"
+                      onClick={handleJoinLive}
+                      className="h-9 w-9 flex-shrink-0 rounded-full bg-white/10 border border-[#D8D9DD]/35 flex items-center justify-center active:scale-95"
+                      aria-label="Join Live"
+                      title="Join Live"
+                    >
+                      <Play size={14} className="text-white ml-0.5" fill="white" />
+                    </button>
+                  ) : null}
                   {isFollowingUser ? (
                     <button
                       type="button"
