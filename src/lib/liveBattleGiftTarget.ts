@@ -45,3 +45,59 @@ export function normalizeBattleGiftTarget(raw: unknown): BattleGiftSide | null {
   if (raw === "opponent" || raw === "player4") return "opponent";
   return null;
 }
+
+/** Recent gift icons shown on battle half / slot tiles (oldest → newest, capped). */
+export type BattleTileGifts = {
+  host: string[];
+  opponent: string[];
+  player3: string[];
+  player4: string[];
+};
+
+export const EMPTY_BATTLE_TILE_GIFTS: BattleTileGifts = {
+  host: [],
+  opponent: [],
+  player3: [],
+  player4: [],
+};
+
+export const BATTLE_TILE_GIFT_STACK_CAP = 8;
+
+export function appendBattleTileGift(
+  prev: BattleTileGifts,
+  slot: keyof BattleTileGifts,
+  iconUrl: string,
+): BattleTileGifts {
+  if (!iconUrl) return prev;
+  const next = [...prev[slot], iconUrl];
+  return {
+    ...prev,
+    [slot]:
+      next.length > BATTLE_TILE_GIFT_STACK_CAP
+        ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+        : next,
+  };
+}
+
+/** Append icon for a server battleTarget (P3/P4 also mirror onto team host/opponent tiles). */
+export function appendBattleTileGiftForTarget(
+  prev: BattleTileGifts,
+  target: unknown,
+  iconUrl: string,
+): BattleTileGifts {
+  if (!iconUrl) return prev;
+  if (target === "player3") {
+    return appendBattleTileGift(appendBattleTileGift(prev, "player3", iconUrl), "host", iconUrl);
+  }
+  if (target === "player4") {
+    return appendBattleTileGift(appendBattleTileGift(prev, "player4", iconUrl), "opponent", iconUrl);
+  }
+  const side = normalizeBattleGiftTarget(target);
+  if (side === "host" || target === "host" || target === "me") {
+    return appendBattleTileGift(prev, "host", iconUrl);
+  }
+  if (side === "opponent" || target === "opponent") {
+    return appendBattleTileGift(prev, "opponent", iconUrl);
+  }
+  return prev;
+}

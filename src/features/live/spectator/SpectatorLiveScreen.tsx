@@ -773,11 +773,17 @@ export default function SpectatorLiveScreen() {
                         >
                           <RoyceCloseIcon size={12} />
                         </button>
-                        {lastHostGift && (
+                        {lastHostGift.length > 0 && (
                           <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
-                            <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
-                              <img src={lastHostGift} alt="gift" className="w-full h-full object-cover" />
-                            </div>
+                            {lastHostGift.map((src, i) => (
+                              <div
+                                key={`spec-host-gift-${i}-${src}`}
+                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md"
+                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              >
+                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>
@@ -814,11 +820,17 @@ export default function SpectatorLiveScreen() {
                             ) : null}
                           </div>
                         )}
-                        {lastOpponentGift && (
+                        {lastOpponentGift.length > 0 && (
                           <div className="absolute bottom-1 right-1 z-20 pointer-events-none flex items-center">
-                            <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
-                              <img src={lastOpponentGift} alt="gift" className="w-full h-full object-cover" />
-                            </div>
+                            {lastOpponentGift.map((src, i) => (
+                              <div
+                                key={`spec-opp-gift-${i}-${src}`}
+                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md"
+                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              >
+                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

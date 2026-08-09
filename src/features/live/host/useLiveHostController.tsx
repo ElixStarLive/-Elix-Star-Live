@@ -160,7 +160,13 @@ import {
   apiLiveStickers,
 } from '../engagement/liveEngagementApi';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
-import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
+import {
+  appendBattleTileGiftForTarget,
+  EMPTY_BATTLE_TILE_GIFTS,
+  liveStreamUiGiftTargetToServerBattleTarget,
+  normalizeBattleGiftTarget,
+  type BattleTileGifts,
+} from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import {
@@ -2174,7 +2180,7 @@ export function useLiveHostController() {
 
   const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
-  const [lastGifts, setLastGifts] = useState<{ host: string | null; opponent: string | null; player3: string | null; player4: string | null }>({ host: null, opponent: null, player3: null, player4: null });
+  const [lastGifts, setLastGifts] = useState<BattleTileGifts>(EMPTY_BATTLE_TILE_GIFTS);
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
@@ -3871,15 +3877,8 @@ export function useLiveHostController() {
               ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
               : null;
           const target = data.battleTarget;
-          const side = normalizeBattleGiftTarget(target);
           if (iconUrl) {
-            setLastGifts((prev) => {
-              if (target === 'player3') return { ...prev, player3: iconUrl, host: iconUrl };
-              if (target === 'player4') return { ...prev, player4: iconUrl, opponent: iconUrl };
-              if (side === 'host' || target === 'host' || target === 'me') return { ...prev, host: iconUrl };
-              if (side === 'opponent' || target === 'opponent') return { ...prev, opponent: iconUrl };
-              return prev;
-            });
+            setLastGifts((prev) => appendBattleTileGiftForTarget(prev, target, iconUrl));
           }
         }
         const cohostTarget =
@@ -4910,12 +4909,7 @@ export function useLiveHostController() {
         const iconUrl = gift.icon.startsWith('http')
           ? gift.icon
           : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
-        setLastGifts((prev) => ({
-          ...prev,
-          ...(serverBattleTarget === 'opponent' ? { opponent: iconUrl } : {}),
-          ...(serverBattleTarget === 'player3' ? { player3: iconUrl } : {}),
-          ...(serverBattleTarget === 'player4' ? { player4: iconUrl } : {}),
-        }));
+        setLastGifts((prev) => appendBattleTileGiftForTarget(prev, serverBattleTarget, iconUrl));
       }
     } catch {
       showToast('Gift failed');

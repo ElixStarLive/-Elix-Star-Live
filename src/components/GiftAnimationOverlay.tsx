@@ -131,7 +131,11 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
   return (
     <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
       <div className="w-full max-w-[480px] relative">
-        <div className="absolute left-0 right-0" style={{ top: 'calc(1cm + 13mm)' }}>
+        {/* Vertically center on Weekly Ranking capsule row (safe + top avatar ~52 + mt-1 + half of h-[28px]). */}
+        <div
+          className="absolute left-0 right-0"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 66px)' }}
+        >
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
               <div className="w-4 h-4 flex-shrink-0">

@@ -102,7 +102,10 @@ import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
-import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
+import {
+  BATTLE_TILE_GIFT_STACK_CAP,
+  normalizeBattleGiftTarget,
+} from '../../../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
@@ -752,8 +755,8 @@ export function useLiveSpectatorController() {
   const spectatorLiveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
-  const [lastOpponentGift, setLastOpponentGift] = useState<string | null>(null);
-  const [lastHostGift, setLastHostGift] = useState<string | null>(null);
+  const [lastOpponentGift, setLastOpponentGift] = useState<string[]>([]);
+  const [lastHostGift, setLastHostGift] = useState<string[]>([]);
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
@@ -2236,8 +2239,22 @@ export function useLiveSpectatorController() {
             iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
               ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
               : null;
-          if (iconUrl && side === 'opponent') setLastOpponentGift(iconUrl);
-          if (iconUrl && side === 'host') setLastHostGift(iconUrl);
+          if (iconUrl && side === 'opponent') {
+            setLastOpponentGift((prev) => {
+              const next = [...prev, iconUrl];
+              return next.length > BATTLE_TILE_GIFT_STACK_CAP
+                ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+                : next;
+            });
+          }
+          if (iconUrl && side === 'host') {
+            setLastHostGift((prev) => {
+              const next = [...prev, iconUrl];
+              return next.length > BATTLE_TILE_GIFT_STACK_CAP
+                ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+                : next;
+            });
+          }
         }
       }
       // Play gift video for other users' gifts (sender already queued locally).
@@ -3307,8 +3324,22 @@ export function useLiveSpectatorController() {
       const iconUrl = gift.icon.startsWith('http')
         ? gift.icon
         : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
-      if (spectatorGiftBattleTarget === 'opponent') setLastOpponentGift(iconUrl);
-      if (spectatorGiftBattleTarget === 'host') setLastHostGift(iconUrl);
+      if (spectatorGiftBattleTarget === 'opponent') {
+        setLastOpponentGift((prev) => {
+          const next = [...prev, iconUrl];
+          return next.length > BATTLE_TILE_GIFT_STACK_CAP
+            ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+            : next;
+        });
+      }
+      if (spectatorGiftBattleTarget === 'host') {
+        setLastHostGift((prev) => {
+          const next = [...prev, iconUrl];
+          return next.length > BATTLE_TILE_GIFT_STACK_CAP
+            ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+            : next;
+        });
+      }
     }
   };
 

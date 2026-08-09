@@ -1432,11 +1432,17 @@ export default function LiveHostScreen() {
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                         </button>
                       </div>
-                      {lastGifts.host && (
+                      {lastGifts.host.length > 0 && (
                         <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md">
-                            <img src={lastGifts.host} alt="gift" className="w-full h-full object-cover" />
-                          </div>
+                          {lastGifts.host.map((src, i) => (
+                            <div
+                              key={`host-gift-${i}-${src}`}
+                              className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md"
+                              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                            >
+                              <img src={src} alt="gift" className="w-full h-full object-cover" />
+                            </div>
+                          ))}
                         </div>
                       )}
 
@@ -1552,13 +1558,21 @@ export default function LiveHostScreen() {
                         className="absolute bottom-1 right-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto"
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[0].name); }}
                       >
-                        {lastGifts.opponent && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
-                            <img src={lastGifts.opponent} alt="gift" className="w-full h-full object-cover" />
+                        {lastGifts.opponent.length > 0 && (
+                          <div className="flex items-center">
+                            {lastGifts.opponent.map((src, i) => (
+                              <div
+                                key={`opp-gift-${i}-${src}`}
+                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md relative"
+                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              >
+                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
                         <div 
-                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-black/35 backdrop-blur-md border border-[#2A2D33] ${lastGifts.opponent ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 bg-black/35 backdrop-blur-md border border-[#2A2D33] ${lastGifts.opponent.length > 0 ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                         >
                           {battleSlots[0].status !== 'empty' ? battleSlots[0].name : 'P2'}
                         </div>
@@ -1644,13 +1658,21 @@ export default function LiveHostScreen() {
                         className="absolute bottom-1 left-1 flex items-center cursor-pointer hover:scale-105 transition-transform active:scale-95 pointer-events-auto"
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[1].name); }}
                       >
-                        {lastGifts.player3 && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
-                            <img src={lastGifts.player3} alt="gift" className="w-full h-full object-cover" />
+                        {lastGifts.player3.length > 0 && (
+                          <div className="flex items-center">
+                            {lastGifts.player3.map((src, i) => (
+                              <div
+                                key={`p3-gift-${i}-${src}`}
+                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md relative"
+                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              >
+                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
                         <div 
-                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 ${lastGifts.player3 ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 ${lastGifts.player3.length > 0 ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                           style={{ background: 'linear-gradient(135deg, rgba(0,200,83,0.7), rgba(0,200,83,0.3))' }}
                         >
                           {battleSlots[1].status !== 'empty' ? battleSlots[1].name : 'P3'}
@@ -1733,13 +1755,21 @@ export default function LiveHostScreen() {
                         style={{ right: '2.5rem' }}
                         onClick={(e) => { e.stopPropagation(); openMiniProfile(battleSlots[2].name); }}
                       >
-                        {lastGifts.player4 && (
-                          <div className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md z-10 relative">
-                            <img src={lastGifts.player4} alt="gift" className="w-full h-full object-cover" />
+                        {lastGifts.player4.length > 0 && (
+                          <div className="flex items-center">
+                            {lastGifts.player4.map((src, i) => (
+                              <div
+                                key={`p4-gift-${i}-${src}`}
+                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md relative"
+                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              >
+                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              </div>
+                            ))}
                           </div>
                         )}
                         <div 
-                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 ${lastGifts.player4 ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
+                          className={`h-4 flex items-center rounded-full text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] relative z-0 ${lastGifts.player4.length > 0 ? '-ml-2 pl-3 pr-1.5' : 'px-1.5'}`}
                           style={{ background: 'linear-gradient(135deg, rgba(156,39,176,0.7), rgba(156,39,176,0.3))' }}
                         >
                           {battleSlots[2].status !== 'empty' ? battleSlots[2].name : 'P4'}
