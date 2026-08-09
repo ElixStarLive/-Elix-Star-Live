@@ -5,6 +5,9 @@ import { Trash2, Ban, Shield, Heart } from 'lucide-react';
 /** Live chat only — shorter level chip than feed/profile defaults. */
 const LIVE_CHAT_RING_PX = 20;
 const LIVE_CHAT_PILL_PX = 14;
+/** Join / system banner — circle matches banner height. */
+const LIVE_JOIN_BANNER_RING_PX = 28;
+const LIVE_JOIN_BANNER_PILL_PX = 16;
 
 interface Message {
   id: string;
@@ -103,7 +106,10 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         className="chat-scroll px-2"
         style={scrollStyle}
       >
-        {messages.map((msg, idx) => (
+        {messages.map((msg, idx) => {
+          const ringPx = msg.isSystem ? LIVE_JOIN_BANNER_RING_PX : LIVE_CHAT_RING_PX;
+          const pillPx = msg.isSystem ? LIVE_JOIN_BANNER_PILL_PX : LIVE_CHAT_PILL_PX;
+          return (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
             data-live-chat-msg="1"
@@ -116,10 +122,11 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             {/* Name on the same line as circle + diamond level chip */}
             <div
               className={`flex items-center gap-2 min-w-0 ${msg.isSystem ? 'bg-gradient-to-r from-[#8A2BE2] to-[#3B4BE8] rounded-full pr-2.5 self-start shadow-sm' : ''}`}
+              style={msg.isSystem ? { height: LIVE_JOIN_BANNER_RING_PX } : undefined}
             >
               <div 
                 className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
-                style={{ height: LIVE_CHAT_RING_PX }}
+                style={{ height: ringPx }}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onProfileTap) onProfileTap(msg.username);
@@ -130,8 +137,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   layout="fixed"
                   avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
                   name={typeof msg.username === 'string' ? msg.username : undefined}
-                  circleSize={LIVE_CHAT_RING_PX}
-                  size={LIVE_CHAT_PILL_PX}
+                  circleSize={ringPx}
+                  size={pillPx}
                 />
               </div>
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -168,7 +175,7 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
             {(msg.stickerUrl || (!msg.isSystem && typeof msg.text === 'string' && msg.text)) ? (
               <div
                 className="min-w-0"
-                style={{ paddingLeft: LIVE_CHAT_RING_PX + 4 + LIVE_CHAT_PILL_PX + 12 }}
+                style={{ paddingLeft: ringPx + 4 + pillPx + 12 }}
               >
                 {msg.stickerUrl ? (
                   <img src={msg.stickerUrl} alt="sticker" className="w-16 h-16 object-contain rounded-lg" />
@@ -216,7 +223,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
         <div ref={bottomRef} />
       </div>
     </div>
