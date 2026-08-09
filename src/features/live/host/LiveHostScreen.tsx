@@ -1209,7 +1209,7 @@ export default function LiveHostScreen() {
             ref={battleSpectatorOverlayRef}
             className={`absolute inset-0 z-[80] flex flex-col ${isBroadcast ? 'pointer-events-none' : ''}`}
             style={{
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px)',
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm)',
               paddingBottom: isBroadcast ? '305px' : undefined,
             }}
             onClick={(e) => {
