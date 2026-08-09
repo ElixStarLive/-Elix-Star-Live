@@ -2221,12 +2221,14 @@ body {
   box-shadow: none;
 }
 
-/* Battle empty slots + stage + chat + full room lower — same cosmic fundal as app (not solid black) */
+/* Live + battle chat / lower bar / slots — same cosmic fundal as top chrome (not solid black) */
 .elix-battle-slot,
 .elix-battle-stage-fundal,
 .elix-battle-chat-fundal,
 .elix-battle-room-fundal,
-.elix-battle-lower-fundal {
+.elix-battle-lower-fundal,
+.elix-live-chat-fundal,
+.elix-live-lower-fundal {
   background-color: transparent;
   background-image: var(--elix-panel-fill);
   background-size: cover, cover;
@@ -2241,7 +2243,9 @@ body {
 #root .elix-live-room .elix-battle-lower-fundal,
 #root .elix-live-room .elix-battle-chat-fundal,
 #root .elix-live-room .elix-battle-stage-fundal,
-#root .elix-live-room .elix-battle-slot {
+#root .elix-live-room .elix-battle-slot,
+#root .elix-live-room .elix-live-chat-fundal,
+#root .elix-live-room .elix-live-lower-fundal {
   background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
   background-size: cover, cover !important;

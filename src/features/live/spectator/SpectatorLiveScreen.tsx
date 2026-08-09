@@ -8,7 +8,6 @@ import {
   LIVE_VIDEO_TRANSPARENT_POSTER,
 } from '../../../lib/prepareLiveVideoEl';
 import {
-  Send,
   Search,
   Heart,
   Share2,
@@ -1780,7 +1779,7 @@ export default function SpectatorLiveScreen() {
           }}
         >
           <div
-            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${spectatorBattle?.active ? 'elix-battle-chat-fundal' : 'bg-transparent'}`}
+            className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden elix-live-chat-fundal"
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
@@ -1927,7 +1926,7 @@ export default function SpectatorLiveScreen() {
           className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-none flex justify-center"
         >
           <div
-            className={`pointer-events-auto w-full max-w-[480px] px-3 pt-0 ${spectatorBattle?.active ? 'elix-battle-lower-fundal' : 'bg-transparent'}`}
+            className="pointer-events-auto w-full max-w-[480px] px-3 pt-0 elix-live-lower-fundal"
             style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
           >
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
@@ -1945,11 +1944,6 @@ export default function SpectatorLiveScreen() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                 />
-                {inputValue.trim() ? (
-                  <button type="submit" title="Send message" className="text-[#F5F5F7] flex-shrink-0">
-                    <Send size={16} />
-                  </button>
-                ) : null}
               </form>
               <div className="flex items-end gap-2 flex-shrink-0" style={{ transform: 'translateX(4mm)' }}>
               <button
