@@ -2,17 +2,17 @@
  * Global "creator is live" top banner.
  *
  * Slides down from the top of the screen when a creator goes live, tappable to
- * open the live. Uses the existing subscribe-only `/live/__feed__` WebSocket
- * (same source the For You feed uses) — no extra polling. Gated by the user's
- * "Live notifications" setting. OS push while the app is closed is handled
- * separately by the server (follower-targeted `live_started` -> FCM/APNs).
+ * open the live. Listens on the shared websocket singleton (App already keeps
+ * `/live/__feed__` connected while browsing) — no second feed socket.
+ * Gated by the user's "Live notifications" setting. OS push while the app is
+ * closed is handled separately by the server (follower-targeted `live_started` -> FCM/APNs).
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { X } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
-import { getWsUrl } from '../lib/api';
+import { websocket } from '../lib/websocket';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import {
   isGenericLiveCreatorName,
@@ -26,6 +26,8 @@ interface LiveBanner {
   name: string;
   avatar: string;
 }
+
+const SEEN_CAP = 80;
 
 export function LiveNotifyBanner() {
   const navigate = useNavigate();
@@ -48,24 +50,26 @@ export function LiveNotifyBanner() {
 
   useEffect(() => {
     if (!token || !liveNotifications) return;
-    const wsUrl = getWsUrl();
-    let ws: WebSocket | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let cancelled = false;
 
-    const show = async (data: Record<string, unknown>) => {
-      const room = String(data.stream_key ?? data.room_id ?? '');
-      const uid = String(data.user_id ?? '');
+    const show = async (data: unknown) => {
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      const room = String(payload.stream_key ?? payload.room_id ?? '');
+      const uid = String(payload.user_id ?? '');
       if (!room) return;
       // Never notify about your own live.
       if (uid && user?.id && uid === user.id) return;
       // One banner per stream per session.
       if (seenRef.current.has(room)) return;
       seenRef.current.add(room);
+      if (seenRef.current.size > SEEN_CAP) {
+        const first = seenRef.current.values().next().value as string | undefined;
+        if (first) seenRef.current.delete(first);
+      }
 
       let name = liveNameFromStreamFields(
-        data.title,
-        (data.display_name ?? data.displayName) as string | undefined,
+        payload.title,
+        (payload.display_name ?? payload.displayName) as string | undefined,
         uid,
       );
       let avatar = '';
@@ -87,41 +91,13 @@ export function LiveNotifyBanner() {
       dismissTimer.current = setTimeout(() => setBanner(null), 6000);
     };
 
-    const connect = () => {
-      if (cancelled) return;
-      try {
-        ws = new WebSocket(`${wsUrl}/live/__feed__?token=${encodeURIComponent(token)}`);
-      } catch {
-        reconnectTimer = setTimeout(connect, 4000);
-        return;
-      }
-      ws.onmessage = (evt) => {
-        try {
-          const msg = JSON.parse(evt.data);
-          if (msg?.event === 'stream_started') void show(msg.data || {});
-        } catch {
-          /* malformed frame */
-        }
-      };
-      ws.onerror = () => {};
-      ws.onclose = () => {
-        ws = null;
-        if (!cancelled) reconnectTimer = setTimeout(connect, 4000);
-      };
-    };
-    connect();
-
+    websocket.on('stream_started', show);
     return () => {
       cancelled = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
+      websocket.off('stream_started', show);
       if (dismissTimer.current) {
         clearTimeout(dismissTimer.current);
         dismissTimer.current = null;
-      }
-      try {
-        ws?.close();
-      } catch {
-        /* ignore */
       }
     };
   }, [token, liveNotifications, user?.id]);

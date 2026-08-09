@@ -88,6 +88,7 @@ export default function Upload() {
   const [timerDelay, setTimerDelay] = useState<0 | 3 | 10>(0);
   const [flashOn, setFlashOn] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownTimerRef = useRef<number | null>(null);
   const [duetSourceVideoId, setDuetSourceVideoId] = useState<string | null>(null);
   const [duetSourceVideoUrl, setDuetSourceVideoUrl] = useState<string | null>(null);
   /** split = half/half; overlay = full original with your face on top (PiP). */
@@ -440,6 +441,10 @@ export default function Upload() {
     const videoEl = videoRef.current;
     return () => {
       cancelled = true;
+      if (countdownTimerRef.current != null) {
+        window.clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
       if (videoEl && videoEl.srcObject) {
         const stream = videoEl.srcObject as MediaStream;
         stream.getTracks().forEach(track => track.stop());
@@ -481,12 +486,19 @@ export default function Upload() {
   const startRecording = () => {
     if (countdown !== null) return;
     if (timerDelay > 0) {
+      if (countdownTimerRef.current != null) {
+        window.clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
       setCountdown(timerDelay);
       let left = timerDelay;
-      const tick = window.setInterval(() => {
+      countdownTimerRef.current = window.setInterval(() => {
         left -= 1;
         if (left <= 0) {
-          window.clearInterval(tick);
+          if (countdownTimerRef.current != null) {
+            window.clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
           setCountdown(null);
           startRecordingNow();
         } else {

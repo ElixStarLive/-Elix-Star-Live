@@ -92,8 +92,11 @@ export default function InlineLiveViewer({
     return null;
   }, []);
 
+  const attachCleanupRef = useRef<(() => void) | null>(null);
+
   const attachToEl = useCallback((track: RemoteTrack, el: HTMLVideoElement | null) => {
     if (!el || track.kind !== "video") return;
+    attachCleanupRef.current?.();
     track.attach(el);
     prepareLiveVideoEl(el);
     setHasStream(true);
@@ -108,9 +111,15 @@ export default function InlineLiveViewer({
     el.addEventListener("resize", showIfFramed);
     // LiveKit on Android can hold videoWidth at 0 — reveal the attached stream
     // anyway so the card shows live video instead of the avatar placeholder.
-    setTimeout(() => {
+    const revealTimer = window.setTimeout(() => {
       if (el.srcObject) el.style.visibility = "visible";
     }, 700);
+    attachCleanupRef.current = () => {
+      window.clearTimeout(revealTimer);
+      el.removeEventListener("playing", showIfFramed);
+      el.removeEventListener("loadeddata", showIfFramed);
+      el.removeEventListener("resize", showIfFramed);
+    };
   }, []);
 
   const routeVideoTrack = useCallback(
@@ -186,6 +195,17 @@ export default function InlineLiveViewer({
     const lifecycle = lifecycleRef.current;
 
     const cleanup = () => {
+      attachCleanupRef.current?.();
+      attachCleanupRef.current = null;
+      for (const el of [hostVideoRef.current, opponentVideoRef.current]) {
+        if (el) {
+          try {
+            el.srcObject = null;
+          } catch {
+            /* ignore */
+          }
+        }
+      }
       lifecycle.liveKit?.disconnect();
       roomRef.current = null;
       websocket.disconnectIfRoom(streamKey);

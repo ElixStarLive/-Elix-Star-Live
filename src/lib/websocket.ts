@@ -55,6 +55,7 @@ export type WebSocketEvent =
   | "moderation_suspend"
   | "room_full"
   | "stream_ended"
+  | "stream_started"
   | "booster_activated"
   | "booster_caught"
   | "mist_activated"

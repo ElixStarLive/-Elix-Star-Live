@@ -14,21 +14,8 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
-    SplashScreen: {
-      launchShowDuration: 0,
-      launchAutoHide: true,
-      backgroundColor: '#080A0E',
-      showSpinner: false,
-      androidSplashResourceName: 'splash',
-      androidSpinnerStyle: 'small',
-      iosSpinnerStyle: 'small',
-    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
-    },
-    Keyboard: {
-      resize: 'native',
-      resizeOnFullScreen: true,
     },
     App: {
       deepLinkingEnabled: true,
