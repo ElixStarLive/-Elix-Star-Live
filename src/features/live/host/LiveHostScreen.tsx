@@ -134,7 +134,7 @@ import { useWalletStore } from '../../../store/useWalletStore';
 import { App as CapacitorApp } from '@capacitor/app';
 
 const LIVE_BOTTOM_ICON_BTN =
-  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33] shadow-none active:scale-95 transition-transform flex-shrink-0';
+  'w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
 
 function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
   const [display, setDisplay] = useState(value);
@@ -882,7 +882,7 @@ export default function LiveHostScreen() {
                         type="button"
                         title="Back to host on big screen"
                         onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                        className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/60 border border-[#D8D9DD]/50 active:scale-95"
+                        className="elix-live-tile-ctrl flex items-center gap-0.5 px-1.5 py-0.5 border-0 bg-transparent active:scale-95"
                       >
                         <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                         <span className="text-[8px] font-bold text-[#F5F5F7]">Host</span>
@@ -1045,7 +1045,7 @@ export default function LiveHostScreen() {
                           type="button"
                           title="Host on big screen"
                           onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                          className="rounded bg-black/55 p-0.5 border border-[#D8D9DD]/45 active:scale-95"
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
                         >
                           <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                         </button>
@@ -1101,16 +1101,16 @@ export default function LiveHostScreen() {
                           type="button"
                           title="Put on big screen"
                           onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
-                          className="rounded bg-black/55 p-0.5 border border-[#D8D9DD]/45 active:scale-95"
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
                         >
                           <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                         </button>
                       </div>
                       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="rounded bg-black/50 p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
                           {host.isMuted ? <MicOff className="text-white w-3 h-3" strokeWidth={2.5} /> : <Mic className="text-white w-3 h-3" strokeWidth={2.5} />}
                         </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostCamera(host.id); }} className="p-0.5 rounded" title={coHostCameraOff[host.id] ? 'Camera on' : 'Camera off'}>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostCamera(host.id); }} className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5" title={coHostCameraOff[host.id] ? 'Camera on' : 'Camera off'}>
                           {coHostCameraOff[host.id] ? <CameraOff className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} /> : <Camera className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} />}
                         </button>
                       </div>
@@ -1183,7 +1183,7 @@ export default function LiveHostScreen() {
               };
 
               return (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-transparent">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =
@@ -1202,7 +1202,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -2414,6 +2414,7 @@ export default function LiveHostScreen() {
                 <div className="flex flex-col items-center gap-0.5">
                   <button
                     type="button"
+                    title="Co-Host"
                     onClick={openSpectatorsPanel}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
@@ -2434,6 +2435,7 @@ export default function LiveHostScreen() {
                 <div className="flex flex-col items-center gap-0.5">
                   <button
                     type="button"
+                    title="Battle"
                     onClick={openBattleChrome}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >

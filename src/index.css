@@ -2292,7 +2292,25 @@ body {
 #root .elix-live-room .video-zone > div button[aria-label="Mute"] svg.lucide,
 #root .elix-live-room .video-zone > div button[aria-label="Unmute"] svg.lucide,
 #root .elix-live-room .video-zone > div button[aria-label="Cam On"] svg.lucide,
-#root .elix-live-room .video-zone > div button[aria-label="Cam Off"] svg.lucide {
+#root .elix-live-room .video-zone > div button[aria-label="Cam Off"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="End co-host"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Remove co-host"] svg.lucide,
+#root .elix-live-room button[title="Co-Host"] svg.lucide,
+#root .elix-live-room button[title="Battle"] svg.lucide,
+#root .elix-live-room button[title="Poll"] svg.lucide,
+#root .elix-live-room button[title="Share"] svg.lucide,
+#root .elix-live-room button[title="More options"] svg.lucide,
+#root .elix-live-room button[title="Send gift"] svg.lucide,
+#root .elix-live-room button[title="Invite"] svg.lucide,
+#root .elix-live-room button[title="Start game"] svg.lucide,
+#root .elix-live-room button[title="Request to co-host"] svg.lucide,
+#root .elix-live-room button[title="Request sent"] svg.lucide,
+#root .elix-live-room button[title="Put on big screen"] svg.lucide,
+#root .elix-live-room button[title="Host on big screen"] svg.lucide,
+#root .elix-live-room button[title="Back to host on big screen"] svg.lucide,
+#root .elix-live-room button[title="Cancel invite"] svg.lucide,
+#root .elix-live-room button[title="Decline request"] svg.lucide,
+#root .elix-live-room button[title="Remove co-host"] svg.lucide {
   padding: 0 !important;
   border: none !important;
   border-radius: 0 !important;

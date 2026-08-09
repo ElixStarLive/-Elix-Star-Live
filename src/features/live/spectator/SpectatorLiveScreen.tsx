@@ -1234,7 +1234,7 @@ export default function SpectatorLiveScreen() {
                     type="button"
                     title="Host on big screen"
                     onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                    className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D8D9DD]/45 pointer-events-auto active:scale-95"
+                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
                   >
                     <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                   </button>
@@ -1276,7 +1276,7 @@ export default function SpectatorLiveScreen() {
                     type="button"
                     title="Put on big screen"
                     onClick={(e) => { e.stopPropagation(); if (user?.id) toggleFeaturedUser(user.id); }}
-                    className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D8D9DD]/45 pointer-events-auto active:scale-95"
+                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
                   >
                     <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                   </button>
@@ -1363,7 +1363,7 @@ export default function SpectatorLiveScreen() {
                     type="button"
                     title="Put on big screen"
                     onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(h.userId); }}
-                    className="absolute top-0.5 left-0.5 z-10 rounded bg-black/55 p-0.5 border border-[#D8D9DD]/45 pointer-events-auto active:scale-95"
+                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
                   >
                     <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                   </button>
@@ -1571,7 +1571,7 @@ export default function SpectatorLiveScreen() {
 
               {/* Right: 8-slot co-host grid — same as creator */}
               {showGrid && (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-[#1a1c22]">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[1px] bg-transparent">
                   {slots.slice(0, 8).map((slot, i) => {
                     const cellSpeaking =
                       (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||
@@ -1596,7 +1596,7 @@ export default function SpectatorLiveScreen() {
                             setShowGiftPanel(true);
                           }
                         }}
-                        className={`relative bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                        className={`relative bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 border border-[#C9A96E]/40 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
@@ -1964,7 +1964,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
                   <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Poll</span>
@@ -1979,7 +1979,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => { sendCohostJoinRequest(); }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
                   <span className="flex items-center justify-center w-full h-full relative z-[2]">
                     <UserPlus
                       size={20}
@@ -2003,7 +2003,7 @@ export default function SpectatorLiveScreen() {
                 }}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
                   <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Gift</span>
@@ -2014,7 +2014,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setShowSharePanel(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
                   <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Share</span>
@@ -2025,7 +2025,7 @@ export default function SpectatorLiveScreen() {
                 onClick={() => setIsMoreMenuOpen(true)}
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border border-[#2A2D33]">
+                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
                   <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">More</span>

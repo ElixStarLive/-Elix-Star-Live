@@ -581,14 +581,14 @@ export default function InlineLiveViewer({
               </div>
             )}
           </div>
-          <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0.5 p-0.5 bg-black">
+          <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0.5 p-0.5 bg-transparent">
             {Array.from({ length: 8 }).map((_, i) => {
               const h = liveCohosts[i];
               if (!h) {
                 return (
                   <div
                     key={`empty-${i}`}
-                    className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/25 bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center"
+                    className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/25 bg-transparent flex flex-col items-center justify-center"
                   >
                     <span className="text-white/30 text-lg font-light">+</span>
                     <span className="text-white/30 text-[8px] font-semibold">Add</span>
@@ -598,9 +598,9 @@ export default function InlineLiveViewer({
               return (
                 <div
                   key={h.userId}
-                  className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/35 bg-[rgba(0,0,0,0.35)]"
+                  className="relative min-h-0 overflow-hidden rounded-none border border-[#D8D9DD]/35 bg-transparent"
                 >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-[rgba(0,0,0,0.35)]">
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-transparent">
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
