@@ -133,6 +133,8 @@ export function FeedStoryCirclesOverlay({
   const followingIds = useVideoStore((s) => s.followingUsers);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
+  /** Host/user ids currently live — drives live ring on story + suggestion circles. */
+  const [liveUserIds, setLiveUserIds] = useState<Set<string>>(() => new Set());
   const [storyViewer, setStoryViewer] = useState<{
     group: StoryUserGroup;
     itemIndex: number;
@@ -196,6 +198,7 @@ export function FeedStoryCirclesOverlay({
             .filter(Boolean)
             .map((v: unknown) => String(v)),
         );
+        setLiveUserIds(liveSet);
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const followingSet = new Set(followingIds || []);
@@ -236,6 +239,10 @@ export function FeedStoryCirclesOverlay({
     };
 
     void fetchUsers();
+    const livePoll = window.setInterval(() => {
+      void fetchUsers();
+    }, 30_000);
+    return () => window.clearInterval(livePoll);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, followingFirst, (followingIds || []).join(',')]);
 
@@ -333,11 +340,16 @@ export function FeedStoryCirclesOverlay({
       </button>
       {storyGroups
         .filter((g) => g.userId !== user?.id && (g.items?.length ?? 0) > 0)
-        .map((g) => (
+        .map((g) => {
+          const isLive = liveUserIds.has(g.userId);
+          return (
           <button
             key={`story-${g.userId}`}
             type="button"
-            onClick={() => openUserStory(g.userId)}
+            onClick={() => {
+              if (isLive) openUserOrLive(g.userId, true);
+              else openUserStory(g.userId);
+            }}
             className="flex-shrink-0 flex flex-col items-center gap-0.5"
             style={{ width: 80, minWidth: 80 }}
             title={g.displayName || g.username}
@@ -345,6 +357,8 @@ export function FeedStoryCirclesOverlay({
             <StoryGoldRingAvatar
               size={58}
               glow
+              live={isLive}
+              data-avatar-circle={isLive ? 'live' : undefined}
               src={g.avatar || '/royce/default-avatar.svg'}
               alt={g.displayName || g.username || ''}
             />
@@ -352,22 +366,25 @@ export function FeedStoryCirclesOverlay({
               {g.displayName || g.username}
             </div>
           </button>
-        ))}
+          );
+        })}
       {suggestedUsers
         .filter((u) => !storyGroups.some((g) => g.userId === u.id && (g.items?.length ?? 0) > 0))
-        .map((u) => (
+        .map((u) => {
+          const isLive = !!u.is_live || liveUserIds.has(u.id);
+          return (
           <button
             key={u.id}
             type="button"
-            onClick={() => openUserOrLive(u.id, !!u.is_live)}
+            onClick={() => openUserOrLive(u.id, isLive)}
             className="flex-shrink-0 flex flex-col items-center gap-0.5"
             style={{ width: 80, minWidth: 80 }}
           >
             <StoryGoldRingAvatar
               size={58}
               glow
-              live={u.is_live}
-              data-avatar-circle={u.is_live ? 'live' : undefined}
+              live={isLive}
+              data-avatar-circle={isLive ? 'live' : undefined}
               src={u.avatar_url || '/royce/default-avatar.svg'}
               alt={u.name || u.username}
             />
@@ -375,7 +392,8 @@ export function FeedStoryCirclesOverlay({
               {u.name || u.username}
             </div>
           </button>
-        ))}
+          );
+        })}
     </div>
   );
 

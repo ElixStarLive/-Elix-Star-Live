@@ -1,11 +1,12 @@
 import React from 'react';
 
-/** Live badge + ring — silver accent (exact theme). */
+/** Live badge + live ring (red) when on-air; silver ring otherwise. */
 const SILVER_RING = '#E6E9EE';
+const LIVE_RING = '#FF2D55';
 
 /**
  * User avatar circle — silver ring flush on the photo (no gap).
- * Live adds LIVE badge below; ring stays the same tight silver border.
+ * Live: red live ring + LIVE badge below.
  */
 export function StoryGoldRingAvatar({
   size = 56,
@@ -36,6 +37,7 @@ export function StoryGoldRingAvatar({
   const liveBadgeRadius = Math.max(2, Math.round(safeSize * 0.055));
   const safeSrc = typeof src === 'string' && src.trim() ? src.trim() : '';
   const initial = (alt || '?').trim().charAt(0).toUpperCase() || '?';
+  const ringColor = live ? LIVE_RING : SILVER_RING;
 
   return (
     <div
@@ -47,11 +49,12 @@ export function StoryGoldRingAvatar({
       {...(dataAvatarCircle ? { 'data-avatar-circle': dataAvatarCircle } : {})}
     >
       <div
-        className="elix-profile-ring absolute inset-0 rounded-full overflow-hidden"
+        className={`elix-profile-ring absolute inset-0 rounded-full overflow-hidden ${live ? 'elix-story-live-ring' : ''}`}
         style={{
           boxSizing: 'border-box',
-          border: `2px solid ${SILVER_RING}`,
+          border: `2.5px solid ${ringColor}`,
           background: '#121419',
+          boxShadow: live ? `0 0 0 1px ${LIVE_RING}, 0 0 8px rgba(255, 45, 85, 0.55)` : undefined,
         }}
       >
         {safeSrc ? (
@@ -74,8 +77,8 @@ export function StoryGoldRingAvatar({
         <div
           className="pointer-events-none absolute bottom-0 left-1/2 z-[20] -translate-x-1/2 translate-y-1/2 whitespace-nowrap font-bold leading-none"
           style={{
-            backgroundColor: SILVER_RING,
-            color: '#080A0E',
+            backgroundColor: LIVE_RING,
+            color: '#FFFFFF',
             fontSize: liveBadgeFont,
             padding: `${liveBadgePadY}px ${liveBadgePadX}px`,
             borderRadius: liveBadgeRadius,

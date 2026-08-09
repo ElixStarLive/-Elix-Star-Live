@@ -1759,6 +1759,12 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   box-shadow: var(--elix-avatar-glow) !important;
 }
 
+/* Story / suggestion circle when that user is LIVE */
+.elix-profile-ring.elix-story-live-ring {
+  border-color: #FF2D55 !important;
+  box-shadow: 0 0 0 1px #FF2D55, 0 0 8px rgba(255, 45, 85, 0.55) !important;
+}
+
 /* ═══ SHARED ICON OWNER — silver stroke + soft glow + round disc ═══
    NORMAL: #E6E9EE + --elix-icon-glow + disc
    ACTIVE: #FFFFFF + --elix-icon-glow-on + disc
