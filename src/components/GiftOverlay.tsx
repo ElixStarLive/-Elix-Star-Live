@@ -202,7 +202,6 @@ export function GiftOverlay({
           videoSrc={videoSrc}
           muted={muted}
           onEnded={handleEnded}
-          className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
         />
       </div>
     </div>
