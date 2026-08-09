@@ -1292,18 +1292,18 @@ export default function LiveHostScreen() {
                         </div>
                         <div className="relative z-10 flex h-full min-h-[12px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                           <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
-                            <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCountShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                             {is4Player && (
                               <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                P1 {battleServerTotals.h} + P3 {battleServerTotals.p3}
+                                P1 {formatCountShort(battleServerTotals.h)} + P3 {formatCountShort(battleServerTotals.p3)}
                               </span>
                             )}
                           </div>
                           <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
-                            <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCountShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                             {is4Player && (
                               <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                P2 {battleServerTotals.o} + P4 {battleServerTotals.p4}
+                                P2 {formatCountShort(battleServerTotals.o)} + P4 {formatCountShort(battleServerTotals.p4)}
                               </span>
                             )}
                           </div>
@@ -1412,6 +1412,14 @@ export default function LiveHostScreen() {
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
                       </div>
+                      {/* This creator's battle points (join into 2x2 team total) */}
+                      {!hideRedScore && (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                          <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {formatCountShort(myScore)}
+                          </span>
+                        </div>
+                      )}
                       {/* P1 mic + cam â€” icons only */}
                       <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
@@ -1528,6 +1536,14 @@ export default function LiveHostScreen() {
                             openBattlePartnerMiniProfile(0);
                           }}
                         />
+                      ) : null}
+
+                      {battleSlots[0].status === 'accepted' && !hideBlueScore ? (
+                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                          <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {formatCountShort(opponentScore)}
+                          </span>
+                        </div>
                       ) : null}
 
                       {battleSlots[0].status !== 'empty' && (
@@ -1668,6 +1684,14 @@ export default function LiveHostScreen() {
                           />
                         ) : null}
 
+                        {battleSlots[1].status === 'accepted' && !hideRedScore ? (
+                          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {formatCountShort(player3Score)}
+                            </span>
+                          </div>
+                        ) : null}
+
                         {battleSlots[1].status !== 'empty' && (
                           <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
                             <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }}>
@@ -1774,6 +1798,14 @@ export default function LiveHostScreen() {
                               openBattlePartnerMiniProfile(2);
                             }}
                           />
+                        ) : null}
+
+                        {battleSlots[2].status === 'accepted' && !hideBlueScore ? (
+                          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {formatCountShort(player4Score)}
+                            </span>
+                          </div>
                         ) : null}
 
                         {battleSlots[2].status !== 'empty' && (

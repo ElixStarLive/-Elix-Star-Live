@@ -2765,12 +2765,13 @@ export function useLiveHostController() {
     });
   }, [isBattleMode, effectiveStreamId, setPromo]);
 
-  /** Gift / battle PK totals — full numbers (no K/M) so scores match real coin amounts. */
+  /** Gift / profile counts — full locale numbers (non-battle). */
   const formatCoinsShort = (coins: number) => {
     const n = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
     return n.toLocaleString();
   };
 
+  /** Battle join points on creator panes + score bar — K / M. */
   const formatCountShort = (count: number) => {
     const c = typeof count === 'number' && Number.isFinite(count) ? count : 0;
     if (c >= 1_000_000) {

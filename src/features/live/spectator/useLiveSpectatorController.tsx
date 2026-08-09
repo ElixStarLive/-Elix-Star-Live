@@ -143,8 +143,16 @@ import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
 
 function formatBattleScoreShort(coins: number) {
-  const n = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
-  return n.toLocaleString();
+  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
+  if (c >= 1_000_000) {
+    const m = Math.round((c / 1_000_000) * 10) / 10;
+    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
+  }
+  if (c >= 1000) {
+    const k = Math.round((c / 1000) * 10) / 10;
+    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
+  }
+  return String(c);
 }
 
 /** Co-host tile gift totals — 15K / 100K / 500K style. */

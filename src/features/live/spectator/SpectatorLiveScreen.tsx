@@ -125,8 +125,16 @@ import { apiLiveStreams, apiLiveToken, LiveRoomLifecycle } from '../../../lib/li
 import { giftSendErrorToast } from '../../../lib/giftSend';
 
 function formatBattleScoreShort(coins: number) {
-  const n = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
-  return n.toLocaleString();
+  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
+  if (c >= 1_000_000) {
+    const m = Math.round((c / 1_000_000) * 10) / 10;
+    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
+  }
+  if (c >= 1000) {
+    const k = Math.round((c / 1000) * 10) / 10;
+    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
+  }
+  return String(c);
 }
 
 /** Co-host tile gift totals — 15K / 100K / 500K style. */
@@ -627,9 +635,12 @@ export default function SpectatorLiveScreen() {
             const oS = spectatorBattle.opponentScore || 0;
             const p3s = spectatorBattle.player3Score ?? 0;
             const p4s = spectatorBattle.player4Score ?? 0;
-            /** 4-way tap zones only when co-host labels use "Name + Name"; per-bucket scores always shown under bar. */
+            /** 4-way join points: show P1+P3 / P2+P4 whenever any 4th seat or score exists. */
             const showPkBreakdown =
-              (spectatorBattle.redTeamLabel || '').includes(' + ') || (spectatorBattle.blueTeamLabel || '').includes(' + ');
+              (spectatorBattle.redTeamLabel || '').includes(' + ') ||
+              (spectatorBattle.blueTeamLabel || '').includes(' + ') ||
+              (spectatorBattle.player3Score ?? 0) > 0 ||
+              (spectatorBattle.player4Score ?? 0) > 0;
             // End-game suspense hides both scores; Mist Fog hides ONLY the supported
             // creator's side (the one the spectator boosted), never both.
             const mistSupportedSide = mistHidesMyScore ? mistFog?.supportedSide : null;
@@ -668,7 +679,7 @@ export default function SpectatorLiveScreen() {
                           <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {showPkBreakdown && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P1 {hS} + P3 {p3s}
+                              P1 {formatBattleScoreShort(hS)} + P3 {formatBattleScoreShort(p3s)}
                             </span>
                           )}
                         </div>
@@ -676,7 +687,7 @@ export default function SpectatorLiveScreen() {
                           <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {showPkBreakdown && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P2 {oS} + P4 {p4s}
+                              P2 {formatBattleScoreShort(oS)} + P4 {formatBattleScoreShort(p4s)}
                             </span>
                           )}
                         </div>
@@ -776,6 +787,13 @@ export default function SpectatorLiveScreen() {
                         >
                           <RoyceCloseIcon size={12} />
                         </button>
+                        {!hideRedScore && (
+                          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {formatBattleScoreShort(showPkBreakdown ? hS : redTeamScore)}
+                            </span>
+                          </div>
+                        )}
                         {lastHostGift.length > 0 && (
                           <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
                             {lastHostGift.map((src, i) => (
@@ -821,6 +839,13 @@ export default function SpectatorLiveScreen() {
                                 <span className="text-[#8B9099] text-[10px] font-bold">Connecting...</span>
                               </div>
                             ) : null}
+                          </div>
+                        )}
+                        {!hideBlueScore && (
+                          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
+                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {formatBattleScoreShort(showPkBreakdown ? oS : blueTeamScore)}
+                            </span>
                           </div>
                         )}
                         {lastOpponentGift.length > 0 && (
