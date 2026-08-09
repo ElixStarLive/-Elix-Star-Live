@@ -2181,10 +2181,27 @@ body {
   box-shadow: none;
 }
 
-.elix-battle-slot {
+/* Battle empty slots + stage — same cosmic fundal as app panels (not solid black) */
+.elix-battle-slot,
+.elix-battle-stage-fundal,
+.elix-battle-chat-fundal {
   background-color: transparent;
-  background-image: none;
+  background-image: var(--elix-panel-fill);
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+}
+.elix-battle-slot {
   border: 1px solid var(--elix-border);
+}
+/* Battle MVP / invite profile rings — fundal fill, not solid black */
+#root .elix-live-room .elix-battle-stage-fundal .elix-profile-ring {
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
+  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
 }
 
 .elix-battle-score-host {

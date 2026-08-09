@@ -632,7 +632,7 @@ export default function SpectatorLiveScreen() {
                 }}
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
-                <div className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
+                <div className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden elix-battle-stage-fundal" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                 <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'elix-battle-score-wrap'}`}>
                   {!battleScoreBarHidden ? (
                     <div
@@ -1673,7 +1673,7 @@ export default function SpectatorLiveScreen() {
           }}
         >
           <div
-            className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden bg-transparent"
+            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${spectatorBattle?.active ? 'elix-battle-chat-fundal' : 'bg-transparent'}`}
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',

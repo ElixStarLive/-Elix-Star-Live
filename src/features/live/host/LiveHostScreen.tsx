@@ -1252,7 +1252,7 @@ export default function LiveHostScreen() {
               const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
               return (
                 <div
-                  className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden"
+                  className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden elix-battle-stage-fundal"
                   style={{
                     height: LIVE_BATTLE_VIDEO_HEIGHT,
                     filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
@@ -2075,7 +2075,7 @@ export default function LiveHostScreen() {
               }}
             >
               <div
-                className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden bg-transparent"
+                className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${isBattleMode ? 'elix-battle-chat-fundal' : 'bg-transparent'}`}
                 style={{
                   height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
                   maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
