@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Gift, Target } from "lucide-react";
 import {
   fetchGiftsFromDatabase,
@@ -28,6 +28,10 @@ type Props = PickerProps | ReadonlyProps;
 
 const GOAL_COUNT_MIN = 1;
 const GOAL_COUNT_MAX = 20_000;
+/** How many gifts show in the top strip at once. */
+const GALLERY_VISIBLE = 4;
+/** Auto-advance one gift so people see the full gallery. */
+const GALLERY_AUTO_MS = 2800;
 
 function clampGoalCount(n: number) {
   if (!Number.isFinite(n)) return GOAL_COUNT_MIN;
@@ -45,8 +49,13 @@ function giftPanelSort(a: GiftItem, b: GiftItem) {
 export function GiftGoalGallery(props: Props) {
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Start index into gallery — advances one gift at a time. */
+  const [startIndex, setStartIndex] = useState(0);
+  const pauseAutoUntilRef = useRef(0);
 
-  React.useEffect(() => {
+  const selectedGiftId = props.mode === "picker" ? props.selectedGiftId : null;
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     // Same catalog source as GiftPanel — include every panel gift.
@@ -66,6 +75,49 @@ export function GiftGoalGallery(props: Props) {
   }, []);
 
   const galleryGifts = useMemo(() => [...gifts].sort(giftPanelSort), [gifts]);
+  const maxStart = Math.max(0, galleryGifts.length - GALLERY_VISIBLE);
+
+  useEffect(() => {
+    setStartIndex((i) => Math.min(i, Math.max(0, galleryGifts.length - GALLERY_VISIBLE)));
+  }, [galleryGifts.length]);
+
+  // One-by-one auto scroll through the gallery (pauses briefly after manual arrows).
+  useEffect(() => {
+    if (props.mode !== "picker") return;
+    if (galleryGifts.length <= GALLERY_VISIBLE) return;
+    const id = window.setInterval(() => {
+      if (Date.now() < pauseAutoUntilRef.current) return;
+      setStartIndex((i) => {
+        const cap = Math.max(0, galleryGifts.length - GALLERY_VISIBLE);
+        if (cap <= 0) return 0;
+        return i >= cap ? 0 : i + 1;
+      });
+    }, GALLERY_AUTO_MS);
+    return () => window.clearInterval(id);
+  }, [props.mode, galleryGifts.length]);
+
+  // Keep selected gift visible when it changes from outside.
+  useEffect(() => {
+    if (!selectedGiftId || galleryGifts.length === 0) return;
+    const idx = galleryGifts.findIndex((g) => g.id === selectedGiftId);
+    if (idx < 0) return;
+    setStartIndex((cur) => {
+      if (idx >= cur && idx < cur + GALLERY_VISIBLE) return cur;
+      return Math.max(0, Math.min(maxStart, idx - Math.floor(GALLERY_VISIBLE / 2)));
+    });
+  }, [selectedGiftId, galleryGifts, maxStart]);
+
+  const pauseAuto = () => {
+    pauseAutoUntilRef.current = Date.now() + 6000;
+  };
+
+  const stepGallery = (dir: -1 | 1) => {
+    pauseAuto();
+    setStartIndex((i) => {
+      const cap = Math.max(0, galleryGifts.length - GALLERY_VISIBLE);
+      return Math.max(0, Math.min(cap, i + dir));
+    });
+  };
 
   if (props.mode === "readonly") {
     const { goal, onSend } = props;
@@ -116,7 +168,6 @@ export function GiftGoalGallery(props: Props) {
   }
 
   const {
-    selectedGiftId,
     targetCount,
     onSelectGift,
     onTargetCountChange,
@@ -127,6 +178,10 @@ export function GiftGoalGallery(props: Props) {
 
   const selectedGift = galleryGifts.find((g) => g.id === selectedGiftId) ?? null;
   const safeTargetCount = clampGoalCount(targetCount);
+  const safeStart = Math.min(startIndex, maxStart);
+  const visibleGifts = galleryGifts.slice(safeStart, safeStart + GALLERY_VISIBLE);
+  const canPrev = safeStart > 0;
+  const canNext = safeStart < maxStart;
 
   return (
     <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20">
@@ -135,7 +190,11 @@ export function GiftGoalGallery(props: Props) {
           <Gift className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
           Gift Goal Gallery
         </h3>
-        <span className="text-white/40 text-[8px]">Pick a gift for fans to send</span>
+        <span className="text-white/40 text-[8px]">
+          {galleryGifts.length > 0
+            ? `${safeStart + 1}–${Math.min(galleryGifts.length, safeStart + GALLERY_VISIBLE)} / ${galleryGifts.length}`
+            : "Pick a gift for fans to send"}
+        </span>
       </div>
 
       {loading ? (
@@ -143,31 +202,51 @@ export function GiftGoalGallery(props: Props) {
       ) : galleryGifts.length === 0 ? (
         <p className="text-white/40 text-[9px] text-center py-4">No gifts available</p>
       ) : (
-        <div
-          className="grid grid-cols-4 gap-1.5 mb-2 overflow-y-auto overflow-x-hidden touch-pan-y overscroll-contain"
-          style={{ maxHeight: "168px" }}
-        >
-          {galleryGifts.map((gift) => (
-            <button
-              key={gift.id}
-              type="button"
-              onClick={() => onSelectGift(gift)}
-              className={[
-                "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
-                selectedGiftId === gift.id
-                  ? "border-[#D8D9DD] bg-white/10"
-                  : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
-              ].join(" ")}
-            >
-              <img
-                src={resolveGiftAssetUrl(gift.icon)}
-                alt=""
-                className="w-full h-full object-contain pointer-events-none"
-                draggable={false}
-              />
-              <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1 mb-2">
+          <button
+            type="button"
+            title="Previous gift"
+            disabled={!canPrev}
+            onClick={() => stepGallery(-1)}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+          >
+            <ChevronLeft size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+          </button>
+          <div className="grid grid-cols-4 gap-1.5 flex-1 min-w-0">
+            {visibleGifts.map((gift) => (
+              <button
+                key={gift.id}
+                type="button"
+                onClick={() => {
+                  pauseAuto();
+                  onSelectGift(gift);
+                }}
+                className={[
+                  "aspect-square rounded-lg border p-1 flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all",
+                  selectedGiftId === gift.id
+                    ? "border-[#D8D9DD] bg-white/10"
+                    : "border-[#D8D9DD]/15 bg-white/5 hover:bg-white/10",
+                ].join(" ")}
+              >
+                <img
+                  src={resolveGiftAssetUrl(gift.icon)}
+                  alt=""
+                  className="w-full h-full object-contain pointer-events-none"
+                  draggable={false}
+                />
+                <span className="text-[7px] text-white/80 truncate w-full text-center">{gift.name}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            title="Next gift"
+            disabled={!canNext}
+            onClick={() => stepGallery(1)}
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border border-[#2A2D33] bg-black/35 active:scale-95 disabled:opacity-35"
+          >
+            <ChevronRight size={16} className="text-[#F5F5F7]" strokeWidth={2.4} />
+          </button>
         </div>
       )}
 
