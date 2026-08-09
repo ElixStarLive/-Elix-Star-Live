@@ -34,9 +34,9 @@ const CAPSULE_TITLE = 'elix-silver-red-text text-[8px] font-bold whitespace-nowr
 const CAPSULE_SUB = 'elix-silver-red-text text-[6px] font-semibold whitespace-nowrap mt-[0.5px]';
 const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-none';
 
-/** Same height / padding / round chip shape — taller + slightly wider capsules. */
+/** Same height / padding / round chip shape — shorter capsules (icons smaller in height). */
 const THIN_CAPSULE_CLASS =
-  'elix-live-thin-capsule inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-2 pr-2.5 h-[28px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent shadow-none';
+  'elix-live-thin-capsule inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-2 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent shadow-none';
 
 /** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
 export function LiveFollowPill({
@@ -90,7 +90,7 @@ export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent
       }}
       aria-label="Follow"
     >
-      <Plus size={11} className="text-[#F5F5F7] flex-shrink-0" strokeWidth={3} />
+      <Plus size={9} className="text-[#F5F5F7] flex-shrink-0" strokeWidth={3} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Follow</span>
         <span className={`${CAPSULE_SUB} font-bold`}>Creator</span>
@@ -285,7 +285,7 @@ export function LiveDiamondLeagueCapsule({
         onOpen();
       }}
     >
-      <LivePhotoDiamondIcon size={11} />
+      <LivePhotoDiamondIcon size={9} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Diamond League</span>
         <span className={CAPSULE_SUB}>
@@ -308,7 +308,7 @@ export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <LivePhotoCrownIcon size={11} />
+      <LivePhotoCrownIcon size={9} />
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
         <span className={CAPSULE_TITLE}>Membership</span>
         <span className={`${CAPSULE_SUB} font-bold`}>VIP</span>
@@ -385,7 +385,7 @@ export function LiveWeeklyRankingPill({
         onOpen();
       }}
     >
-      <span className="text-[9px] leading-none w-[11px] h-[11px] flex items-center justify-center flex-shrink-0" aria-hidden>
+      <span className="text-[8px] leading-none w-[9px] h-[9px] flex items-center justify-center flex-shrink-0" aria-hidden>
         🔥
       </span>
       <span className="flex flex-col items-start justify-center leading-none min-w-0">
@@ -410,7 +410,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
         onOpen();
       }}
     >
-      <svg width="11" height="11" viewBox="0 0 12 12" className="flex-shrink-0" aria-hidden>
+      <svg width="9" height="9" viewBox="0 0 12 12" className="flex-shrink-0" aria-hidden>
         <defs>
           <linearGradient id="elixExplorePlanet" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#EEF2FF" />
@@ -454,10 +454,10 @@ export function LiveGiftGoalCapsule({
         <img
           src={resolveGiftAssetUrl(goal.giftIcon)}
           alt=""
-          className="w-3.5 h-3.5 object-contain flex-shrink-0"
+          className="w-3 h-3 object-contain flex-shrink-0"
         />
       ) : (
-        <span className="text-[10px] leading-none flex-shrink-0" aria-hidden>
+        <span className="text-[8px] leading-none flex-shrink-0" aria-hidden>
           🎯
         </span>
       )}
