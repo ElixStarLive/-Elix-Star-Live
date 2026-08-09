@@ -888,14 +888,18 @@ export async function handleMessage(
             ? data.targetStreamKey.trim()
             : "";
         if (!rawTarget && !streamHint) break;
-        let targetUserId = await resolveStreamOwnerUserId(rawTarget || streamHint);
-        if (
+        // Prefer explicit user id (spectator / creator). Only resolve stream-key
+        // ownership when we do not already have a target user id.
+        let targetUserId = rawTarget;
+        if (!targetUserId && streamHint) {
+          targetUserId = await resolveStreamOwnerUserId(streamHint);
+        } else if (
           streamHint &&
-          streamHint !== rawTarget &&
-          (!targetUserId || targetUserId === rawTarget || targetUserId === streamHint)
+          streamHint !== rawTarget
         ) {
           const fromStream = await resolveStreamOwnerUserId(streamHint);
-          if (fromStream && fromStream !== streamHint) targetUserId = fromStream;
+          // If invitee was addressed only by stream key alias, keep resolved owner.
+          if (!rawTarget && fromStream) targetUserId = fromStream;
         }
         if (!targetUserId || targetUserId === client.userId) break;
         const streamKey =
@@ -912,6 +916,7 @@ export async function handleMessage(
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
           streamKey: client.roomId,
         };
+        // Deliver to target user id; also try rawTarget if resolve differed.
         let cohostSent = sendToUserGlobal(targetUserId, "cohost_invite", invitePayload);
         if (cohostSent === 0 && rawTarget && rawTarget !== targetUserId) {
           cohostSent = sendToUserGlobal(rawTarget, "cohost_invite", invitePayload);
@@ -947,14 +952,29 @@ export async function handleMessage(
           break;
         const rawHost =
           typeof data.hostUserId === "string" ? data.hostUserId.trim() : "";
-        if (!rawHost) break;
-        const hostUserId = await resolveStreamOwnerUserId(rawHost);
+        if (!rawHost && !client.roomId) break;
+        // Spectator ask → creator: resolve host from payload or current room.
+        let hostUserId = rawHost
+          ? await resolveStreamOwnerUserId(rawHost)
+          : "";
+        if (!hostUserId && client.roomId) {
+          hostUserId = await resolveStreamOwnerUserId(client.roomId);
+        }
         if (!hostUserId) break;
-        sendToUserGlobal(hostUserId, "cohost_request", {
+        if (hostUserId === client.userId) break;
+        const requestPayload = {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
-        });
+        };
+        let sent = sendToUserGlobal(hostUserId, "cohost_request", requestPayload);
+        // Fallback: host may still be keyed by the raw stream/room id.
+        if (sent === 0 && rawHost && rawHost !== hostUserId) {
+          sent = sendToUserGlobal(rawHost, "cohost_request", requestPayload);
+        }
+        if (sent === 0 && client.roomId && client.roomId !== hostUserId) {
+          sendToUserGlobal(client.roomId, "cohost_request", requestPayload);
+        }
         break;
       }
 

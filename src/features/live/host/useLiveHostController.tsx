@@ -983,6 +983,7 @@ export function useLiveHostController() {
 
     if (!user?.id) return;
     if (!websocket.isConnected()) {
+      showToast('Not connected — try Invite again');
       return;
     }
     cohostInviteSend({
@@ -992,6 +993,7 @@ export function useLiveHostController() {
       hostAvatar: myAvatar,
       streamKey: effectiveStreamId,
     });
+    showToast(`Invite sent to @${creator.name}`);
   };
 
   // ─── INCOMING CO-HOST INVITE (from another creator) ───
@@ -5380,8 +5382,18 @@ export function useLiveHostController() {
     setShowViewerList(false);
   }, [acceptJoinRequest]);
 
+  const inviteCoHostRef = useRef(inviteCoHost);
+  inviteCoHostRef.current = inviteCoHost;
+
   const inviteCoHostFromViewer = useCallback((viewer: { id: string; name: string; avatar?: string }) => {
-    void inviteCoHost({ id: viewer.id, name: viewer.name, avatar: viewer.avatar });
+    // Always call latest inviteCoHost (creator → spectator invite). Empty-deps
+    // previously froze a stale invite that no-op'd while stream was not live yet.
+    void inviteCoHostRef.current({
+      id: viewer.id,
+      name: viewer.name,
+      avatar: viewer.avatar,
+      streamKey: viewer.id,
+    });
     setShowViewerList(false);
   }, []);
 

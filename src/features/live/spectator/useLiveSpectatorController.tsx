@@ -504,7 +504,10 @@ export function useLiveSpectatorController() {
   const sendCohostJoinRequest = useCallback(() => {
     if (!user?.id || joinRequested || spectatorCoHostRequestSent) return false;
     const targetHostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
-    if (!targetHostId) return false;
+    if (!targetHostId) {
+      showToast('Host not ready — try again');
+      return false;
+    }
     setJoinRequested(true);
     setSpectatorCoHostRequestSent(true);
     cohostRequestSend({
