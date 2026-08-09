@@ -173,14 +173,13 @@ export function LiveHostProfileHeader({
             stroke="#F5F5F7"
             strokeWidth={2}
           />
-          {/* Follow first → after Follow, Join. Creator own live: Join only (no self-Follow). */}
+          {/* Follow + Join capsules. Join always stays when provided (owner: never remove Join). */}
           {(showFollow || joinSlot) ? (
-            <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">
               {showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-              ) : (
-                joinSlot ?? null
-              )}
+              ) : null}
+              {joinSlot ?? null}
             </div>
           ) : null}
         </div>
@@ -226,7 +225,9 @@ export function LiveJoinPill({
         background: 'transparent',
         backgroundColor: 'transparent',
         boxShadow: 'none',
-        border: 'none',
+        border: '1px solid #2A2D33',
+        height: 'calc(36px + 0.5mm)',
+        minHeight: 'calc(36px + 0.5mm)',
         position: 'relative',
         top: '1mm',
         marginTop: 0,

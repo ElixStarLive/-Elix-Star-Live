@@ -85,7 +85,9 @@
     --elix-fundal-deep: #080A0E;
     --elix-divider: rgba(255, 255, 255, 0.09);
     --elix-silver-write: linear-gradient(135deg, #FFFFFF 0%, #E6E9EE 55%, #C8CDD5 100%);
-    --elix-battle-fill: linear-gradient(90deg, #8B9099 0%, #C8CDD5 45%, #E6E9EE 75%, #FFFFFF 100%);
+    /* Battle PK bar — host/red vs guest/blue (locked colors) */
+    --elix-battle-fill: linear-gradient(90deg, #DC143C 0%, #FF1744 45%, #C41E3A 100%);
+    --elix-battle-fill-guest: linear-gradient(90deg, #1E90FF 0%, #4169E1 50%, #0047AB 100%);
     /* Fundal image = layer 0. Page/surface/panel fills = wash + fundal (ONE panel). */
     --elix-fundal-image: url('/elix-fundal-cosmic.png');
     /* Same app-wide fundal (For You chrome + panels) */
@@ -1788,15 +1790,15 @@ svg.lucide,
 /* Live header Join — taller + 1mm down (Join only; user oval untouched) */
 #root button[data-elix-join='true'],
 #root button.elix-live-join-capsule {
-  height: 36px !important;
-  min-height: 36px !important;
+  height: calc(36px + 0.5mm) !important;
+  min-height: calc(36px + 0.5mm) !important;
   padding-left: 8px !important;
   padding-right: 10px !important;
   border-radius: 9999px !important;
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
-  border: none !important;
+  border: 1px solid #2A2D33 !important;
   box-shadow: none !important;
   margin-top: 0 !important;
   position: relative !important;
@@ -2190,13 +2192,31 @@ body {
 }
 .elix-battle-score-guest {
   background-color: transparent;
-  background-image: var(--elix-panel-fill);
+  background-image: var(--elix-battle-fill-guest);
 }
 .elix-battle-score-wrap {
-  background-color: var(--elix-surface-solid);
-  background-image: var(--elix-surface-fill);
-  border: 1px solid var(--elix-border);
-  border-bottom: 1px solid var(--elix-border);
+  background-color: transparent;
+  background-image: none;
+  border: none;
+  border-bottom: none;
+}
+
+/* Live battle tile X / mic / cam — icons only, no global lucide disc */
+#root .elix-live-room .elix-live-tile-ctrl svg.lucide,
+#root .elix-live-room .video-zone button.elix-live-tile-ctrl svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Close"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Remove"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Mute"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Unmute"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Cam On"] svg.lucide,
+#root .elix-live-room .video-zone > div button[aria-label="Cam Off"] svg.lucide {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
 }
 
 /* Locked palette: plain black utilities resolve to theme base / surface glass */

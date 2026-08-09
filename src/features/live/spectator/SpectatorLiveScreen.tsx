@@ -36,7 +36,6 @@ import {
 } from 'lucide-react';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
-import { LiveGiftGoalBar } from '../../../components/LiveGiftGoalBar';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -585,7 +584,7 @@ export default function SpectatorLiveScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden flex flex-col elix-fundal-glass">
+      <div className="relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col elix-fundal-glass">
 
         {/* Video container: transparent shell — glass overlays sit on top of live video */}
         {/* Video container */}
@@ -628,19 +627,17 @@ export default function SpectatorLiveScreen() {
               <div
                 className="absolute inset-0 z-[80] flex flex-col overflow-hidden"
                 style={{
-                  // Match creator broadcast battle: reserve bottom for chat / action bar
-                  // so video stays top-half and chat sits in the lower half.
-                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 90px)',
+                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px)',
                   paddingBottom: '305px',
                 }}
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
-                <div className="relative w-full flex-none flex flex-col overflow-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
+                <div className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden" style={{ height: LIVE_BATTLE_VIDEO_HEIGHT }}>
                 <div className={`relative z-20 w-full flex-none ${battleScoreBarHidden ? '' : 'elix-battle-score-wrap'}`}>
                   {!battleScoreBarHidden ? (
                     <div
                       className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
-                      style={{ minHeight: showPkBreakdown ? '20px' : '16px' }}
+                      style={{ minHeight: showPkBreakdown ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)', height: showPkBreakdown ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)' }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setBattleScoreBarHidden(true);
@@ -654,9 +651,9 @@ export default function SpectatorLiveScreen() {
                         />
                         <div className="elix-battle-score-guest h-full flex-1 min-w-0" />
                       </div>
-                      <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
+                      <div className="relative z-10 flex h-full min-h-[12px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                         <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
-                          <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                          <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {showPkBreakdown && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                               P1 {hS} + P3 {p3s}
@@ -664,7 +661,7 @@ export default function SpectatorLiveScreen() {
                           )}
                         </div>
                         <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
-                          <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                          <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                           {showPkBreakdown && (
                             <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                               P2 {oS} + P4 {p4s}
@@ -701,7 +698,7 @@ export default function SpectatorLiveScreen() {
                       <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                         <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                           <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGradSpectator)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#C8CDD5"/></linearGradient></defs>
+                          <defs><linearGradient id="vsGradSpectator" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                         </svg>
                         <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                       </div>
@@ -722,7 +719,7 @@ export default function SpectatorLiveScreen() {
                 </div>
 
                 {/* Battle grid — videos + tap overlay (2-way or 4-way PK); one +5 vote per spectator per battle */}
-                  <div className="flex-1 min-h-0 flex flex-col relative">
+                  <div className="flex-1 min-h-0 min-w-0 w-full max-w-full flex flex-col relative overflow-hidden overflow-x-hidden">
                     <BattleVfxOverlays
                       mistSide={
                         mistFog && mistFog.expiresAt > Date.now() && mistHidesMyScore
@@ -733,7 +730,7 @@ export default function SpectatorLiveScreen() {
                       gloves={battleGloves}
                     />
                     <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
-                    <div className="absolute inset-0 flex flex-row gap-0">
+                    <div className="absolute inset-0 flex flex-row gap-0 w-full max-w-full min-w-0 overflow-hidden">
                       <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)]">
                         <video
                           ref={videoRef}
@@ -880,10 +877,9 @@ export default function SpectatorLiveScreen() {
                     </div>
                   </div>
 
-                <div className="absolute bottom-1 left-0 right-0 px-3 py-1.5 flex items-center justify-between flex-none z-30 pointer-events-none" style={{ transform: 'translateY(1mm)' }}>
+                <div className="absolute bottom-1 left-0 right-0 px-3 py-1.5 flex items-center justify-between flex-none z-30 pointer-events-none overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
                   <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
-                    style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                     title="Top gifters — red side"
                     onClick={() => {
                       const ranked = [...mvpSlots.host]
@@ -936,8 +932,7 @@ export default function SpectatorLiveScreen() {
                     })}
                   </div>
                   <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
-                    style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
                     title="Top gifters — blue side"
                     onClick={() => {
                       const ranked = [...mvpSlots.opponent]
@@ -1512,8 +1507,17 @@ export default function SpectatorLiveScreen() {
         })()}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
-        <div className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible">
-          <div className="px-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
+        <div
+          className="absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome"
+          style={{
+            backgroundColor: 'var(--elix-bg)',
+            backgroundImage: 'var(--elix-fundal-image)',
+            backgroundSize: '100% auto',
+            backgroundPosition: 'top center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
             <div className="flex items-start justify-between gap-2">
               {/* Left: Creator info — photo profile (MVP circles untouched) */}
               <div className="pointer-events-auto flex flex-col gap-2">
@@ -1567,12 +1571,13 @@ export default function SpectatorLiveScreen() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.global.slice(0, 1).map((slot) => {
-                      const isMvp = (slot.points ?? 0) > 0;
+                    {mvpSlots.global.slice(0, 3).map((slot, i) => {
+                      const isMvp = i === 0 && (slot.points ?? 0) > 0;
                       return (
                         <div
                           key={`spectator-top-mvp-${slot.id}`}
                           className="relative"
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
                         >
                           <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
@@ -1645,26 +1650,33 @@ export default function SpectatorLiveScreen() {
               onExplore={() => {
                 navigate('/live');
               }}
+              showGiftGoal
+              giftGoal={giftGoal}
+              onGiftGoal={() => {
+                setShowGiftPanel(false);
+                setRankingInitialTab('goal');
+                setShowRankingPanel(true);
+              }}
               showFollow={Boolean(user?.id && hostUserId && user.id !== hostUserId && !isFollowing)}
               onFollow={(e) => {
                 e.stopPropagation();
                 followHost(e);
               }}
-              showMembership={true}
+              showMembership={false}
             />
           </div>
         </div>
 
         {/* CHAT — same pattern as LiveStream (!isBroadcast): scroll area tap sends like on empty space */}
         <div
-          className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
+          className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none overflow-x-hidden"
           style={{
             bottom: LIVE_BOTTOM_ACTION_RESERVE,
             transform: spectatorBattle?.active ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
           }}
         >
           <div
-            className="w-full max-w-[480px] relative"
+            className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden elix-fundal-glass"
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
@@ -1698,8 +1710,8 @@ export default function SpectatorLiveScreen() {
               ))}
             </div>
             <div
-              className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent px-1"
-              style={{ transform: 'translateX(2mm)', visibility: isChatVisible ? 'visible' : 'hidden' }}
+              className="relative z-[10] h-full overflow-y-auto overflow-x-hidden pointer-events-auto bg-transparent px-1"
+              style={{ transform: 'none', visibility: isChatVisible ? 'visible' : 'hidden' }}
               onPointerDown={(e) => {
                 e.stopPropagation();
                 if (e.target instanceof Element) {
@@ -2010,12 +2022,11 @@ export default function SpectatorLiveScreen() {
             <div className="fixed inset-0 z-[99998] bg-black/35 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-center pt-2 pb-1"><div className="w-10 h-1 bg-white/20 rounded-full" /></div>
-                <div className="flex items-center justify-center px-4 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <Crown size={14} className="text-[#F5F5F7]" strokeWidth={1.8} />
-                    <span className="text-white font-bold text-[13px]">Co-Host</span>
+                <div className="flex flex-col px-4 pt-2 pb-2 border-b border-white/10 flex-shrink-0">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
                   </div>
+                  <span className="text-[#F5F5F7] font-bold text-sm text-center w-full">Co-Host</span>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 min-h-0 flex flex-col gap-4">
                   {pendingCoHostInvite ? (
@@ -2090,15 +2101,11 @@ export default function SpectatorLiveScreen() {
                 className="elix-panel rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex flex-col items-center justify-center pt-3 pb-1 gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-[#FFFFFF] shadow-[0_0_6px_rgba(255,255,255,0.25)]" />
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
-                </div>
-                <div className="flex items-center justify-between px-4 pb-2">
-                  <div className="flex items-center gap-1.5">
-                    <Heart className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2} fill="#D8D9DD" />
-                    <span className="text-gold-metallic font-bold text-sm">Super Fan Goal</span>
+                <div className="flex flex-col px-1 pt-0 pb-2 border-b border-white/10">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
                   </div>
+                  <span className="text-[#F5F5F7] font-bold text-sm text-center w-full">Super Fan Goal</span>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar">
                   <div className="flex flex-col gap-3">
@@ -2114,7 +2121,7 @@ export default function SpectatorLiveScreen() {
                           </div>
                         </div>
                         <div className="flex items-end gap-1 mb-2">
-                          <span className="text-lg font-black text-gold-metallic">£3.00</span>
+                          <span className="text-lg font-black text-gold-metallic">£9.00</span>
                           <span className="text-white/40 text-[10px] font-medium mb-0.5">/ month</span>
                         </div>
                         <button
@@ -2230,20 +2237,6 @@ export default function SpectatorLiveScreen() {
               </div>
             </div>
           </>
-        )}
-
-        {giftGoal && streamIsLive && (
-          <div
-            className="fixed left-0 right-0 z-[105] flex justify-center pointer-events-none px-3"
-            style={{ bottom: 'calc(118px + max(8px, env(safe-area-inset-bottom)))' }}
-          >
-            <div className="w-full max-w-[480px] flex justify-start">
-              <LiveGiftGoalBar
-                goal={giftGoal}
-                onTap={() => setShowGiftPanel(true)}
-              />
-            </div>
-          </div>
         )}
 
         {streamIsLive ? (
@@ -2367,12 +2360,12 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
               <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
-                <div className="flex justify-center pt-3 pb-1">
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
-                </div>
-                <div className="flex items-center justify-between px-4 pb-2">
-                  <h3 className="text-white font-bold text-sm">Top viewers & gifters</h3>
-                  <div className="flex items-center gap-1">
+                <div className="relative flex flex-col px-4 pt-2 pb-2 border-b border-white/10 flex-shrink-0">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
+                  </div>
+                  <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">Top viewers & gifters</h3>
+                  <div className="absolute right-4 top-[28px] flex items-center gap-1">
                     <Eye size={12} className="text-white/50" />
                     <span className="text-white/60 text-xs font-semibold">{viewersList.length || viewerCount}</span>
                   </div>
@@ -2446,21 +2439,25 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div className="elix-panel backdrop-blur-md rounded-t-2xl p-3 pb-safe flex flex-col shadow-2xl w-full h-[40vh] overflow-hidden ">
-                <div className="flex justify-center pt-0.5 pb-0.5">
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
-                </div>
-                <div className="flex items-center justify-between gap-2 px-4 pb-0.5 flex-shrink-0">
-                  <h3 className="text-white font-bold whitespace-nowrap text-sm">Share to</h3>
-                  <div className="flex-none w-[120px] bg-white/5 rounded-lg px-2 py-0.5 flex items-center gap-2">
-                    <Search className="w-3.5 h-3.5 text-white/30" />
+                <div className="relative flex flex-col px-1 pt-0 pb-2 border-b border-white/10 flex-shrink-0">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
+                  </div>
+                  <div className="absolute left-2 top-0 flex items-center gap-1 z-10">
+                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
+                      <Search className="w-3.5 h-3.5 text-white/30" />
+                    </div>
                     <input
                       value={shareQuery}
                       onChange={(e) => setShareQuery(e.target.value)}
                       placeholder="Search..."
-                      className="bg-transparent text-white text-xs outline-none w-full placeholder:text-white/20"
+                      className="bg-transparent text-white text-xs outline-none w-[72px] placeholder:text-white/20"
+                      aria-label="Search"
                     />
                   </div>
+                  <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">Share to</h3>
                 </div>
+                <div className="flex flex-col flex-1 min-h-0">
                 <div className="w-full overflow-hidden shrink-0">
                   <div className="flex gap-3 overflow-x-auto overflow-y-hidden pt-3 pb-4 flex-shrink-0 px-4 no-scrollbar">
                     {shareContacts.filter(c => c.name.toLowerCase().includes(shareQuery.toLowerCase())).map((u) => (
@@ -2522,7 +2519,8 @@ export default function SpectatorLiveScreen() {
                 </div>
                 {/* Line between user circles and action icons */}
                 <div className="mx-4 border-t border-[#D8D9DD]/45 flex-shrink-0" aria-hidden />
-                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full">
+                {/* Action icons only — 4mm below the line */}
+                <div className="flex-1 overflow-y-scroll overflow-x-hidden min-h-0 px-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#313845] [&::-webkit-scrollbar-thumb]:rounded-full" style={{ paddingTop: '4mm' }}>
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
@@ -2546,7 +2544,7 @@ export default function SpectatorLiveScreen() {
                     ].map((item) => (
                       <button key={item.name} onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                         <div
-                          className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                          className="relative royce-glow-disc flex-shrink-0"
                           style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                         >
                           {React.cloneElement((item.icon as React.ReactElement), {
@@ -2559,6 +2557,7 @@ export default function SpectatorLiveScreen() {
                       </button>
                     ))}
                   </div>
+                </div>
                 </div>
               </div>
             </div>
@@ -2589,7 +2588,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="relative elix-panel rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative elix-panel rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 {areTestCoinsEnabled() && user?.isAdmin && (
@@ -2597,16 +2596,27 @@ export default function SpectatorLiveScreen() {
                     type="button"
                     onClick={openTestCoinsModal}
                     className="absolute top-2.5 right-3 z-10 w-4 h-4 p-0 m-0 flex items-center justify-center"
-                    aria-hidden="true"
+                    aria-label="Test coins"
                     tabIndex={-1}
                   >
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    {/* Panel-coloured mark — same as More panel; password gate; never real money */}
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor: 'var(--elix-panel)',
+                        border: '1px solid var(--elix-border)',
+                      }}
+                      aria-hidden
+                    />
                   </button>
                 )}
-                <div className="flex justify-center mb-2">
-                  <div className="w-10 h-1 bg-white/20 rounded-full" />
+                <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
+                  </div>
+                  <span className="text-[#F5F5F7] font-bold text-sm text-center">More Options</span>
                 </div>
-                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-1 pb-2 px-1">
+                <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-3 pb-2 px-3">
                   <button
                     type="button"
                     onClick={() => { setShowSharePanel(true); setIsMoreMenuOpen(false); }}

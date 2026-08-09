@@ -773,7 +773,7 @@ export default function LiveHostScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className="relative w-full max-w-[480px] h-full overflow-hidden border-none elix-fundal-glass">
+      <div className="relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden border-none elix-fundal-glass">
         <div className="h-full w-full relative">
         <audio ref={roomRemoteAudioRef} autoPlay playsInline className="hidden" />
         <audio ref={opponentRemoteAudioRef} autoPlay playsInline className="hidden" />
@@ -862,7 +862,7 @@ export default function LiveHostScreen() {
                         title="Remove co-host"
                         aria-label="Remove co-host"
                         onClick={(e) => { e.stopPropagation(); removeCoHost(featuredHost.id); }}
-                        className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                        className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
                       >
                         <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                       </button>
@@ -900,16 +900,16 @@ export default function LiveHostScreen() {
                       title="End co-host"
                       aria-label="End co-host"
                       onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
-                      className="absolute top-1 left-1 z-20 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
+                      className="absolute top-1 left-1 z-20 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
                     >
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
                     <div className="absolute top-1 right-1 z-10 flex items-end gap-1.5 pointer-events-auto">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded bg-black/50">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleMic(); }} className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 p-0.5 rounded bg-transparent">
                         {isMicMuted ? <MicOff className="w-3 h-3 text-white" strokeWidth={2.5} /> : <Mic className="w-3 h-3 text-white" strokeWidth={2.5} />}
                         <span className="text-[7px] font-semibold text-white/85 leading-none">{isMicMuted ? 'Unmute' : 'Mute'}</span>
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="flex flex-col items-center gap-0.5 p-0.5 rounded">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); toggleCam(); }} className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 p-0.5 rounded bg-transparent">
                         {isCamOff ? <CameraOff className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} /> : <Camera className="w-3 h-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" strokeWidth={2.5} />}
                         <span className="text-[7px] font-semibold text-white/85 leading-none">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
                       </button>
@@ -1025,7 +1025,7 @@ export default function LiveHostScreen() {
                           title="End co-host"
                           aria-label="End co-host"
                           onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
-                          className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
                         >
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
@@ -1081,7 +1081,7 @@ export default function LiveHostScreen() {
                           title="Remove co-host"
                           aria-label="Remove co-host"
                           onClick={(e) => { e.stopPropagation(); removeCoHost(host.id); }}
-                          className="flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
                         >
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
@@ -1252,7 +1252,7 @@ export default function LiveHostScreen() {
               const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
               return (
                 <div
-                  className="relative w-full flex-none flex flex-col overflow-hidden"
+                  className="relative w-full max-w-full flex-none flex flex-col overflow-hidden overflow-x-hidden"
                   style={{
                     height: LIVE_BATTLE_VIDEO_HEIGHT,
                     filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
@@ -1264,7 +1264,7 @@ export default function LiveHostScreen() {
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
-                        style={{ minHeight: is4Player ? '22px' : '20px', height: is4Player ? '22px' : '20px' }}
+                        style={{ minHeight: is4Player ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)', height: is4Player ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setBattleScoreBarHidden(true);
@@ -1278,9 +1278,9 @@ export default function LiveHostScreen() {
                           />
                           <div className="elix-battle-score-guest h-full flex-1 min-w-0" />
                         </div>
-                        <div className="relative z-10 flex h-full min-h-[16px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
+                        <div className="relative z-10 flex h-full min-h-[12px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                           <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
-                            <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                             {is4Player && (
                               <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                                 P1 {battleServerTotals.h} + P3 {battleServerTotals.p3}
@@ -1288,7 +1288,7 @@ export default function LiveHostScreen() {
                             )}
                           </div>
                           <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
-                            <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[11px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
+                            <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCoinsShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
                             {is4Player && (
                               <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
                                 P2 {battleServerTotals.o} + P4 {battleServerTotals.p4}
@@ -1325,7 +1325,7 @@ export default function LiveHostScreen() {
                         <div className="relative w-5 h-5 flex items-center justify-center flex-shrink-0">
                           <svg viewBox="0 0 40 44" className="absolute inset-0 w-full h-full drop-shadow-md">
                             <path d="M20 2 L36 10 L36 26 Q36 38 20 42 Q4 38 4 26 L4 10 Z" fill="url(#vsGrad2)" stroke="rgba(255,255,255,0.5)" strokeWidth="1.5"/>
-                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#FFFFFF"/><stop offset="50%" stopColor="#E6E9EE"/><stop offset="100%" stopColor="#C8CDD5"/></linearGradient></defs>
+                            <defs><linearGradient id="vsGrad2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#DC143C"/><stop offset="50%" stopColor="#8B0000"/><stop offset="100%" stopColor="#1E90FF"/></linearGradient></defs>
                           </svg>
                           <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                         </div>
@@ -1344,7 +1344,7 @@ export default function LiveHostScreen() {
                   </div>
 
                   {/* Grid Container â€” ref for spectator tapâ†’vote mapping */}
-                  <div ref={battleVoteGridRef} className="flex-1 min-h-0 flex flex-col relative">
+                  <div ref={battleVoteGridRef} className="flex-1 min-h-0 min-w-0 w-full max-w-full flex flex-col relative overflow-hidden overflow-x-hidden">
                     <BattleVfxOverlays
                       mistSide={
                         mistFog && mistFog.expiresAt > Date.now() && mistHidesScores
@@ -1356,7 +1356,7 @@ export default function LiveHostScreen() {
                     />
                     <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
                     {/* Row 1: P1 & P2 â€” equal joined panes */}
-                    <div className="flex flex-1 min-h-0 gap-0">
+                    <div className="flex flex-1 min-h-0 min-w-0 w-full max-w-full gap-0 overflow-hidden">
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
                       >
@@ -1395,7 +1395,7 @@ export default function LiveHostScreen() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
                           aria-label="Close"
-                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
@@ -1406,7 +1406,7 @@ export default function LiveHostScreen() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); togglePlayerMute('me'); }}
                           aria-label={mutedPlayers['me'] ? 'Unmute' : 'Mute'}
-                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {mutedPlayers['me']
                             ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
@@ -1416,7 +1416,7 @@ export default function LiveHostScreen() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); toggleCam(); }}
                           aria-label={isCamOff ? 'Cam On' : 'Cam Off'}
-                          className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                         >
                           {isCamOff
                             ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
@@ -1498,7 +1498,7 @@ export default function LiveHostScreen() {
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(0); }}
                               aria-label="Remove"
-                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                              className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                             >
                               <X size={14} className="text-[#F5F5F7]" strokeWidth={2.25} />
                             </button>
@@ -1509,7 +1509,7 @@ export default function LiveHostScreen() {
                               type="button"
                               onClick={(e) => { e.stopPropagation(); togglePlayerMute('opponent'); }}
                               aria-label={mutedPlayers['opponent'] ? 'Unmute' : 'Mute'}
-                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                              className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                             >
                               {mutedPlayers['opponent']
                                 ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
@@ -1519,7 +1519,7 @@ export default function LiveHostScreen() {
                               type="button"
                               onClick={(e) => { e.stopPropagation(); togglePlayerCamera('opponent'); }}
                               aria-label={cameraOffPlayers['opponent'] ? 'Cam On' : 'Cam Off'}
-                              className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                              className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
                             >
                               {cameraOffPlayers['opponent']
                                 ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
@@ -1557,7 +1557,7 @@ export default function LiveHostScreen() {
 
                   {/* Row 2: P3 & P4 â€” only when 4 players, same joined container */}
                   {is4Player && (
-                    <div className="flex flex-1 min-h-0 gap-0">
+                    <div className="flex flex-1 min-h-0 min-w-0 w-full max-w-full gap-0 overflow-hidden">
                       <div
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
                       >
@@ -1604,11 +1604,11 @@ export default function LiveHostScreen() {
 
                         {battleSlots[1].status !== 'empty' && (
                           <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
-                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }}>
+                            <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player3'); }}>
                               {mutedPlayers['player3'] ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} /> : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                               <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['player3'] ? 'Unmute' : 'Mute'}</span>
                             </button>
-                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(1); }}>
+                            <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(1); }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF4D6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                               <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
                             </button>
@@ -1686,11 +1686,11 @@ export default function LiveHostScreen() {
 
                         {battleSlots[2].status !== 'empty' && (
                           <div className="absolute top-1 right-1 z-10 pointer-events-auto flex items-end gap-1.5">
-                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player4'); }}>
+                            <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); togglePlayerMute('player4'); }}>
                               {mutedPlayers['player4'] ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} /> : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                               <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">{mutedPlayers['player4'] ? 'Unmute' : 'Mute'}</span>
                             </button>
-                            <button type="button" className="flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(2); }}>
+                            <button type="button" className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95" onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(2); }}>
                               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FF4D6A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
                               <span className="text-[7px] font-semibold text-white/85 leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">Remove</span>
                             </button>
@@ -1730,10 +1730,9 @@ export default function LiveHostScreen() {
             );
           })()}
 
-            <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30" style={{ transform: 'translateY(1mm)' }}>
+            <div className="absolute bottom-1 left-0 right-0 px-3 py-2 flex items-center justify-between flex-none pointer-events-none relative z-30 overflow-x-hidden w-full max-w-full" style={{ transform: 'translateY(1mm)' }}>
               <div
-                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto"
-                style={{ transform: `translateX(-${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersHost}
                 title="Top gifters â€” red side"
               >
@@ -1770,8 +1769,7 @@ export default function LiveHostScreen() {
                 })}
               </div>
               <div
-                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto"
-                style={{ transform: `translateX(${BATTLE_MVP_ROW_EDGE_OFFSET_MM}mm)` }}
+                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersOpponent}
                 title="Top gifters â€” blue side"
               >
@@ -2073,14 +2071,14 @@ export default function LiveHostScreen() {
 
             {/* MIDDLE ZONE: CHAT (Scrollable) â€” floating hearts only here, not over battle/video */}
             <div
-              className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none"
+              className="chat-zone fixed left-0 right-0 z-[100] flex justify-center pointer-events-none overflow-x-hidden"
               style={{
                 bottom: LIVE_BOTTOM_ACTION_RESERVE,
                 transform: isBattleMode ? `translateY(${LIVE_BATTLE_CHAT_SHIFT_Y})` : undefined,
               }}
             >
               <div
-                className="w-full max-w-[480px] relative"
+                className="w-full max-w-[480px] relative min-w-0 overflow-x-hidden elix-fundal-glass"
                 style={{
                   height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
                   maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
@@ -2114,8 +2112,8 @@ export default function LiveHostScreen() {
                   ))}
                 </div>
                 <div
-                  className="relative z-[10] h-full overflow-y-auto pointer-events-auto bg-transparent"
-                  style={{ transform: 'translateX(2mm)' }}
+                  className="relative z-[10] h-full overflow-y-auto overflow-x-hidden pointer-events-auto bg-transparent"
+                  style={{ transform: 'none' }}
                   onPointerDown={(e) => {
                     e.stopPropagation();
                     if (e.target instanceof Element) {
