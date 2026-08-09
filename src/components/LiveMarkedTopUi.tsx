@@ -226,11 +226,10 @@ export function LiveJoinPill({
         background: 'transparent',
         backgroundColor: 'transparent',
         boxShadow: 'none',
-        border: '1px solid #2A2D33',
+        border: 'none',
         position: 'relative',
         top: '1mm',
         marginTop: 0,
-        // Drive heart + label color (CSS !important reads these).
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}

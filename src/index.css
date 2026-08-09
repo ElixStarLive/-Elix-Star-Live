@@ -1796,7 +1796,7 @@ svg.lucide,
   background: transparent !important;
   background-color: transparent !important;
   background-image: none !important;
-  border: 1px solid #2A2D33 !important;
+  border: none !important;
   box-shadow: none !important;
   margin-top: 0 !important;
   position: relative !important;

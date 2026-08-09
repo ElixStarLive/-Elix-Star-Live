@@ -2860,20 +2860,15 @@ export default function LiveHostScreen() {
       
 
 
-      {/* â•â•â• JOIN ANIMATION OVERLAY â•â•â• */}
+      {/* JOIN ANIMATION — orange heart (not membership star) */}
       {showJoinAnimation && (
         <div className="absolute inset-0 z-[99999] flex items-center justify-center pointer-events-none">
           <div className="flex flex-col items-center animate-in zoom-in-50 duration-300">
-            <img 
-              src="/royce/membership.svg" 
-              alt="Membership" 
-              className="w-20 h-20 object-contain drop-shadow-2xl animate-pulse"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
+            <Heart
+              className="w-20 h-20 drop-shadow-2xl animate-pulse"
+              style={{ color: '#FF6A3D', fill: '#FF6A3D' }}
+              strokeWidth={0}
             />
-            <Heart className="w-20 h-20 text-[#F5F5F7] fill-[#ffffff] drop-shadow-2xl animate-pulse hidden" />
             <span className="text-white font-black text-2xl mt-2 drop-shadow-lg tracking-wider animate-bounce">JOIN</span>
           </div>
         </div>
@@ -2903,17 +2898,17 @@ export default function LiveHostScreen() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar min-h-0">
                {/* Team Status Card */}
-               <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden">
+               <div className="bg-transparent rounded-xl p-3 border-0 relative overflow-hidden">
                  <div className="flex items-center gap-3 relative z-10">
                    <div 
-                     className="w-10 h-10 rounded-full bg-gradient-to-br from-[#D8D9DD] to-[#D8D9DD] flex items-center justify-center shadow-lg cursor-pointer active:scale-95 transition-transform"
+                     className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
                      onClick={(e) => {
                        e.stopPropagation();
                        setShowJoinAnimation(true);
                        setTimeout(() => setShowJoinAnimation(false), 2000);
                      }}
                    >
-                     <Heart className="w-4 h-4 text-black fill-black" />
+                     <Heart className="w-6 h-6" style={{ color: '#FF6A3D', fill: '#FF6A3D' }} strokeWidth={0} />
                    </div>
                    <div>
                      <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Member Hearts</div>

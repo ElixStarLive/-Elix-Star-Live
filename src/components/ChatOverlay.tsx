@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
 import { LEVEL_BADGE_RING_PX } from '../lib/profileFrame';
-import { Trash2, Ban, Shield } from 'lucide-react';
+import { Trash2, Ban, Shield, Heart } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -137,8 +137,8 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 {typeof msg.membershipIcon === 'string' && msg.membershipIcon && (
-                  <div className="bg-[#FF4500] px-1.5 py-0.5 rounded-full flex items-center gap-1 border border-white/10 shadow-sm inline-flex align-middle flex-shrink-0">
-                    <img src={msg.membershipIcon} alt="Member" className="w-3 h-3 object-contain" />
+                  <div className="bg-[#FF6A3D] px-1.5 py-0.5 rounded-full flex items-center gap-1 border-0 shadow-none inline-flex align-middle flex-shrink-0">
+                    <Heart className="w-3 h-3" style={{ color: '#FFFFFF', fill: '#FFFFFF' }} strokeWidth={0} />
                     <span className="text-white text-[9px] font-bold uppercase tracking-wider">Member</span>
                   </div>
                 )}
