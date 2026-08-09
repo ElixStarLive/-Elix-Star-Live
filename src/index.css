@@ -1954,14 +1954,16 @@ svg.lucide,
   min-height: 0 !important;
 }
 
-/* Story / user circle strip — same fundal as home bottom nav */
+/* Story / user circle strip — full cover fundal under status bar (not a top banner crop) */
 #root .feed-story-strip {
-  background-color: var(--elix-bg);
-  background-image: var(--elix-page-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-color: #080A0E !important;
+  background-image:
+    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
+    var(--elix-fundal-image) !important;
+  background-size: cover, cover !important;
+  background-position: center top, center top !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: scroll, scroll !important;
   border-bottom: 1px solid var(--elix-border);
 }
 
@@ -2485,7 +2487,6 @@ body,
 #root .elix-glass-panel,
 #root .elix-surface,
 #root .elix-user-panel,
-#root .feed-story-strip,
 #root main.feed-column-width,
 #root .elix-page-glass.max-w-\[480px\],
 #root .app-live-column.elix-page-glass {
@@ -2608,19 +2609,22 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
-/* Home top bar — full-bleed panel from screen top through status + LIVE…For You tabs (not a floating banner strip) */
+/* Home top bar — flush to screen top under battery/time; cover fill (not banner stripe) */
 #root .elix-home-top-bar,
 #root .elix-feed-chrome-shell .elix-home-top-bar {
   left: 0;
   right: 0;
+  top: 0;
   width: 100%;
   max-width: none;
-  background-color: var(--elix-bg) !important;
-  background-image: var(--elix-feed-chrome-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-color: #080A0E !important;
+  background-image:
+    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
+    var(--elix-fundal-image) !important;
+  background-size: cover, cover !important;
+  background-position: center top, center top !important;
   background-repeat: no-repeat, no-repeat !important;
-  background-attachment: scroll !important;
+  background-attachment: scroll, scroll !important;
   border: none !important;
   box-shadow: none !important;
 }
@@ -2665,12 +2669,22 @@ body,
 }
 
 #root .elix-feed-chrome-shell main.feed-column-width,
-#root .elix-feed-chrome-shell .elix-feed-video-stage,
-#root .elix-feed-chrome-shell .feed-story-strip {
+#root .elix-feed-chrome-shell .elix-feed-video-stage {
   background-color: transparent !important;
   background-image: var(--elix-panel-fill) !important;
   background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
   background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-repeat: no-repeat, no-repeat !important;
+}
+
+/* Story strip in feed chrome — keep sealed cover (do not re-apply banner crop) */
+#root .elix-feed-chrome-shell .feed-story-strip {
+  background-color: #080A0E !important;
+  background-image:
+    linear-gradient(rgba(8, 10, 14, 0.72), rgba(8, 10, 14, 0.72)),
+    var(--elix-fundal-image) !important;
+  background-size: cover, cover !important;
+  background-position: center top, center top !important;
   background-repeat: no-repeat, no-repeat !important;
 }
 

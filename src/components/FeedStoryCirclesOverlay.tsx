@@ -479,8 +479,9 @@ export function FeedStoryCirclesOverlay({
             : '-translate-y-[200%] opacity-0 invisible overflow-hidden pointer-events-none'
         }`}
         style={{
-          top: topOffset || 0,
-          paddingTop: topOffset ? 0 : 'env(safe-area-inset-top, 0px)',
+          /* Always flush to screen top so fundal goes under battery/time; pad content only */
+          top: 0,
+          paddingTop: topOffset || 'var(--safe-top)',
         }}
         aria-hidden={!stripShown}
       >
