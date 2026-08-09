@@ -1850,13 +1850,11 @@ export default function SpectatorLiveScreen() {
 
 {/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
         <div
-          className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-none flex justify-center"
+          className={`fixed left-0 right-0 bottom-0 z-[50002] pointer-events-auto flex justify-center ${spectatorBattle?.active ? 'elix-battle-lower-fundal' : ''}`}
+          style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
         >
-          <div
-            className={`pointer-events-auto w-full max-w-[480px] px-3 pt-0 ${spectatorBattle?.active ? 'elix-battle-lower-fundal' : 'bg-transparent'}`}
-            style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
-          >
-            <div className="flex items-end gap-2 w-full pointer-events-auto">
+          <div className={`w-full max-w-[480px] px-3 pt-0 ${spectatorBattle?.active ? '' : 'bg-transparent'}`}>
+            <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
               <form
                 className="flex-1 flex items-center gap-2 bg-black/35 backdrop-blur-sm rounded-full px-3 py-2 border border-[#2A2D33] h-10 min-w-0"
                 onSubmit={(e) => { e.preventDefault(); handleSendMessage(e); }}
