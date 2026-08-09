@@ -649,7 +649,7 @@ export function useLiveHostController() {
             if (!resolvedName && !avatar) return;
             next[i] = {
               ...p,
-              username: resolvedName || p.username,
+              username: resolvedName || undefined,
               avatar_url: (avatar && avatar.trim()) || p.avatar_url,
             };
           } catch {
@@ -668,27 +668,33 @@ export function useLiveHostController() {
       if (typeof d.totalHearts === 'number') setMyHeartCount(d.totalHearts);
       if (typeof d.totalGiftCoins === 'number') setTotalGiftCoins(d.totalGiftCoins);
       if (Array.isArray(d.topGifters)) {
-        const raw = d.topGifters as {
+        const raw = (d.topGifters as {
           user_id: string;
           total_coins: number;
           username?: string;
           avatar_url?: string;
-        }[];
+        }[]).map((g) => ({
+          ...g,
+          username: membershipNameMissing(g.username, g.user_id) ? undefined : g.username,
+        }));
         setTopGifters(raw);
         void enrichMembershipPeople(raw).then((enriched) => setTopGifters(enriched));
       }
       if (Array.isArray(d.heartMembers)) {
-        const raw = d.heartMembers as {
+        const raw = (d.heartMembers as {
           user_id: string;
           heart_days: number;
           username?: string;
           avatar_url?: string;
-        }[];
+        }[]).map((m) => ({
+          ...m,
+          username: membershipNameMissing(m.username, m.user_id) ? undefined : m.username,
+        }));
         setHeartMembers(raw);
         void enrichMembershipPeople(raw).then((enriched) => setHeartMembers(enriched));
       }
     },
-    [enrichMembershipPeople],
+    [enrichMembershipPeople, membershipNameMissing],
   );
 
   // Fetch membership stats for creator (hearts + real gift coins / top supporters)
@@ -3697,10 +3703,11 @@ export function useLiveHostController() {
           maybeResolveViewerIdentity(uid);
         }
       }
+      const isMembershipJoin = /joined the team/i.test(text);
       const msg: LiveMessage = {
         id: `ws-${Date.now()}-${Math.random()}`,
         username,
-        text,
+        text: isMembershipJoin ? 'Joined the team!' : text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
           : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
@@ -3708,7 +3715,8 @@ export function useLiveHostController() {
             : cached?.level || 1,
         avatar,
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
-        isSystem: !!levelUpMatch,
+        isSystem: !!levelUpMatch || isMembershipJoin,
+        membershipIcon: isMembershipJoin ? 'heart' : undefined,
       };
       setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
     };

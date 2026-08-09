@@ -913,16 +913,16 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
       p.query(
         `SELECT e.sender_id AS user_id,
                 SUM(e.coins)::bigint AS total_coins,
-                p.username,
-                p.display_name,
-                p.avatar_url
+                NULLIF(TRIM(COALESCE(NULLIF(TRIM(p.display_name), ''), NULLIF(TRIM(p.username), ''), NULLIF(TRIM(a.display_name), ''), NULLIF(TRIM(a.username), ''))), '') AS username,
+                COALESCE(NULLIF(TRIM(p.avatar_url), ''), NULLIF(TRIM(a.avatar_url), '')) AS avatar_url
            FROM elix_creator_earnings e
            LEFT JOIN profiles p ON p.user_id = e.sender_id
+           LEFT JOIN elix_auth_users a ON a.id = e.sender_id
           WHERE e.creator_id = $1
             AND e.kind = 'gift'
             AND e.sender_id IS NOT NULL
             AND TRIM(e.sender_id) <> ''
-          GROUP BY e.sender_id, p.username, p.display_name, p.avatar_url
+          GROUP BY e.sender_id, p.username, p.display_name, p.avatar_url, a.username, a.display_name, a.avatar_url
           ORDER BY total_coins DESC
           LIMIT 10`,
         [creatorUserId],
@@ -930,18 +930,26 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
       p.query(
         `SELECT h.member_user_id AS user_id,
                 COUNT(*)::int AS heart_days,
-                p.username,
-                p.display_name,
-                p.avatar_url
+                NULLIF(TRIM(COALESCE(NULLIF(TRIM(p.display_name), ''), NULLIF(TRIM(p.username), ''), NULLIF(TRIM(a.display_name), ''), NULLIF(TRIM(a.username), ''))), '') AS username,
+                COALESCE(NULLIF(TRIM(p.avatar_url), ''), NULLIF(TRIM(a.avatar_url), '')) AS avatar_url
            FROM daily_hearts h
            LEFT JOIN profiles p ON p.user_id = h.member_user_id
+           LEFT JOIN elix_auth_users a ON a.id = h.member_user_id
           WHERE h.creator_user_id = $1
-          GROUP BY h.member_user_id, p.username, p.display_name, p.avatar_url
+          GROUP BY h.member_user_id, p.username, p.display_name, p.avatar_url, a.username, a.display_name, a.avatar_url
           ORDER BY heart_days DESC, MAX(h.day) DESC
           LIMIT 20`,
         [creatorUserId],
       ),
     ]);
+    const cleanName = (raw: unknown): string | undefined => {
+      const n = typeof raw === "string" ? raw.trim() : "";
+      if (!n) return undefined;
+      if (/^User [0-9a-f]{4,}$/i.test(n)) return undefined;
+      if (/^user_[0-9a-f]{4,}$/i.test(n)) return undefined;
+      if (/^[a-f0-9-]{8,}$/i.test(n)) return undefined;
+      return n;
+    };
     return {
       todayHearts: Number(todayRes.rows[0]?.cnt) || 0,
       totalHearts: Number(totalRes.rows[0]?.cnt) || 0,
@@ -949,10 +957,7 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
       topGifters: giftersRes.rows.map((r) => ({
         user_id: String(r.user_id),
         total_coins: Number(r.total_coins) || 0,
-        username:
-          (typeof r.display_name === "string" && r.display_name.trim()) ||
-          (typeof r.username === "string" && r.username.trim()) ||
-          undefined,
+        username: cleanName(r.username),
         avatar_url:
           typeof r.avatar_url === "string" && r.avatar_url.trim()
             ? r.avatar_url
@@ -961,10 +966,7 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
       heartMembers: heartsRes.rows.map((r) => ({
         user_id: String(r.user_id),
         heart_days: Math.max(0, Number(r.heart_days) || 0),
-        username:
-          (typeof r.display_name === "string" && r.display_name.trim()) ||
-          (typeof r.username === "string" && r.username.trim()) ||
-          undefined,
+        username: cleanName(r.username),
         avatar_url:
           typeof r.avatar_url === "string" && r.avatar_url.trim()
             ? r.avatar_url

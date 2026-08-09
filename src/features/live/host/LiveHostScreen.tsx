@@ -121,6 +121,7 @@ import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget }
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
+import { liveChatSend } from '../chat/liveChatActions';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -1946,17 +1947,22 @@ export default function LiveHostScreen() {
                                       const joinBannerId = Date.now().toString();
                                       const newMessage: LiveMessage = {
                                         id: joinBannerId,
-                                        username: 'You',
-                                        text: '\u2764\ufe0f Joined the team!',
+                                        username: isBroadcast ? creatorName : 'You',
+                                        text: 'Joined the team!',
                                         level: userLevel,
                                         isGift: false,
-                                        avatar: '/royce/elix-mark.svg',
+                                        avatar: isBroadcast ? myAvatar : '/royce/elix-mark.svg',
                                         isSystem: true,
-                                        membershipIcon: '/royce/membership.svg',
+                                        membershipIcon: 'heart',
                                       };
                                       setMessages((prev) =>
                                         appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP),
                                       );
+                                      liveChatSend({
+                                        text: 'Joined the team!',
+                                        level: userLevel,
+                                        avatar: newMessage.avatar,
+                                      });
                                       window.setTimeout(() => {
                                         setMessages((prev) => prev.filter((m) => m.id !== joinBannerId));
                                       }, 5000);
@@ -2860,19 +2866,7 @@ export default function LiveHostScreen() {
       
 
 
-      {/* JOIN ANIMATION — orange heart (not membership star) */}
-      {showJoinAnimation && (
-        <div className="absolute inset-0 z-[99999] flex items-center justify-center pointer-events-none">
-          <div className="flex flex-col items-center animate-in zoom-in-50 duration-300">
-            <Heart
-              className="w-20 h-20 drop-shadow-2xl animate-pulse"
-              style={{ color: '#FF6A3D', fill: '#FF6A3D' }}
-              strokeWidth={0}
-            />
-            <span className="text-white font-black text-2xl mt-2 drop-shadow-lg tracking-wider animate-bounce">JOIN</span>
-          </div>
-        </div>
-      )}
+      {/* Join feedback is the chat Member capsule only — no center JOIN banner. */}
 
       {/* â•â•â• TEAM STATUS PANEL (Heart Icon) â•â•â• */}
       {showTeamStatus && (
@@ -2900,15 +2894,8 @@ export default function LiveHostScreen() {
                {/* Team Status Card */}
                <div className="bg-transparent rounded-xl p-3 border-0 relative overflow-hidden">
                  <div className="flex items-center gap-3 relative z-10">
-                   <div 
-                     className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center cursor-pointer active:scale-95 transition-transform"
-                     onClick={(e) => {
-                       e.stopPropagation();
-                       setShowJoinAnimation(true);
-                       setTimeout(() => setShowJoinAnimation(false), 2000);
-                     }}
-                   >
-                     <Heart className="w-6 h-6" style={{ color: '#FF6A3D', fill: '#FF6A3D' }} strokeWidth={0} />
+                   <div className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center">
+                     <Heart className="w-6 h-6 text-[#FF6A3D] fill-[#FF6A3D]" strokeWidth={0} />
                    </div>
                    <div>
                      <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Member Hearts</div>

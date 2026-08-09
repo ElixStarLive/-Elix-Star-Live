@@ -2099,10 +2099,11 @@ export function useLiveSpectatorController() {
           level: existing?.level || level,
         });
       }
+      const isMembershipJoin = /joined the team/i.test(text);
       const msg: LiveMessage = {
         id: `ws-${Date.now()}-${Math.random()}`,
         username,
-        text,
+        text: isMembershipJoin ? 'Joined the team!' : text,
         level: Number.isFinite(parsedLevel)
           ? parsedLevel
           : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
@@ -2110,7 +2111,8 @@ export function useLiveSpectatorController() {
             : cached?.level || 1,
         avatar,
         stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
-        isSystem: !!levelUpMatch,
+        isSystem: !!levelUpMatch || isMembershipJoin,
+        membershipIcon: isMembershipJoin ? 'heart' : undefined,
       };
       setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
     };
@@ -2936,14 +2938,19 @@ export function useLiveSpectatorController() {
           const newMessage: LiveMessage = {
             id: joinBannerId,
             username: viewerName,
-            text: '\u2764\ufe0f Joined the team!',
+            text: 'Joined the team!',
             level: userLevel,
             isGift: false,
             avatar: viewerAvatar,
             isSystem: true,
-            membershipIcon: '/royce/membership.svg',
+            membershipIcon: 'heart',
           };
           setMessages((prev) => appendCapped(prev, newMessage, LIVE_CHAT_MESSAGE_CAP));
+          liveChatSend({
+            text: 'Joined the team!',
+            level: userLevel,
+            avatar: viewerAvatar,
+          });
           window.setTimeout(() => {
             setMessages((prev) => prev.filter((m) => m.id !== joinBannerId));
           }, 5000);
