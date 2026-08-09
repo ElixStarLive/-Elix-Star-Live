@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { detectFacePose } from '../lib/faceLandmarks';
+import { detectFacePose, releaseFaceLandmarker } from '../lib/faceLandmarks';
 import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
 import { initCommercialFaceEngine, shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
@@ -46,6 +46,8 @@ export function FaceARGift({
     const start = performance.now();
     let done = false;
     let lastDetect = 0;
+    let lastCssW = 0;
+    let lastCssH = 0;
     let cachedPose: Awaited<ReturnType<typeof detectFacePose>> = null;
 
     const finish = () => {
@@ -54,6 +56,7 @@ export function FaceARGift({
       cancelAnimationFrame(raf);
       canvas?.remove();
       canvasRef.current = null;
+      releaseFaceLandmarker();
       onCompleteRef.current?.();
     };
 
@@ -78,14 +81,20 @@ export function FaceARGift({
       }
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      surface.width = Math.round(rect.width * dpr);
-      surface.height = Math.round(rect.height * dpr);
-      surface.style.width = `${rect.width}px`;
-      surface.style.height = `${rect.height}px`;
+      const cssW = rect.width;
+      const cssH = rect.height;
+      if (cssW !== lastCssW || cssH !== lastCssH) {
+        lastCssW = cssW;
+        lastCssH = cssH;
+        surface.width = Math.round(cssW * dpr);
+        surface.height = Math.round(cssH * dpr);
+        surface.style.width = `${cssW}px`;
+        surface.style.height = `${cssH}px`;
+      }
 
       if (shouldTrackWithMediaPipe(engine) && now - lastDetect > 48) {
         lastDetect = now;
-        void detectFacePose(video, rect.width, rect.height, mirrored, now).then((pose) => {
+        void detectFacePose(video, cssW, cssH, mirrored, now).then((pose) => {
           if (pose) cachedPose = pose;
         });
       }
@@ -93,8 +102,8 @@ export function FaceARGift({
       const ctx = surface.getContext('2d');
       if (ctx) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, rect.width, rect.height);
-        drawFaceAREffect(ctx, rect.width, rect.height, giftType, color, elapsed / 1000, mirrored, cachedPose);
+        ctx.clearRect(0, 0, cssW, cssH);
+        drawFaceAREffect(ctx, cssW, cssH, giftType, color, elapsed / 1000, mirrored, cachedPose);
       }
 
       raf = requestAnimationFrame(tick);
