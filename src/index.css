@@ -717,9 +717,9 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host tiles — small fixed cut corners, no silver border lines */
+/* Co-host tiles — clear cut corners (not squares), no silver border lines */
 .elix-cohost-cut-corner {
-  --elix-cohost-cut: 1.5mm;
+  --elix-cohost-cut: 3.5mm;
   --elix-cohost-cut-path: polygon(
     var(--elix-cohost-cut) 0,
     calc(100% - var(--elix-cohost-cut)) 0,
@@ -735,8 +735,9 @@ video::-webkit-media-controls-overlay-enclosure,
   border: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  -webkit-clip-path: var(--elix-cohost-cut-path);
-  clip-path: var(--elix-cohost-cut-path);
+  -webkit-clip-path: var(--elix-cohost-cut-path) !important;
+  clip-path: var(--elix-cohost-cut-path) !important;
+  overflow: hidden !important;
 }
 .elix-cohost-cut-corner::after {
   content: none;

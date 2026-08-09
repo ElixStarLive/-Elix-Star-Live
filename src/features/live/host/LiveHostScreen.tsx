@@ -824,7 +824,7 @@ export default function LiveHostScreen() {
           );
           return (
           <div
-            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-0' : 'absolute inset-0 w-full h-full'}
+            className={hasAnyCoHost ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]' : 'absolute inset-0 w-full h-full'}
             style={hasAnyCoHost ? { top: 'calc(90px + 6mm)', height: 'calc(36dvh + 10mm)', filter: liveFilterCss !== 'none' ? liveFilterCss : undefined } : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }}
             onPointerDown={isCreatorParticipant ? undefined : (e) => {
               if (e.target instanceof Element) {
@@ -1194,7 +1194,7 @@ export default function LiveHostScreen() {
               };
 
               return (
-                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-0 bg-transparent">
+                <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
                   {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking =
@@ -1213,7 +1213,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-cut-corner bg-transparent flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-cut-corner bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
