@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Trophy,
   Target,
@@ -143,25 +144,29 @@ export function EngagementDrawer({
     if (end - start > 72) close();
   };
 
-  return (
-    <div className="fixed inset-0 z-[100050] pointer-events-none" aria-modal="true" role="dialog">
-      <button
-        type="button"
-        aria-label="Close engagement panel"
-        className="absolute inset-0 bg-black/45 pointer-events-auto"
-        onClick={close}
-      />
+  // Portal to body: escapes live-room stacking so Co-Host/Battle/etc cannot sit on top.
+  // App fundal (elix-page-fill) — solid elix-bg underneath so live never peeks through.
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1001000] flex justify-center pointer-events-auto elix-fundal-glass"
+      style={{ backgroundColor: "var(--elix-bg, #080A0E)" }}
+      aria-modal="true"
+      role="dialog"
+    >
       <div
         ref={panelRef}
-        className="absolute top-0 right-0 h-full pointer-events-auto flex flex-col bg-[rgba(0,0,0,0.35)] border-l border-white/10 shadow-2xl"
+        className="relative w-full max-w-[480px] h-full flex flex-col overflow-hidden box-border elix-full-page-panel elix-engagement-fundal"
         style={{
-          width: "min(420px, 92vw)",
+          backgroundColor: "var(--elix-bg, #080A0E)",
+          backgroundImage: "var(--elix-page-fill)",
+          backgroundSize: "var(--elix-fundal-size), var(--elix-fundal-size)",
+          backgroundPosition: "var(--elix-fundal-position), var(--elix-fundal-position)",
+          backgroundRepeat: "no-repeat, no-repeat",
           paddingTop: "env(safe-area-inset-top, 0px)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center border-b border-white/10 shrink-0 px-2 py-2.5">
           <div className="w-10 shrink-0" aria-hidden />
@@ -201,7 +206,8 @@ export function EngagementDrawer({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

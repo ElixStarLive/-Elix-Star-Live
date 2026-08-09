@@ -15,6 +15,17 @@ if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
 }
 
+// Resolve cosmic fundal against the real document base (fixes iOS Capacitor:
+// absolute url('/elix-fundal-cosmic.png') often fails under capacitor://localhost).
+if (typeof document !== 'undefined') {
+  try {
+    const fundalHref = new URL('elix-fundal-cosmic.png', document.baseURI).href
+    document.documentElement.style.setProperty('--elix-fundal-image', `url("${fundalHref}")`)
+  } catch {
+    /* keep CSS fallback */
+  }
+}
+
 // Boot crash reporting so global errors are actually captured (no-op unless a
 // store build or VITE_ENABLE_CRASH_REPORTING=true).
 void crashReporting.initialize();
