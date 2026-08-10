@@ -186,7 +186,7 @@ export function LiveHostProfileHeader({
         <div className="flex items-center gap-1 min-w-0">
           <span
             className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden"
-            style={{ maxWidth: 'calc(64px + 6mm)' }}
+            style={{ maxWidth: 'calc(64px + 10mm)' }}
           >
             {shortName}
           </span>
