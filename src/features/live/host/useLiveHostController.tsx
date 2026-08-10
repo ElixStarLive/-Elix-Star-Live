@@ -3545,6 +3545,23 @@ export function useLiveHostController() {
       out.push(v);
       seen.add(v.id);
     }
+    // Always show 3 left-side MVP circles (empty placeholders if needed).
+    while (out.length < 3) {
+      const i = out.length;
+      out.push({
+        id: `__mvp-empty-host-${i}`,
+        username: '',
+        displayName: '',
+        level: 1,
+        avatar: '',
+        country: '',
+        joinedAt: 0,
+        isActive: false,
+        chatFrequency: 0,
+        supportDays: 0,
+        lastVisitDaysAgo: 0,
+      });
+    }
     return out;
   }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
@@ -3554,21 +3571,42 @@ export function useLiveHostController() {
       const o = mvpGiftScoresOpponent[v.id] ?? 0;
       return o > 0 && o > h;
     });
-    if (exclusive.length >= 3) return exclusive.slice(0, 3);
-    const hostIds = new Set(topMvpHostBattle.map((v) => v.id));
+    if (exclusive.length >= 3) {
+      /* continue to pad below */
+    }
+    const hostIds = new Set(topMvpHostBattle.map((v) => v.id).filter((id) => !id.startsWith('__mvp-empty-')));
     const seen = new Set(exclusive.map((v) => v.id));
     const fillers = buildMvpRanked(mvpGiftScoresOpponent, 6);
-    const out = [...exclusive];
-    for (const v of fillers) {
-      if (out.length >= 3) break;
-      if (seen.has(v.id) || hostIds.has(v.id)) continue;
-      const h = mvpGiftScoresHost[v.id] ?? 0;
-      const o = mvpGiftScoresOpponent[v.id] ?? 0;
-      if (h > o) continue;
-      out.push(v);
-      seen.add(v.id);
+    const out = exclusive.length >= 3 ? exclusive.slice(0, 3) : [...exclusive];
+    if (out.length < 3) {
+      for (const v of fillers) {
+        if (out.length >= 3) break;
+        if (seen.has(v.id) || hostIds.has(v.id)) continue;
+        const h = mvpGiftScoresHost[v.id] ?? 0;
+        const o = mvpGiftScoresOpponent[v.id] ?? 0;
+        if (h > o) continue;
+        out.push(v);
+        seen.add(v.id);
+      }
     }
-    return out;
+    // Always show 3 right-side MVP circles (empty placeholders if needed).
+    while (out.length < 3) {
+      const i = out.length;
+      out.push({
+        id: `__mvp-empty-opp-${i}`,
+        username: '',
+        displayName: '',
+        level: 1,
+        avatar: '',
+        country: '',
+        joinedAt: 0,
+        isActive: false,
+        chatFrequency: 0,
+        supportDays: 0,
+        lastVisitDaysAgo: 0,
+      });
+    }
+    return out.slice(0, 3);
   }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent, topMvpHostBattle]);
 
   useEffect(() => {
@@ -3577,7 +3615,7 @@ export function useLiveHostController() {
       prevMvpOpponentIdRef.current = null;
       return;
     }
-    const hostMvp = topMvpHostBattle[0];
+    const hostMvp = topMvpHostBattle.find((v) => !String(v.id).startsWith('__mvp-empty-'));
     if (hostMvp?.id) {
       if (prevMvpHostIdRef.current && prevMvpHostIdRef.current !== hostMvp.id) {
         announceMvpName(hostMvp.displayName || hostMvp.username, 'host');
@@ -3585,7 +3623,7 @@ export function useLiveHostController() {
       }
       prevMvpHostIdRef.current = hostMvp.id;
     }
-    const oppMvp = topMvpOpponentBattle[0];
+    const oppMvp = topMvpOpponentBattle.find((v) => !String(v.id).startsWith('__mvp-empty-'));
     if (oppMvp?.id) {
       if (prevMvpOpponentIdRef.current && prevMvpOpponentIdRef.current !== oppMvp.id) {
         announceMvpName(oppMvp.displayName || oppMvp.username, 'opponent');

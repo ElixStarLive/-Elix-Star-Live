@@ -496,10 +496,25 @@ export function useLiveSpectatorController() {
     };
 
     const hostSlots = pickSide('host');
+    const oppSlots = pickSide('opponent', new Set(hostSlots.map((s) => s.id)));
+    const padSide = (side: 'host' | 'opponent', list: MvpSlotRow[]) => {
+      const out = list.slice(0, 3);
+      while (out.length < 3) {
+        const i = out.length;
+        out.push({
+          id: `__mvp-empty-${side}-${i}`,
+          name: '',
+          avatar: '',
+          level: 1,
+          points: 0,
+        });
+      }
+      return out;
+    };
     setMvpSlots({
       global: withPoints(mvpGiftScoresRef.current, [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3)),
-      host: hostSlots,
-      opponent: pickSide('opponent', new Set(hostSlots.map((s) => s.id))),
+      host: padSide('host', hostSlots),
+      opponent: padSide('opponent', oppSlots),
     });
   }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 

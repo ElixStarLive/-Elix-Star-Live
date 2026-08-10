@@ -1927,7 +1927,7 @@ export default function LiveHostScreen() {
 
             {/* MVP under cameras — fixed above chat fundal (z-110 > chat z-100) */}
             <div
-              className="elix-battle-mvp-row fixed left-0 right-0 z-[110] flex justify-center pointer-events-none"
+              className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
               style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
             >
               <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
@@ -1937,9 +1937,10 @@ export default function LiveHostScreen() {
                 title="Top gifters â€” red side"
               >
                 {topMvpHostBattle.map((viewer, i) => {
-                  const gifted = mvpGiftScoresHost[viewer.id] ?? 0;
-                  const isMvp = i === 0 && gifted > 0;
-                  const label = liveViewerLabel(viewer);
+                  const isEmpty = String(viewer.id).startsWith('__mvp-empty-');
+                  const gifted = isEmpty ? 0 : (mvpGiftScoresHost[viewer.id] ?? 0);
+                  const isMvp = !isEmpty && i === 0 && gifted > 0;
+                  const label = isEmpty ? '' : liveViewerLabel(viewer);
                   return (
                   <div
                     key={`mvp-l-${viewer.id}`}
@@ -1948,8 +1949,8 @@ export default function LiveHostScreen() {
                   >
                     <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                       <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, label)}
-                        alt={label}
+                        src={isEmpty ? '' : resolveCircleAvatar(viewer.avatar, label)}
+                        alt={label || 'MVP'}
                         size={LIVE_MVP_PROFILE_RING_PX}
                       />
                     </div>
@@ -1959,10 +1960,10 @@ export default function LiveHostScreen() {
                       </span>
                     )}
                     <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {label}
+                      {label || '\u00A0'}
                     </span>
                     <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {formatCoinsShort(gifted)}
+                      {isEmpty ? '\u00A0' : formatCoinsShort(gifted)}
                     </span>
                   </div>
                   );
@@ -1974,9 +1975,10 @@ export default function LiveHostScreen() {
                 title="Top gifters â€” blue side"
               >
                 {topMvpOpponentBattle.map((viewer, i) => {
-                  const gifted = mvpGiftScoresOpponent[viewer.id] ?? 0;
-                  const isMvp = i === 0 && gifted > 0;
-                  const label = liveViewerLabel(viewer);
+                  const isEmpty = String(viewer.id).startsWith('__mvp-empty-');
+                  const gifted = isEmpty ? 0 : (mvpGiftScoresOpponent[viewer.id] ?? 0);
+                  const isMvp = !isEmpty && i === 0 && gifted > 0;
+                  const label = isEmpty ? '' : liveViewerLabel(viewer);
                   return (
                   <div
                     key={`mvp-r-${viewer.id}`}
@@ -1985,8 +1987,8 @@ export default function LiveHostScreen() {
                   >
                     <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                       <AvatarRing
-                        src={resolveCircleAvatar(viewer.avatar, label)}
-                        alt={label}
+                        src={isEmpty ? '' : resolveCircleAvatar(viewer.avatar, label)}
+                        alt={label || 'MVP'}
                         size={LIVE_MVP_PROFILE_RING_PX}
                       />
                     </div>
@@ -1996,10 +1998,10 @@ export default function LiveHostScreen() {
                       </span>
                     )}
                     <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {label}
+                      {label || '\u00A0'}
                     </span>
                     <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {formatCoinsShort(gifted)}
+                      {isEmpty ? '\u00A0' : formatCoinsShort(gifted)}
                     </span>
                   </div>
                   );

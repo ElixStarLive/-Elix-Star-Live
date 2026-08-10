@@ -30,6 +30,20 @@ export const BATTLE_MVP_ROW_EDGE_OFFSET_MM = 1;
 /** Battle video column height — 3mm shorter so chat does not cover MVP circles. */
 export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 
+/** MVP strip under battle cameras (3+3 rings + labels). */
+export const LIVE_BATTLE_MVP_STRIP_HEIGHT = '64px' as const;
+
+/**
+ * Bottom edge of battle cameras / top of MVP row.
+ * Matches host/spectator battle stage + lower fundal.
+ */
+export const LIVE_BATTLE_STAGE_BOTTOM =
+  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
+
+/** Chat / gift video / join banners start below the 6 MVP circles. */
+export const LIVE_BATTLE_BELOW_MVP =
+  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm + 64px)' as const;
+
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 

@@ -2273,10 +2273,10 @@ body {
   background-position: top center !important;
   background-repeat: no-repeat !important;
 }
-/* Battle MVP strip — fundal BEHIND circles only (never covers AvatarRing) */
+/* Battle MVP strip — fixed under cameras; fundal behind circles only (never covers AvatarRing) */
 .elix-battle-mvp-row,
 #root .elix-live-room .elix-battle-mvp-row {
-  position: relative;
+  position: fixed !important;
   isolation: isolate;
   min-height: 56px;
   background: none !important;

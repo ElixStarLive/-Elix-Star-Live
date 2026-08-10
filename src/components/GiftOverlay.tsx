@@ -7,6 +7,7 @@ import {
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
+import { LIVE_BATTLE_BELOW_MVP } from '../lib/profileFrame';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
@@ -173,11 +174,11 @@ export function GiftOverlay({
   if (!videoSrc || !videoReady) return null;
 
   // Normal live: approved chat-zone frame (bottom 70% - 25mm).
-  // Battle: keep video fully below battle cameras + MVP row — panes show icons only.
+  // Battle: fully below the 6 MVP circles — panes show icons only; join banners stay in chat under MVP.
   void battleSide;
   const frameStyle: React.CSSProperties = isBattleMode
     ? {
-        top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm + 40px)',
+        top: LIVE_BATTLE_BELOW_MVP,
         bottom: 0,
         zIndex,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 70%, transparent 100%)',

@@ -1015,7 +1015,7 @@ export default function SpectatorLiveScreen() {
 
                 {/* MVP under cameras — identical to host: fixed above chat fundal */}
                 <div
-                  className="elix-battle-mvp-row fixed left-0 right-0 z-[110] flex justify-center pointer-events-none"
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
                   style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
                 >
                   <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
@@ -1038,12 +1038,15 @@ export default function SpectatorLiveScreen() {
                     }}
                   >
                     {mvpSlots.host.map((slot, i) => {
-                      const gifted = slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0;
-                      const isMvp = i === 0 && gifted > 0;
+                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
+                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0);
+                      const isMvp = !isEmpty && i === 0 && gifted > 0;
                       const raw = String(slot.name || '').trim();
-                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                        ? raw.split('@')[0] || 'User'
-                        : raw || 'User';
+                      const label = isEmpty
+                        ? ''
+                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                          ? raw.split('@')[0] || 'User'
+                          : raw || 'User';
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
@@ -1052,8 +1055,8 @@ export default function SpectatorLiveScreen() {
                         >
                           <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, label)}
-                              alt={label}
+                              src={isEmpty ? '' : resolveCircleAvatar(slot.avatar, label)}
+                              alt={label || 'MVP'}
                               size={LIVE_MVP_PROFILE_RING_PX}
                             />
                           </div>
@@ -1063,10 +1066,10 @@ export default function SpectatorLiveScreen() {
                             </span>
                           )}
                           <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {label}
+                            {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
+                            {isEmpty ? '\u00A0' : gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
                           </span>
                         </div>
                       );
@@ -1091,12 +1094,15 @@ export default function SpectatorLiveScreen() {
                     }}
                   >
                     {mvpSlots.opponent.map((slot, i) => {
-                      const gifted = slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0;
-                      const isMvp = i === 0 && gifted > 0;
+                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
+                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0);
+                      const isMvp = !isEmpty && i === 0 && gifted > 0;
                       const raw = String(slot.name || '').trim();
-                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                        ? raw.split('@')[0] || 'User'
-                        : raw || 'User';
+                      const label = isEmpty
+                        ? ''
+                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                          ? raw.split('@')[0] || 'User'
+                          : raw || 'User';
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
@@ -1105,8 +1111,8 @@ export default function SpectatorLiveScreen() {
                         >
                           <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
                             <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, label)}
-                              alt={label}
+                              src={isEmpty ? '' : resolveCircleAvatar(slot.avatar, label)}
+                              alt={label || 'MVP'}
                               size={LIVE_MVP_PROFILE_RING_PX}
                             />
                           </div>
@@ -1116,10 +1122,10 @@ export default function SpectatorLiveScreen() {
                             </span>
                           )}
                           <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {label}
+                            {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
+                            {isEmpty ? '\u00A0' : gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
                           </span>
                         </div>
                       );

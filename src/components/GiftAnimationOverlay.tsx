@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
 
+import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
+
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
 export type ElixGiftPillDetail = {
@@ -43,9 +45,8 @@ interface GiftAnimationOverlayProps {
 const MERGE_WINDOW_MS = 2000;
 const DISPLAY_DURATION_MS = 4000;
 
-/** Matches host/spectator battle stage bottom (top padding + battle video height). */
-const BATTLE_STAGE_BOTTOM =
-  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
+/** Matches host/spectator battle stage bottom (top of MVP row). */
+const BATTLE_STAGE_BOTTOM = LIVE_BATTLE_STAGE_BOTTOM;
 
 export default function GiftAnimationOverlay({
   streamId,
