@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
+import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
@@ -32,7 +33,7 @@ interface GiftAnimation {
 
 interface GiftAnimationOverlayProps {
   streamId: string;
-  /** Accepted for callers; restored overlay always uses Weekly Ranking top position. */
+  /** Battle: banner sits at bottom of battle video stage. Solo: Weekly Ranking top row. */
   isBattleMode?: boolean;
 }
 
@@ -41,7 +42,7 @@ const DISPLAY_DURATION_MS = 4000;
 
 export default function GiftAnimationOverlay({
   streamId,
-  isBattleMode: _isBattleMode = false,
+  isBattleMode = false,
 }: GiftAnimationOverlayProps) {
   const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -136,10 +137,20 @@ export default function GiftAnimationOverlay({
   return (
     <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
       <div className="w-full max-w-[480px] relative">
-        {/* Vertically center on Weekly Ranking capsule row (safe + top avatar ~52 + mt-1 + half of h-[28px]). */}
         <div
           className="absolute left-0 right-0"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 66px)' }}
+          style={
+            isBattleMode
+              ? {
+                  // Bottom edge of battle video panes (above MVP strip).
+                  top: LIVE_BATTLE_STAGE_BOTTOM,
+                  transform: 'translateY(calc(-100% - 2px))',
+                }
+              : {
+                  // Solo: vertically center on Weekly Ranking capsule row.
+                  top: 'calc(env(safe-area-inset-top, 0px) + 66px)',
+                }
+          }
         >
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
