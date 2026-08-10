@@ -1832,7 +1832,7 @@ svg.lucide,
   border-color: rgba(216, 217, 221, 0.8) !important;
 }
 
-/* Live host name oval — chrome only; no width/margin lock (owner moves Join separately). */
+/* Live host name oval — chrome only; no width lock (inline padding may widen capsule). */
 #root .elix-live-host-oval {
   background: transparent !important;
   background-color: transparent !important;
@@ -1843,7 +1843,6 @@ svg.lucide,
   backdrop-filter: none !important;
   border-radius: 9999px !important;
   margin-left: 0 !important;
-  padding-right: unset !important;
   min-width: 0 !important;
   max-width: none !important;
 }
