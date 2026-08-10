@@ -27,14 +27,12 @@ function formatLikesShort(count: number) {
   return String(c);
 }
 
-/** Top live capsule: first token only — never expand for full display name. */
-function firstNameOnly(name: string): string {
+/** Top live capsule: show full display name (unlocked — no first-token lock). */
+function displayNameFull(name: string): string {
   const raw = String(name || '')
     .trim()
     .replace(/^@+/, '');
-  if (!raw) return 'User';
-  const first = raw.split(/\s+/)[0];
-  return first || 'User';
+  return raw || 'User';
 }
 
 /** Live ranking chips — transparent fill + capsule border (writing sits on clear). */
