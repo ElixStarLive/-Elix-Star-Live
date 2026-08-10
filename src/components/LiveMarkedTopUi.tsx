@@ -168,11 +168,16 @@ export function LiveHostProfileHeader({
         minHeight: avatarSize + 4,
         /* Capsule longer 3mm — padding only. */
         paddingRight: 'calc(8px + 3mm)',
-        /* Locked pair (capsule + Join inside) — 4mm left so both move, not Join alone. */
+        /* Capsule shell 2mm further left; content cancel keeps circle + Join put. */
         position: 'relative',
-        left: '-4mm',
+        left: '-6mm',
       }}
     >
+      {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
+      <div
+        className="flex items-center gap-1.5 min-w-0 w-max max-w-full"
+        style={{ position: 'relative', left: '2mm' }}
+      >
       <button
         type="button"
         data-elix-profile-ring="true"
@@ -230,6 +235,7 @@ export function LiveHostProfileHeader({
             {isLivePro ? 'LIVE Pro' : 'LIVE'}
           </span>
         </button>
+      </div>
       </div>
     </div>
   );
