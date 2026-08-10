@@ -2641,10 +2641,16 @@ export default function SpectatorLiveScreen() {
                   <div className="flex justify-center pb-2" aria-hidden>
                     <div className="w-10 h-1 rounded-full bg-white/25" />
                   </div>
-                  <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full">Top viewers & gifters</h3>
-                  <div className="absolute right-4 top-[28px] flex items-center gap-1">
-                    <Eye size={12} className="text-white/50" />
-                    <span className="text-white/60 text-xs font-semibold">{viewersList.length || viewerCount}</span>
+                  <div className="relative flex items-center justify-center min-h-[28px]">
+                    <div className="absolute left-0 inset-y-0 flex items-center gap-1 z-10" title="Viewers watching">
+                      <Eye size={12} className="text-white/50" />
+                      <span className="text-white/60 text-xs font-semibold tabular-nums">
+                        {typeof viewerCount === 'number' && Number.isFinite(viewerCount)
+                          ? viewerCount.toLocaleString()
+                          : '0'}
+                      </span>
+                    </div>
+                    <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full px-10">Top viewers & gifters</h3>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4">

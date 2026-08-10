@@ -2960,12 +2960,10 @@ export default function LiveHostScreen() {
                   <div className="w-10 h-1 rounded-full bg-white/25" />
                 </div>
                 <div className="relative flex items-center justify-center min-h-[28px]">
-                  <div className="absolute left-0 inset-y-0 flex items-center gap-1 z-10">
+                  <div className="absolute left-0 inset-y-0 flex items-center gap-1 z-10" title="Viewers watching">
                     <Users size={12} className="text-white/50" />
                     <span className="text-white/60 text-xs font-semibold tabular-nums">
-                      {viewerListMode === 'topGifters'
-                        ? formatCountShort(topGiftersForPanel.length)
-                        : formatCountShort(activeViewers.length)}
+                      {formatCountShort(viewerCount)}
                     </span>
                   </div>
                   <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full px-10">
