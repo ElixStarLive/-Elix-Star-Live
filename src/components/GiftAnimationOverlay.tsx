@@ -32,12 +32,25 @@ interface GiftAnimation {
 
 interface GiftAnimationOverlayProps {
   streamId: string;
+  /**
+   * Normal live: red banner stays under the top chrome (above chat).
+   * Battle: red banner only moves to the bottom edge of the battle video stage.
+   * Gift video animation is separate (GiftOverlay) and always plays in the chat zone.
+   */
+  isBattleMode?: boolean;
 }
 
 const MERGE_WINDOW_MS = 2000;
 const DISPLAY_DURATION_MS = 4000;
 
-export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayProps) {
+/** Matches host/spectator battle stage bottom (top padding + battle video height). */
+const BATTLE_STAGE_BOTTOM =
+  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
+
+export default function GiftAnimationOverlay({
+  streamId,
+  isBattleMode = false,
+}: GiftAnimationOverlayProps) {
   const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenTxnRef = useRef<Set<string>>(new Set());
@@ -131,10 +144,19 @@ export default function GiftAnimationOverlay({ streamId }: GiftAnimationOverlayP
   return (
     <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
       <div className="w-full max-w-[480px] relative">
-        {/* Vertically center on Weekly Ranking capsule row (safe + top avatar ~52 + mt-1 + half of h-[22px]). */}
+        {/* Normal: under top chrome. Battle: bottom inside battle video stage only. */}
         <div
           className="absolute left-0 right-0"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 63px)' }}
+          style={
+            isBattleMode
+              ? {
+                  top: BATTLE_STAGE_BOTTOM,
+                  transform: 'translateY(-100%)',
+                }
+              : {
+                  top: 'calc(env(safe-area-inset-top, 0px) + 63px)',
+                }
+          }
         >
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">

@@ -3641,7 +3641,7 @@ export default function LiveHostScreen() {
       )}
 
 
-      <GiftAnimationOverlay streamId={effectiveStreamId} />
+      <GiftAnimationOverlay streamId={effectiveStreamId} isBattleMode={isBattleMode} />
       {/* Separate photo feed (cards + xN) — does not replace gift video animation */}
       <LiveGiftFeedStack streamId={effectiveStreamId} />
 
