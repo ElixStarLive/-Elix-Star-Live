@@ -168,8 +168,9 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        paddingRight: 'calc(8px + 1mm)',
-        marginLeft: '3mm',
+        /* Extend pill border only — never margin-left (that moves the avatar ring). */
+        paddingRight: 'calc(8px + 3mm)',
+        marginLeft: 0,
       }}
     >
       <button

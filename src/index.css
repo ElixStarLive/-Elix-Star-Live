@@ -1832,7 +1832,7 @@ svg.lucide,
   border-color: rgba(216, 217, 221, 0.8) !important;
 }
 
-/* Live host name oval — profile + Join move together (margin-left). */
+/* Live host name oval — chrome only; do NOT shift avatar ring with margin-left. */
 #root .elix-live-host-oval {
   background: transparent !important;
   background-color: transparent !important;
@@ -1842,12 +1842,12 @@ svg.lucide,
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   border-radius: 9999px !important;
-  margin-left: 3mm !important;
+  margin-left: 0 !important;
   min-width: 0 !important;
   max-width: none !important;
 }
 
-/* Live header Join — transparent chrome; no extra horizontal shift (moves with oval). */
+/* Live header Join — transparent chrome; no horizontal shift. */
 #root button[data-elix-join='true'],
 #root button.elix-live-join-capsule {
   height: calc(36px + 0.5mm) !important;
