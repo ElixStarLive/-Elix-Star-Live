@@ -6,7 +6,6 @@ import {
   prepareGiftVideoEl,
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
-import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
 const MAX_CACHE = 20;
@@ -47,8 +46,9 @@ interface GiftOverlayProps {
   videoSrc: string | null;
   previewSrc?: string | null;
   onEnded: () => void;
+  /** Accepted for API parity; battle gifts use the same chat-anchored frame as solo live. */
   isBattleMode?: boolean;
-  /** In battle: play big gift only on receiving side (host=left/red, opponent=right/blue). */
+  /** Kept for callers; does not half-pane the video (owner: play on chat like normal live). */
   battleSide?: BattleGiftSide | null;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
@@ -123,8 +123,8 @@ export function GiftOverlay({
   videoSrc,
   previewSrc: _previewSrc,
   onEnded,
-  isBattleMode = false,
-  battleSide = null,
+  isBattleMode: _isBattleMode = false,
+  battleSide: _battleSide = null,
   muted = true,
   zIndex = 50000,
 }: GiftOverlayProps) {
@@ -173,31 +173,19 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
-  const sideScoped = !!(isBattleMode && battleSide);
-
+  // Solo + battle: same frame — over chat / MVP / lower battle, never half-pane on a creator tile.
   return (
     <div
       className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={
-        sideScoped
-          ? {
-              top: 'calc(env(safe-area-inset-top, 0px) + 90px)',
-              height: LIVE_BATTLE_VIDEO_HEIGHT,
-              zIndex,
-            }
-          : {
-              bottom: 0,
-              height: 'calc(70% - 25mm)',
-              zIndex,
-              WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-              maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-            }
-      }
+      style={{
+        bottom: 0,
+        height: 'calc(70% - 25mm)',
+        zIndex,
+        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+      }}
     >
-      <div
-        className={sideScoped ? 'absolute top-0 bottom-0 w-1/2 overflow-hidden' : 'absolute inset-0'}
-        style={sideScoped ? { left: battleSide === 'host' ? 0 : '50%' } : undefined}
-      >
+      <div className="absolute inset-0">
         <GiftVideo
           videoSrc={videoSrc}
           muted={muted}

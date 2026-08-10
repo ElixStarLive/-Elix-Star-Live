@@ -23,7 +23,7 @@ Approved solo gift video framing in `GiftOverlay`:
 - Solo height: `calc(70% - 25mm)` from `bottom: 0`
 - Solo video fit: **`object-cover`** (full-width fill of that frame — never `object-contain`)
 - Solo mask: fade at top (`linear-gradient` mask as committed)
-- Battle side-scope half-pane logic may stay; do not change solo size/fit
+- Battle uses the **same** chat-anchored frame as solo (no half-pane on battle tiles). Owner 2026-08-10.
 
 Red banner (`GiftAnimationOverlay`): full column width, edge-to-edge (`left-0 right-0`, no side padding on the bar wrapper).
 
