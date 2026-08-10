@@ -2273,7 +2273,7 @@ body {
   background-position: top center !important;
   background-repeat: no-repeat !important;
 }
-/* Battle MVP strip — fixed under cameras; fundal behind circles only (never covers AvatarRing) */
+/* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
 .elix-battle-mvp-row,
 #root .elix-live-room .elix-battle-mvp-row {
   position: fixed !important;
@@ -2282,17 +2282,22 @@ body {
   background: none !important;
   background-image: none !important;
 }
+/* Do not paint viewport-wide ::before (looked narrower / cut). Fundal lives on inner .elix-battle-mvp-fundal. */
 .elix-battle-mvp-row::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-color: transparent;
-  background-image: var(--elix-panel-fill);
-  background-size: cover, cover;
-  background-position: center top, center top;
-  background-repeat: no-repeat, no-repeat;
+  content: none !important;
+  display: none !important;
+}
+.elix-battle-mvp-fundal,
+#root .elix-live-room .elix-battle-mvp-fundal {
+  width: 100%;
+  max-width: 480px;
+  min-height: 56px;
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: 100% auto, 100% auto !important;
+  background-position: top center, top center !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: scroll, scroll !important;
 }
 .elix-battle-mvp-row > * {
   position: relative;

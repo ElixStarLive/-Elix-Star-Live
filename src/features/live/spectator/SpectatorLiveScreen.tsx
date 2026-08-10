@@ -120,6 +120,7 @@ import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
+import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
@@ -826,19 +827,6 @@ export default function SpectatorLiveScreen() {
                             </div>
                           </div>
                         )}
-                        {lastHostGift.length > 0 && (
-                          <div className="absolute bottom-2 left-1.5 z-30 pointer-events-none flex items-center">
-                            {lastHostGift.map((src, i) => (
-                              <div
-                                key={`spec-host-gift-${i}-${src}`}
-                                className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.45)] border border-[#D8D9DD]/50 overflow-hidden flex items-center justify-center drop-shadow-md"
-                                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: i + 1 }}
-                              >
-                                <img src={src} alt="" className="w-full h-full object-contain" />
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <div
                         className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative ${
@@ -871,19 +859,6 @@ export default function SpectatorLiveScreen() {
                                 <span className="text-[#8B9099] text-[10px] font-bold">Connecting...</span>
                               </div>
                             ) : null}
-                          </div>
-                        )}
-                        {lastOpponentGift.length > 0 && (
-                          <div className="absolute bottom-2 right-1.5 z-30 pointer-events-none flex items-center">
-                            {lastOpponentGift.map((src, i) => (
-                              <div
-                                key={`spec-opp-gift-${i}-${src}`}
-                                className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.45)] border border-[#D8D9DD]/50 overflow-hidden flex items-center justify-center drop-shadow-md"
-                                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: i + 1 }}
-                              >
-                                <img src={src} alt="" className="w-full h-full object-contain" />
-                              </div>
-                            ))}
                           </div>
                         )}
                       </div>
@@ -1013,20 +988,20 @@ export default function SpectatorLiveScreen() {
                   </div>
                 </div>
 
-                {/* MVP under cameras — identical to host: fixed above chat fundal */}
+                {/* MVP under cameras — fundal = app container width; video stage paints above */}
                 <div
-                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
                   style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
                 >
-                  <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+                  <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
                   <div
                     className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                     title="Top gifters — red side"
                     onClick={() => {
                       const ranked = [...mvpSlots.host]
-                        .filter((s) => (s.points ?? 0) > 0)
+                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
                         .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.host).map((s) => ({
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,
@@ -1047,19 +1022,49 @@ export default function SpectatorLiveScreen() {
                         : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
                           ? raw.split('@')[0] || 'User'
                           : raw || 'User';
+                      const photo =
+                        !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
+                          ? slot.avatar
+                          : '';
+                      const pts =
+                        gifted >= 1_000_000
+                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
+                          : gifted >= 1000
+                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
+                            : String(Math.floor(gifted));
                       return (
                         <div
                           key={`mvp-l-${slot.id}`}
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
-                            <AvatarRing
-                              src={isEmpty ? '' : resolveCircleAvatar(slot.avatar, label)}
-                              alt={label || 'MVP'}
-                              size={LIVE_MVP_PROFILE_RING_PX}
-                            />
-                          </div>
+                          {!isEmpty && gifted > 0 ? (
+                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {pts}
+                            </span>
+                          ) : (
+                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
+                          )}
+                          {isEmpty || !photo ? (
+                            <div
+                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                                isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                              }`}
+                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                            >
+                              {!isEmpty && label ? (
+                                <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                              <AvatarRing
+                                src={photo}
+                                alt={label || 'MVP'}
+                                size={LIVE_MVP_PROFILE_RING_PX}
+                              />
+                            </div>
+                          )}
                           {isMvp && (
                             <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
@@ -1069,7 +1074,7 @@ export default function SpectatorLiveScreen() {
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
+                            {isEmpty ? '\u00A0' : pts}
                           </span>
                         </div>
                       );
@@ -1080,9 +1085,9 @@ export default function SpectatorLiveScreen() {
                     title="Top gifters — blue side"
                     onClick={() => {
                       const ranked = [...mvpSlots.opponent]
-                        .filter((s) => (s.points ?? 0) > 0)
+                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
                         .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent).map((s) => ({
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,
@@ -1103,19 +1108,49 @@ export default function SpectatorLiveScreen() {
                         : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
                           ? raw.split('@')[0] || 'User'
                           : raw || 'User';
+                      const photo =
+                        !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
+                          ? slot.avatar
+                          : '';
+                      const pts =
+                        gifted >= 1_000_000
+                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
+                          : gifted >= 1000
+                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
+                            : String(Math.floor(gifted));
                       return (
                         <div
                           key={`mvp-r-${slot.id}`}
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
-                            <AvatarRing
-                              src={isEmpty ? '' : resolveCircleAvatar(slot.avatar, label)}
-                              alt={label || 'MVP'}
-                              size={LIVE_MVP_PROFILE_RING_PX}
-                            />
-                          </div>
+                          {!isEmpty && gifted > 0 ? (
+                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {pts}
+                            </span>
+                          ) : (
+                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
+                          )}
+                          {isEmpty || !photo ? (
+                            <div
+                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                                isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                              }`}
+                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                            >
+                              {!isEmpty && label ? (
+                                <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                              <AvatarRing
+                                src={photo}
+                                alt={label || 'MVP'}
+                                size={LIVE_MVP_PROFILE_RING_PX}
+                              />
+                            </div>
+                          )}
                           {isMvp && (
                             <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
                               MVP
@@ -1125,7 +1160,7 @@ export default function SpectatorLiveScreen() {
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : gifted >= 1_000 ? `${(gifted / 1_000).toFixed(1)}K` : String(Math.floor(gifted))}
+                            {isEmpty ? '\u00A0' : pts}
                           </span>
                         </div>
                       );
