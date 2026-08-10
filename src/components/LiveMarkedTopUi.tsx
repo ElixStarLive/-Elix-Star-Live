@@ -255,7 +255,7 @@ export function LiveJoinPill({
         position: 'relative',
         top: '1mm',
         marginTop: 0,
-        marginLeft: '0.5mm',
+        marginLeft: '1mm',
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}
