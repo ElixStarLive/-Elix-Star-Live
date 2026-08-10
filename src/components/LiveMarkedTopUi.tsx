@@ -198,7 +198,7 @@ export function LiveHostProfileHeader({
           />
           {/* Follow + Join capsules. Join always stays when provided (owner: never remove Join). */}
           {(showFollow || joinSlot) ? (
-            <div className="flex-shrink-0 flex items-center justify-center gap-1 relative z-30">
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">
               {showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
               ) : null}
@@ -255,7 +255,6 @@ export function LiveJoinPill({
         position: 'relative',
         top: '1mm',
         marginTop: 0,
-        marginLeft: '3mm',
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}
