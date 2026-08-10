@@ -168,15 +168,12 @@ export function resolveGiftAssetUrl(path: string): string {
 }
 
 /**
- * Android WebView often fails on WebM/VP9. Prefer an MP4 URL when the catalog
- * points at .webm so gift videos actually play in Capacitor.
+ * Prefer MP4 for gift playback on every platform.
+ * WebM/VP9 often fails or looks different in Capacitor / some browsers;
+ * Celestial Star Wand and other Bunny assets ship paired .mp4 files.
  */
 export function preferPlayableGiftVideoUrl(url: string): string {
   if (!url) return url;
-  const isAndroid =
-    typeof navigator !== 'undefined' &&
-    /Android/i.test(navigator.userAgent || '');
-  if (!isAndroid) return url;
   if (/\.webm(\?|#|$)/i.test(url)) {
     return url.replace(/\.webm(\?|#|$)/i, '.mp4$1');
   }
@@ -252,7 +249,10 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
       const overrideAnimation = GIFT_ANIMATION_OVERRIDES[row.gift_id];
 
       const animation = overrideAnimation ?? dbAnimation ?? (fallback ? fallback.video : null);
-      const video = animation ? resolveGiftAssetUrl(animation) : '/Icons/Gift%20icon.png?v=3';
+      const videoRaw = animation ? resolveGiftAssetUrl(animation) : '/Icons/Gift%20icon.png?v=3';
+      const video = isGiftVideoPath(videoRaw)
+        ? preferPlayableGiftVideoUrl(videoRaw)
+        : videoRaw;
       const iconFromApi = row.icon_url ? resolveGiftAssetUrl(row.icon_url) : null;
       const icon = fallback?.icon
         ?? iconFromApi

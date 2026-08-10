@@ -6,10 +6,13 @@ import {
   prepareGiftVideoEl,
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
+import { preferPlayableGiftVideoUrl } from '../lib/giftsCatalog';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
 const MAX_CACHE = 20;
 const videoCache = new Map<string, string>();
+/** Fallback only — real end uses video duration so long gifts match wand play-through. */
+const GIFT_SAFETY_MAX_MS = 30_000;
 
 function preloadVideo(src: string): Promise<string> {
   if (videoCache.has(src)) return Promise.resolve(videoCache.get(src) as NonNullable<ReturnType<typeof videoCache.get>>);
@@ -42,6 +45,11 @@ function preloadVideo(src: string): Promise<string> {
   });
 }
 
+function isGiftVideoUrl(src: string): boolean {
+  const path = src.split('?')[0].toLowerCase();
+  return path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.mov');
+}
+
 interface GiftOverlayProps {
   videoSrc: string | null;
   previewSrc?: string | null;
@@ -60,11 +68,13 @@ function GiftVideo({
   videoSrc,
   muted,
   onEnded,
+  onDurationMs,
   className = 'absolute inset-0 w-full h-full object-cover drop-shadow-2xl',
 }: {
   videoSrc: string;
   muted: boolean;
   onEnded: () => void;
+  onDurationMs?: (ms: number) => void;
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -82,6 +92,16 @@ function GiftVideo({
     const el = videoRef.current;
     if (!el) return;
     prepareGiftVideoEl(el, { muted: true });
+
+    const reportDuration = () => {
+      const d = el.duration;
+      if (typeof onDurationMs === 'function' && Number.isFinite(d) && d > 0) {
+        onDurationMs(Math.min(Math.ceil(d * 1000) + 400, GIFT_SAFETY_MAX_MS));
+      }
+    };
+    el.addEventListener('loadedmetadata', reportDuration);
+    if (el.readyState >= 1) reportDuration();
+
     const tryPlay = () => {
       const p = el.play();
       if (!p || typeof p.then !== 'function') return;
@@ -97,8 +117,11 @@ function GiftVideo({
     };
     if (el.readyState >= 2) tryPlay();
     else el.addEventListener('loadeddata', tryPlay, { once: true });
-    return () => el.removeEventListener('loadeddata', tryPlay);
-  }, [videoSrc, muted, onEnded]);
+    return () => {
+      el.removeEventListener('loadeddata', tryPlay);
+      el.removeEventListener('loadedmetadata', reportDuration);
+    };
+  }, [videoSrc, muted, onEnded, onDurationMs]);
 
   return (
     <video
@@ -106,7 +129,7 @@ function GiftVideo({
       key={videoSrc}
       src={videoSrc}
       className={`${className} ${GIFT_OVERLAY_VIDEO_CLASS} pointer-events-none`}
-      style={{ pointerEvents: 'none' }}
+      style={{ pointerEvents: 'none', objectFit: 'cover', objectPosition: 'center' }}
       playsInline
       autoPlay
       muted
@@ -133,30 +156,34 @@ export function GiftOverlay({
   onEndedRef.current = onEnded;
 
   const [videoReady, setVideoReady] = useState(false);
+  /** Same MP4 preference as Celestial Star Wand catalog path — every gift. */
+  const playSrc = videoSrc ? preferPlayableGiftVideoUrl(videoSrc) : null;
+
+  const armSafety = useCallback((ms: number) => {
+    if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
+    safetyTimerRef.current = setTimeout(() => {
+      safetyTimerRef.current = null;
+      onEndedRef.current();
+    }, Math.max(1000, Math.min(ms, GIFT_SAFETY_MAX_MS)));
+  }, []);
 
   useEffect(() => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-    if (!videoSrc) return;
+    if (!playSrc) return;
 
     setVideoReady(false);
+    armSafety(8000);
 
-    safetyTimerRef.current = setTimeout(() => {
-      onEndedRef.current();
-    }, 8000);
-
-    const path = videoSrc.split('?')[0].toLowerCase();
-    const isVideo = path.endsWith('.mp4') || path.endsWith('.webm') || path.endsWith('.mov');
-
-    if (!isVideo) {
+    if (!isGiftVideoUrl(playSrc)) {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
       onEndedRef.current();
       return;
     }
 
-    if (videoCache.has(videoSrc)) {
+    if (videoCache.has(playSrc)) {
       setVideoReady(true);
     } else {
-      preloadVideo(videoSrc)
+      preloadVideo(playSrc)
         .then(() => setVideoReady(true))
         .catch(() => setVideoReady(true));
     }
@@ -164,19 +191,20 @@ export function GiftOverlay({
     return () => {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     };
-  }, [videoSrc]);
+  }, [playSrc, armSafety]);
 
   const handleEnded = () => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     onEnded();
   };
 
-  if (!videoSrc || !videoReady) return null;
+  if (!playSrc || !videoReady) return null;
 
-  // Solo + battle: same frame — over chat / MVP / lower battle, never half-pane on a creator tile.
+  // Solo + battle: identical Celestial Star Wand frame — over chat / MVP / lower battle.
   return (
     <div
       className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
+      data-elix-gift-overlay="true"
       style={{
         bottom: 0,
         height: 'calc(70% - 25mm)',
@@ -187,9 +215,10 @@ export function GiftOverlay({
     >
       <div className="absolute inset-0">
         <GiftVideo
-          videoSrc={videoSrc}
+          videoSrc={playSrc}
           muted={muted}
           onEnded={handleEnded}
+          onDurationMs={armSafety}
         />
       </div>
     </div>
