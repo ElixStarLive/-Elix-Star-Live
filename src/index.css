@@ -732,28 +732,64 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host tiles — pill / capsule corners (wireframe layouts), no silver lines, no cut-path */
+/* Co-host tiles — square with 1mm cut corners (each side of each corner) */
 .elix-cohost-pill {
-  border-radius: 4.5mm !important;
+  border-radius: 0 !important;
   overflow: hidden !important;
   border: none !important;
   box-shadow: none !important;
-  -webkit-clip-path: none !important;
-  clip-path: none !important;
+  -webkit-clip-path: polygon(
+    1mm 0,
+    calc(100% - 1mm) 0,
+    100% 1mm,
+    100% calc(100% - 1mm),
+    calc(100% - 1mm) 100%,
+    1mm 100%,
+    0 calc(100% - 1mm),
+    0 1mm
+  ) !important;
+  clip-path: polygon(
+    1mm 0,
+    calc(100% - 1mm) 0,
+    100% 1mm,
+    100% calc(100% - 1mm),
+    calc(100% - 1mm) 100%,
+    1mm 100%,
+    0 calc(100% - 1mm),
+    0 1mm
+  ) !important;
 }
 .elix-cohost-pill.elix-speaking-pulse {
   box-shadow: none !important;
   filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.55));
 }
 
-/* Legacy cut class → same pill look (existing class names keep working) */
+/* Legacy cut class → same 1mm chamfer square */
 .elix-cohost-cut-corner {
-  border-radius: 4.5mm !important;
+  border-radius: 0 !important;
   overflow: hidden !important;
   border: none !important;
   box-shadow: none !important;
-  -webkit-clip-path: none !important;
-  clip-path: none !important;
+  -webkit-clip-path: polygon(
+    1mm 0,
+    calc(100% - 1mm) 0,
+    100% 1mm,
+    100% calc(100% - 1mm),
+    calc(100% - 1mm) 100%,
+    1mm 100%,
+    0 calc(100% - 1mm),
+    0 1mm
+  ) !important;
+  clip-path: polygon(
+    1mm 0,
+    calc(100% - 1mm) 0,
+    100% 1mm,
+    100% calc(100% - 1mm),
+    calc(100% - 1mm) 100%,
+    1mm 100%,
+    0 calc(100% - 1mm),
+    0 1mm
+  ) !important;
 }
 .elix-cohost-cut-corner::after {
   content: none;
