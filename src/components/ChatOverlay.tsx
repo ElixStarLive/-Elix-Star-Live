@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
 import { Trash2, Ban, Shield, Heart } from 'lucide-react';
+import { LIVE_MVP_PROFILE_RING_PX } from '../lib/profileFrame';
 
-/** Live chat only — shorter level chip than feed/profile defaults. */
-const LIVE_CHAT_RING_PX = 20;
-const LIVE_CHAT_PILL_PX = 14;
+/** Live chat user ring — same diameter as MVP circles. */
+const LIVE_CHAT_RING_PX = LIVE_MVP_PROFILE_RING_PX;
+const LIVE_CHAT_PILL_PX = 16;
 /** Join / system banner — circle matches banner height. */
-const LIVE_JOIN_BANNER_RING_PX = 28;
+const LIVE_JOIN_BANNER_RING_PX = LIVE_MVP_PROFILE_RING_PX;
 const LIVE_JOIN_BANNER_PILL_PX = 16;
 
 interface Message {
