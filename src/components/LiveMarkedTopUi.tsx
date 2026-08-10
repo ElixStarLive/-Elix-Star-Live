@@ -27,6 +27,16 @@ function formatLikesShort(count: number) {
   return String(c);
 }
 
+/** Top live capsule: first token only — never expand for full display name. */
+function firstNameOnly(name: string): string {
+  const raw = String(name || '')
+    .trim()
+    .replace(/^@+/, '');
+  if (!raw) return 'User';
+  const first = raw.split(/\s+/)[0];
+  return first || 'User';
+}
+
 /** Live ranking chips — transparent fill + capsule border (writing sits on clear). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
   background: 'transparent',
@@ -147,10 +157,11 @@ export function LiveHostProfileHeader({
   joinSlot?: React.ReactNode;
 }) {
   const likesLabel = formatLikesShort(likes);
+  const shortName = firstNameOnly(name);
 
   return (
     <div
-      className="elix-live-host-oval flex items-center gap-1.5 min-w-0 pointer-events-auto rounded-full pl-[2px] pr-2 py-[2px]"
+      className="elix-live-host-oval flex items-center gap-1.5 min-w-0 w-max max-w-full pointer-events-auto rounded-full pl-[2px] pr-2 py-[2px]"
       style={{
         background: 'transparent',
         backgroundColor: 'transparent',
@@ -173,8 +184,8 @@ export function LiveHostProfileHeader({
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
-          <span className="elix-silver-red-text text-[12px] font-bold truncate max-w-[118px] leading-tight">
-            {name}
+          <span className="elix-silver-red-text text-[12px] font-bold truncate max-w-[64px] leading-tight block overflow-hidden">
+            {shortName}
           </span>
           <BadgeCheck
             size={14}
