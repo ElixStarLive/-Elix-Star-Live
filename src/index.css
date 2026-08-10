@@ -1843,6 +1843,13 @@ svg.lucide,
   backdrop-filter: none !important;
   border-radius: 9999px !important;
 }
+/* Locked name width — long names truncate; do not extend capsule. */
+#root .elix-live-host-oval [data-elix-profile-name='true'] {
+  max-width: calc(64px + 3mm) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
 
 /* Live header Join — transparent capsule only; no white fill / no black disc */
 #root button[data-elix-join='true'],
