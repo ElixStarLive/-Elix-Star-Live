@@ -2062,7 +2062,7 @@ export default function SpectatorLiveScreen() {
           className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-none flex justify-center"
         >
           <div
-            className="pointer-events-auto w-full max-w-[480px] px-3 pt-0 elix-live-lower-fundal"
+            className={`pointer-events-auto w-full max-w-[480px] px-3 pt-0 ${hasCoHostLowerFundal ? 'elix-live-lower-fundal' : 'bg-transparent'}`}
             style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
           >
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
