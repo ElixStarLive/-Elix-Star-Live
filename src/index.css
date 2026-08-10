@@ -229,10 +229,14 @@
     --page-header-top: max(40px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
-  /* iOS: all top chrome / panels sit ~12mm too low — lift shared top tokens only. */
+  /*
+   * iOS: use the real device inset only (notch / Dynamic Island / status bar).
+   * Do NOT subtract mm — that zeroed out 13 Pro (~47px) and hid top icons.
+   * Capacitor contentInset is "never" so CSS owns this for every phone size.
+   */
   html.native-app.ios {
-    --safe-top: max(2px, calc(env(safe-area-inset-top, 0px) - 12mm));
-    --page-header-top: max(2px, calc(env(safe-area-inset-top, 0px) - 12mm + 8px));
+    --safe-top: env(safe-area-inset-top, 0px);
+    --page-header-top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
   }
 
   /* Same width for For You top bar, video container, and bottom home bar */

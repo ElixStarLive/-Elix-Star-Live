@@ -25,7 +25,9 @@ const config: CapacitorConfig = {
   // Deep link configuration
   ios: {
     scheme: 'elixstar',
-    contentInset: 'automatic',
+    // CSS env(safe-area-inset-*) owns top/bottom — auto-adjusts every iPhone size.
+    // "automatic" double-insets with CSS and broke smaller notches (e.g. 13 Pro).
+    contentInset: 'never',
   },
   android: {
     scheme: 'elixstar',
