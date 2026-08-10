@@ -32,16 +32,17 @@ export function CohostLayoutChooser({ value, onChange }: Props) {
                   : 'bg-white/[0.04] ring-1 ring-white/15'
               }`}
             >
+              {/* Perfect square preview — video shows through transparent cut-corner cells */}
               <div
-                className="w-full h-[58px] min-h-0 grid"
+                className="w-full aspect-square min-h-0 min-w-0 grid"
                 style={{ gridTemplate: thumb.grid, gap: '2px' }}
                 aria-hidden
               >
                 {thumb.cells.map((cell, i) => (
                   <div
                     key={`${preset.id}-${i}`}
-                    className={`elix-cohost-pill min-h-0 ${
-                      cell.kind === 'h' ? 'bg-[#C8CDD5]/70' : 'bg-[#C8CDD5]/35'
+                    className={`elix-cohost-layout-thumb min-h-0 min-w-0 ${
+                      cell.kind === 'h' ? 'elix-cohost-layout-thumb-host' : ''
                     }`}
                     style={{ gridArea: cell.area }}
                   />
