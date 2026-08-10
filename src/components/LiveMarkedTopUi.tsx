@@ -172,7 +172,7 @@ export function LiveHostProfileHeader({
         paddingRight: 'calc(8px + 3mm)',
         marginLeft: 0,
         position: 'relative',
-        left: '-2mm',
+        left: '-4mm',
       }}
     >
       <button
