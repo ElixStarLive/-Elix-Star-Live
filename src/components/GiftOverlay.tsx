@@ -6,7 +6,6 @@ import {
   prepareGiftVideoEl,
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
-import { LIVE_BATTLE_VIDEO_HEIGHT } from '../lib/profileFrame';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
 const MAX_CACHE = 20;
@@ -48,7 +47,7 @@ interface GiftOverlayProps {
   previewSrc?: string | null;
   onEnded: () => void;
   isBattleMode?: boolean;
-  /** In battle: play big gift only on receiving side (host=left/red, opponent=right/blue). */
+  /** Kept for callers; battle side no longer scopes gift video onto battle panes. */
   battleSide?: BattleGiftSide | null;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
@@ -173,31 +172,23 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
-  const sideScoped = !!(isBattleMode && battleSide);
+  // Owner: battle + spectator gifts play in the chat zone exactly like normal live —
+  // never clipped onto left/right battle video panes.
+  void isBattleMode;
+  void battleSide;
 
   return (
     <div
       className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={
-        sideScoped
-          ? {
-              top: 'calc(env(safe-area-inset-top, 0px) + 90px)',
-              height: LIVE_BATTLE_VIDEO_HEIGHT,
-              zIndex,
-            }
-          : {
-              bottom: 0,
-              height: 'calc(70% - 25mm)',
-              zIndex,
-              WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-              maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-            }
-      }
+      style={{
+        bottom: 0,
+        height: 'calc(70% - 25mm)',
+        zIndex,
+        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
+      }}
     >
-      <div
-        className={sideScoped ? 'absolute top-0 bottom-0 w-1/2 overflow-hidden' : 'absolute inset-0'}
-        style={sideScoped ? { left: battleSide === 'host' ? 0 : '50%' } : undefined}
-      >
+      <div className="absolute inset-0">
         <GiftVideo
           videoSrc={videoSrc}
           muted={muted}
