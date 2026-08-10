@@ -129,6 +129,7 @@ import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import { liveChatSend } from '../chat/liveChatActions';
+import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import {
   EngagementDrawer,
   type EngagementPanel,
@@ -781,6 +782,8 @@ export default function LiveHostScreen() {
     startPoll,
     endPoll,
   } = useLiveHostController();
+  /** Auto cycle x2 → x3 → x5 for gift-panel buster (no manual tier pick). */
+  const hostAutoBoosterTierRef = useRef(0);
 
   const [showCohostLayoutPicker, setShowCohostLayoutPicker] = useState(false);
 
@@ -2595,8 +2598,29 @@ export default function LiveHostScreen() {
                 walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
                 setCoinBalance(walletCoinBalanceRef.current);
               }}
-              onWeeklyRanking={openWeeklyRankingFromGift}
-              onMembership={openMembershipFromGift}
+              battleBoost={
+                isBattleMode
+                  ? {
+                      boosterActive: boosterActivations.some((a) => a.expiresAt > Date.now()),
+                      boosterMultiplier:
+                        boosterActivations.find((a) => a.expiresAt > Date.now())?.multiplier ?? null,
+                      mistActive: !!(mistFog && mistFog.expiresAt > Date.now()),
+                      onBooster: () => {
+                        if (boosterActivations.some((a) => a.expiresAt > Date.now())) return;
+                        const tiers = [2, 3, 5] as const;
+                        const mult = tiers[hostAutoBoosterTierRef.current % tiers.length];
+                        hostAutoBoosterTierRef.current += 1;
+                        liveBoosterActivated({ multiplier: mult });
+                      },
+                      onMist: () => {
+                        if (mistFog && mistFog.expiresAt > Date.now()) return;
+                        liveMistActivated({
+                          target: isBattleJoiner ? 'opponent' : 'host',
+                        });
+                      },
+                    }
+                  : null
+              }
               highlightGiftId={giftGoal?.giftId ?? null}
             />
           </div>

@@ -5,9 +5,20 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Coins, Trophy, Heart } from "lucide-react";
+import { Coins, CloudFog } from "lucide-react";
 import { BuyCoinsModal } from "./BuyCoinsModal";
 import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
+import { GloveIcon } from "./BattleVfxOverlays";
+
+interface GiftPanelBattleBoost {
+  boosterActive: boolean;
+  /** Last / active multiplier badge (x2 / x3 / x5). */
+  boosterMultiplier?: number | null;
+  mistActive: boolean;
+  /** One tap — system picks x2/x3/x5 (no Left/Right / no manual tier). */
+  onBooster: () => void;
+  onMist: () => void;
+}
 
 interface GiftPanelProps {
   onSelectGift: (gift: GiftItem) => void;
@@ -20,8 +31,8 @@ interface GiftPanelProps {
     source: "starter_coins" | "paid_coins" | "promotional_coins",
   ) => void;
   onRechargeSuccess?: (newBalance: number) => void;
-  onWeeklyRanking?: () => void;
-  onMembership?: () => void;
+  /** Battle: buster + fog icons in the old Weekly Ranking / Membership slots. */
+  battleBoost?: GiftPanelBattleBoost | null;
   /** Highlights the creator's gift goal in the grid */
   highlightGiftId?: string | null;
 }
@@ -133,8 +144,7 @@ export function GiftPanel({
   giftSource = "paid_coins",
   onGiftSourceChange,
   onRechargeSuccess,
-  onWeeklyRanking,
-  onMembership,
+  battleBoost = null,
   highlightGiftId = null,
 }: GiftPanelProps) {
   const userCoinsRef = useRef(userCoins);
@@ -219,37 +229,56 @@ export function GiftPanel({
         <h3 className="text-[#F5F5F7] font-bold text-sm text-center">Send Gift</h3>
       </div>
 
-      {/* Capsules under title: Weekly Ranking / Membership left — gift coins + Top Up right */}
+      {/* Capsules under title: battle buster + fog (left) — gift coins + Top Up (right) */}
       <div
         className="mb-3 -mx-3 w-[calc(100%+24px)] overflow-hidden"
         style={{ height: "10mm", maxHeight: "10mm" }}
       >
         <div className="w-full h-full flex items-center justify-between gap-1.5 px-3">
           <div className="flex items-center gap-1.5 flex-nowrap min-w-0 overflow-x-auto no-scrollbar">
-            {onWeeklyRanking && (
-              <button
-                type="button"
-                onClick={onWeeklyRanking}
-                className="flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 border border-[#D8D9DD]/40 bg-transparent active:scale-95 transition-transform"
-              >
-                <Trophy className="w-2.5 h-2.5 text-[#F5F5F7] flex-shrink-0" />
-                <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
-                  Weekly Ranking
-                </span>
-              </button>
-            )}
-            {onMembership && (
-              <button
-                type="button"
-                onClick={onMembership}
-                className="flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 border border-[#D8D9DD]/40 bg-transparent active:scale-95 transition-transform"
-              >
-                <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] flex-shrink-0" />
-                <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
-                  Membership
-                </span>
-              </button>
-            )}
+            {battleBoost ? (
+              <>
+                <button
+                  type="button"
+                  title="Buster — system picks x2 / x3 / x5"
+                  disabled={battleBoost.boosterActive}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (battleBoost.boosterActive) return;
+                    battleBoost.onBooster();
+                  }}
+                  className={`relative flex items-center justify-center flex-shrink-0 w-7 h-7 rounded-full border transition-colors active:scale-90 ${
+                    battleBoost.boosterActive
+                      ? "bg-[#E6E9EE] border-[#D8D9DD] text-white elix-accent"
+                      : "bg-transparent border-[#D8D9DD]/40 text-[#F5F5F7]"
+                  }`}
+                >
+                  <GloveIcon className="w-3.5 h-3.5" />
+                  <span className="absolute -bottom-0.5 -right-0.5 text-[7px] font-black leading-none px-0.5 rounded-full bg-black text-[#F5F5F7] border border-[#D8D9DD]/60">
+                    {battleBoost.boosterMultiplier && battleBoost.boosterMultiplier > 1
+                      ? `x${battleBoost.boosterMultiplier}`
+                      : "auto"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  title="Mist fog — hide score from the other side"
+                  disabled={battleBoost.mistActive}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (battleBoost.mistActive) return;
+                    battleBoost.onMist();
+                  }}
+                  className={`flex items-center justify-center flex-shrink-0 w-7 h-7 rounded-full border transition-colors active:scale-90 ${
+                    battleBoost.mistActive
+                      ? "bg-[#E6E9EE] border-[#D8D9DD] text-white elix-accent"
+                      : "bg-transparent border-[#D8D9DD]/40 text-[#F5F5F7]"
+                  }`}
+                >
+                  <CloudFog className="w-3.5 h-3.5" strokeWidth={2.25} />
+                </button>
+              </>
+            ) : null}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 border border-[#D8D9DD]/40 bg-transparent">

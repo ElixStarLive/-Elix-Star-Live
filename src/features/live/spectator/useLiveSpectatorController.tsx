@@ -112,6 +112,7 @@ import {
   normalizeBattleGiftTarget,
   resolveBattleGiftIconUrl,
 } from '../../../lib/liveBattleGiftTarget';
+import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
@@ -303,6 +304,8 @@ export function useLiveSpectatorController() {
   const [activeBooster, setActiveBooster] = useState<{ multiplier: number; expiresAt: number } | null>(null);
   const [boosterActivations, setBoosterActivations] = useState<{ id: string; userId: string; multiplier: number; username: string; expiresAt: number }[]>([]);
   const [boosterCatches, setBoosterCatches] = useState<{ id: string; multiplier: number; finalPoints: number; username: string }[]>([]);
+  /** Auto cycle x2 → x3 → x5 — user never picks the tier. */
+  const autoBoosterTierRef = useRef(0);
   // Mist Fog booster — server-driven window that hides the battle score for
   // everyone EXCEPT the supported creator (supportedUserId). Purely visual.
   const [mistFog, setMistFog] = useState<{ supportedUserId: string; supportedSide: 'host' | 'opponent'; expiresAt: number } | null>(null);
@@ -738,6 +741,47 @@ export function useLiveSpectatorController() {
     opponentRoomId: string;
     opponentUserId: string;
   } | null>(null);
+
+  // No Left/Right picker — gift + mist target follows the stream room you're watching.
+  useEffect(() => {
+    if (!spectatorBattle?.active) {
+      setSpectatorGiftBattleTarget('host');
+      return;
+    }
+    const sid = String(effectiveStreamId || '').trim();
+    const oppRoom = String(battleStreamIds?.opponentRoomId || spectatorBattle.opponentRoomId || '').trim();
+    const hostRoom = String(battleStreamIds?.hostRoomId || '').trim();
+    if (oppRoom && sid && sid === oppRoom) {
+      setSpectatorGiftBattleTarget('opponent');
+      return;
+    }
+    if (hostRoom && sid && sid === hostRoom) {
+      setSpectatorGiftBattleTarget('host');
+      return;
+    }
+    // Fallback: if watching opponent room id embedded in battle state.
+    if (oppRoom && sid === oppRoom) setSpectatorGiftBattleTarget('opponent');
+    else setSpectatorGiftBattleTarget('host');
+  }, [
+    spectatorBattle?.active,
+    spectatorBattle?.opponentRoomId,
+    battleStreamIds?.hostRoomId,
+    battleStreamIds?.opponentRoomId,
+    effectiveStreamId,
+  ]);
+
+  const fireAutoBooster = useCallback(() => {
+    if (activeBooster && activeBooster.expiresAt > Date.now()) return;
+    const tiers = [2, 3, 5] as const;
+    const mult = tiers[autoBoosterTierRef.current % tiers.length];
+    autoBoosterTierRef.current += 1;
+    liveBoosterActivated({ multiplier: mult });
+  }, [activeBooster]);
+
+  const fireMistFog = useCallback(() => {
+    if (mistFog && mistFog.expiresAt > Date.now()) return;
+    liveMistActivated({ target: spectatorGiftBattleTarget });
+  }, [mistFog, spectatorGiftBattleTarget]);
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   const [battleHideScores, setBattleHideScores] = useState(false);
   /** Tap PK score bar to hide it so battle video + chat stay visible. */
@@ -3527,6 +3571,8 @@ export function useLiveSpectatorController() {
     _startCoHosting,
     acceptBattleInviteFromWatch,
     activeBooster,
+    fireAutoBooster,
+    fireMistFog,
     activeLikes,
     actualViewersRef,
     battleGloves,

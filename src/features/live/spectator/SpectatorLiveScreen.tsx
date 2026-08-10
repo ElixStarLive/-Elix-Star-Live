@@ -28,7 +28,6 @@ import {
   Crown,
   PlusCircle,
   Play,
-  CloudFog,
   BarChart3,
   ArrowLeftRight,
   RefreshCw,
@@ -118,7 +117,6 @@ import { websocket } from '../../../lib/websocket';
 import { cohostInviteAccept } from '../cohost/liveCohostActions';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
-import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
@@ -246,6 +244,8 @@ export default function SpectatorLiveScreen() {
     _startCoHosting,
     acceptBattleInviteFromWatch,
     activeBooster,
+    fireAutoBooster,
+    fireMistFog,
     activeLikes,
     actualViewersRef,
     battleGloves,
@@ -2539,71 +2539,6 @@ export default function SpectatorLiveScreen() {
               style={{ zIndex: 99999, touchAction: 'pan-y' }}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 elix-panel elix-live-sheet rounded-t-xl">
-                  <div className="flex rounded-full overflow-hidden border border-[#D8D9DD]/40">
-                    <button
-                      type="button"
-                      title="Gift left side"
-                      onClick={() => setSpectatorGiftBattleTarget('host')}
-                      className={`px-4 py-1.5 text-[10px] font-bold transition-colors ${spectatorGiftBattleTarget === 'host' ? 'bg-[#E6E9EE]/90 text-white' : 'bg-[rgba(0,0,0,0.35)] text-white/70'}`}
-                    >
-                      Left
-                    </button>
-                    <button
-                      type="button"
-                      title="Gift right side"
-                      onClick={() => setSpectatorGiftBattleTarget('opponent')}
-                      className={`px-4 py-1.5 text-[10px] font-bold transition-colors ${spectatorGiftBattleTarget === 'opponent' ? 'bg-[#1E90FF]/90 text-white' : 'bg-[rgba(0,0,0,0.35)] text-white/70'}`}
-                    >
-                      Right
-                    </button>
-                  </div>
-                  {/* Point Multiplier Booster (glove) — press a glove to send it; it
-                      flies to the ranking corner and opens a server-timed catch window. */}
-                  <div className="flex items-center gap-2">
-                    {[3, 5].map((m) => {
-                      const anyActive = !!activeBooster && activeBooster.expiresAt > Date.now();
-                      const isActive = activeBooster?.multiplier === m && anyActive;
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          title={`Send x${m} glove booster`}
-                          disabled={anyActive}
-                          onClick={() => {
-                            if (anyActive) return;
-                            liveBoosterActivated({ multiplier: m });
-                          }}
-                          className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${isActive ? 'bg-[#E6E9EE] border-[#D8D9DD] text-white elix-accent' : anyActive ? 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/30 text-white/30' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
-                        >
-                          <GloveIcon className="w-5 h-5" />
-                          <span className="absolute -bottom-1 -right-1 text-[8px] font-black leading-none px-1 rounded-full bg-black text-[#F5F5F7] border border-[#D8D9DD]/60">x{m}</span>
-                        </button>
-                      );
-                    })}
-                    {/* Mist Fog — hides the battle score from the opposing side; only
-                        the creator you back keeps seeing the points. */}
-                    {(() => {
-                      const mistActive = !!mistFog && mistFog.expiresAt > Date.now();
-                      return (
-                        <button
-                          type="button"
-                          title="Send mist fog (hide score from the other side)"
-                          disabled={mistActive}
-                          onClick={() => {
-                            if (mistActive) return;
-                            liveMistActivated({ target: spectatorGiftBattleTarget });
-                          }}
-                          className={`flex items-center justify-center w-9 h-9 rounded-full border transition-colors active:scale-90 ${mistActive ? 'bg-[#E6E9EE] border-[#D8D9DD] text-white elix-accent' : 'bg-[rgba(0,0,0,0.35)] border-[#D8D9DD]/60 text-[#F5F5F7]'}`}
-                        >
-                          <CloudFog className="w-5 h-5" strokeWidth={2.25} />
-                        </button>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
               <GiftPanel
                 onSelectGift={handleSendGift}
                 userCoins={coinBalance}
@@ -2615,12 +2550,20 @@ export default function SpectatorLiveScreen() {
                   walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
                   setCoinBalance(resolveGiftUiBalance(walletCoinBalanceRef.current, user?.id));
                 }}
-                onWeeklyRanking={() => {
-                  setShowGiftPanel(false);
-                  setRankingInitialTab('weekly');
-                  setShowRankingPanel(true);
-                }}
-                onMembership={() => { setShowGiftPanel(false); setShowFanClub(true); }}
+                battleBoost={
+                  spectatorBattle?.active
+                    ? {
+                        boosterActive: !!(activeBooster && activeBooster.expiresAt > Date.now()),
+                        boosterMultiplier:
+                          activeBooster && activeBooster.expiresAt > Date.now()
+                            ? activeBooster.multiplier
+                            : null,
+                        mistActive: !!(mistFog && mistFog.expiresAt > Date.now()),
+                        onBooster: fireAutoBooster,
+                        onMist: fireMistFog,
+                      }
+                    : null
+                }
                 highlightGiftId={giftGoal?.giftId ?? null}
               />
             </div>
