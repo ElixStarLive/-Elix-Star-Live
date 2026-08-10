@@ -2029,11 +2029,7 @@ export default function SpectatorLiveScreen() {
                 setRankingInitialTab('goal');
                 setShowRankingPanel(true);
               }}
-              showFollow={Boolean(user?.id && hostUserId && user.id !== hostUserId && !isFollowing)}
-              onFollow={(e) => {
-                e.stopPropagation();
-                followHost(e);
-              }}
+              showFollow={false}
               showMembership={false}
             />
           </div>
