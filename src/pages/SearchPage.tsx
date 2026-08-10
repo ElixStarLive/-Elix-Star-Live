@@ -203,7 +203,7 @@ export default function SearchPage() {
           transform: visible ? 'translateY(0)' : 'translateY(100%)',
           pointerEvents: visible ? 'auto' : 'none',
           boxShadow: '0 -8px 30px rgba(0,0,0,0.5)',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingTop: 'var(--safe-top)',
           paddingBottom: 'var(--bottom-ui-reserve)',
         }}
       >

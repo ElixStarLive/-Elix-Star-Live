@@ -1363,7 +1363,7 @@ export default function Profile() {
           <div className="relative w-full max-w-[480px] h-full min-h-0 overflow-hidden bg-transparent">
             <button
               type="button"
-              className="absolute top-[calc(env(safe-area-inset-top,0px)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
+              className="absolute top-[calc(var(--safe-top)+12px)] left-3 z-10 text-white text-sm font-bold px-2 py-1"
               onClick={(e) => {
                 e.stopPropagation();
                 setStoryViewerOpen(false);

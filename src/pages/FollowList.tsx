@@ -123,7 +123,7 @@ export default function FollowList() {
 
   return (
     <div className="fixed inset-0 z-[100] bg-transparent flex flex-col max-w-[480px] mx-auto">
-      <div className="flex items-center justify-between px-3 pt-[max(12px,env(safe-area-inset-top))] pb-2">
+      <div className="flex items-center justify-between px-3 pt-[max(12px,var(--safe-top))] pb-2">
         <button type="button" onClick={goBack} aria-label="Back">
           <RoyceBackIcon />
         </button>

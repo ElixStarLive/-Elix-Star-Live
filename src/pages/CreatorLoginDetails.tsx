@@ -247,11 +247,11 @@ export default function CreatorLoginDetails() {
     <div className="fixed inset-0 z-[9999] bg-transparent text-white flex justify-center">
       <div className="w-full max-w-[480px] h-full elix-panel flex flex-col overflow-y-auto p-4">
         {/* Header — logo + title centered, close button top-right */}
-        <header className="relative flex flex-col items-center mb-5 pt-[max(0px,env(safe-area-inset-top))]">
+        <header className="relative flex flex-col items-center mb-5 pt-[max(0px,var(--safe-top))]">
           <button
             type="button"
             onClick={goBack}
-            className="absolute top-[max(0px,env(safe-area-inset-top))] right-0 w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform z-10"
+            className="absolute top-[max(0px,var(--safe-top))] right-0 w-9 h-9 flex items-center justify-center flex-shrink-0 active:scale-90 transition-transform z-10"
             aria-label="Close"
           >
             <RoyceCloseIcon size={20} />

@@ -976,7 +976,7 @@ export default function Upload() {
                   </div>
                   <div
                     className="absolute left-3 z-30 flex gap-2 pointer-events-auto"
-                    style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+                    style={{ top: 'max(0.5rem, var(--safe-top))' }}
                   >
                     <button
                       type="button"
@@ -1063,7 +1063,7 @@ export default function Upload() {
                  <>
                    <div
                      className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-3 pointer-events-auto"
-                     style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}
+                     style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}
                    >
                      <button
                        type="button"
@@ -1111,7 +1111,7 @@ export default function Upload() {
 
                    <div
                      className="absolute right-2 z-30 flex flex-col items-center gap-2 pointer-events-auto"
-                     style={{ top: 'calc(env(safe-area-inset-top, 0px) + 52px)' }}
+                     style={{ top: 'calc(var(--safe-top) + 52px)' }}
                    >
                      {[
                        { Icon: Share2, title: 'Share', onClick: async () => {
@@ -1248,7 +1248,7 @@ export default function Upload() {
                {/* Tiny caption / hashtags strip — drops from top after capture */}
                <div
                  className="absolute top-0 left-0 right-0 z-20 pointer-events-auto animate-in slide-in-from-top duration-300 elix-panel border-b border-black"
-                 style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+                 style={{ paddingTop: 'max(0.5rem, var(--safe-top))' }}
                >
                  <div className="w-full rounded-none px-3 py-1.5 space-y-1">
                    <div className="flex items-center gap-1">
@@ -1571,7 +1571,7 @@ export default function Upload() {
                   {duetSourceVideoUrl ? (
                     <div
                       className="absolute left-3 z-30 flex gap-2"
-                      style={{ top: 'max(0.5rem, env(safe-area-inset-top))' }}
+                      style={{ top: 'max(0.5rem, var(--safe-top))' }}
                     >
                       <button
                         type="button"
@@ -1602,7 +1602,7 @@ export default function Upload() {
                   {/* Add sound — center top pill (not on right rail) */}
                   <div
                     className="absolute top-0 left-0 right-0 z-30 flex items-center justify-center pointer-events-none"
-                    style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+                    style={{ paddingTop: 'max(0.5rem, var(--safe-top))' }}
                   >
                     <button
                       type="button"
@@ -1616,7 +1616,7 @@ export default function Upload() {
                     </button>
                   </div>
                   {/* Right side — same dark round fill as Add sound on every icon */}
-                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2 camera-right-rail" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+                  <div className="absolute top-0 right-[5%] bottom-0 flex flex-col items-center gap-3 py-2 camera-right-rail" style={{ paddingTop: 'max(0.5rem, var(--safe-top))' }}>
                     <button type="button" onClick={goFeed} className="camera-rail-disc flex items-center justify-center" title="Close">
                       <ChevronLeft size={14} className="camera-rail-icon" strokeWidth={2.5} />
                     </button>

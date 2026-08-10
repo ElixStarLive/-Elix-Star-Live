@@ -162,7 +162,7 @@ export function EngagementDrawer({
           backgroundSize: "var(--elix-fundal-size), var(--elix-fundal-size)",
           backgroundPosition: "var(--elix-fundal-position), var(--elix-fundal-position)",
           backgroundRepeat: "no-repeat, no-repeat",
-          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingTop: "var(--safe-top)",
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}
         onTouchStart={onTouchStart}

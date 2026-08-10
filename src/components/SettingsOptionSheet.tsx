@@ -57,13 +57,13 @@ export default function SettingsOptionSheet({ children, onClose, title, headerLe
         <header
           className="relative flex-shrink-0 bg-transparent border-b border-white/10"
           style={{
-            paddingTop: 'env(safe-area-inset-top, 0px)',
-            minHeight: 'calc(env(safe-area-inset-top, 0px) + 44px)',
+            paddingTop: 'var(--safe-top)',
+            minHeight: 'calc(var(--safe-top) + 44px)',
           }}
         >
           {/* Drag handle only — not the close control */}
           <div
-            className="absolute left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top,0px)+6px)] z-10 touch-none cursor-grab active:cursor-grabbing py-2 px-6"
+            className="absolute left-1/2 -translate-x-1/2 top-[calc(var(--safe-top)+6px)] z-10 touch-none cursor-grab active:cursor-grabbing py-2 px-6"
             onPointerDown={onHandlePointerDown}
             onPointerMove={onHandlePointerMove}
             onPointerUp={onHandlePointerEnd}

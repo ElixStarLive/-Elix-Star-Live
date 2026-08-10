@@ -55,7 +55,7 @@ export default function VideoView() {
           <div
             className="absolute z-[250] pointer-events-auto"
             style={{
-              top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+              top: 'max(0.75rem, var(--safe-top))',
               right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
             }}
           >
@@ -85,7 +85,7 @@ export default function VideoView() {
           <div
             className="absolute z-[250] pointer-events-auto"
             style={{
-              top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+              top: 'max(0.75rem, var(--safe-top))',
               right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
             }}
           >
@@ -118,7 +118,7 @@ export default function VideoView() {
         <div
           className="absolute z-[250] pointer-events-auto"
           style={{
-            top: 'max(0.75rem, env(safe-area-inset-top, 0px))',
+            top: 'max(0.75rem, var(--safe-top))',
             right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
           }}
         >

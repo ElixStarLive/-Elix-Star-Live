@@ -13,6 +13,9 @@ import './index.css'
 /* Native WebView: CSS hooks so phone layout can clear home bar without changing web. */
 if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
+  if (Capacitor.getPlatform() === 'ios') {
+    document.documentElement.classList.add('ios')
+  }
 }
 
 // Resolve cosmic fundal from site root (web + Capacitor). Never invent another image.
