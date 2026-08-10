@@ -182,10 +182,7 @@ export function LiveHostProfileHeader({
         <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
-      <div
-        className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5"
-        style={{ paddingRight: '2mm', minWidth: 'calc(72px + 2mm)' }}
-      >
+      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
           <span className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden">
             {shortName}
@@ -200,10 +197,7 @@ export function LiveHostProfileHeader({
           />
           {/* Follow + Join capsules. Join always stays when provided (owner: never remove Join). */}
           {(showFollow || joinSlot) ? (
-            <div
-              className="flex-shrink-0 flex items-center justify-center gap-1 relative z-30"
-              style={{ marginLeft: '2mm' }}
-            >
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 relative z-30">
               {showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
               ) : null}
