@@ -1556,7 +1556,7 @@ export default function SpectatorLiveScreen() {
             <div
               className={`absolute left-0 right-0 z-0 bg-transparent overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
-                ? { top: 'calc(var(--safe-top) + 90px + 6mm)', height: 'calc(30dvh + 6mm)' }
+                ? { top: 'calc(var(--safe-top) + 90px + 9mm)', height: 'calc(30dvh + 6mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
@@ -1803,6 +1803,86 @@ export default function SpectatorLiveScreen() {
             </div>
           );
         })()}
+
+        {/* Co-host MVP circles under stage (not battle) */}
+        {!spectatorBattle?.active && hasCoHostLowerFundal && (
+          <div
+            className="fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
+            style={{ top: 'calc(var(--safe-top) + 90px + 9mm + 30dvh + 6mm + 2mm)' }}
+          >
+            <div
+              className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[0mm] pointer-events-auto"
+              title="Top gifters — MVP"
+              onClick={() => {
+                const ranked = [...mvpSlots.global]
+                  .filter((s) => (s.points ?? 0) > 0)
+                  .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                const list = (ranked.length > 0 ? ranked : mvpSlots.global).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  avatar: s.avatar,
+                  level: s.level,
+                  points: s.points ?? 0,
+                }));
+                setViewersList(list);
+                setShowViewersPanel(true);
+              }}
+            >
+              {Array.from({ length: 3 }, (_, i) => {
+                const slot = mvpSlots.global[i];
+                const isEmpty = !slot;
+                const gifted = isEmpty ? 0 : (slot.points ?? 0);
+                const isMvp = !isEmpty && i === 0 && gifted > 0;
+                const raw = String(slot?.name || '').trim();
+                const label = isEmpty
+                  ? ''
+                  : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                    ? raw.split('@')[0] || 'User'
+                    : raw || 'User';
+                const photo =
+                  !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
+                    ? slot.avatar
+                    : '';
+                return (
+                  <div
+                    key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${slot.id}`}
+                    className="relative flex flex-col items-center max-w-[42px]"
+                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                  >
+                    {isEmpty || !photo ? (
+                      <div
+                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                        }`}
+                        style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                      >
+                        {!isEmpty && label ? (
+                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                        <AvatarRing
+                          src={photo}
+                          alt={label || 'MVP'}
+                          size={LIVE_MVP_PROFILE_RING_PX}
+                        />
+                      </div>
+                    )}
+                    {isMvp && (
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
+                    <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {label || '\u00A0'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div

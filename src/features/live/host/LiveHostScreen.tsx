@@ -853,7 +853,7 @@ export default function LiveHostScreen() {
             style={
               hasAnyCoHost
                 ? {
-                    top: 'calc(90px + 6mm)',
+                    top: 'calc(90px + 9mm)',
                     height: 'calc(36dvh + 10mm)',
                     filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
                     ...(useClassicStack
@@ -1303,6 +1303,68 @@ export default function LiveHostScreen() {
           </div>
           );
         })()}
+
+        {/* Co-host MVP circles under stage (not battle — battle has its own MVP row) */}
+        {!isBattleMode && hasCoHostLowerFundal && (
+          <div
+            className="fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
+            style={{ top: 'calc(90px + 9mm + 36dvh + 10mm + 2mm)' }}
+          >
+            <div
+              className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[0mm] pointer-events-auto"
+              onClick={openTopGiftersAll}
+              title="Top gifters — MVP"
+            >
+              {Array.from({ length: 3 }, (_, i) => {
+                const viewer = topMvpViewers[i];
+                const isEmpty = !viewer;
+                const gifted = isEmpty ? 0 : (mvpGiftScores[viewer.id] ?? 0);
+                const isMvp = !isEmpty && i === 0 && gifted > 0;
+                const label = isEmpty ? '' : liveViewerLabel(viewer);
+                const photo =
+                  !isEmpty && viewer.avatar && !isPlaceholderLiveAvatar(viewer.avatar)
+                    ? viewer.avatar
+                    : '';
+                return (
+                  <div
+                    key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${viewer.id}`}
+                    className="relative flex flex-col items-center max-w-[42px]"
+                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                  >
+                    {isEmpty || !photo ? (
+                      <div
+                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                        }`}
+                        style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                      >
+                        {!isEmpty && label ? (
+                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                        <AvatarRing
+                          src={photo}
+                          alt={label || 'MVP'}
+                          size={LIVE_MVP_PROFILE_RING_PX}
+                        />
+                      </div>
+                    )}
+                    {isMvp && (
+                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                        MVP
+                      </span>
+                    )}
+                    <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                      {label || '\u00A0'}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Battle Split Screen Overlay â€” shown whenever in battle mode */}
         {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
