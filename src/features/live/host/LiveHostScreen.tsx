@@ -1591,7 +1591,7 @@ export default function LiveHostScreen() {
                         </div>
                       ) : battleSlots[0].status === 'invited' ? (
                         <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
-                          <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
+                          <AvatarRing src={battleSlots[0].avatar} alt={battleSlots[0].name} size={48} />
                           <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                         </div>
@@ -1732,7 +1732,7 @@ export default function LiveHostScreen() {
                           </div>
                         ) : battleSlots[1].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
-                          <img src={battleSlots[1].avatar} alt={battleSlots[1].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
+                          <AvatarRing src={battleSlots[1].avatar} alt={battleSlots[1].name} size={48} />
                           <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
@@ -1840,7 +1840,7 @@ export default function LiveHostScreen() {
                           </div>
                         ) : battleSlots[2].status === 'invited' ? (
                           <div className="w-full h-full flex flex-col items-center justify-center gap-2 elix-battle-slot border border-[var(--elix-border)]">
-                          <img src={battleSlots[2].avatar} alt={battleSlots[2].name} className="w-12 h-12 rounded-full object-cover object-center opacity-60" />
+                          <AvatarRing src={battleSlots[2].avatar} alt={battleSlots[2].name} size={48} />
                           <div className="w-5 h-5 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
                           <span className="text-white text-[10px] font-bold">Waiting...</span>
                           </div>
@@ -3069,16 +3069,11 @@ export default function LiveHostScreen() {
                   <>
                 {pendingInvite && (
                   <div className="mb-3 flex items-center gap-2.5 w-full py-1 px-2 rounded-full bg-white/5 border border-[#D8D9DD]/30">
-                    <div
-                      className="rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)] flex-shrink-0"
-                      style={{ width: SHARE_PANEL_AVATAR_PX, height: SHARE_PANEL_AVATAR_PX }}
-                    >
-                      {pendingInvite.hostAvatar ? (
-                        <img src={pendingInvite.hostAvatar} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] font-bold">{pendingInvite.hostName.slice(0, 1).toUpperCase()}</div>
-                      )}
-                    </div>
+                    <AvatarRing
+                      src={pendingInvite.hostAvatar}
+                      alt={pendingInvite.hostName}
+                      size={SHARE_PANEL_AVATAR_PX}
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm font-semibold truncate">@{pendingInvite.hostName}</p>
                     </div>

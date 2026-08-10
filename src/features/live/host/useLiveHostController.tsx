@@ -69,7 +69,7 @@ import {
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
 } from '../../../lib/profileFrame';
-import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
+import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { RoyceCloseIcon } from '../../../components/royce';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
@@ -128,7 +128,7 @@ import {
   apiFetchProfiles,
   apiToggleFollow,
 } from '../../feed/feedApi';
-import { isGenericLiveCreatorName, liveNameFromStreamFields, profileToLiveDisplay, sanitizeLiveAvatar } from '../../../lib/liveCreatorDisplay';
+import { isGenericLiveCreatorName, liveNameFromStreamFields, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import {
   fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
@@ -781,7 +781,7 @@ export function useLiveHostController() {
             sanitizeLiveAvatar(prof?.avatar) ||
             sanitizeLiveAvatar(s.avatar_url) ||
             sanitizeLiveAvatar(s.avatarUrl) ||
-            resolveUiAvatarUrl('', label, 80);
+            '';
           return { uid, streamKey, label, avatar };
         })
         .filter(({ uid, streamKey }) => {
@@ -789,17 +789,36 @@ export function useLiveHostController() {
           const ids = [uid, streamKey].filter(Boolean);
           if (ids.some((id) => isSelfUser(id, user.id, isBroadcast ? effectiveStreamId : null))) return false;
           return true;
-        })
-        .map(({ uid, streamKey, label, avatar }) => ({
+        });
+
+      // Real profile photos for invite circles (list/stream payloads often lack avatar_url).
+      await Promise.all(
+        liveCreators.map(async (row) => {
+          if (!isPlaceholderLiveAvatar(row.avatar)) return;
+          const id = row.uid || row.streamKey;
+          if (!id) return;
+          try {
+            const { body } = await apiFetchProfileById(id);
+            if (!body) return;
+            const photo = sanitizeLiveAvatar(profileToLiveDisplay(body).avatar);
+            if (photo) row.avatar = photo;
+          } catch {
+            /* keep empty */
+          }
+        }),
+      );
+
+      setCreators(
+        liveCreators.map(({ uid, streamKey, label, avatar }) => ({
           id: uid || streamKey,
           streamKey: streamKey || uid,
           name: label,
           username: label,
           followers: '0',
-          avatar,
+          avatar: avatar || ELIX_LOGO,
           isLive: true,
-        }));
-      setCreators(liveCreators);
+        })),
+      );
       setCreatorsLoadFailed(false);
     } catch {
       setCreatorsLoadFailed(true);
@@ -872,21 +891,43 @@ export function useLiveHostController() {
 
     const creator = creators.find(c => c.id === creatorId);
     if (!creator) return;
-    const avatar = creator.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.username)}&background=121212&color=FFFFFF`;
+
+    let inviteeAvatar = sanitizeLiveAvatar(creator.avatar);
+    if (!inviteeAvatar) {
+      try {
+        const { body } = await apiFetchProfileById(creatorId);
+        inviteeAvatar = sanitizeLiveAvatar(profileToLiveDisplay(body).avatar);
+      } catch {
+        /* fall through */
+      }
+    }
+    if (!inviteeAvatar) inviteeAvatar = ELIX_LOGO;
+
     setBattleSlots(prev => {
       const next = [...prev];
-      next[slotIndex] = { userId: creatorId, name: creator.username, status: 'invited', avatar };
+      next[slotIndex] = { userId: creatorId, name: creator.username, status: 'invited', avatar: inviteeAvatar };
       return next;
     });
 
     if (!user?.id) return;
+
+    let hostPhoto = sanitizeLiveAvatar(user.avatar) || sanitizeLiveAvatar(myAvatar);
+    if (!hostPhoto) {
+      try {
+        const { body } = await apiFetchProfileById(user.id);
+        hostPhoto = sanitizeLiveAvatar(profileToLiveDisplay(body).avatar);
+      } catch {
+        /* fall through */
+      }
+    }
+
     // streamKey must be the battle room (host room). For the joiner,
     // effectiveStreamId is already the host's stream id.
     battleInviteSend({
       targetUserId: creatorId,
       targetStreamKey: creator.streamKey || creatorId,
       hostName: myCreatorName,
-      hostAvatar: myAvatar,
+      hostAvatar: hostPhoto || '',
       streamKey: effectiveStreamId,
     });
 
@@ -4329,12 +4370,27 @@ export function useLiveHostController() {
     // Battle & Co-Host invite / request signalling over WebSocket
     const handleBattleInvite = (data) => {
       if (!user?.id) return;
+      const hostUserId = String(data.hostUserId || '').trim();
+      let hostAvatar = sanitizeLiveAvatar(data.hostAvatar) || '';
       setPendingInvite({
         hostName: data.hostName || 'Creator',
-        hostAvatar: data.hostAvatar || '',
+        hostAvatar: hostAvatar || ELIX_LOGO,
         streamKey: data.streamKey || effectiveStreamId,
-        hostUserId: data.hostUserId,
+        hostUserId,
       });
+      // Resolve real host photo when invite payload only has brand/fallback mark.
+      if (hostUserId && isPlaceholderLiveAvatar(hostAvatar)) {
+        void apiFetchProfileById(hostUserId).then(({ body }) => {
+          const photo = sanitizeLiveAvatar(profileToLiveDisplay(body).avatar);
+          if (!photo) return;
+          setPendingInvite((prev) =>
+            prev && prev.hostUserId === hostUserId ? { ...prev, hostAvatar: photo } : prev,
+          );
+          setCreators((prev) =>
+            prev.map((c) => (c.id === hostUserId ? { ...c, avatar: photo } : c)),
+          );
+        });
+      }
       // A battle invite kills any pending co-host invite: the two banners look
       // identical, and tapping the co-host Join would send this creator to the
       // spectator page instead of into the battle.

@@ -32,6 +32,18 @@ export function sanitizeLiveAvatar(avatar: string | undefined | null): string {
   return direct;
 }
 
+/** True when the URL is empty / generated / brand mark — not a user photo. */
+export function isPlaceholderLiveAvatar(avatar: string | undefined | null): boolean {
+  const direct = typeof avatar === "string" ? avatar.trim() : "";
+  if (!direct) return true;
+  if (isUiAvatarsUrl(direct)) return true;
+  const lower = direct.toLowerCase();
+  if (lower.includes("elix-logo") || lower.includes("elix-mark") || lower.includes("default-avatar")) {
+    return true;
+  }
+  return false;
+}
+
 /** Placeholder labels that should be replaced with a real profile name. */
 export function isGenericLiveCreatorName(name: string | undefined | null): boolean {
   if (!name || !name.trim()) return true;
