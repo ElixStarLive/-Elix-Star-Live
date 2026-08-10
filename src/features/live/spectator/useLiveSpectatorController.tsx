@@ -2342,13 +2342,11 @@ export function useLiveSpectatorController() {
           ...prev,
           [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
         }));
-        const iconRaw =
+        const iconUrl = resolveBattleGiftIconUrl(
           (typeof data.gift_icon === 'string' && data.gift_icon) ||
-          (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-        const iconUrl =
-          iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-            ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-            : null;
+            (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
+          resolveGiftAssetUrl,
+        );
         if (iconUrl) {
           setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
         }
@@ -3524,6 +3522,21 @@ export function useLiveSpectatorController() {
             ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
             : next;
         });
+      }
+    }
+    // Co-host tile: score + real gift icon immediately (dedupe WS echo via txn).
+    if (!spectatorBattle?.active && selectedCohostGiftUserId && gift.coins > 0) {
+      const targetId = selectedCohostGiftUserId;
+      if (giftTransactionId) {
+        seenGiftTxnRef.current.add(giftTransactionId);
+      }
+      setCohostGiftScores((prev) => ({
+        ...prev,
+        [targetId]: (prev[targetId] || 0) + gift.coins,
+      }));
+      const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
+      if (iconUrl) {
+        setCohostLastGifts((prev) => ({ ...prev, [targetId]: iconUrl }));
       }
     }
   };

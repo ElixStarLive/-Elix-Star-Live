@@ -1261,7 +1261,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -1291,7 +1291,7 @@ export default function LiveHostScreen() {
                           }
                         }}
                         style={{ gridArea: area }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>

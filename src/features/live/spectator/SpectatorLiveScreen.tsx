@@ -1717,25 +1717,35 @@ export default function SpectatorLiveScreen() {
                       (slot.type === 'self' && isSpeakingUser(user?.id)) ||
                       (slot.type === 'live' && !!slot.host && isSpeakingUser(slot.host.userId));
                     const liveHost = slot.type === 'live' ? slot.host : undefined;
+                    const canOpenGift =
+                      !spectatorBattle?.active && (!!liveHost || slot.type === 'host_main');
                     return (
                       <div
                         key={i}
-                        role={liveHost ? 'button' : undefined}
-                        tabIndex={liveHost ? 0 : undefined}
+                        role={canOpenGift ? 'button' : undefined}
+                        tabIndex={canOpenGift ? 0 : undefined}
                         onClick={() => {
-                          if (!liveHost || spectatorBattle?.active) return;
-                          setSelectedCohostGiftUserId(liveHost.userId);
+                          if (!canOpenGift) return;
+                          if (liveHost) {
+                            setSelectedCohostGiftUserId(liveHost.userId);
+                          } else {
+                            setSelectedCohostGiftUserId(null);
+                          }
                           setShowGiftPanel(true);
                         }}
                         onKeyDown={(e) => {
-                          if (!liveHost || spectatorBattle?.active) return;
+                          if (!canOpenGift) return;
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setSelectedCohostGiftUserId(liveHost.userId);
+                            if (liveHost) {
+                              setSelectedCohostGiftUserId(liveHost.userId);
+                            } else {
+                              setSelectedCohostGiftUserId(null);
+                            }
                             setShowGiftPanel(true);
                           }
                         }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
@@ -1752,26 +1762,36 @@ export default function SpectatorLiveScreen() {
                     const liveHost = slot.type === 'live' ? slot.host : undefined;
                     const area = seatAreas[i];
                     if (!area) return null;
+                    const canOpenGift =
+                      !spectatorBattle?.active && (!!liveHost || slot.type === 'host_main');
                     return (
                       <div
                         key={`seat-${i}`}
-                        role={liveHost ? 'button' : undefined}
-                        tabIndex={liveHost ? 0 : undefined}
+                        role={canOpenGift ? 'button' : undefined}
+                        tabIndex={canOpenGift ? 0 : undefined}
                         onClick={() => {
-                          if (!liveHost || spectatorBattle?.active) return;
-                          setSelectedCohostGiftUserId(liveHost.userId);
+                          if (!canOpenGift) return;
+                          if (liveHost) {
+                            setSelectedCohostGiftUserId(liveHost.userId);
+                          } else {
+                            setSelectedCohostGiftUserId(null);
+                          }
                           setShowGiftPanel(true);
                         }}
                         onKeyDown={(e) => {
-                          if (!liveHost || spectatorBattle?.active) return;
+                          if (!canOpenGift) return;
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
-                            setSelectedCohostGiftUserId(liveHost.userId);
+                            if (liveHost) {
+                              setSelectedCohostGiftUserId(liveHost.userId);
+                            } else {
+                              setSelectedCohostGiftUserId(null);
+                            }
                             setShowGiftPanel(true);
                           }
                         }}
                         style={{ gridArea: area }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${liveHost ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>

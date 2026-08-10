@@ -4028,13 +4028,11 @@ export function useLiveHostController() {
             ...prev,
             [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
           }));
-          const iconRaw =
+          const iconUrl = resolveBattleGiftIconUrl(
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-          const iconUrl =
-            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-              : null;
+              (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
+            resolveGiftAssetUrl,
+          );
           if (iconUrl) {
             setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
           }
@@ -5064,6 +5062,21 @@ export function useLiveHostController() {
           setLastGifts((prev) => appendBattleTileGiftForTarget(prev, serverBattleTarget, iconUrl));
         }
       }
+      // Co-host tile: show score + real gift icon immediately (mark txn so WS echo won't double-count).
+      if (!isBattleMode && selectedCohostGiftUserId && gift.coins > 0) {
+        const targetId = selectedCohostGiftUserId;
+        if (giftTransactionId) {
+          seenGiftTxnRef.current.add(giftTransactionId);
+        }
+        setCohostGiftScores((prev) => ({
+          ...prev,
+          [targetId]: (prev[targetId] || 0) + gift.coins,
+        }));
+        const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
+        if (iconUrl) {
+          setCohostLastGifts((prev) => ({ ...prev, [targetId]: iconUrl }));
+        }
+      }
     } catch {
       showToast('Gift failed');
     }
@@ -5300,6 +5313,20 @@ export function useLiveHostController() {
         const iconUrl = resolveBattleGiftIconUrl(lastSentGift.icon, resolveGiftAssetUrl);
         if (iconUrl) {
           setLastGifts((prev) => appendBattleTileGiftForTarget(prev, comboTarget, iconUrl));
+        }
+      }
+      if (!isBattleMode && selectedCohostGiftUserId && lastSentGift.coins > 0) {
+        const targetId = selectedCohostGiftUserId;
+        if (giftTransactionId) {
+          seenGiftTxnRef.current.add(giftTransactionId);
+        }
+        setCohostGiftScores((prev) => ({
+          ...prev,
+          [targetId]: (prev[targetId] || 0) + lastSentGift.coins,
+        }));
+        const iconUrl = resolveBattleGiftIconUrl(lastSentGift.icon, resolveGiftAssetUrl);
+        if (iconUrl) {
+          setCohostLastGifts((prev) => ({ ...prev, [targetId]: iconUrl }));
         }
       }
   };
