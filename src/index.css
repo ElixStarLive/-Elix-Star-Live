@@ -1832,7 +1832,7 @@ svg.lucide,
   border-color: rgba(216, 217, 221, 0.8) !important;
 }
 
-/* Live host name oval — covers avatar + name + Join; transparent + border; round on circle side */
+/* Live host name oval — chrome only; no width/margin lock (owner moves Join separately). */
 #root .elix-live-host-oval {
   background: transparent !important;
   background-color: transparent !important;
@@ -1842,9 +1842,13 @@ svg.lucide,
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   border-radius: 9999px !important;
+  margin-left: 0 !important;
+  padding-right: unset !important;
+  min-width: 0 !important;
+  max-width: none !important;
 }
 
-/* Live header Join — transparent capsule only; no white fill / no black disc */
+/* Live header Join — transparent chrome; horizontal shift unlocked (Join only). */
 #root button[data-elix-join='true'],
 #root button.elix-live-join-capsule {
   height: calc(36px + 0.5mm) !important;

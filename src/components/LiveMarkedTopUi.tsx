@@ -168,7 +168,6 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        paddingRight: 'calc(8px + 3mm)',
       }}
     >
       <button
