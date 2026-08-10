@@ -1,5 +1,5 @@
 /**
- * Co-host stage layout presets — square tiles with cut corners, host-chosen, synced via cohost_layout_sync.
+ * Co-host stage layout presets — square frame tiles, host-chosen, synced via cohost_layout_sync.
  */
 
 export const COHOST_LAYOUT_IDS = [

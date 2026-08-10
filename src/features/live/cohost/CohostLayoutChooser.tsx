@@ -32,7 +32,7 @@ export function CohostLayoutChooser({ value, onChange }: Props) {
                   : 'bg-white/[0.04] ring-1 ring-white/15'
               }`}
             >
-              {/* Perfect square preview — video shows through transparent cut-corner cells */}
+              {/* Perfect square FRAME only — transparent, no corner cut */}
               <div
                 className="w-full aspect-square min-h-0 min-w-0 grid"
                 style={{ gridTemplate: thumb.grid, gap: '2px' }}
