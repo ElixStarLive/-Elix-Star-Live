@@ -65,7 +65,7 @@ export function displayBalanceAfterTestSpend(
 
 /**
  * Mirror helper for TEST origin localStorage balance after server mint.
- * UI mint must still go through POST /api/test-coins/mint (admin + password).
+ * UI mint must still go through POST /api/test-coins/mint (login + password).
  * Do not use this to invent a second mint path in the UI.
  */
 export function addPersistedTestCoins(userId: string | undefined, amount: number): number {

@@ -2822,7 +2822,7 @@ export default function SpectatorLiveScreen() {
                 className="relative elix-panel elix-more-options-sheet elix-live-sheet rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                {areTestCoinsEnabled() && user?.isAdmin && (
+                {areTestCoinsEnabled() && user?.id && (
                   <button
                     type="button"
                     onClick={openTestCoinsModal}
@@ -2955,7 +2955,7 @@ export default function SpectatorLiveScreen() {
         )}
 
         {/* TEST COINS — bottom sheet + fundal (same pattern as More Options) */}
-        {areTestCoinsEnabled() && user?.isAdmin && showTestCoinsModal && (
+        {areTestCoinsEnabled() && user?.id && showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/35 pointer-events-auto"

@@ -1873,8 +1873,8 @@ export function useLiveSpectatorController() {
   }, [showTestCoinsModal, testCoinsStep]);
 
   const openTestCoinsModal = useCallback(() => {
-    if (!user?.isAdmin) {
-      showToast('Not available');
+    if (!user?.id) {
+      showToast('Sign in required');
       setIsMoreMenuOpen(false);
       return;
     }
@@ -1884,7 +1884,7 @@ export function useLiveSpectatorController() {
     setTestCoinsError('');
     setTestCoinsAmount('');
     setIsMoreMenuOpen(false);
-  }, [user?.isAdmin]);
+  }, [user?.id]);
 
   const closeTestCoinsModal = useCallback(() => {
     setShowTestCoinsModal(false);
@@ -1897,15 +1897,15 @@ export function useLiveSpectatorController() {
   }, []);
 
   const addMaxTestCoinsAtOnce = useCallback(async () => {
-    if (!user?.isAdmin || !testCoinsPwd) {
-      setTestCoinsError('Admin password required');
+    if (!user?.id || !testCoinsPwd) {
+      setTestCoinsError('Password required');
       return;
     }
     setTestCoinsBusy(true);
     try {
       const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, 100000000);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         return;
       }
       setCoinBalance(result.balance);
@@ -1915,12 +1915,12 @@ export function useLiveSpectatorController() {
     } finally {
       setTestCoinsBusy(false);
     }
-  }, [user?.id, user?.isAdmin, testCoinsPwd]);
+  }, [user?.id, testCoinsPwd]);
 
   const submitTestCoinsAmount = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.isAdmin) {
-      setTestCoinsError('Access denied');
+    if (!user?.id) {
+      setTestCoinsError('Sign in required');
       return;
     }
     const amount = parseInt(testCoinsAmount, 10);
@@ -1941,7 +1941,7 @@ export function useLiveSpectatorController() {
     try {
       const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, amount);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Access denied' : result.error);
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         if (result.status === 403) setTestCoinsStep('password');
         return;
       }
@@ -1952,12 +1952,12 @@ export function useLiveSpectatorController() {
     } finally {
       setTestCoinsBusy(false);
     }
-  }, [testCoinsAmount, testCoinsPwd, user?.id, user?.isAdmin]);
+  }, [testCoinsAmount, testCoinsPwd, user?.id]);
 
   const submitTestCoinsPasswordUnlock = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.isAdmin) {
-      setTestCoinsError('Access denied');
+    if (!user?.id) {
+      setTestCoinsError('Sign in required');
       setTestCoinsPwd('');
       return;
     }
@@ -1969,7 +1969,7 @@ export function useLiveSpectatorController() {
     try {
       const result = await authorizeTestCoinIssue(testCoinsPwd);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password or not authorised' : result.error);
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         setTestCoinsPwd('');
         return;
       }
@@ -1978,7 +1978,7 @@ export function useLiveSpectatorController() {
     } finally {
       setTestCoinsBusy(false);
     }
-  }, [testCoinsPwd, user?.isAdmin]);
+  }, [testCoinsPwd, user?.id]);
 
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;

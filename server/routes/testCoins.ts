@@ -1,8 +1,8 @@
 /**
- * Test-coin ISSUE/MINT — admin + server password only.
+ * Test-coin ISSUE/MINT — server password only (no admin flag).
  *
  * Issuance (mint) requires BOTH:
- *   1. Authenticated profile with is_admin = true
+ *   1. Authenticated user (login)
  *   2. Correct TEST_COINS_ISSUE_PASSWORD (server env — never in client)
  *
  * Issued balances stay TEST/PROMO origin on the client (localStorage) for
@@ -80,21 +80,6 @@ function recordFailure(map: Map<string, FailState>, key: string): void {
 function clearFailures(userId: string, ip: string): void {
   failByUser.delete(userId);
   failByIp.delete(ip);
-}
-
-async function loadIsAdmin(userId: string): Promise<boolean> {
-  const db = getPool();
-  if (!db) return false;
-  try {
-    const r = await db.query(
-      `SELECT COALESCE(is_admin, false) AS is_admin FROM profiles WHERE user_id = $1 LIMIT 1`,
-      [userId],
-    );
-    return Boolean(r.rows[0]?.is_admin);
-  } catch (err) {
-    logger.error({ err, userId }, "testCoins loadIsAdmin failed");
-    return false;
-  }
 }
 
 function expectedPasswordHash(): string | null {
@@ -194,7 +179,7 @@ export async function handleGetTestCoinBalance(req: Request, res: Response): Pro
 }
 
 /**
- * POST authorize — verifies admin + password without minting.
+ * POST authorize — verifies password without minting.
  * Does not unlock mint permanently; mint still requires password again.
  */
 export async function handleAuthorizeTestCoins(req: Request, res: Response): Promise<void> {
@@ -218,22 +203,6 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
       reason: "authorize_rate_limited",
     });
     res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
-    return;
-  }
-
-  const isAdmin = await loadIsAdmin(auth.userId);
-  if (!isAdmin) {
-    recordFailure(failByUser, auth.userId);
-    recordFailure(failByIp, ip);
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
-      ip,
-      outcome: "forbidden",
-      reason: "not_admin",
-    });
-    res.status(403).json({ error: "FORBIDDEN" });
     return;
   }
 
@@ -271,7 +240,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
   res.json({ ok: true, origin: "test_coins", nonce });
 }
 
-/** POST mint — admin + password required. Returns new test balance (origin=test_coins). */
+/** POST mint — authenticated user + password required. Returns new test balance (origin=test_coins). */
 export async function handleMintTestCoins(req: Request, res: Response): Promise<void> {
   const auth = await requireAuthedUser(req, res);
   if (!auth) return;
@@ -293,22 +262,6 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
       reason: "mint_rate_limited",
     });
     res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
-    return;
-  }
-
-  const isAdmin = await loadIsAdmin(auth.userId);
-  if (!isAdmin) {
-    recordFailure(failByUser, auth.userId);
-    recordFailure(failByIp, ip);
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
-      ip,
-      outcome: "forbidden",
-      reason: "not_admin",
-    });
-    res.status(403).json({ error: "FORBIDDEN" });
     return;
   }
 

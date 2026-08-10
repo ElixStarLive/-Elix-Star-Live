@@ -1,6 +1,6 @@
 /**
  * Server-gated test-coin ISSUE API.
- * Minting requires admin account + password verified on the server.
+ * Minting requires login + password verified on the server.
  * Password is never stored in localStorage / never hashed in the client bundle.
  */
 import { request } from "./apiClient";
