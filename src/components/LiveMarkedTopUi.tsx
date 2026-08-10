@@ -176,7 +176,7 @@ export function LiveHostProfileHeader({
       <button
         type="button"
         className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
-        style={{ marginLeft: '-2mm' }}
+        style={{ marginLeft: '-4mm' }}
         onClick={(e) => {
           e.stopPropagation();
           onAvatarClick();
