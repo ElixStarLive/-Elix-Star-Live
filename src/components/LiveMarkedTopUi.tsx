@@ -169,6 +169,7 @@ export function LiveHostProfileHeader({
         boxShadow: 'none',
         minHeight: avatarSize + 4,
         paddingRight: 'calc(8px + 1mm)',
+        marginLeft: '3mm',
       }}
     >
       <button
@@ -255,7 +256,7 @@ export function LiveJoinPill({
         position: 'relative',
         top: '1mm',
         marginTop: 0,
-        marginLeft: '1mm',
+        marginLeft: 0,
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}
