@@ -31,6 +31,7 @@ import {
   Crosshair,
 } from 'lucide-react';
 import { apiFetchCameraOptionList } from '../features/camera/cameraOptionsApi';
+import { platform } from '../lib/platform';
 
 interface ElixCameraLayoutProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -846,7 +847,15 @@ export default function ElixCameraLayout({
       {/* BOTTOM SECTION */}
       {/* ══════════════════════════════════════════ */}
       {!showEffectsPanel && !showCapCutPanel && !showStickerPicker && (
-        <div className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto" style={{ paddingBottom: 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 8mm)' }}>
+        <div
+          className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto"
+          style={{
+            /* Android system nav often reports 0 safe-area — lift controls so POST/CREATE/LIVE + Upload stay tappable */
+            paddingBottom: platform.isAndroid
+              ? 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 8mm + 4mm)'
+              : 'calc(max(3.5rem, env(safe-area-inset-bottom, 0px)) + 8mm)',
+          }}
+        >
 
           {/* Duration selector — one label visible; swipe left/right to change */}
           <div className="flex justify-center mb-4">
@@ -964,7 +973,12 @@ export default function ElixCameraLayout({
           )}
 
           {/* Bottom Tabs — POST / CREATE / LIVE with capture indicators */}
-          <div className="flex items-center justify-center px-4 pb-0.5 w-full absolute bottom-[calc(1rem+5mm)]">
+          <div
+            className="flex items-center justify-center px-4 pb-0.5 w-full absolute"
+            style={{
+              bottom: platform.isAndroid ? 'calc(1rem + 5mm + 4mm)' : 'calc(1rem + 5mm)',
+            }}
+          >
             <div className="flex items-center gap-4">
               <button 
                 onClick={onPostTab}

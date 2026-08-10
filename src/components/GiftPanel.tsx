@@ -5,7 +5,7 @@ import React, {
   useState,
   useCallback,
 } from "react";
-import { Gift, Coins, Trophy, Heart } from "lucide-react";
+import { Coins, Trophy, Heart } from "lucide-react";
 import { BuyCoinsModal } from "./BuyCoinsModal";
 import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
 
@@ -86,22 +86,22 @@ function GiftGridItem({
     <button
       type="button"
       onClick={onTap}
-        className={[
-        "group flex flex-col items-center gap-1.5 p-1 rounded-xl hover:brightness-125 border transition-all duration-300 active:scale-95 relative overflow-hidden",
+      className={[
+        "group flex flex-col items-center justify-start gap-1 p-1 rounded-xl bg-transparent border transition-transform duration-300 active:scale-95 relative min-w-0 w-full h-full",
         borderClass ?? "border-transparent",
       ].join(" ")}
     >
+      {/* Fixed square icon slot — keeps every gift on the same row baseline */}
       <div
         className={[
-          "w-full aspect-square flex items-center justify-center bg-transparent rounded-2xl shadow-inner group-hover:shadow-secondary/20 transition-all overflow-hidden relative elix-gift-idle border border-transparent",
+          "w-full aspect-square flex-shrink-0 overflow-hidden flex items-center justify-center bg-transparent relative",
           isPopped ? "elix-gift-pop" : "",
         ].join(" ")}
       >
-        {/* PNG image – always visible; fallback to default icon if CDN image fails (e.g. missing in Bunny) */}
         <img
           src={imgError ? displayIcon : iconSrc}
           alt={gift.name}
-          className="w-full h-full object-contain p-1 pointer-events-none relative"
+          className="max-w-full max-h-full w-full h-full object-contain object-center pointer-events-none bg-transparent"
           draggable={false}
           onError={() => {
             const fallback = giftIconCdnFallback(iconSrc);
@@ -112,24 +112,19 @@ function GiftGridItem({
             setImgError(true);
           }}
         />
-
-        {/* Sparkle overlay for small gifts */}
-        {gift.giftType === "small" && <div className="elix-gift-sparkle" />}
       </div>
 
-      <div className="text-center z-10">
-        <p className="text-[10px] text-white/90 font-medium truncate w-full mb-0.5 group-hover:text-white">
+      <div className="w-full min-w-0 flex-shrink-0 text-center z-10 h-[2.4rem] flex flex-col items-center justify-start overflow-hidden">
+        <p className="text-[10px] text-white/90 font-medium truncate w-full leading-tight px-0.5">
           {gift.name}
         </p>
-        <div className="flex items-center justify-center gap-1">
-          <Coins size={9} className="text-[#D9A62E]" />
-          <p className="text-[10px] text-[#D9A62E] font-bold">
+        <div className="flex items-center justify-center gap-1 bg-transparent mt-0.5">
+          <Coins size={9} className="text-[#D9A62E] flex-shrink-0" fill="none" strokeWidth={2} />
+          <p className="text-[10px] text-[#D9A62E] font-bold tabular-nums leading-none">
             {gift.coins.toLocaleString()}
           </p>
         </div>
       </div>
-
-      <div className="absolute inset-0 bg-secondary/5 opacity-0 group-hover:opacity-100 rounded-xl transition-opacity pointer-events-none" />
     </button>
   );
 }
@@ -199,10 +194,8 @@ export function GiftPanel({
     );
   }, [highlightGiftId, gifts]);
 
-  const goalBorder = (giftId: string, fallback?: string) =>
-    highlightGiftId === giftId
-      ? "border-[#D8D9DD]/80 ring-1 ring-[#D8D9DD]/40"
-      : fallback;
+  const goalBorder = (_giftId: string, _fallback?: string) =>
+    undefined;
 
   const handleGiftTap = useCallback(
     (gift: GiftItem) => {
@@ -221,7 +214,7 @@ export function GiftPanel({
     {/* Hide gift sheet entirely while Top Up is open — do not change gift assets */}
     <div
       ref={panelRef}
-      className={`elix-panel rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999] ${
+      className={`elix-panel elix-gift-sheet rounded-t-2xl p-3 pb-safe max-h-[40dvh] overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y no-scrollbar shadow-2xl w-full relative z-[99999] ${
         showRecharge ? "hidden" : ""
       }`}
       style={{ touchAction: "pan-y" }}
@@ -231,103 +224,103 @@ export function GiftPanel({
       }}
       aria-hidden={showRecharge || undefined}
     >
-      {/* Top bar: Weekly Ranking / Membership */}
-      {(onWeeklyRanking || onMembership) && (
-        <div
-          className="mb-1.5 -mx-3 -mt-1 w-[calc(100%+24px)] overflow-hidden border-b border-white/5"
-          style={{ height: "10mm", maxHeight: "10mm" }}
-        >
-          <div className="w-full h-full flex items-center overflow-x-hidden">
-            <div className="flex items-center gap-2 px-3 flex-nowrap min-w-0">
-              {onWeeklyRanking && (
-                <div
-                  className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
-                  onClick={onWeeklyRanking}
-                >
-                  <Trophy className="w-2.5 h-2.5 text-[#F5F5F7] flex-shrink-0" />
-                  <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
-                    Weekly Ranking &gt;
-                  </span>
-                </div>
-              )}
-              {onWeeklyRanking && onMembership && (
-                <span className="text-white/10 text-[8px]">|</span>
-              )}
-              {onMembership && (
-                <div
-                  className="flex items-center gap-1 cursor-pointer flex-shrink-0 active:scale-95 transition-transform"
-                  onClick={onMembership}
-                >
-                  <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] flex-shrink-0" />
-                  <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
-                    Membership
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+      {/* Header — decoration line, then Send Gift name under it (same as Ranking / More) */}
+      <div className="flex flex-col px-1 pt-0 pb-2 border-b border-[#D8D9DD]/45 mb-2 flex-shrink-0">
+        <div className="flex justify-center pb-2" aria-hidden>
+          <div className="w-10 h-1 rounded-full bg-white/25" />
         </div>
-      )}
+        <h3 className="text-[#F5F5F7] font-bold text-sm text-center">Send Gift</h3>
+      </div>
 
-      {/* Header: title + coin balance */}
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="text-white font-semibold text-sm flex items-center gap-2">
-          <Gift className="text-white" size={16} />
-          Send Gift
-        </h3>
-        <div className="flex items-center gap-1 bg-black px-1.5 py-0.5 rounded-full border border-secondary/20">
-          {onGiftSourceChange && promotionalCoins > 0 && (
-            <button
-              type="button"
-              onClick={() => onGiftSourceChange("promotional_coins")}
-              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                giftSource === "promotional_coins"
-                  ? "bg-[#C9CCD1] text-black"
-                  : "text-white/60"
-              }`}
-              title="Promotional coins; zero Diamonds / creator earnings"
-            >
-              Promo {promotionalCoins.toLocaleString()}
-            </button>
-          )}
-          {onGiftSourceChange && starterCoins > 0 && (
-            <button
-              type="button"
-              onClick={() => onGiftSourceChange("starter_coins")}
-              className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                giftSource === "starter_coins"
-                  ? "bg-white text-black"
-                  : "text-white/60"
-              }`}
-              title="Free onboarding coins; no monetary value or creator earnings"
-            >
-              Starter {starterCoins.toLocaleString()}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => onGiftSourceChange?.("paid_coins")}
-            className={`flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${
-              giftSource === "paid_coins" || !onGiftSourceChange
-                ? "bg-[#D9A62E] text-black"
-                : "text-[#D9A62E]"
-            }`}
-          >
-            <Coins size={11} />
-            {userCoins.toLocaleString()}
-          </button>
-          {giftSource === "paid_coins" && (
+      {/* Capsules under title: Weekly Ranking / Membership left — gift coins + Top Up right */}
+      <div
+        className="mb-3 -mx-3 w-[calc(100%+24px)] overflow-hidden"
+        style={{ height: "10mm", maxHeight: "10mm" }}
+      >
+        <div className="w-full h-full flex items-center justify-between gap-1.5 px-3">
+          <div className="flex items-center gap-1.5 flex-nowrap min-w-0 overflow-x-auto no-scrollbar">
+            {onWeeklyRanking && (
+              <button
+                type="button"
+                onClick={onWeeklyRanking}
+                className="flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 border border-[#D8D9DD]/40 bg-transparent active:scale-95 transition-transform"
+              >
+                <Trophy className="w-2.5 h-2.5 text-[#F5F5F7] flex-shrink-0" />
+                <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
+                  Weekly Ranking
+                </span>
+              </button>
+            )}
+            {onMembership && (
+              <button
+                type="button"
+                onClick={onMembership}
+                className="flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 border border-[#D8D9DD]/40 bg-transparent active:scale-95 transition-transform"
+              >
+                <Heart className="w-2.5 h-2.5 text-[#F5F5F7] fill-[#FFFFFF] flex-shrink-0" />
+                <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
+                  Membership
+                </span>
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 border border-[#D8D9DD]/40 bg-transparent">
+              {onGiftSourceChange && promotionalCoins > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onGiftSourceChange("promotional_coins")}
+                  className={`text-[8px] font-bold px-1 py-0.5 rounded ${
+                    giftSource === "promotional_coins"
+                      ? "bg-[#C9CCD1] text-black"
+                      : "text-white/60"
+                  }`}
+                  title="Promotional coins; zero Diamonds / creator earnings"
+                >
+                  Promo {promotionalCoins.toLocaleString()}
+                </button>
+              )}
+              {onGiftSourceChange && starterCoins > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onGiftSourceChange("starter_coins")}
+                  className={`text-[8px] font-bold px-1 py-0.5 rounded ${
+                    giftSource === "starter_coins"
+                      ? "bg-white text-black"
+                      : "text-white/60"
+                  }`}
+                  title="Free onboarding coins; no monetary value or creator earnings"
+                >
+                  Starter {starterCoins.toLocaleString()}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onGiftSourceChange?.("paid_coins")}
+                className={`flex items-center gap-0.5 text-[8px] font-bold px-1 py-0.5 rounded ${
+                  giftSource === "paid_coins" || !onGiftSourceChange
+                    ? "text-[#D9A62E]"
+                    : "text-[#D9A62E]/70"
+                }`}
+              >
+                <Coins size={10} />
+                {userCoins.toLocaleString()}
+              </button>
+            </div>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowRecharge(true);
               }}
-              className="bg-secondary text-black text-[9px] font-bold px-1.5 py-0.5 rounded hover:bg-white transition"
+              className="flex items-center gap-1 flex-shrink-0 rounded-full px-2 py-0.5 border border-[#D8D9DD]/40 bg-transparent active:scale-95 transition-transform"
             >
-              Top Up
+              <Coins className="w-2.5 h-2.5 text-[#F5F5F7] flex-shrink-0" />
+              <span className="text-[#F5F5F7] text-[8px] font-bold whitespace-nowrap">
+                Top Up
+              </span>
             </button>
-          )}
+          </div>
         </div>
       </div>
       {giftSource === "starter_coins" && (
@@ -389,7 +382,7 @@ export function GiftPanel({
         <div className="animate-fade-in">
           {universeGifts.length > 0 && (
             <div className="mb-4">
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2 items-start">
                 {universeGifts.map((gift) => (
                 <GiftGridItem
                   key={gift.id}
@@ -398,7 +391,7 @@ export function GiftPanel({
                   isPopped={poppedGiftId === gift.id}
                   isSelected={false}
                   onTap={() => handleGiftTap(gift)}
-                  borderClass={goalBorder(gift.id, "border-secondary/30")}
+                  borderClass={goalBorder(gift.id)}
                 />
                 ))}
               </div>
@@ -410,7 +403,7 @@ export function GiftPanel({
       {/* ============ Big Gifts Tab ============ */}
       {activeTab === "big" && (
         <div className="animate-fade-in">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 items-start">
             {bigGifts.map((gift) => (
               <GiftGridItem
                 key={gift.id}
@@ -429,7 +422,7 @@ export function GiftPanel({
       {/* ============ Small Gifts Tab ============ */}
       {activeTab === "small" && smallGifts.length > 0 && (
         <div className="mt-2 animate-fade-in">
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2 items-start">
             {smallGifts.map((gift) => (
               <GiftGridItem
                 key={gift.id}

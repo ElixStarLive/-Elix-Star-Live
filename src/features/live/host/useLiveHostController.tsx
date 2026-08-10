@@ -4981,6 +4981,7 @@ export function useLiveHostController() {
     setIsMicMuted(next);
     const stream = cameraStreamRef.current;
     if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !next));
+    void hostLifecycleRef.current.liveKit?.setMicEnabled(!next);
   };
 
   const toggleCam = () => {

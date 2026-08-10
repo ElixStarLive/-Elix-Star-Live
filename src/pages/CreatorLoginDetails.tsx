@@ -276,7 +276,7 @@ export default function CreatorLoginDetails() {
                     className={`flex-shrink-0 w-14 flex flex-col items-center gap-1.5 group cursor-pointer ${isActive ? 'opacity-100' : 'opacity-60 hover:opacity-100'}`}
                   >
                     <div className={`relative ${isActive ? '' : ''} transition-all`}>
-                      <AvatarRing src={acc.avatar || `https://ui-avatars.com/api/?name=${acc.username}&background=random`} alt={acc.username} size={40} />
+                      <AvatarRing src={acc.avatar || '/elix-logo.png'} alt={acc.username} size={40} />
                       {isActive && (
                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#FFFFFF] rounded-full border-[1.5px] border-black flex items-center justify-center">
                           <div className="w-1 h-1 bg-transparent rounded-full" />

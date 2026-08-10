@@ -25,8 +25,8 @@ export function isRealShareContact(username: string, userId = ''): boolean {
 }
 
 /**
- * All real platform users for Share — NOT followers-only.
- * Drops demo/test/LiveKit junk only (explore, John Doe, lt_*, unique_*, …).
+ * Share contacts — owner allowlist only (real named accounts).
+ * See isGenuineAppUser.
  */
 export async function fetchAllSharePanelContacts(
   excludeUserId: string | undefined,

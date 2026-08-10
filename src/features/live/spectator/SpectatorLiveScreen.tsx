@@ -32,6 +32,7 @@ import {
   BarChart3,
   ArrowLeftRight,
   RefreshCw,
+  X,
 } from 'lucide-react';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
@@ -531,6 +532,7 @@ export default function SpectatorLiveScreen() {
     testCoinsPwdRef,
     testCoinsStep,
     toggleCam,
+    flipCamera,
     toggleFeaturedUser,
     toggleMic,
     triggerBattleVfx,
@@ -551,9 +553,9 @@ export default function SpectatorLiveScreen() {
   if (spectatorGate === 'loading') {
     return (
       <div className="fixed inset-0 elix-fundal-glass flex justify-center">
-        <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
+        <div className="relative w-full max-w-[480px] h-full elix-panel flex flex-col items-center justify-center gap-4 p-6">
           <div className="w-10 h-10 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
-          <p className="text-white/60 text-sm">Checking stream...</p>
+          <p className="text-white/60 text-sm">Connecting to live…</p>
         </div>
       </div>
     );
@@ -562,35 +564,54 @@ export default function SpectatorLiveScreen() {
   if (spectatorGate === 'offline') {
     return (
       <div className="fixed inset-0 elix-fundal-glass flex justify-center">
-        <div className="relative w-full max-w-[480px] h-full bg-[rgba(0,0,0,0.35)] flex flex-col items-center justify-center gap-4 p-6">
-          <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-            <span className="text-3xl">{streamEndedReceived ? '🔴' : '📡'}</span>
-          </div>
-          <h2 className="text-white font-bold text-lg">
-            {streamEndedReceived ? 'Stream ended' : 'Stream offline'}
-          </h2>
-          <p className="text-white/50 text-sm text-center">
-            {streamEndedReceived
-              ? 'The host has ended the stream. Taking you back...'
-              : 'This stream has ended or is not available right now.'}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2 mt-2">
-            {!streamEndedReceived && (
+        <div className="relative w-full max-w-[480px] h-full elix-panel flex flex-col items-center justify-center px-6 pb-safe">
+          <div className="w-full max-w-[300px] flex flex-col items-center text-center">
+            <div className="relative mb-5">
+              <AvatarRing
+                src={hostAvatar || ''}
+                alt={hostName || 'Creator'}
+                size={96}
+              />
+              <span
+                className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-[#EF4444] border-2 border-[#080A0E]"
+                aria-hidden
+              />
+            </div>
+
+            <h2 className="text-[#F5F5F7] font-bold text-xl tracking-tight">
+              {streamEndedReceived ? 'Live ended' : 'Stream offline'}
+            </h2>
+            {hostName ? (
+              <p className="text-white/70 text-sm mt-1.5 truncate max-w-full">
+                {hostName}
+              </p>
+            ) : null}
+            <p className="text-white/45 text-sm leading-relaxed mt-3 mb-6">
+              {streamEndedReceived
+                ? 'Thanks for watching. Taking you back…'
+                : 'This live has ended or is not available right now.'}
+            </p>
+
+            <div className="w-full border-t border-[#D8D9DD]/30 mb-5" aria-hidden />
+
+            <div className="flex flex-col gap-2.5 w-full">
+              {!streamEndedReceived && (
+                <button
+                  type="button"
+                  onClick={() => { setStreamIsLive(null); setStreamRetryKey(k => k + 1); }}
+                  className="w-full py-3 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] text-sm font-bold active:scale-[0.98] transition-transform"
+                >
+                  Retry connection
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => { setStreamIsLive(null); setStreamRetryKey(k => k + 1); }}
-                className="px-6 py-2.5 rounded-lg bg-white/10 border border-[#D8D9DD]/50 text-[#F5F5F7] font-semibold"
+                onClick={() => navigate('/feed', { replace: true })}
+                className="w-full py-3 rounded-xl bg-transparent border border-[#D8D9DD]/55 text-[#F5F5F7] text-sm font-bold active:scale-[0.98] transition-transform"
               >
-                Retry connection
+                Back to For You
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => navigate('/feed', { replace: true })}
-              className="px-6 py-2.5 rounded-lg bg-[#E6E9EE] text-white elix-accent font-semibold"
-            >
-              Go back
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -805,22 +826,6 @@ export default function SpectatorLiveScreen() {
                             </div>
                           </div>
                         )}
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); leaveStreamWithSlide(); }}
-                          className="absolute bottom-4 right-2 z-40 flex items-center justify-center border-0 bg-transparent p-0 pointer-events-auto hover:opacity-90 active:scale-95"
-                          title="Close"
-                          aria-label="Close"
-                        >
-                          <RoyceCloseIcon size={12} />
-                        </button>
-                        {!hideRedScore && (
-                          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {formatBattleScoreShort(showPkBreakdown ? hS : redTeamScore)}
-                            </span>
-                          </div>
-                        )}
                         {lastHostGift.length > 0 && (
                           <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
                             {lastHostGift.map((src, i) => (
@@ -868,13 +873,6 @@ export default function SpectatorLiveScreen() {
                             ) : null}
                           </div>
                         )}
-                        {!hideBlueScore && (
-                          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {formatBattleScoreShort(showPkBreakdown ? oS : blueTeamScore)}
-                            </span>
-                          </div>
-                        )}
                         {lastOpponentGift.length > 0 && (
                           <div className="absolute bottom-1 right-1 z-20 pointer-events-none flex items-center">
                             {lastOpponentGift.map((src, i) => (
@@ -890,32 +888,6 @@ export default function SpectatorLiveScreen() {
                         )}
                       </div>
                     </div>
-                    {spectatorBattle.winner && (
-                      <div className="absolute inset-0 z-[8] pointer-events-none flex flex-row gap-0">
-                        <div className="flex-1 basis-0 min-w-0 h-full flex flex-col items-center justify-center gap-0.5">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'host' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {spectatorBattle.winner === 'host' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
-                          </span>
-                          {spectatorBattle.winner === 'host' && battleWinStreak.host > 0 ? (
-                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.host}</span>
-                          ) : null}
-                          {spectatorBattle.winner === 'opponent' ? (
-                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
-                          ) : null}
-                        </div>
-                        <div className="flex-1 basis-0 min-w-0 h-full flex flex-col items-center justify-center gap-0.5">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${spectatorBattle.winner === 'opponent' ? 'text-white' : spectatorBattle.winner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {spectatorBattle.winner === 'opponent' ? 'WIN' : spectatorBattle.winner === 'draw' ? 'DRAW' : 'LOSS'}
-                          </span>
-                          {spectatorBattle.winner === 'opponent' && battleWinStreak.opponent > 0 ? (
-                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.opponent}</span>
-                          ) : null}
-                          {spectatorBattle.winner === 'host' ? (
-                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
-                          ) : null}
-                        </div>
-                      </div>
-                    )}
                     <div className="absolute inset-0 z-10 flex flex-row touch-manipulation gap-0">
                       {showPkBreakdown ? (
                         <>
@@ -964,6 +936,79 @@ export default function SpectatorLiveScreen() {
                           />
                         </>
                       )}
+                    </div>
+                    {/* Same as creator: WIN/LOSS capsules only after result or streak > 0; close near mic */}
+                    <div className="absolute inset-0 z-40 pointer-events-none flex flex-row gap-0">
+                      <div className="flex-1 basis-0 min-w-0 h-full relative">
+                        {(spectatorBattle.winner != null || battleWinStreak.host > 0) && (
+                        <div className="absolute top-3 left-1.5">
+                          <span className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded-full bg-black/45 border border-[#D8D9DD]/40 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            <span>
+                              {spectatorBattle.winner === 'host'
+                                ? 'WIN'
+                                : spectatorBattle.winner === 'opponent'
+                                  ? 'LOSS'
+                                  : spectatorBattle.winner === 'draw'
+                                    ? 'DRAW'
+                                    : 'WINS'}
+                            </span>
+                            <span className={spectatorBattle.winner === 'opponent' ? 'text-white/70' : 'text-white'}>
+                              ×{spectatorBattle.winner === 'opponent' ? 0 : battleWinStreak.host}
+                            </span>
+                          </span>
+                        </div>
+                        )}
+                        <div className="absolute bottom-3 right-1.5 pointer-events-auto flex items-end gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); leaveStreamWithSlide(); }}
+                            aria-label="Close"
+                            className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          >
+                            <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleMic(); }}
+                            aria-label={isMicMuted ? 'Unmute' : 'Mute'}
+                            className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          >
+                            {isMicMuted
+                              ? <MicOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                              : <Mic className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleCam(); }}
+                            aria-label={isCamOff ? 'Cam On' : 'Cam Off'}
+                            className="elix-live-tile-ctrl flex flex-col items-center gap-0.5 border-0 bg-transparent p-0 hover:opacity-90 active:scale-95"
+                          >
+                            {isCamOff
+                              ? <CameraOff className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />
+                              : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex-1 basis-0 min-w-0 h-full relative">
+                        {(spectatorBattle.winner != null || battleWinStreak.opponent > 0) && (
+                        <div className="absolute top-3 right-1.5">
+                          <span className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded-full bg-black/45 border border-[#D8D9DD]/40 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            <span>
+                              {spectatorBattle.winner === 'opponent'
+                                ? 'WIN'
+                                : spectatorBattle.winner === 'host'
+                                  ? 'LOSS'
+                                  : spectatorBattle.winner === 'draw'
+                                    ? 'DRAW'
+                                    : 'WINS'}
+                            </span>
+                            <span className={spectatorBattle.winner === 'host' ? 'text-white/70' : 'text-white'}>
+                              ×{spectatorBattle.winner === 'host' ? 0 : battleWinStreak.opponent}
+                            </span>
+                          </span>
+                        </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1105,7 +1150,7 @@ export default function SpectatorLiveScreen() {
                   >
                     <div className="absolute inset-0 bg-black/35" />
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] elix-panel rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
+                      className="absolute left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-[456px] elix-panel elix-live-sheet rounded-2xl overflow-hidden shadow-xl border border-[#2A2D33] animate-[slideInFromBottom_0.2s_ease-out]"
                       style={{ bottom: 'calc(70px + max(8px, env(safe-area-inset-bottom)))' }}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -1470,7 +1515,7 @@ export default function SpectatorLiveScreen() {
             <div
               className={`absolute left-0 right-0 z-0 bg-transparent overflow-hidden rounded-none`}
               style={(showGrid || spectatorBattle?.active)
-                ? { top: 'calc(env(safe-area-inset-top, 0px) + 78px + 6mm)', height: 'calc(36dvh + 10mm)' }
+                ? { top: 'calc(env(safe-area-inset-top, 0px) + 90px + 6mm)', height: 'calc(30dvh + 6mm)' }
                 : { top: '0px', bottom: '0px' }
               }
             >
@@ -2012,12 +2057,12 @@ export default function SpectatorLiveScreen() {
           </div>
         )}
 
-{/* Bottom bar — above gift video so Gift/Invite/Share/More stay tappable */}
+{/* Bottom bar — same fundal as top chrome; above gift video so actions stay tappable */}
         <div
           className="fixed left-0 right-0 bottom-0 z-[50002] pointer-events-none flex justify-center"
         >
           <div
-            className={`pointer-events-auto w-full max-w-[480px] px-3 pt-0 ${hasCoHostLowerFundal ? 'elix-live-lower-fundal' : 'bg-transparent'}`}
+            className="pointer-events-auto w-full max-w-[480px] px-3 pt-0 elix-live-lower-fundal"
             style={{ paddingBottom: LIVE_BOTTOM_ACTION_PADDING }}
           >
             <div className="flex items-end gap-2 w-full max-w-[480px] pointer-events-auto">
@@ -2212,7 +2257,7 @@ export default function SpectatorLiveScreen() {
           <>
             <div className="fixed inset-0 z-[99998] bg-black/35 pointer-events-auto" onClick={() => { setShowCoHostPanel(false); }} />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
+              <div className="elix-panel elix-live-sheet backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden pb-safe" onClick={(e) => e.stopPropagation()}>
                 <div className="flex flex-col px-4 pt-2 pb-2 border-b border-white/10 flex-shrink-0">
                   <div className="flex justify-center pb-2" aria-hidden>
                     <div className="w-10 h-1 rounded-full bg-white/25" />
@@ -2289,7 +2334,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="elix-panel rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
+                className="elix-panel elix-live-sheet rounded-t-2xl p-3 pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full "
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex flex-col px-1 pt-0 pb-2 border-b border-white/10">
@@ -2454,7 +2499,7 @@ export default function SpectatorLiveScreen() {
               onTouchMove={(e) => e.stopPropagation()}
             >
               {spectatorBattle?.active && (
-                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 elix-panel rounded-t-xl">
+                <div className="px-3 pb-2 pt-1 flex items-center justify-center gap-2 elix-panel elix-live-sheet rounded-t-xl">
                   <div className="flex rounded-full overflow-hidden border border-[#D8D9DD]/40">
                     <button
                       type="button"
@@ -2550,7 +2595,7 @@ export default function SpectatorLiveScreen() {
               onClick={() => setShowViewersPanel(false)}
             />
             <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-              <div className="elix-panel backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="elix-panel elix-live-sheet backdrop-blur-md rounded-t-2xl h-[40vh] flex flex-col shadow-2xl overflow-hidden">
                 <div className="relative flex flex-col px-4 pt-2 pb-2 border-b border-white/10 flex-shrink-0">
                   <div className="flex justify-center pb-2" aria-hidden>
                     <div className="w-10 h-1 rounded-full bg-white/25" />
@@ -2774,7 +2819,7 @@ export default function SpectatorLiveScreen() {
             />
             <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="relative elix-panel rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+                className="relative elix-panel elix-more-options-sheet elix-live-sheet rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
                 {areTestCoinsEnabled() && user?.isAdmin && (
@@ -2833,6 +2878,46 @@ export default function SpectatorLiveScreen() {
 
                   <button
                     type="button"
+                    disabled={!isCoHosting}
+                    onClick={() => { void flipCamera(); setIsMoreMenuOpen(false); }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                      <RefreshCw className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Flip</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!isCoHosting}
+                    onClick={() => { toggleMic(); setIsMoreMenuOpen(false); }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                      {isMicMuted
+                        ? <MicOff className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />
+                        : <Mic className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />}
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isMicMuted ? 'Unmute' : 'Mute'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!isCoHosting}
+                    onClick={() => { toggleCam(); setIsMoreMenuOpen(false); }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                      {isCamOff
+                        ? <CameraOff className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />
+                        : <Camera className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />}
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
+                  </button>
+
+                  <button
+                    type="button"
                     onClick={() => { setIsChatVisible((v) => !v); setIsMoreMenuOpen(false); }}
                     className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
                   >
@@ -2840,6 +2925,17 @@ export default function SpectatorLiveScreen() {
                       <MessageCircle className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} />
                     </div>
                     <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isChatVisible ? 'Hide Chat' : 'Show Chat'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setShowPromotePanel(true); setIsMoreMenuOpen(false); }}
+                    className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform"
+                  >
+                    <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
+                      <TrendingUp className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} />
+                    </div>
+                    <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Promote</span>
                   </button>
 
                   <button
@@ -2858,29 +2954,32 @@ export default function SpectatorLiveScreen() {
           </>
         )}
 
-        {/* TEST COINS MODAL — admin + server password only (mint never client-side) */}
+        {/* TEST COINS — bottom sheet + fundal (same pattern as More Options) */}
         {areTestCoinsEnabled() && user?.isAdmin && showTestCoinsModal && (
           <>
             <div
-              className="fixed inset-0 bg-black/60 pointer-events-auto"
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
               style={{ zIndex: 100000 }}
               onClick={closeTestCoinsModal}
             />
-            <div
-              className="fixed inset-0 flex items-center justify-center pointer-events-none"
-              style={{ zIndex: 100001 }}
-            >
+            <div className="fixed bottom-0 left-0 right-0 z-[100001] pointer-events-auto max-w-[480px] mx-auto">
               <div
-                className="bg-[rgba(0,0,0,0.35)] rounded-2xl p-5 mx-6 w-full max-w-xs shadow-2xl border border-[#D8D9DD]/30 pointer-events-auto"
+                className="relative elix-panel elix-more-options-sheet elix-live-sheet rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="flex items-center gap-2 mb-4">
-                  <Lock className="w-5 h-5 text-[#F5F5F7]" />
-                  <span className="text-white font-bold text-base">
-                    {testCoinsStep === 'password' ? 'Enter Password' : 'Add Test'}
-                  </span>
+                <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Lock className="w-4 h-4 text-[#F5F5F7]" />
+                    <span className="text-[#F5F5F7] font-bold text-sm text-center">
+                      {testCoinsStep === 'password' ? 'Enter Password' : 'Add Test'}
+                    </span>
+                  </div>
                 </div>
 
+                <div className="px-4 pt-3 pb-4">
                 {testCoinsStep === 'password' && (
                   <form onSubmit={(e) => { void submitTestCoinsPasswordUnlock(e); }}>
                     <input
@@ -2899,14 +2998,14 @@ export default function SpectatorLiveScreen() {
                       <button
                         type="button"
                         onClick={closeTestCoinsModal}
-                        className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white/70 text-sm font-bold"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={!testCoinsPwd || testCoinsBusy}
-                        className="flex-1 py-2.5 rounded-xl bg-[#E6E9EE] text-white elix-accent text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white text-sm font-bold disabled:opacity-40"
                       >
                         Unlock
                       </button>
@@ -2916,10 +3015,10 @@ export default function SpectatorLiveScreen() {
 
                 {testCoinsStep === 'amount' && (
                   <form onSubmit={(e) => { void submitTestCoinsAmount(e); }}>
-                    <p className="text-white/40 text-xs mb-3">These coins are for testing only and have no real value.</p>
+                    <p className="text-white/40 text-xs mb-3">Test coins only — battle score + gift animation. Never real money, wallet, or creator revenue.</p>
                     <div className="flex items-center gap-2 mb-2">
                       <Coins className="w-4 h-4 text-[#D9A62E]" />
-                      <span className="text-white/60 text-xs">Current: {coinBalance.toLocaleString()}</span>
+                      <span className="text-white/60 text-xs">Test balance: {coinBalance.toLocaleString()}</span>
                     </div>
                     <input
                       type="number"
@@ -2952,27 +3051,28 @@ export default function SpectatorLiveScreen() {
                         disabled={testCoinsBusy}
                         className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#E6E9EE]/30 text-[#F5F5F7] hover:bg-[#E6E9EE]/40 col-span-3 disabled:opacity-40"
                       >
-                        Max (100M) – Charge at once
+                        Max (100M) – Add test coins once
                       </button>
                     </div>
                     <div className="flex gap-2">
                       <button
                         type="button"
                         onClick={closeTestCoinsModal}
-                        className="flex-1 py-2.5 rounded-xl bg-white/5 text-white/60 text-sm font-bold"
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white/70 text-sm font-bold"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
                         disabled={!testCoinsAmount || testCoinsBusy}
-                        className="flex-1 py-2.5 rounded-xl bg-[#E6E9EE] text-white elix-accent text-sm font-bold disabled:opacity-40"
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white text-sm font-bold disabled:opacity-40"
                       >
-                        Add Coins
+                        Add Test Coins
                       </button>
                     </div>
                   </form>
                 )}
+                </div>
               </div>
             </div>
           </>

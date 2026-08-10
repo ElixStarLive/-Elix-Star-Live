@@ -6,7 +6,7 @@ import { apiDeleteChatThread, apiListChatThreads } from '../features/chat/chatAp
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
-import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2 } from 'lucide-react';
+import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Gift } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
@@ -65,8 +65,15 @@ function normalizeNotificationType(value: unknown): Notification['type'] {
   if (value === 'like' || value === 'video_like') return 'like';
   if (value === 'comment' || value === 'video_comment') return 'comment';
   if (
-    value === 'follow' ||
     value === 'gift' ||
+    value === 'starter_gift_received' ||
+    value === 'paid_gift_received' ||
+    value === 'promo_gift_received'
+  ) {
+    return 'gift';
+  }
+  if (
+    value === 'follow' ||
     value === 'battle_invite' ||
     value === 'shop' ||
     value === 'system' ||
@@ -89,6 +96,51 @@ function liveHostIdFromActionUrl(actionUrl: string | null | undefined): string |
   } catch {
     return null;
   }
+}
+
+/** Gift sender id from `/live/:room?sender=` (stored on gift notifications). */
+function giftSenderIdFromActionUrl(actionUrl: string | null | undefined): string | null {
+  if (!actionUrl) return null;
+  try {
+    const u = new URL(actionUrl, 'https://elix.local');
+    const sender = u.searchParams.get('sender')?.trim();
+    return sender || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Old anonymous gift rows (Someone / Archive) — hide until server purge runs. */
+function isLegacyAnonymousGiftNotification(n: {
+  type?: string;
+  title?: string;
+  body?: string | null;
+  action_url?: string | null;
+}): boolean {
+  const type = String(n.type || '');
+  const title = String(n.title || '');
+  const body = String(n.body || '');
+  const isGiftType =
+    type === 'gift' ||
+    type === 'starter_gift_received' ||
+    type === 'paid_gift_received' ||
+    type === 'promo_gift_received' ||
+    /received a (starter |promotional )?gift/i.test(title) ||
+    /^Someone sent /i.test(body) ||
+    /^A supporter sent /i.test(body);
+  if (!isGiftType && type !== 'system') return false;
+  if (/^Someone sent /i.test(body) || /^A supporter sent /i.test(body)) return true;
+  if (/^You received /i.test(title)) return true;
+  if (
+    (type === 'gift' ||
+      type === 'starter_gift_received' ||
+      type === 'paid_gift_received' ||
+      type === 'promo_gift_received') &&
+    !giftSenderIdFromActionUrl(n.action_url)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 function isLiveStartedNotification(n: Notification): boolean {
@@ -191,8 +243,10 @@ export default function Inbox() {
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [liveUserIds, setLiveUserIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<'main' | 'requests' | 'unread' | 'starred' | 'activity'>('main');
+  const [activeFilter, setActiveFilter] = useState<'main' | 'requests' | 'unread' | 'starred'>('main');
   const [showNewFollowersPanel, setShowNewFollowersPanel] = useState(false);
+  const [showActivityPanel, setShowActivityPanel] = useState(false);
+  const [showGiftsPanel, setShowGiftsPanel] = useState(false);
   /** IDs of users the current user follows — for Follow / Following in followers panel */
   const [iFollowIds, setIFollowIds] = useState<Set<string>>(() => new Set());
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
@@ -341,7 +395,13 @@ export default function Inbox() {
   const filterRequests = useCallback(() => setActiveFilter('requests'), []);
   const filterUnread = useCallback(() => setActiveFilter('unread'), []);
   const filterStarred = useCallback(() => setActiveFilter('starred'), []);
-  const filterActivity = useCallback(() => setActiveFilter('activity'), []);
+  /** Same contract as Followers: overlay panel; close returns to Inbox (never For You). */
+  const openActivityPanel = useCallback(() => setShowActivityPanel(true), []);
+  const closeActivityPanel = useCallback(() => setShowActivityPanel(false), []);
+  const openGiftsPanel = useCallback(() => setShowGiftsPanel(true), []);
+  const closeGiftsPanel = useCallback(() => setShowGiftsPanel(false), []);
+  const filterActivity = openActivityPanel;
+  const filterGifts = openGiftsPanel;
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -370,6 +430,7 @@ export default function Inbox() {
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
           .filter((n: { type?: string; title?: string; body?: string }) => !isFollowNotification(n))
+          .filter((n: { type?: string; title?: string; body?: string; action_url?: string }) => !isLegacyAnonymousGiftNotification(n))
           .filter((n: { type?: string; title?: string; action_url?: string }) => {
             // Ended lives must not stay in Inbox.
             const isLiveRow =
@@ -382,7 +443,7 @@ export default function Inbox() {
           .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: normalizeNotificationType(n.type),
-          actor_id: typeof n.data?.actor_id === 'string' ? n.data.actor_id : '',
+          actor_id: typeof n.data?.actor_id === 'string' ? n.data.actor_id : (giftSenderIdFromActionUrl(n.action_url) || ''),
           title: n.title || 'Notification',
           body: n.body,
           image_url:
@@ -398,6 +459,43 @@ export default function Inbox() {
           created_at: n.created_at,
           rawData: toStringRecord(n.data),
         })));
+
+        // Gift rows: fill sender avatar from profile when action_url has ?sender=
+        const mappedGiftSenderIds = Array.from(
+          new Set(
+            (rows as { type?: string; action_url?: string }[])
+              .filter((n) => normalizeNotificationType(n.type) === 'gift')
+              .map((n) => giftSenderIdFromActionUrl(n.action_url))
+              .filter((id): id is string => !!id),
+          ),
+        ).slice(0, 40);
+        if (mappedGiftSenderIds.length > 0) {
+          try {
+            const { profiles } = await apiFetchProfiles();
+            if (!cancelled && Array.isArray(profiles) && profiles.length > 0) {
+              const want = new Set(mappedGiftSenderIds);
+              const avById = new Map<string, string>();
+              for (const p of profiles as { user_id?: string; userId?: string; id?: string; avatar_url?: string; avatarUrl?: string }[]) {
+                const id = String(p.user_id || p.userId || p.id || '').trim();
+                if (!id || !want.has(id)) continue;
+                const av = String(p.avatar_url || p.avatarUrl || '').trim();
+                if (av) avById.set(id, av);
+              }
+              if (avById.size > 0) {
+                setNotifications((prev) =>
+                  prev.map((n) => {
+                    if (n.type !== 'gift' || n.image_url) return n;
+                    const sid = n.actor_id || giftSenderIdFromActionUrl(n.action_url);
+                    if (!sid || !avById.has(sid)) return n;
+                    return { ...n, image_url: avById.get(sid) || null };
+                  }),
+                );
+              }
+            }
+          } catch {
+            /* keep gift rows without avatar */
+          }
+        }
         const unreadIds = rows
           .filter((n: { is_read?: boolean; id?: string }) => !n.is_read && n.id)
           .map((n: { id: string }) => n.id)
@@ -669,6 +767,10 @@ export default function Inbox() {
   const suggestedUsersNotFollowers = suggestedUsers.filter((u) => u.id && !followerIdSet.has(u.id));
 
   const activitySummaryCount = activityItems.length;
+  const giftNotifications = useMemo(
+    () => notifications.filter((n) => n.type === 'gift'),
+    [notifications],
+  );
 
   const activityLine = (a: ActivityItem): string => {
     if (a.kind === 'like') return 'Liked your video';
@@ -696,7 +798,9 @@ export default function Inbox() {
           <div className="flex items-center gap-3 z-10">
             <button onClick={goSearch} aria-label="Search"><Search size={18} className="text-gold-bright" /></button>
           </div>
-          <h1 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">Inbox</h1>
+          <h1 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">
+            Inbox
+          </h1>
           <button
             type="button"
             onClick={goFeedBack}
@@ -708,7 +812,7 @@ export default function Inbox() {
           </button>
         </div>
 
-        {/* Circles — Followers hub first; suggested + per-follower avatars scroll to the right */}
+        {/* Circles + filters on Inbox; Activity / Gift received open as overlays (same as Followers) */}
         <div className="px-3 pb-2 bg-transparent" style={{ marginTop: '4mm' }}>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden no-scrollbar pt-3" style={{ WebkitOverflowScrolling: 'touch' }}>
                 <button
@@ -775,7 +879,7 @@ export default function Inbox() {
             <button onClick={filterRequests} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'requests' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Requests</button>
             <button onClick={filterUnread} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'unread' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Unread</button>
             <button onClick={filterStarred} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'starred' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Starred</button>
-            <button onClick={filterActivity} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${activeFilter === 'activity' ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
+            <button onClick={filterActivity} className={`px-2 py-1.5 text-xs font-bold whitespace-nowrap bg-transparent border-0 ${showActivityPanel ? 'text-gold-bright' : 'text-gold-bright/45'}`}>Activity</button>
         </div>
 
         {/* List Content — continues same scroll / same fundal */}
@@ -849,10 +953,26 @@ export default function Inbox() {
               </div>
             )}
 
-            {/* Messages (Inbox) — show right after Activity so inbox = messages */}
+            {/* Gift received — same hub as Activity: tap to open full list */}
+            <button onClick={filterGifts} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent">
+                <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
+                    <Gift className="w-6 h-6 text-[#F5F5F7] relative z-10" strokeWidth={2.25} />
+                </div>
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-sm text-gold-metallic">Gift received</h3>
+                    <p className="text-gold-bright text-xs truncate">
+                      {giftNotifications.length > 0
+                        ? `${giftNotifications.length} gift${giftNotifications.length === 1 ? '' : 's'} received`
+                        : 'No gifts received yet'}
+                    </p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-[#F5F5F7]/70 flex-shrink-0" />
+            </button>
+
+            {/* Messages — chat threads only (no gifts, no live shares, no system alerts) */}
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Messages</h3>
-                {conversations.length === 0 && liveShareRequests.length === 0 ? (
+                {conversations.length === 0 ? (
                     <p className="text-gold-bright/50 text-xs px-1 py-2">No messages yet</p>
                 ) : (
                     conversations.map((conv) => (
@@ -884,35 +1004,6 @@ export default function Inbox() {
                         </div>
                     ))
                 )}
-                {liveShareRequests.map((row) => {
-                  const who = row.sharer_name?.trim() || 'Someone';
-                  const hostLabel = row.host_name?.trim() || 'a creator';
-                  return (
-                    <button
-                      key={`live-share-${row.sharer_id}_${row.stream_key}`}
-                      type="button"
-                      onClick={() => {
-                        if (row.stream_key) openWatchStream(row.stream_key);
-                      }}
-                      className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent"
-                    >
-                      <LevelBadge
-                        level={row.sharer_level || 1}
-                        avatar={row.sharer_avatar || ''}
-                        name={who}
-                        layout="fixed"
-                        circleSize={CHAT_PROFILE_RING_PX}
-                        size={CHAT_LEVEL_PILL_SIZE_PX}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-gold-bright truncate">{who}</p>
-                        <p className="text-gold-bright/70 text-xs truncate">
-                          Shared {hostLabel}&apos;s live · Tap to watch
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
             </div>
             </>
             )}
@@ -960,7 +1051,7 @@ export default function Inbox() {
             </div>
             )}
 
-            {/* Requests — same live shares (non-following) also listed under Messages */}
+            {/* Requests — live shares only (not under Messages) */}
             {activeFilter === 'requests' && (
             <div className="space-y-1 pt-2">
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Requests</h3>
@@ -1003,95 +1094,79 @@ export default function Inbox() {
             </div>
             )}
 
-            {/* Activity — likes, comments, saves, mentions from /api/activity */}
-            {activeFilter === 'activity' && (
-              <>
-                {activityItems.length === 0 ? (
-                  <div className="py-8 text-center text-gold-bright/50 text-sm px-2">
-                    No activity yet. When someone likes, comments on, saves your video, or @mentions you, it will show here.
+            {/* Live / system alerts — own container, never inside Messages */}
+            {(activeFilter === 'main') && (() => {
+              const alertRows = notifications
+                .filter(n => !isFollowNotification(n))
+                .filter(n => n.type !== 'like' && n.type !== 'comment' && n.type !== 'gift')
+                .filter(n => (n.type === 'system' || n.type === 'live_started') && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)));
+              if (alertRows.length === 0) return null;
+              return (
+                <div className="rounded-2xl border border-[#D8D9DD]/25 overflow-hidden mt-1">
+                  <div className="px-3 py-2 border-b border-[#D8D9DD]/15">
+                    <h3 className="font-bold text-sm text-gold-metallic">Alerts</h3>
                   </div>
-                ) : (
-                  <div className="space-y-1 pb-4">
-                    {activityItems.map((a) => {
-                      const actorName = (a.actor_display_name?.trim() || a.actor_username || 'Someone').trim();
+                  <div className="px-1 py-1 space-y-0.5">
+                    {alertRows.map((notif) => {
+                      const liveNotif = isLiveStartedNotification(notif);
+                      const liveAvatar = liveNotif ? resolveLiveNotifAvatar(notif) : '';
+                      const liveInitial = (notif.title || '?').replace(/\s+is live.*$/i, '').trim().charAt(0).toUpperCase() || '?';
                       return (
-                        <button
-                          key={a.id}
-                          type="button"
-                          onClick={() => {
-                            if (a.video_id) openVideo(a.video_id);
-                          }}
-                          className="flex items-center gap-3 w-full text-left py-2.5 px-2 bg-transparent"
-                        >
-                          <AvatarRing
-                            src={a.actor_avatar_url || ''}
-                            alt={actorName}
-                            size={48}
-                          />
+                        <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left py-2 px-2">
+                          {liveNotif ? (
+                            <div className="flex-shrink-0">
+                              <StoryGoldRingAvatar
+                                size={48}
+                                src={liveAvatar}
+                                alt={liveInitial}
+                                live
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0">
+                              <Archive className="w-6 h-6 stroke-gold-metallic" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
-                            <p className="text-gold-bright/70 text-xs truncate">{activityLine(a)}{a.video_id ? ' · Tap to view' : ''}</p>
+                            <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
+                            <p className="text-gold-bright text-xs truncate">{notif.body}</p>
                           </div>
+                          <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
                         </button>
                       );
                     })}
                   </div>
-                )}
-              </>
-            )}
-
-            {/* Live / system notifications — never followers (New followers hub) or like/comment (Activity) */}
-            {(activeFilter === 'main') && notifications
-                .filter(n => !isFollowNotification(n))
-                .filter(n => n.type !== 'like' && n.type !== 'comment')
-                .filter(n => (n.type === 'system' || n.type === 'live_started') && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)))
-                .map(notif => {
-                const liveNotif = isLiveStartedNotification(notif);
-                const liveAvatar = liveNotif ? resolveLiveNotifAvatar(notif) : '';
-                const liveInitial = (notif.title || '?').replace(/\s+is live.*$/i, '').trim().charAt(0).toUpperCase() || '?';
-                return (
-                <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left py-2 px-2">
-                    {liveNotif ? (
-                      <div className="flex-shrink-0">
-                        <StoryGoldRingAvatar
-                          size={48}
-                          src={liveAvatar}
-                          alt={liveInitial}
-                          live
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0">
-                        <Archive className="w-6 h-6 stroke-gold-metallic" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
-                        <p className="text-gold-bright text-xs truncate">{notif.body}</p>
-                    </div>
-                    <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
-                </button>
-                );
-            })}
+                </div>
+              );
+            })()}
 
              {/* Starred empty state */}
              {activeFilter === 'starred' && (
                <div className="py-8 text-center text-gold-bright/50 text-sm">No starred messages yet.</div>
              )}
 
-             {/* Shop Notification */}
-             {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').map(notif => (
-                <button key={notif.id} onClick={goShop} className="flex items-center gap-3 w-full text-left">
-                    <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center">
-                        <ShoppingBag className="w-6 h-6 text-[#F5F5F7]" strokeWidth={2} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
-                        <p className="text-gold-bright text-xs truncate">{notif.body}</p>
-                    </div>
-                    <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
-                </button>
-            ))}
+             {/* Shop — own container, not inside Messages */}
+             {activeFilter === 'main' && notifications.filter(n => n.type === 'shop').length > 0 && (
+               <div className="rounded-2xl border border-[#D8D9DD]/25 overflow-hidden mt-1">
+                 <div className="px-3 py-2 border-b border-[#D8D9DD]/15">
+                   <h3 className="font-bold text-sm text-gold-metallic">Shop</h3>
+                 </div>
+                 <div className="px-1 py-1 space-y-0.5">
+                   {notifications.filter(n => n.type === 'shop').map(notif => (
+                     <button key={notif.id} onClick={goShop} className="flex items-center gap-3 w-full text-left py-2 px-2">
+                       <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center">
+                         <ShoppingBag className="w-6 h-6 text-[#F5F5F7]" strokeWidth={2} />
+                       </div>
+                       <div className="flex-1 min-w-0">
+                         <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
+                         <p className="text-gold-bright text-xs truncate">{notif.body}</p>
+                       </div>
+                       <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
              
         </div>
         </div>
@@ -1169,6 +1244,125 @@ export default function Inbox() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Activity — same overlay contract as Followers; close returns to Inbox */}
+      {showActivityPanel && createPortal(
+        <div className="page-above-bottom-nav bg-transparent z-[101] pointer-events-auto">
+          <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-transparent">
+              <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-transparent">
+                <div className="w-8" aria-hidden />
+                <h2 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">
+                  Activity
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeActivityPanel}
+                  className="p-1 z-10"
+                  title="Close"
+                  aria-label="Close activity"
+                >
+                  <RoyceBackIcon />
+                </button>
+              </div>
+              {activityItems.length === 0 ? (
+                <p className="text-gold-bright/50 text-sm py-6 text-center px-4">
+                  No activity yet. When someone likes, comments on, saves your video, or @mentions you, it will show here.
+                </p>
+              ) : (
+                <div className="space-y-0.5 pb-4 px-4 bg-transparent">
+                  {activityItems.map((a) => {
+                    const actorName = (a.actor_display_name?.trim() || a.actor_username || 'Someone').trim();
+                    return (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          closeActivityPanel();
+                          if (a.video_id) openVideo(a.video_id);
+                        }}
+                        className="flex items-center gap-3 w-full text-left py-2.5 px-0 bg-transparent"
+                      >
+                        <AvatarRing
+                          src={a.actor_avatar_url || ''}
+                          alt={actorName}
+                          size={48}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gold-bright truncate">{actorName}</p>
+                          <p className="text-gold-bright/70 text-xs truncate">{activityLine(a)}{a.video_id ? ' · Tap to view' : ''}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Gift received — same overlay contract as Followers; close returns to Inbox */}
+      {showGiftsPanel && createPortal(
+        <div className="page-above-bottom-nav bg-transparent z-[101] pointer-events-auto">
+          <div className="page-above-bottom-nav__inner bg-transparent flex flex-col min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto bg-transparent">
+              <div className="px-3 pt-page-header pb-1 flex items-center justify-between relative bg-transparent">
+                <div className="w-8" aria-hidden />
+                <h2 className="text-sm font-bold text-gold-bright absolute left-1/2 transform -translate-x-1/2">
+                  Gift received
+                </h2>
+                <button
+                  type="button"
+                  onClick={closeGiftsPanel}
+                  className="p-1 z-10"
+                  title="Close"
+                  aria-label="Close gifts"
+                >
+                  <RoyceBackIcon />
+                </button>
+              </div>
+              {giftNotifications.length === 0 ? (
+                <p className="text-gold-bright/50 text-sm py-6 text-center px-4">
+                  No gifts received yet. When someone sends you a gift, it will show here with their name and photo.
+                </p>
+              ) : (
+                <div className="space-y-0.5 pb-4 px-4 bg-transparent">
+                  {giftNotifications.map((notif) => {
+                    const giftInitial = (notif.title || '?').replace(/\s+sent you a gift.*$/i, '').trim().charAt(0).toUpperCase() || '?';
+                    return (
+                      <button
+                        key={notif.id}
+                        type="button"
+                        onClick={() => {
+                          closeGiftsPanel();
+                          if (notif.action_url) openActionUrl(notif.action_url);
+                        }}
+                        className="flex items-center gap-3 w-full text-left py-2.5 px-0 bg-transparent"
+                      >
+                        <AvatarRing
+                          src={notif.image_url || '/elix-logo.png'}
+                          alt={giftInitial}
+                          size={48}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-gold-bright truncate">{notif.title}</p>
+                          <p className="text-gold-bright/70 text-xs truncate">{notif.body}</p>
+                        </div>
+                        <span className="text-[10px] text-gold-bright flex-shrink-0">
+                          {notif.created_at ? formatTimeAgo(notif.created_at) : ''}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>

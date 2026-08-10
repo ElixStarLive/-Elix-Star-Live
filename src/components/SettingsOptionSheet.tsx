@@ -6,13 +6,15 @@ type SettingsOptionSheetProps = {
   onClose: () => void;
   /** Optional title shown in the top bar (flush with close — no gap). */
   title?: string;
+  /** Optional left header slot (e.g. Share round search). */
+  headerLeft?: React.ReactNode;
 };
 
 /**
  * Full-height settings column.
  * Close button is outside the drag handle so exit never fights swipe-to-dismiss.
  */
-export default function SettingsOptionSheet({ children, onClose, title }: SettingsOptionSheetProps) {
+export default function SettingsOptionSheet({ children, onClose, title, headerLeft }: SettingsOptionSheetProps) {
   const [dragY, setDragY] = React.useState(0);
   const [dragging, setDragging] = React.useState(false);
   const dragStartY = React.useRef<number | null>(null);
@@ -72,7 +74,9 @@ export default function SettingsOptionSheet({ children, onClose, title }: Settin
           </div>
 
           <div className="h-11 flex items-center justify-between px-2 pt-2">
-            <div className="w-10 shrink-0" aria-hidden />
+            <div className="min-w-10 shrink-0 flex items-center">
+              {headerLeft ?? <div className="w-10" aria-hidden />}
+            </div>
             {title ? (
               <h1 className="flex-1 text-center text-[13px] font-bold leading-none truncate px-2 text-white">
                 {title}

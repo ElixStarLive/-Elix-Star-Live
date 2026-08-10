@@ -113,7 +113,7 @@ export default function BlockedAccounts() {
                 className="flex items-center gap-3 p-3 rounded-xl border border-white/10"
               >
                 <AvatarRing
-                  src={block.avatar_url || `https://ui-avatars.com/api/?name=${block.username || 'U'}`}
+                  src={block.avatar_url || '/elix-logo.png'}
                   alt={block.username}
                   size={48}
                 />

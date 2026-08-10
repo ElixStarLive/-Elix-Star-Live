@@ -3,7 +3,7 @@ import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
-import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
@@ -46,10 +46,26 @@ export default function Shop() {
   const [newCategory, setNewCategory] = useState('other');
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newImagePreview, setNewImagePreview] = useState<string | null>(null);
+  /** Framing inside dashed preview — scale + pan (listed image matches what you see). */
+  const [imgScale, setImgScale] = useState(1);
+  const [imgX, setImgX] = useState(0);
+  const [imgY, setImgY] = useState(0);
+  const [imageTouched, setImageTouched] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [menuItemId, setMenuItemId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const previewUrlRef = useRef<string | null>(null);
+  const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const previewImgRef = useRef<HTMLImageElement | null>(null);
+  const panRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+  } | null>(null);
 
   const cartItems = useCartStore((s) => s.items);
   const addToCart = useCartStore((s) => s.add);
@@ -82,12 +98,56 @@ export default function Shop() {
 
   const openCreateListing = useCallback(() => {
     setShowCart(false);
+    setEditingItemId(null);
+    setExistingImageUrl(null);
+    setNewTitle('');
+    setNewDescription('');
+    setNewPrice('');
+    setNewCategory('other');
+    setNewImage(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setNewImagePreview(null);
+    setImageTouched(false);
+    setImgScale(1);
+    setImgX(0);
+    setImgY(0);
     setShowCreate(true);
   }, []);
 
   const closeCreateListing = useCallback(() => {
     setShowCreate(false);
+    setEditingItemId(null);
   }, []);
+
+  const openEditListing = useCallback((item: ShopItem) => {
+    if (!user?.id || item.user_id !== user.id) {
+      showToast('You can only edit your own listings');
+      setMenuItemId(null);
+      return;
+    }
+    setMenuItemId(null);
+    setShowCart(false);
+    setEditingItemId(item.id);
+    setExistingImageUrl(item.image_url);
+    setNewTitle(item.title || '');
+    setNewDescription(item.description || '');
+    setNewPrice(String(item.price ?? ''));
+    setNewCategory(item.category || 'other');
+    setNewImage(null);
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+    setNewImagePreview(item.image_url);
+    setImageTouched(false);
+    setImgScale(1);
+    setImgX(0);
+    setImgY(0);
+    setShowCreate(true);
+  }, [user?.id]);
 
   const openCart = useCallback(() => {
     setShowCreate(false);
@@ -261,6 +321,14 @@ export default function Shop() {
     setLoading(false);
   };
 
+  const resetImageFrame = useCallback(() => {
+    setImgScale(1);
+    setImgX(0);
+    setImgY(0);
+    panRef.current = null;
+    setImageTouched(false);
+  }, []);
+
   const handleImageSelect = (file: File | undefined) => {
     if (!file) return;
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -268,7 +336,64 @@ export default function Shop() {
     previewUrlRef.current = url;
     setNewImage(file);
     setNewImagePreview(url);
+    resetImageFrame();
+    setImageTouched(true);
   };
+
+  /** Export dashed-frame view (scale + pan) as the uploaded shop photo. */
+  const bakeFramedImage = useCallback(async (): Promise<File | null> => {
+    const frame = previewFrameRef.current;
+    const img = previewImgRef.current;
+    if (!frame || !img) return null;
+    const fw = frame.clientWidth;
+    const fh = frame.clientHeight;
+    const nw = img.naturalWidth;
+    const nh = img.naturalHeight;
+    if (fw < 2 || fh < 2 || nw < 1 || nh < 1) return null;
+
+    const outScale = 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(2, Math.round(fw * outScale));
+    canvas.height = Math.max(2, Math.round(fh * outScale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = '#080A0E';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Match preview: object-fit cover in frame, then user scale + pan from center.
+    const cover = Math.max(fw / nw, fh / nh);
+    const drawW = nw * cover * imgScale;
+    const drawH = nh * cover * imgScale;
+    const dx = (fw - drawW) / 2 + imgX;
+    const dy = (fh - drawH) / 2 + imgY;
+    ctx.drawImage(
+      img,
+      dx * outScale,
+      dy * outScale,
+      drawW * outScale,
+      drawH * outScale,
+    );
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/jpeg', 0.92),
+    );
+    if (!blob) return null;
+    const base = newImage?.name?.replace(/\.[^.]+$/, '') || 'shop';
+    return new File([blob], `${base}-framed.jpg`, { type: 'image/jpeg' });
+  }, [imgScale, imgX, imgY, newImage]);
+
+  const clearListingForm = useCallback(() => {
+    setShowCreate(false);
+    setEditingItemId(null);
+    setExistingImageUrl(null);
+    setNewTitle('');
+    setNewDescription('');
+    setNewPrice('');
+    setNewCategory('other');
+    setNewImage(null);
+    setNewImagePreview(null);
+    resetImageFrame();
+  }, [resetImageFrame]);
 
   const handleCreateListing = async () => {
     if (!user?.id || !newTitle.trim() || !newPrice.trim()) {
@@ -282,42 +407,49 @@ export default function Shop() {
     }
     setCreating(true);
     try {
-      let imageUrl: string | null = null;
+      let imageUrl: string | null = editingItemId ? existingImageUrl : null;
 
-      if (newImage) {
+      if (newImage || (imageTouched && newImagePreview)) {
         try {
-          const ext = newImage.name?.split('.').pop() || 'jpg';
-          const storagePath = `shop/${user.id}/${Date.now()}.${ext}`;
-          const result = await bunnyUpload(newImage, storagePath, newImage.type);
-          imageUrl = result.cdnUrl;
+          const framed = await bakeFramedImage();
+          const uploadFile = framed || newImage;
+          if (uploadFile) {
+            const ext = uploadFile.name?.split('.').pop() || 'jpg';
+            const storagePath = `shop/${user.id}/${Date.now()}.${ext}`;
+            const result = await bunnyUpload(uploadFile, storagePath, uploadFile.type || 'image/jpeg');
+            imageUrl = result.cdnUrl;
+          }
         } catch {
-          showToast('Image upload failed, listing without image');
+          showToast('Image upload failed, keeping previous photo');
         }
       }
 
-      const { error: insertError } = await api.shop.createItem({
-        user_id: user.id,
+      const payload = {
         title: newTitle.trim(),
         description: newDescription.trim(),
         price: Math.round(parsed * 100) / 100,
         image_url: imageUrl,
         category: newCategory,
-        is_active: true,
-      });
+      };
 
-      if (insertError) throw insertError;
+      if (editingItemId) {
+        const { error: updateError } = await api.shop.updateItem(editingItemId, payload);
+        if (updateError) throw updateError;
+        showToast('Item updated');
+      } else {
+        const { error: insertError } = await api.shop.createItem({
+          ...payload,
+          user_id: user.id,
+          is_active: true,
+        });
+        if (insertError) throw insertError;
+        showToast('Item listed!');
+      }
 
-      showToast('Item listed!');
-      setShowCreate(false);
-      setNewTitle('');
-      setNewDescription('');
-      setNewPrice('');
-      setNewCategory('other');
-      setNewImage(null);
-      setNewImagePreview(null);
+      clearListingForm();
       fetchItems();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: string }).message) : 'Failed to create listing';
+      const msg = err && typeof err === 'object' && 'message' in err ? String((err as { message: string }).message) : (editingItemId ? 'Failed to update listing' : 'Failed to create listing');
       showToast(msg);
     }
     setCreating(false);
@@ -542,34 +674,44 @@ export default function Shop() {
                           onClick={closeItemMenu}
                         />
                         <div className="absolute right-0 top-full mt-1 z-[4] min-w-[120px] rounded-xl bg-[#1A1C21] border border-white/15 shadow-lg overflow-hidden">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (isOwn) {
-                                setMenuItemId(null);
-                                showToast("You can't message yourself");
-                                return;
-                              }
-                              handleMessageSeller(item.user_id);
-                            }}
-                            className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
-                          >
-                            <MessageCircle size={12} className="text-[#F5F5F7]" />
-                            Message
-                          </button>
-                          <button
-                            type="button"
-                            disabled={removingId === item.id}
-                            onClick={() => void handleRemoveItem(item)}
-                            className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5 disabled:opacity-50"
-                          >
-                            <Trash2 size={12} className="text-[#F5F5F7]" />
-                            {removingId === item.id ? 'Deleting…' : 'Delete'}
-                          </button>
+                          {isOwn ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => openEditListing(item)}
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
+                              >
+                                <Pencil size={12} className="text-[#F5F5F7]" />
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                disabled={removingId === item.id}
+                                onClick={() => void handleRemoveItem(item)}
+                                className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5 disabled:opacity-50"
+                              >
+                                <Trash2 size={12} className="text-[#F5F5F7]" />
+                                {removingId === item.id ? 'Deleting…' : 'Delete'}
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleMessageSeller(item.user_id)}
+                              className="w-full text-left px-3 py-2 text-xs font-semibold text-[#F5F5F7] hover:bg-white/5 flex items-center gap-1.5"
+                            >
+                              <MessageCircle size={12} className="text-[#F5F5F7]" />
+                              Message
+                            </button>
+                          )}
                         </div>
                       </>
                     )}
                   </div>
+                </div>
+                <div className="relative border-t border-white/15 px-2.5 py-2 pr-10">
+                  <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
+                  <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -579,15 +721,12 @@ export default function Shop() {
                         isOwn,
                       );
                     }}
-                    className="absolute bottom-1.5 right-1.5 z-[2] w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center active:opacity-70"
+                    className="absolute right-1.5 top-1/2 z-[2] w-8 h-8 rounded-full bg-black/55 border border-white/10 flex items-center justify-center active:opacity-70"
+                    style={{ transform: 'translateY(calc(-50% + 2mm))' }}
                     aria-label="Add to basket"
                   >
                     <ShopBasketIcon size={16} className="text-[#F5F5F7]" />
                   </button>
-                </div>
-                <div className="border-t border-white/15 px-2.5 py-2">
-                  <h3 className="text-sm font-bold text-gold-metallic truncate">{item.title}</h3>
-                  <p className="text-base font-extrabold text-white mt-0.5">£{item.price.toFixed(2)}</p>
                 </div>
               </div>
               );
@@ -621,29 +760,97 @@ export default function Shop() {
                 onClick={e => e.stopPropagation()}
                 role="dialog"
                 aria-modal="true"
-                aria-label="Sell an Item"
+                aria-label={editingItemId ? 'Edit item' : 'Sell an Item'}
               >
               <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
                 <div className="w-10 h-1 rounded-full bg-white/20" />
               </div>
               <div className="flex items-center justify-center px-5 pb-3 shrink-0">
-                <h3 className="text-gold-metallic font-bold text-base">Sell an Item</h3>
+                <h3 className="text-gold-metallic font-bold text-base">
+                  {editingItemId ? 'Edit Item' : 'Sell an Item'}
+                </h3>
               </div>
               <div className="overflow-y-auto px-5 pb-6 flex-1 min-h-0">
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('shop-image-input')?.click()}
-                  className="w-full aspect-video rounded-xl border-2 border-dashed border-[#D8D9DD]/40 bg-black/40 flex flex-col items-center justify-center gap-2 mb-4 overflow-hidden"
-                >
+                <div className="mb-4">
+                  <div
+                    ref={previewFrameRef}
+                    className="w-full aspect-video rounded-xl border-2 border-dashed border-[#D8D9DD]/40 bg-black/40 flex flex-col items-center justify-center gap-2 overflow-hidden relative touch-none"
+                    onPointerDown={(e) => {
+                      if (!newImagePreview) return;
+                      e.preventDefault();
+                      (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+                      panRef.current = {
+                        pointerId: e.pointerId,
+                        startX: e.clientX,
+                        startY: e.clientY,
+                        origX: imgX,
+                        origY: imgY,
+                      };
+                    }}
+                    onPointerMove={(e) => {
+                      const pan = panRef.current;
+                      if (!pan || pan.pointerId !== e.pointerId) return;
+                      setImgX(pan.origX + (e.clientX - pan.startX));
+                      setImgY(pan.origY + (e.clientY - pan.startY));
+                      setImageTouched(true);
+                    }}
+                    onPointerUp={(e) => {
+                      if (panRef.current?.pointerId === e.pointerId) panRef.current = null;
+                    }}
+                    onPointerCancel={(e) => {
+                      if (panRef.current?.pointerId === e.pointerId) panRef.current = null;
+                    }}
+                  >
+                    {newImagePreview ? (
+                      <img
+                        ref={previewImgRef}
+                        src={newImagePreview}
+                        alt="Preview"
+                        draggable={false}
+                        crossOrigin={newImagePreview.startsWith('http') ? 'anonymous' : undefined}
+                        className="absolute left-1/2 top-1/2 w-full h-full object-cover pointer-events-none select-none"
+                        style={{
+                          transform: `translate(calc(-50% + ${imgX}px), calc(-50% + ${imgY}px)) scale(${imgScale})`,
+                          transformOrigin: 'center center',
+                        }}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('shop-image-input')?.click()}
+                        className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+                      >
+                        <Camera size={28} className="text-[#F5F5F7]/50" />
+                        <span className="text-white/40 text-xs">Add Photo</span>
+                      </button>
+                    )}
+                  </div>
                   {newImagePreview ? (
-                    <img src={newImagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <>
-                      <Camera size={28} className="text-[#F5F5F7]/50" />
-                      <span className="text-white/40 text-xs">Add Photo</span>
-                    </>
-                  )}
-                </button>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-white/40 text-[10px] font-semibold shrink-0">Size</span>
+                      <input
+                        type="range"
+                        min={0.4}
+                        max={2}
+                        step={0.05}
+                        value={imgScale}
+                        onChange={(e) => {
+                          setImgScale(Number(e.target.value));
+                          setImageTouched(true);
+                        }}
+                        className="flex-1 accent-[#D8D9DD]"
+                        aria-label="Photo size"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('shop-image-input')?.click()}
+                        className="shrink-0 text-[10px] font-semibold text-[#F5F5F7]/70 px-2 py-1 rounded-lg bg-white/5 border border-white/10"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
                 <input
                   id="shop-image-input"
                   type="file"
@@ -693,7 +900,7 @@ export default function Shop() {
                   disabled={creating || !newTitle.trim() || !newPrice.trim()}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-sm disabled:opacity-50"
                 >
-                  {creating ? 'Listing...' : 'List for Sale'}
+                  {creating ? (editingItemId ? 'Saving...' : 'Listing...') : (editingItemId ? 'Save changes' : 'List for Sale')}
                 </button>
               </div>
               </div>

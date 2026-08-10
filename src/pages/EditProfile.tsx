@@ -204,7 +204,7 @@ export default function EditProfile() {
         <div className="flex flex-col items-center gap-2 flex-shrink-0">
           <div className="relative group cursor-pointer">
             <div onClick={openAvatarPicker}>
-              <AvatarRing src={profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.username}`} alt="Avatar" size={96} />
+              <AvatarRing src={profile.avatar_url || '/elix-logo.png'} alt="Avatar" size={96} />
             </div>
             <label
               htmlFor="avatar-upload"

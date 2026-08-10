@@ -191,11 +191,15 @@ export function RankingPanel({
 
   return (
     <div
-      className="elix-panel backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
+      className="elix-panel elix-live-sheet backdrop-blur-md rounded-t-2xl p-3 pb-safe max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden h-full"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex justify-center mb-2">
-        <div className="w-10 h-1 bg-white/20 rounded-full" />
+      {/* Header — line then name */}
+      <div className="flex flex-col px-1 pt-0 pb-2 border-b border-white/10 mb-2 flex-shrink-0">
+        <div className="flex justify-center pb-2" aria-hidden>
+          <div className="w-10 h-1 rounded-full bg-white/25" />
+        </div>
+        <span className="text-[#F5F5F7] font-bold text-sm text-center">{headerMeta.title}</span>
       </div>
 
       <div className="flex justify-between items-center mb-2 flex-shrink-0">
@@ -204,7 +208,6 @@ export function RankingPanel({
             <HeaderIcon className="w-4 h-4 text-[#F5F5F7]" fill="currentColor" />
           </div>
           <div>
-            <h3 className="text-white font-bold text-sm leading-none">{headerMeta.title}</h3>
             <p className="text-white/50 text-[10px] font-medium">{headerMeta.sub}</p>
           </div>
         </div>
@@ -215,11 +218,13 @@ export function RankingPanel({
           <button
             key={t.id}
             type="button"
+            data-elix-rank-tab="true"
+            data-elix-rank-tab-active={tab === t.id ? 'true' : 'false'}
             onClick={() => setTab(t.id)}
-            className={`px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors ${
+            className={`elix-live-rank-tab px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap border transition-colors ${
               tab === t.id
-                ? 'bg-[#E6E9EE] text-white elix-accent border-[#D8D9DD]'
-                : 'bg-white/5 text-white/60 border-[#2A2D33]'
+                ? 'text-white border-[#D8D9DD]/80'
+                : 'text-white/60 border-[#2A2D33]'
             }`}
           >
             {t.label}

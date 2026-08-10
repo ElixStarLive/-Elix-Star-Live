@@ -377,11 +377,11 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
                     <button
                       type="button"
                       onClick={handleJoinLive}
-                      className="h-9 w-9 flex-shrink-0 rounded-full bg-white/10 border border-[#D8D9DD]/35 flex items-center justify-center active:scale-95"
-                      aria-label="Join Live"
-                      title="Join Live"
+                      className="flex-1 h-9 flex items-center justify-center bg-white/10 text-white rounded-xl font-semibold text-xs hover:bg-white/15 transition-colors"
+                      aria-label="Watch Live"
+                      title="Watch Live"
                     >
-                      <Play size={14} className="text-white ml-0.5" fill="white" />
+                      Watch Live
                     </button>
                   ) : null}
                   {isFollowingUser ? (

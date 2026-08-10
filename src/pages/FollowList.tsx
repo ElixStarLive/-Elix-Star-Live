@@ -41,25 +41,31 @@ export default function FollowList() {
         setPeople(Array.isArray(data?.follower_profiles) ? data.follower_profiles : []);
       } else {
         const { following: ids } = await apiFetchFollowingIds(userId);
-        const rows = await Promise.all(
-          ids.slice(0, 200).map(async (id) => {
-            try {
-              const { data: body } = await request<{ profile?: Record<string, unknown> }>(
-                `/api/profiles/${encodeURIComponent(id)}`,
-              );
-              const p = body?.profile ?? body;
-              const rec = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>;
-              return {
-                user_id: id,
-                username: String(rec.username ?? 'user'),
-                display_name: (rec.displayName as string) ?? (rec.display_name as string) ?? null,
-                avatar_url: (rec.avatarUrl as string) ?? (rec.avatar_url as string) ?? null,
-              } as Person;
-            } catch {
-              return { user_id: id, username: 'user', display_name: null, avatar_url: null };
-            }
-          }),
-        );
+        const rows = (
+          await Promise.all(
+            ids.slice(0, 200).map(async (id) => {
+              try {
+                const { data: body } = await request<{ profile?: Record<string, unknown> }>(
+                  `/api/profiles/${encodeURIComponent(id)}`,
+                );
+                const p = body?.profile ?? body;
+                const rec = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>;
+                const username = String(rec.username ?? '').trim();
+                const display_name =
+                  (rec.displayName as string) ?? (rec.display_name as string) ?? null;
+                if (!username && !String(display_name || '').trim()) return null;
+                return {
+                  user_id: id,
+                  username: username || String(display_name || '').trim(),
+                  display_name,
+                  avatar_url: (rec.avatarUrl as string) ?? (rec.avatar_url as string) ?? null,
+                } as Person;
+              } catch {
+                return null;
+              }
+            }),
+          )
+        ).filter((row): row is Person => row != null);
         setPeople(rows);
       }
     } catch {

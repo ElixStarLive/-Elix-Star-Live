@@ -362,13 +362,38 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
   }
 
   const now = new Date().toISOString();
+  let seededUsername = String(seed?.username || "").trim();
+  let seededDisplay = String(seed?.displayName || seed?.username || "").trim();
+  let seededAvatar = seed?.avatarUrl ? String(seed.avatarUrl).trim() : "";
+
+  // Never invent user_* stubs — pull real auth identity when seed is missing.
+  if (!seededUsername && !seededDisplay) {
+    const authUser = await lookupAuthUser(userId);
+    if (authUser) {
+      seededUsername = String(authUser.username || "").trim();
+      seededDisplay = String(authUser.display_name || authUser.username || "").trim();
+      if (!seededAvatar) seededAvatar = String(authUser.avatar_url || "").trim();
+      if (!seededUsername && !seededDisplay && authUser.email?.includes("@")) {
+        seededUsername = authUser.email.split("@")[0].trim();
+        seededDisplay = seededUsername;
+      }
+    }
+  }
+
+  if (!seededUsername && !seededDisplay) {
+    // Do not invent directory stubs (user_*). Prefer email local-part; otherwise
+    // refuse create so callers get a clear failure instead of a fake identity.
+    logger.warn({ userId }, "getOrCreateProfile: no real username/display — skip create");
+    throw new Error("Profile requires a real username");
+  }
+
   const profile: Profile = {
     userId,
-    username: seed?.username ?? `user_${userId.slice(0, 8)}`,
-    displayName: seed?.displayName ?? seed?.username ?? `User ${userId.slice(0, 8)}`,
+    username: seededUsername || seededDisplay,
+    displayName: seededDisplay || seededUsername,
     avatarUrl:
-      seed?.avatarUrl ??
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(seed?.username ?? userId.slice(0, 8))}&background=random`,
+      seededAvatar ||
+      `https://ui-avatars.com/api/?name=${encodeURIComponent(seededUsername || seededDisplay)}&background=random`,
     bio: seed?.bio ?? "",
     website: seed?.website ?? "",
     followers: seed?.followers ?? 0,
@@ -623,14 +648,15 @@ export async function handleListProfiles(req: Request, res: Response): Promise<v
       const username =
         (typeof u.username === "string" && u.username.trim()) ||
         (typeof u.display_name === "string" && u.display_name.trim()) ||
-        (typeof u.email === "string" && u.email.includes("@") ? u.email.split("@")[0] : "") ||
-        `user_${u.id.slice(0, 8)}`;
+        "";
+      // Never invent fake user_* / email-derived directory stubs.
+      if (!username) continue;
       const displayName =
         (typeof u.display_name === "string" && u.display_name.trim()) ||
         username;
       const avatarUrl =
         (typeof u.avatar_url === "string" && u.avatar_url.trim()) ||
-        `https://ui-avatars.com/api/?name=${encodeURIComponent(String(username))}&background=random`;
+        "";
       merged.set(u.id, {
         user_id: u.id,
         username: String(username),
@@ -683,18 +709,18 @@ export async function handleGetFollowers(req: Request, res: Response): Promise<v
       );
       const byId = new Map<string, Row>();
       for (const row of r.rows || []) {
+        const username = String(row.username || "").trim();
+        if (!username) continue;
         byId.set(String(row.user_id), {
           user_id: String(row.user_id),
-          username: String(row.username || "user"),
+          username,
           display_name: row.display_name != null ? String(row.display_name) : null,
           avatar_url: row.avatar_url != null ? String(row.avatar_url) : null,
         });
       }
-      follower_profiles = followerIds.map((id) => {
-        const hit = byId.get(id);
-        if (hit) return hit;
-        return { user_id: id, username: "user", display_name: null, avatar_url: null };
-      });
+      follower_profiles = followerIds
+        .map((id) => byId.get(id))
+        .filter((row): row is Row => row != null);
     } catch (err) {
       logger.error({ err, userId }, "handleGetFollowers: profile query failed");
     }

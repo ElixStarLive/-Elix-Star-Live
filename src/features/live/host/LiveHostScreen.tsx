@@ -1486,8 +1486,27 @@ export default function LiveHostScreen() {
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
                       )}
-                      {/* P1 close â€” top outer corner (top-left), away from VS timer */}
-                      <div className="absolute top-3 left-1.5 z-40 pointer-events-auto">
+                      {/* WIN/LOSS capsule — only after result or when streak > 0 (no empty ×0) */}
+                      {(battleTeamWinner != null || battleWinStreak.host > 0) && (
+                      <div className="absolute top-3 left-1.5 z-40 pointer-events-none">
+                        <span className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded-full bg-black/45 border border-[#D8D9DD]/40 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span>
+                            {battleTeamWinner === 'host'
+                              ? 'WIN'
+                              : battleTeamWinner === 'opponent'
+                                ? 'LOSS'
+                                : battleTeamWinner === 'draw'
+                                  ? 'DRAW'
+                                  : 'WINS'}
+                          </span>
+                          <span className={battleTeamWinner === 'opponent' ? 'text-white/70' : 'text-white'}>
+                            ×{battleTeamWinner === 'opponent' ? 0 : battleWinStreak.host}
+                          </span>
+                        </span>
+                      </div>
+                      )}
+                      {/* P1 close + mic + cam — close moved down near microphone */}
+                      <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); closeLiveWithSlide(); }}
@@ -1496,17 +1515,6 @@ export default function LiveHostScreen() {
                         >
                           <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                         </button>
-                      </div>
-                      {/* This creator's battle points (join into 2x2 team total) */}
-                      {!hideRedScore && (
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                          <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {formatCountShort(myScore)}
-                          </span>
-                        </div>
-                      )}
-                      {/* P1 mic + cam â€” icons only */}
-                      <div className="absolute bottom-3 right-1.5 z-40 pointer-events-auto flex items-end gap-2">
                         <button
                           type="button"
                           onClick={(e) => { e.stopPropagation(); togglePlayerMute('me'); }}
@@ -1539,21 +1547,6 @@ export default function LiveHostScreen() {
                               <img src={src} alt="gift" className="w-full h-full object-cover" />
                             </div>
                           ))}
-                        </div>
-                      )}
-
-
-                      {battleWinner && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'host' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {battleTeamWinner === 'host' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
-                          </span>
-                          {battleTeamWinner === 'host' && battleWinStreak.host > 0 ? (
-                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.host}</span>
-                          ) : null}
-                          {battleTeamWinner === 'opponent' ? (
-                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
-                          ) : null}
                         </div>
                       )}
                     </div>
@@ -1623,18 +1616,30 @@ export default function LiveHostScreen() {
                         />
                       ) : null}
 
-                      {battleSlots[0].status === 'accepted' && !hideBlueScore ? (
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                          <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {formatCountShort(opponentScore)}
+                      {/* WIN/LOSS capsule — only after result or when streak > 0 (no empty ×0) */}
+                      {(battleTeamWinner != null || battleWinStreak.opponent > 0) && (
+                      <div className="absolute top-3 right-1.5 z-40 pointer-events-none">
+                        <span className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded-full bg-black/45 border border-[#D8D9DD]/40 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span>
+                            {battleTeamWinner === 'opponent'
+                              ? 'WIN'
+                              : battleTeamWinner === 'host'
+                                ? 'LOSS'
+                                : battleTeamWinner === 'draw'
+                                  ? 'DRAW'
+                                  : 'WINS'}
                           </span>
-                        </div>
-                      ) : null}
+                          <span className={battleTeamWinner === 'host' ? 'text-white/70' : 'text-white'}>
+                            ×{battleTeamWinner === 'host' ? 0 : battleWinStreak.opponent}
+                          </span>
+                        </span>
+                      </div>
+                      )}
 
                       {battleSlots[0].status !== 'empty' && (
                         <>
-                          {/* P2 close/remove â€” top outer corner (top-right), away from VS timer */}
-                          <div className="absolute top-3 right-1.5 z-10 pointer-events-auto">
+                          {/* P2 remove + mic + cam — remove X moved down near microphone */}
+                          <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); removePlayerFromSlot(0); }}
@@ -1643,9 +1648,6 @@ export default function LiveHostScreen() {
                             >
                               <X size={14} className="text-[#F5F5F7]" strokeWidth={2.25} />
                             </button>
-                          </div>
-                          {/* P2 mic + cam â€” icons only */}
-                          <div className="absolute bottom-3 left-1.5 z-10 pointer-events-auto flex items-end gap-2">
                             <button
                               type="button"
                               onClick={(e) => { e.stopPropagation(); togglePlayerMute('opponent'); }}
@@ -1693,20 +1695,6 @@ export default function LiveHostScreen() {
                           {battleSlots[0].status !== 'empty' ? battleSlots[0].name : 'P2'}
                         </div>
                       </div>
-
-                      {battleWinner && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
-                          <span className={`text-sm font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] ${battleTeamWinner === 'opponent' ? 'text-white' : battleTeamWinner === 'draw' ? 'text-white' : 'text-white/60'}`}>
-                            {battleTeamWinner === 'opponent' ? 'WIN' : battleTeamWinner === 'draw' ? 'DRAW' : 'LOSS'}
-                          </span>
-                          {battleTeamWinner === 'opponent' && battleWinStreak.opponent > 0 ? (
-                            <span className="text-[10px] font-black text-white tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">×{battleWinStreak.opponent}</span>
-                          ) : null}
-                          {battleTeamWinner === 'host' ? (
-                            <span className="text-[10px] font-black text-white/70 tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">0</span>
-                          ) : null}
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -1767,14 +1755,6 @@ export default function LiveHostScreen() {
                               openBattlePartnerMiniProfile(1);
                             }}
                           />
-                        ) : null}
-
-                        {battleSlots[1].status === 'accepted' && !hideRedScore ? (
-                          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {formatCountShort(player3Score)}
-                            </span>
-                          </div>
                         ) : null}
 
                         {battleSlots[1].status !== 'empty' && (
@@ -1883,14 +1863,6 @@ export default function LiveHostScreen() {
                               openBattlePartnerMiniProfile(2);
                             }}
                           />
-                        ) : null}
-
-                        {battleSlots[2].status === 'accepted' && !hideBlueScore ? (
-                          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-[25] pointer-events-none">
-                            <span className="inline-flex items-center h-4 px-1.5 rounded-full bg-black/40 border border-[#D8D9DD]/35 text-white text-[9px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {formatCountShort(player4Score)}
-                            </span>
-                          </div>
                         ) : null}
 
                         {battleSlots[2].status !== 'empty' && (
@@ -3511,22 +3483,22 @@ export default function LiveHostScreen() {
               ) : null}
 
               <button type="button" disabled={!isBroadcast} onClick={moreFlipCamera} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                  <RefreshCw className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} />
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                  <RefreshCw className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">Flip</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={moreToggleMic} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                  {isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} /> : <Mic className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} />}
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                  {isMicMuted ? <MicOff className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" /> : <Mic className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isMicMuted ? 'Unmute' : 'Mute'}</span>
               </button>
 
               <button type="button" disabled={!isBroadcast} onClick={moreToggleCam} className="!flex !flex-col !items-center !justify-start gap-1.5 w-full active:scale-95 transition-transform disabled:opacity-40">
-                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0">
-                  {isCamOff ? <CameraOff className="w-[18px] h-[18px] text-white/60 relative z-[2]" strokeWidth={1.8} /> : <Camera className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} />}
+                <div className="royce-glow-disc w-11 h-11 rounded-full relative !flex !items-center !justify-center shrink-0 !bg-transparent">
+                  {isCamOff ? <CameraOff className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" /> : <Camera className="w-[18px] h-[18px] text-[#F5F5F7] relative z-[2]" strokeWidth={1.8} fill="none" />}
                 </div>
                 <span className="text-[10px] font-semibold text-white/70 text-center leading-tight w-full">{isCamOff ? 'Cam On' : 'Cam Off'}</span>
               </button>

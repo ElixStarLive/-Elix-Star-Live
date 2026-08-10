@@ -12,6 +12,7 @@ import { logger } from "../lib/logger";
 import { assertGiftRestVelocityOk } from "../lib/fraud";
 import { awardPaidGiftXp, sendStarterCoinGift } from "../lib/starterCoinsXp";
 import { insertNotification } from "../lib/notifications";
+import { getOrCreateProfile } from "./profiles";
 import {
   giftIconUrlFromAnimation,
   resolveGiftMediaUrl,
@@ -36,6 +37,21 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
     return null;
   }
   return { userId: payload.sub };
+}
+
+/** Display name + avatar for gift inbox rows (creator sees who sent what). */
+async function giftSenderLabel(userId: string): Promise<{ name: string; avatar: string }> {
+  try {
+    const p = await getOrCreateProfile(userId);
+    const name = String(p.displayName || p.username || "").trim() || "Someone";
+    return { name, avatar: String(p.avatarUrl || "").trim() };
+  } catch {
+    return { name: "Someone", avatar: "" };
+  }
+}
+
+function giftWatchUrl(roomId: string, senderId: string): string {
+  return `/live/${encodeURIComponent(roomId)}?sender=${encodeURIComponent(senderId)}`;
 }
 
 /** POST /api/gifts/send — send gift (server validates; broadcast still via WS in live room) */
@@ -172,16 +188,21 @@ export async function handleSendGift(req: Request, res: Response) {
       }
 
       if (!starterResult.already_processed) {
+        const sender = await giftSenderLabel(auth.userId);
         await insertNotification({
           userId: recipientId,
           type: "starter_gift_received",
-          title: "You received a Starter Coin gift",
-          body: `A supporter sent ${gift.name}. Starter gifts have no monetary value and create no earnings.`,
-          actionUrl: `/live/${encodeURIComponent(roomId)}`,
+          title: `${sender.name} sent you a gift`,
+          body: `${gift.name} · Starter Coin gift (no earnings)`,
+          actionUrl: giftWatchUrl(roomId, auth.userId),
           data: {
             path: `/live/${roomId}`,
             gift_id: giftId,
+            gift_name: gift.name,
             gift_source: "starter_coins",
+            actor_id: auth.userId,
+            sender_name: sender.name,
+            avatar_url: sender.avatar,
             ...(resolvedCohostTarget
               ? { cohost_target_user_id: resolvedCohostTarget }
               : {}),
@@ -303,16 +324,21 @@ export async function handleSendGift(req: Request, res: Response) {
 
       if (recipientId && recipientId !== auth.userId) {
         try {
+          const sender = await giftSenderLabel(auth.userId);
           await insertNotification({
             userId: recipientId,
             type: "promo_gift_received",
-            title: "You received a promotional gift",
-            body: `Someone sent ${gift.name} with Promotional Coins (no earnings).`,
-            actionUrl: `/live/${encodeURIComponent(roomId)}`,
+            title: `${sender.name} sent you a gift`,
+            body: `${gift.name} · Promotional Coins (no earnings)`,
+            actionUrl: giftWatchUrl(roomId, auth.userId),
             data: {
               path: `/live/${roomId}`,
               gift_id: giftId,
+              gift_name: gift.name,
               gift_source: "promotional_coins",
+              actor_id: auth.userId,
+              sender_name: sender.name,
+              avatar_url: sender.avatar,
               ...(resolvedCohostTarget
                 ? { cohost_target_user_id: resolvedCohostTarget }
                 : {}),
@@ -391,16 +417,22 @@ export async function handleSendGift(req: Request, res: Response) {
 
       if (recipientId && recipientId !== auth.userId) {
         try {
+          const sender = await giftSenderLabel(auth.userId);
           await insertNotification({
             userId: recipientId,
             type: "paid_gift_received",
-            title: "You received a gift",
-            body: `Someone sent ${gift.name} (${coinCost} coins).`,
-            actionUrl: `/live/${encodeURIComponent(roomId)}`,
+            title: `${sender.name} sent you a gift`,
+            body: `${gift.name} (${coinCost} coins)`,
+            actionUrl: giftWatchUrl(roomId, auth.userId),
             data: {
               path: `/live/${roomId}`,
               gift_id: giftId,
+              gift_name: gift.name,
               gift_source: "paid_coins",
+              actor_id: auth.userId,
+              sender_name: sender.name,
+              avatar_url: sender.avatar,
+              coins: String(coinCost),
               ...(resolvedCohostTarget
                 ? { cohost_target_user_id: resolvedCohostTarget }
                 : {}),

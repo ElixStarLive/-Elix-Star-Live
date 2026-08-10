@@ -452,11 +452,11 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* Panel fundal exactly app column width */
-    background-color: transparent;
+    /* Owner fundal picture — full panel (not flat black) */
+    background-color: #080A0E;
     background-image: var(--elix-panel-fill);
-    background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-    background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+    background-size: cover, cover;
+    background-position: top center, top center;
     background-repeat: no-repeat, no-repeat;
   }
 
@@ -997,18 +997,10 @@ video::-webkit-media-controls-overlay-enclosure,
   scrollbar-width: none;
 }
 
-/* Gift animations - only what's needed */
-@keyframes elix-gift-idle {
-  0%, 100% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.02) rotate(1deg); }
-}
-.elix-gift-idle {
-  animation: elix-gift-idle 3s ease-in-out infinite;
-}
-
+/* Gift pop on send only — no idle bounce (was pushing icons off the grid) */
 @keyframes elix-gift-pop {
   0% { transform: scale(1); }
-  50% { transform: scale(1.2); }
+  50% { transform: scale(1.12); }
   100% { transform: scale(1); }
 }
 .elix-gift-pop {
@@ -1021,13 +1013,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 .elix-gift-sparkle::before {
   content: '';
-  position: absolute;
-  top: -2px; left: -2px; right: -2px; bottom: -2px;
-  background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, transparent 70%);
-  border-radius: 50%;
-  animation: elix-sparkle 2s ease-in-out infinite;
-  pointer-events: none;
-  z-index: -1;
+  display: none; /* disabled — was painting white circles on gift icons */
 }
 
 /* Gift overlay entrance: mask controls visibility (fades), no opacity */
@@ -1850,7 +1836,7 @@ svg.lucide,
   border-radius: 9999px !important;
 }
 
-/* Live header Join — taller + 1mm down (Join only; user oval untouched) */
+/* Live header Join — transparent capsule only; no white fill / no black disc */
 #root button[data-elix-join='true'],
 #root button.elix-live-join-capsule {
   height: calc(36px + 0.5mm) !important;
@@ -1867,6 +1853,7 @@ svg.lucide,
   position: relative !important;
   top: 1mm !important;
 }
+#root button[data-elix-join='true'] > span,
 #root button[data-elix-join='true'] svg,
 #root button[data-elix-join='true'] .elix-join-heart {
   padding: 0 !important;
@@ -1874,38 +1861,42 @@ svg.lucide,
   border-radius: 0 !important;
   background: transparent !important;
   background-color: transparent !important;
+  background-image: none !important;
   box-shadow: none !important;
   filter: none !important;
 }
 #root button[data-elix-join='true'] .elix-join-heart {
   color: var(--elix-join-accent, #6B7280) !important;
+  stroke: var(--elix-join-accent, #6B7280) !important;
 }
 #root button[data-elix-join='true'] .elix-join-heart path {
-  stroke: none !important;
-  fill: currentColor !important;
+  fill: none !important;
+  stroke: currentColor !important;
 }
-/* Not sent today — gray heart + Join */
+/* Not sent today — gray outline heart + Join */
 #root button[data-elix-join='true'][data-elix-join-sent='false'] {
   --elix-join-accent: #6B7280;
 }
 #root button[data-elix-join='true'][data-elix-join-sent='false'] .elix-join-heart,
 #root button[data-elix-join='true'][data-elix-join-sent='false'] .elix-join-heart path {
   color: #6B7280 !important;
-  fill: #6B7280 !important;
+  stroke: #6B7280 !important;
+  fill: none !important;
 }
 #root button[data-elix-join='true'][data-elix-join-sent='false'] > span:last-child {
   color: #6B7280 !important;
   -webkit-text-fill-color: #6B7280 !important;
   background-image: none !important;
 }
-/* Sent today — orange heart + Join */
+/* Sent today — orange outline heart + Join */
 #root button[data-elix-join='true'][data-elix-join-sent='true'] {
   --elix-join-accent: #FF6A3D;
 }
 #root button[data-elix-join='true'][data-elix-join-sent='true'] .elix-join-heart,
 #root button[data-elix-join='true'][data-elix-join-sent='true'] .elix-join-heart path {
   color: #FF6A3D !important;
-  fill: #FF6A3D !important;
+  stroke: #FF6A3D !important;
+  fill: none !important;
 }
 #root button[data-elix-join='true'][data-elix-join-sent='true'] > span:last-child {
   color: #FF6A3D !important;
@@ -2180,12 +2171,12 @@ body {
 }
 
 .page-above-bottom-nav__inner {
-  background-color: transparent;
+  background-color: #080A0E;
   background-image: var(--elix-panel-fill);
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size);
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position);
+  background-size: cover, cover;
+  background-position: top center, top center;
   background-repeat: no-repeat, no-repeat;
-  background-attachment: var(--elix-fundal-attachment), var(--elix-fundal-attachment);
+  background-attachment: scroll, scroll;
 }
 
 /* Video stream columns stay clear so LiveKit media is unobstructed */
@@ -2474,7 +2465,7 @@ body,
   color: #FFFFFF !important;
 }
 
-/* App-width containers — panel fundal exactly column width (not full screen) */
+/* App-width containers — owner fundal picture (elix-fundal-cosmic), full panel fill */
 #root .app-live-column.elix-full-page-panel,
 #root .app-live-column.elix-page-glass,
 #root .elix-full-page-panel,
@@ -2487,10 +2478,10 @@ body,
 #root main.feed-column-width,
 #root .elix-page-glass.max-w-\[480px\],
 #root .app-live-column.elix-page-glass {
-  background-color: transparent !important;
+  background-color: #080A0E !important;
   background-image: var(--elix-panel-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-size: cover, cover !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2560,15 +2551,23 @@ body,
   background-attachment: scroll !important;
 }
 
-/* More Options — opaque sheet; no video/banner leak on iPhone */
+/* Live bottom icons bar — same fundal picture as top chrome (solo + co-host + battle) */
+#root .elix-live-room .elix-live-lower-fundal {
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-fundal-image) !important;
+  background-size: 100% auto !important;
+  background-position: bottom center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: scroll !important;
+}
+
+/* More Options — owner fundal picture (not flat black wash) */
 #root .elix-more-options-sheet,
 #root .elix-glass.elix-more-options-sheet {
   background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
-    var(--elix-fundal-image) !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: cover, cover !important;
-  background-position: center center, center center !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
@@ -2581,22 +2580,35 @@ body,
   overflow: hidden;
 }
 
-/* Share panel — opaque sealed sheet (stops video + top-banner fundal leak) */
+/* Share panel — same owner fundal picture */
 #root .elix-share-sheet,
 #root .elix-panel.elix-share-sheet {
   background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
-    var(--elix-fundal-image) !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: cover, cover !important;
-  background-position: center center, center center !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   isolation: isolate;
 }
 
-/* User profile panel — sealed fundal to screen top (under battery/time), not a mid banner */
+/* Gift + all live bottom sheets — same owner fundal picture */
+#root .elix-gift-sheet,
+#root .elix-panel.elix-gift-sheet,
+#root .elix-live-sheet,
+#root .elix-panel.elix-live-sheet {
+  background-color: #080A0E !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: cover, cover !important;
+  background-position: top center, top center !important;
+  background-repeat: no-repeat, no-repeat !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  isolation: isolate;
+}
+
+/* User profile panel — owner fundal picture to screen top */
 #root .elix-user-panel.page-above-bottom-nav,
 #root .page-above-bottom-nav.elix-user-panel {
   top: 0 !important;
@@ -2607,11 +2619,9 @@ body,
 #root .page-above-bottom-nav.elix-user-panel > .page-above-bottom-nav__inner,
 #root .elix-user-panel .page-above-bottom-nav__inner {
   background-color: #080A0E !important;
-  background-image:
-    linear-gradient(rgba(8, 10, 14, 0.78), rgba(8, 10, 14, 0.78)),
-    var(--elix-fundal-image) !important;
+  background-image: var(--elix-panel-fill) !important;
   background-size: cover, cover !important;
-  background-position: center top, center top !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   isolation: isolate;
 }
@@ -2646,10 +2656,10 @@ body,
 #root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width {
   position: relative;
   overflow: hidden;
-  background-color: var(--elix-bg) !important;
+  background-color: #080A0E !important;
   background-image: var(--elix-feed-chrome-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-size: cover, cover !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll !important;
   border: none !important;
@@ -2661,10 +2671,10 @@ body,
 #root .elix-feed-chrome-shell nav[aria-label="Main navigation"] .feed-column-width {
   position: relative;
   overflow: hidden;
-  background-color: var(--elix-bg) !important;
+  background-color: #080A0E !important;
   background-image: var(--elix-feed-chrome-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-size: cover, cover !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll !important;
 }
@@ -2686,10 +2696,10 @@ body,
 
 #root .elix-feed-chrome-shell main.feed-column-width,
 #root .elix-feed-chrome-shell .elix-feed-video-stage {
-  background-color: transparent !important;
+  background-color: #080A0E !important;
   background-image: var(--elix-panel-fill) !important;
-  background-size: var(--elix-fundal-size), var(--elix-fundal-size) !important;
-  background-position: var(--elix-fundal-position), var(--elix-fundal-position) !important;
+  background-size: cover, cover !important;
+  background-position: top center, top center !important;
   background-repeat: no-repeat, no-repeat !important;
 }
 

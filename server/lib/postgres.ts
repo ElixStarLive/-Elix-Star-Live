@@ -1364,6 +1364,58 @@ export async function dbCreateShopItem(input: {
   }
 }
 
+export async function dbUpdateShopItemOwned(
+  id: string,
+  ownerUserId: string,
+  input: {
+    title: string;
+    description: string;
+    price: number;
+    image_url: string | null;
+    category: string;
+  },
+): Promise<DbShopItemRow | null> {
+  const p = getPool();
+  if (!p) return null;
+  try {
+    const res = await p.query(
+      `UPDATE shop_items
+       SET title = $3,
+           description = $4,
+           price = $5,
+           image_url = $6,
+           category = $7
+       WHERE id = $1 AND user_id = $2 AND is_active = TRUE
+       RETURNING id, user_id, title, description, price, image_url, category, is_active, created_at`,
+      [
+        id,
+        ownerUserId,
+        input.title.trim().slice(0, 200),
+        input.description.trim().slice(0, 5000),
+        Math.max(0, Number(input.price) || 0),
+        input.image_url,
+        input.category || "other",
+      ],
+    );
+    const row = res.rows[0];
+    if (!row) return null;
+    return {
+      id: String(row.id),
+      user_id: String(row.user_id),
+      title: String(row.title ?? ""),
+      description: String(row.description ?? ""),
+      price: Number(row.price ?? 0),
+      image_url: row.image_url == null ? null : String(row.image_url),
+      category: String(row.category ?? "other"),
+      is_active: Boolean(row.is_active),
+      created_at: new Date(row.created_at).toISOString(),
+    };
+  } catch (err) {
+    logger.error({ err }, "dbUpdateShopItemOwned failed");
+    return null;
+  }
+}
+
 export async function dbGetShopItemById(id: string): Promise<DbShopItemRow | null> {
   const p = getPool();
   if (!p) return null;

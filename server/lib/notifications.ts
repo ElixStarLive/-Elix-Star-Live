@@ -134,3 +134,52 @@ export async function pruneEndedLiveStartedNotifications(
     return 0;
   }
 }
+
+/**
+ * Drop legacy anonymous gift inbox rows ("Someone sent…", Archive-style).
+ * Keep only gifts that name the sender (`… sent you a gift` + ?sender=).
+ */
+export async function purgeLegacyAnonymousGiftNotifications(
+  userId?: string,
+): Promise<number> {
+  const pool = getPool();
+  if (!pool) return 0;
+  const uid = String(userId || "").trim();
+  try {
+    const params: unknown[] = [];
+    let userClause = "";
+    if (uid) {
+      params.push(uid);
+      userClause = ` AND user_id = $${params.length}`;
+    }
+    const r = await pool.query(
+      `DELETE FROM elix_notifications
+       WHERE (
+         (
+           type IN ('starter_gift_received', 'paid_gift_received', 'promo_gift_received', 'gift')
+           AND (
+             COALESCE(action_url, '') NOT LIKE '%sender=%'
+             OR title ILIKE 'You received%'
+             OR body ILIKE 'Someone sent%'
+             OR body ILIKE 'A supporter sent%'
+           )
+         )
+         OR (
+           type = 'system'
+           AND (
+             body ILIKE 'Someone sent%'
+             OR body ILIKE 'A supporter sent%'
+             OR title ILIKE 'You received a gift%'
+             OR title ILIKE 'You received a Starter%'
+             OR title ILIKE 'You received a promotional%'
+           )
+         )
+       )${userClause}`,
+      params,
+    );
+    return Number(r.rowCount || 0);
+  } catch (err) {
+    logger.warn({ err, userId: uid || null }, "purgeLegacyAnonymousGiftNotifications failed");
+    return 0;
+  }
+}

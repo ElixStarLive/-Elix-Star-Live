@@ -54,7 +54,7 @@ router.get("/notifications", async (req, res) => {
   const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
   const { getPool } = await import("../lib/postgres");
   const { dbGetLiveStreams } = await import("../lib/postgres");
-  const { pruneEndedLiveStartedNotifications } = await import("../lib/notifications");
+  const { pruneEndedLiveStartedNotifications, purgeLegacyAnonymousGiftNotifications } = await import("../lib/notifications");
   const { logger } = await import("../lib/logger");
   const token = getTokenFromRequest(req);
   const payload = token ? verifyAuthToken(token) : null;
@@ -73,6 +73,12 @@ router.get("/notifications", async (req, res) => {
       await pruneEndedLiveStartedNotifications(active);
     } catch (pruneErr) {
       logger.warn({ err: pruneErr }, "GET /notifications: live prune skipped");
+    }
+    // Remove old anonymous gift rows (Someone sent Horse / Archive icon era).
+    try {
+      await purgeLegacyAnonymousGiftNotifications(payload.sub);
+    } catch (giftPruneErr) {
+      logger.warn({ err: giftPruneErr }, "GET /notifications: gift prune skipped");
     }
     const r = await db.query(
       `SELECT id, user_id, type, title, body, action_url, read, created_at

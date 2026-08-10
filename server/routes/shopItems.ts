@@ -3,6 +3,7 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import {
   dbListShopItems,
   dbCreateShopItem,
+  dbUpdateShopItemOwned,
   dbDeactivateShopItemOwned,
   type DbShopItemRow,
 } from "../lib/postgres";
@@ -118,6 +119,72 @@ export async function handleCreateShopItem(req: Request, res: Response) {
     return res.status(201).json({ item: await enrichSeller(row) });
   } catch (err) {
     logger.error({ err }, "handleCreateShopItem failed");
+    return res.status(500).json({ error: "DATABASE_ERROR" });
+  }
+}
+
+/** PATCH /api/shop/items/:id — update own listing (auth) */
+export async function handleUpdateShopItem(req: Request, res: Response) {
+  if (req.method !== "PATCH" && req.method !== "PUT") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+
+  const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+  if (!id) {
+    return res.status(400).json({ error: "id is required" });
+  }
+
+  try {
+    const body = req.body as {
+      title?: string;
+      description?: string;
+      price?: number;
+      image_url?: string | null;
+      category?: string;
+    };
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (!title) {
+      return res.status(400).json({ error: "title is required" });
+    }
+    const price = Number(body.price);
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ error: "valid price is required" });
+    }
+    const category =
+      typeof body.category === "string" && body.category.trim()
+        ? body.category.trim()
+        : "other";
+    const allowed = new Set([
+      "clothing",
+      "electronics",
+      "accessories",
+      "other",
+    ]);
+    const cat = allowed.has(category) ? category : "other";
+    const image_url =
+      body.image_url === null
+        ? null
+        : typeof body.image_url === "string" && body.image_url.trim()
+          ? body.image_url.trim().slice(0, 2000)
+          : null;
+    const description =
+      typeof body.description === "string" ? body.description : "";
+
+    const row = await dbUpdateShopItemOwned(id, auth.userId, {
+      title,
+      description,
+      price,
+      image_url,
+      category: cat,
+    });
+    if (!row) {
+      return res.status(404).json({ error: "Item not found or not yours" });
+    }
+    return res.status(200).json({ item: await enrichSeller(row) });
+  } catch (err) {
+    logger.error({ err }, "handleUpdateShopItem failed");
     return res.status(500).json({ error: "DATABASE_ERROR" });
   }
 }

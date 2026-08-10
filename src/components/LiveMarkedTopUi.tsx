@@ -235,6 +235,7 @@ export function LiveJoinPill({
       style={{
         background: 'transparent',
         backgroundColor: 'transparent',
+        backgroundImage: 'none',
         boxShadow: 'none',
         border: '1px solid #2A2D33',
         height: 'calc(36px + 0.5mm)',
@@ -248,30 +249,36 @@ export function LiveJoinPill({
       onClick={onJoin}
       aria-label="Join"
     >
-      <span className="relative inline-flex items-center justify-center w-5 h-5 flex-shrink-0" aria-hidden>
+      <span className="relative inline-flex items-center justify-center w-[18px] h-[18px] flex-shrink-0 bg-transparent border-0 shadow-none" aria-hidden>
         <svg
           width="18"
           height="18"
           viewBox="0 0 24 24"
           className="elix-join-heart block"
           aria-hidden
-          style={{ color: accent }}
+          fill="none"
+          stroke={accent}
+          strokeWidth={2.2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ color: accent, background: 'transparent' }}
         >
           <path
-            fill="currentColor"
             d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"
+            fill="none"
+            stroke="currentColor"
           />
         </svg>
         {!hasJoinedToday ? (
           <span
-            className="absolute inset-0 flex items-center justify-center text-[9px] font-black leading-none pt-px"
-            style={{ color: '#D1D5DB' }}
+            className="absolute inset-0 flex items-center justify-center text-[9px] font-black leading-none pt-px bg-transparent"
+            style={{ color: accent }}
           >
             +
           </span>
         ) : null}
       </span>
-      <span className="text-[13px] font-semibold leading-none" style={{ color: accent }}>
+      <span className="text-[13px] font-semibold leading-none bg-transparent" style={{ color: accent }}>
         Join
       </span>
     </button>

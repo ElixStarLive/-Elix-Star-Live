@@ -15,14 +15,17 @@ if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
 }
 
-// Resolve cosmic fundal against the real document base (fixes iOS Capacitor:
-// absolute url('/elix-fundal-cosmic.png') often fails under capacitor://localhost).
+// Resolve cosmic fundal from site root (web + Capacitor). Never invent another image.
 if (typeof document !== 'undefined') {
   try {
-    const fundalHref = new URL('elix-fundal-cosmic.png', document.baseURI).href
+    const origin = window.location.origin || document.baseURI
+    const fundalHref = new URL('/elix-fundal-cosmic.png', origin.endsWith('/') ? origin : `${origin}/`).href
     document.documentElement.style.setProperty('--elix-fundal-image', `url("${fundalHref}")`)
   } catch {
-    /* keep CSS fallback */
+    document.documentElement.style.setProperty(
+      '--elix-fundal-image',
+      'url("/elix-fundal-cosmic.png")',
+    )
   }
 }
 

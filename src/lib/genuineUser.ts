@@ -1,8 +1,9 @@
 /**
- * Owner allowlist — ONLY these accounts stay in Share / Inbox circles / suggestions.
+ * Owner allowlist — ONLY these real accounts stay in Share / Inbox circles / suggestions.
  * Everyone else is removed.
  *
- * Keep: Elix Star Live, Anya Emily, admin account, daniel, crd star, Sandra Monica
+ * Keep: Elix Star Live, Anya Emily, admin account, daniel, crd, Sandra Monica,
+ *       Andrei Ionut Berica
  */
 
 function compactLabel(s: string): string {
@@ -20,17 +21,22 @@ const ALLOWED_COMPACT = new Set([
   'admn',
   'admnaccount',
   'daniel',
+  'crd',
   'crdstar',
   'sandramonica',
   'sandamonica',
+  'andreiionutberica',
+  'andreiionut',
+  'andreiberica',
 ]);
 
 function isAllowedLabel(part: string): boolean {
   const c = compactLabel(part);
   if (!c) return false;
   if (ALLOWED_COMPACT.has(c)) return true;
-  // Allow slight handle variants: daniel123 → no; daniel_ok → no.
-  // Only exact compact match or known phrase prefixes that equal a keep name.
+  // Andrei Ionut Berica — allow compact variants with name tokens
+  if (c.includes('andrei') && c.includes('berica')) return true;
+  if (c.includes('andrei') && c.includes('ionut')) return true;
   return false;
 }
 
@@ -42,7 +48,6 @@ export function isGenuineAppUser(username: string, userId = '', displayName = ''
   const display = String(displayName || '').trim();
   if (!handle && !display) return false;
 
-  // Pass if username OR display name is on the owner keep list
   if (handle && isAllowedLabel(handle)) return true;
   if (display && isAllowedLabel(display)) return true;
   return false;

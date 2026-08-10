@@ -1151,6 +1151,7 @@ export function useLiveSpectatorController() {
   const myVideoRef = useRef<HTMLVideoElement>(null);
   const [isMicMuted, setIsMicMuted] = useState(true);
   const [isCamOff, setIsCamOff] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
 
   // Co-host publish is invite/accept only — URL alone is not enough.
   const cohostState = (location.state as Record<string, unknown>) || {};
@@ -1256,25 +1257,21 @@ export function useLiveSpectatorController() {
   }, [spectatorCoHosts, isCoHosting, user?.id, stopCoHosting, featuredUserId]);
 
   const toggleMic = () => {
-    if (!coHostStream) return;
-    const audioTrack = coHostStream.getAudioTracks()[0];
-    if (audioTrack) {
-      audioTrack.enabled = isMicMuted;
-      setIsMicMuted(!isMicMuted);
-    }
+    if (!isCoHosting) return;
+    const nextMuted = !isMicMuted;
+    setIsMicMuted(nextMuted);
+    const audioTrack = coHostStream?.getAudioTracks()[0];
+    if (audioTrack) audioTrack.enabled = !nextMuted;
+    void spectatorLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
   };
 
   const toggleCam = () => {
-    if (!coHostStream) return;
-    const videoTrack = coHostStream.getVideoTracks()[0];
-    if (!videoTrack) return;
+    if (!isCoHosting) return;
     const nextCamOff = !isCamOff;
-    videoTrack.enabled = !nextCamOff;
     setIsCamOff(nextCamOff);
-    const room = liveKitRoomRef.current;
-    if (room?.state === ConnectionState.Connected) {
-      void room.localParticipant.setCameraEnabled(!nextCamOff).catch(() => {});
-    }
+    const videoTrack = coHostStream?.getVideoTracks()[0];
+    if (videoTrack) videoTrack.enabled = !nextCamOff;
+    void spectatorLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
   };
 
   // Cleanup co-host camera on unmount
@@ -1520,6 +1517,39 @@ export function useLiveSpectatorController() {
 
   // Track attach handlers for useSpectatorLiveSession (connect owner). No parallel Room().
   const coHostPublishStreamRef = useRef<MediaStream | null>(null);
+
+  /** Turn camera around while co-hosting — republish new facing stream. */
+  const flipCamera = useCallback(async () => {
+    if (!isCoHosting) return;
+    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: nextFacing },
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      const mic = stream.getAudioTracks()[0];
+      if (mic) mic.enabled = !isMicMuted;
+      const vid = stream.getVideoTracks()[0];
+      if (vid) vid.enabled = !isCamOff;
+      const previous = coHostStream;
+      coHostPublishStreamRef.current = stream;
+      setCoHostStream(stream);
+      setCameraFacing(nextFacing);
+      if (myVideoRef.current) {
+        myVideoRef.current.srcObject = stream;
+        prepareLiveVideoEl(myVideoRef.current);
+      }
+      const lifecycle = spectatorLifecycleRef.current;
+      await lifecycle.publishFromStream(stream);
+      await lifecycle.liveKit?.setMicEnabled(!isMicMuted);
+      if (previous && previous !== stream) {
+        previous.getTracks().forEach((t) => t.stop());
+      }
+    } catch {
+      showToast('Could not switch camera');
+    }
+  }, [cameraFacing, isCamOff, isCoHosting, isMicMuted, coHostStream, spectatorLifecycleRef]);
+
   const mainVideoAttachedRef = useRef(false);
   {
     const hostId = () => hostUserIdRef.current || effectiveStreamId;
@@ -3780,6 +3810,7 @@ export function useLiveSpectatorController() {
     testCoinsPwdRef,
     testCoinsStep,
     toggleCam,
+    flipCamera,
     toggleFeaturedUser,
     toggleMic,
     triggerBattleVfx,

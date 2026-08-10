@@ -80,23 +80,20 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="elix-panel rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
+              className="elix-panel elix-live-sheet rounded-t-2xl p-3 pb-safe max-h-[40vh] flex flex-col shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-center mb-2">
-                <div className="w-10 h-1 bg-white/20 rounded-full" />
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <Sparkles className="w-3.5 h-3.5 text-[#F5F5F7] flex-shrink-0" />
-                  <span className="text-sm font-bold text-white truncate">
-                    {state.poll.kind === "trivia" ? "Trivia" : "Live poll"}
-                    {state.poll.endsAt && _nowMs >= state.poll.endsAt
-                      ? " · Ended"
-                      : ""}
-                  </span>
+              <div className="relative flex flex-col px-1 pt-0 pb-2 border-b border-white/10 mb-2">
+                <div className="flex justify-center pb-2" aria-hidden>
+                  <div className="w-10 h-1 rounded-full bg-white/25" />
                 </div>
-                <button type="button" className="p-1" onClick={() => setShowPollSheet(false)}>
+                <span className="text-sm font-bold text-[#F5F5F7] text-center w-full">
+                  {state.poll.kind === "trivia" ? "Trivia" : "Live poll"}
+                  {state.poll.endsAt && _nowMs >= state.poll.endsAt
+                    ? " · Ended"
+                    : ""}
+                </span>
+                <button type="button" className="absolute right-1 top-[26px] p-1" onClick={() => setShowPollSheet(false)}>
                   <X className="w-4 h-4 text-white/60" />
                 </button>
               </div>
@@ -149,18 +146,15 @@ export function LiveEngagementOverlay({
           />
           <div className="fixed bottom-0 left-0 right-0 z-[99999] pointer-events-auto max-w-[480px] mx-auto">
             <div
-              className="elix-panel rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
+              className="elix-panel elix-live-sheet rounded-t-2xl p-3 pb-safe h-[40dvh] max-h-[40dvh] flex flex-col shadow-2xl w-full overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex justify-center mb-2">
-                <div className="w-10 h-1 bg-white/20 rounded-full" />
-              </div>
-              <div className="flex items-center justify-between mb-2 flex-shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-[#F5F5F7]" />
-                  <span className="text-sm font-bold text-white">Current live</span>
+              <div className="relative flex flex-col px-1 pt-0 pb-2 border-b border-white/10 mb-2 flex-shrink-0">
+                <div className="flex justify-center pb-2" aria-hidden>
+                  <div className="w-10 h-1 rounded-full bg-white/25" />
                 </div>
-                <button type="button" onClick={() => setShowLb(false)} className="p-1">
+                <span className="text-sm font-bold text-[#F5F5F7] text-center w-full">Current live</span>
+                <button type="button" onClick={() => setShowLb(false)} className="absolute right-1 top-[26px] p-1">
                   <X className="w-4 h-4 text-white/60" />
                 </button>
               </div>

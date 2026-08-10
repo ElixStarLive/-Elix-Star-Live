@@ -175,7 +175,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
     <div className="fixed inset-0 flex items-end justify-center" style={{ zIndex: 100100 }}>
       <div className="absolute inset-0 bg-black/60 pointer-events-auto" onClick={onClose} />
 
-      <div className="relative w-full max-w-[480px] z-10 elix-panel backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 border border-black pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#E6E9EE]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
+      <div className="relative w-full max-w-[480px] z-10 elix-panel elix-live-sheet backdrop-blur-md rounded-t-2xl p-4 pb-safe flex flex-col gap-1 border border-black pointer-events-auto h-[40vh] max-h-[40vh] overflow-y-auto bottom-sheet-above-nav [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-white/5 [&::-webkit-scrollbar-thumb]:bg-[#E6E9EE]/50 [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.25) transparent' }}>
         <div className="flex justify-center mb-2">
           <div className="w-10 h-1 bg-white/20 rounded-full" />
         </div>

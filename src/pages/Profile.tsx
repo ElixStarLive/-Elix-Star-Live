@@ -787,20 +787,25 @@ export default function Profile() {
 
         {/* ═══ Share Panel — full-page sheet ═══ */}
         {showSharePanel && (
-          <SettingsOptionSheet onClose={() => setShowSharePanel(false)} title="Share to">
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
-              <div className="px-2.5 pb-2">
-                <div className="w-full rounded-md border border-white/10 px-2 py-1.5 flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5 text-[#8B9099]" />
-                  <input
-                    placeholder="Search..."
-                    value={shareQuery ?? ''}
-                    onChange={(e) => setShareQuery(e.target.value)}
-                    className="bg-transparent text-white text-xs outline-none w-full placeholder:text-[#8B9099]"
-                  />
+          <SettingsOptionSheet
+            onClose={() => setShowSharePanel(false)}
+            title="Share to"
+            headerLeft={
+              <div className="flex items-center gap-1 pl-1">
+                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0 border border-[#D8D9DD]/35">
+                  <Search className="w-3.5 h-3.5 text-[#F5F5F7]" />
                 </div>
+                <input
+                  placeholder="Search..."
+                  value={shareQuery ?? ''}
+                  onChange={(e) => setShareQuery(e.target.value)}
+                  className="bg-transparent text-white text-xs outline-none w-[72px] placeholder:text-[#8B9099]"
+                  aria-label="Search"
+                />
               </div>
-
+            }
+          >
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain px-3 pt-2 pb-[3mm]">
               <div className="flex gap-3 overflow-x-auto pt-2 pb-3 no-scrollbar items-center px-2">
                 {shareFollowers
                   .filter((f) => (f.username || '').toLowerCase().includes((shareQuery || '').toLowerCase()))
@@ -850,7 +855,7 @@ export default function Profile() {
                 ].map((item) => (
                   <button key={item.name} type="button" onClick={item.action} className="flex flex-col items-center gap-1 active:scale-95 transition-transform">
                     <div
-                      className={`relative royce-glow-disc flex-shrink-0 ${item.name === 'Report' ? 'translate-y-0.5' : ''}`}
+                      className="relative royce-glow-disc flex-shrink-0"
                       style={{ width: SHARE_PANEL_ACTION_DISC_PX, height: SHARE_PANEL_ACTION_DISC_PX }}
                     >
                       {React.cloneElement((item.icon as React.ReactElement), {
