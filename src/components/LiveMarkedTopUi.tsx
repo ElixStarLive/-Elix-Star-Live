@@ -168,9 +168,9 @@ export function LiveHostProfileHeader({
         minHeight: avatarSize + 4,
         /* Capsule longer 3mm — padding only. */
         paddingRight: 'calc(8px + 3mm)',
-        /* User capsule + Join inside — move together 2mm left. */
+        /* Locked pair (capsule + Join inside) — 4mm left so both move, not Join alone. */
         position: 'relative',
-        left: '-2mm',
+        left: '-4mm',
       }}
     >
       <button
