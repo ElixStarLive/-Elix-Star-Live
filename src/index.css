@@ -2266,13 +2266,13 @@ body {
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
 }
-/* Battle top chrome — same fundal as creator column (host + spectator identical) */
+/* Battle top chrome — same fundal as creator column (host + spectator identical), screen-top */
 #root .elix-live-room .elix-battle-top-fundal {
-  background-color: transparent !important;
-  background-image: var(--elix-panel-fill) !important;
-  background-size: cover, cover !important;
-  background-position: center top, center top !important;
-  background-repeat: no-repeat, no-repeat !important;
+  background-color: var(--elix-bg) !important;
+  background-image: var(--elix-fundal-image) !important;
+  background-size: 100% auto !important;
+  background-position: top center !important;
+  background-repeat: no-repeat !important;
 }
 /* Battle MVP strip — fundal BEHIND circles only (never covers AvatarRing) */
 .elix-battle-mvp-row,
@@ -2538,10 +2538,13 @@ body,
   filter: none !important;
 }
 
-/* Live top chrome — same fundal picture as home top/bottom nav (top → under Weekly Ranking) */
+/* Live top chrome — fundal from absolute screen top (covers status bar / battery) */
 #root .elix-live-room .elix-live-top-chrome,
 #root .elix-live-top-chrome {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   overflow: hidden;
   background-color: var(--elix-bg) !important;
   background-image: var(--elix-fundal-image) !important;
@@ -2549,6 +2552,9 @@ body,
   background-position: top center !important;
   background-repeat: no-repeat !important;
   background-attachment: scroll !important;
+  /* Paint into notch / status-bar band so live video never shows above the bar */
+  padding-top: 0 !important;
+  margin-top: 0 !important;
 }
 
 /* Live bottom icons bar — same fundal picture as top chrome (solo + co-host + battle) */

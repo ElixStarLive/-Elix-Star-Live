@@ -643,7 +643,7 @@ export default function SpectatorLiveScreen() {
         {spectatorBattle?.active ? (
           <div
             className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm + 44dvh - 3mm)' }}
             aria-hidden
           />
         ) : hasCoHostLowerFundal ? (
@@ -698,7 +698,7 @@ export default function SpectatorLiveScreen() {
               <div
                 className="absolute inset-0 z-[80] flex flex-col overflow-hidden"
                 style={{
-                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm)',
+                  paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm)',
                   paddingBottom: '305px',
                 }}
               >
@@ -1016,7 +1016,7 @@ export default function SpectatorLiveScreen() {
                 {/* MVP under cameras — identical to host: fixed above chat fundal */}
                 <div
                   className="elix-battle-mvp-row fixed left-0 right-0 z-[110] flex justify-center pointer-events-none"
-                  style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+                  style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm + 44dvh - 3mm)' }}
                 >
                   <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
                   <div
@@ -1746,16 +1746,8 @@ export default function SpectatorLiveScreen() {
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div
           className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome ${spectatorBattle?.active ? 'elix-battle-top-fundal' : ''}`}
-          style={
-            spectatorBattle?.active
-              ? undefined
-              : {
-                  backgroundColor: 'transparent',
-                  backgroundImage: 'none',
-                }
-          }
         >
-          <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
+          <div className="px-3 pb-1.5" style={{ paddingTop: 'max(2px, calc(env(safe-area-inset-top, 0px) + 6px - 9mm))' }}>
             <div className="flex items-start justify-between gap-2">
               {/* Left: Creator info — photo profile (MVP circles untouched) */}
               <div className="pointer-events-auto flex flex-col gap-2">

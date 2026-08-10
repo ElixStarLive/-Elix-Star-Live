@@ -805,7 +805,7 @@ export default function LiveHostScreen() {
         {isBattleMode ? (
           <div
             className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
-            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm + 44dvh - 3mm)' }}
             aria-hidden
           />
         ) : hasCoHostLowerFundal ? (
@@ -1306,7 +1306,7 @@ export default function LiveHostScreen() {
             ref={battleSpectatorOverlayRef}
             className={`absolute inset-0 z-[80] flex flex-col ${isBroadcast ? 'pointer-events-none' : ''}`}
             style={{
-              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm)',
+              paddingTop: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm)',
               paddingBottom: isBroadcast ? '305px' : undefined,
             }}
             onClick={(e) => {
@@ -1928,7 +1928,7 @@ export default function LiveHostScreen() {
             {/* MVP under cameras — fixed above chat fundal (z-110 > chat z-100) */}
             <div
               className="elix-battle-mvp-row fixed left-0 right-0 z-[110] flex justify-center pointer-events-none"
-              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm + 44dvh - 3mm)' }}
+              style={{ top: 'calc(env(safe-area-inset-top, 0px) + 112px - 0.5mm - 9mm + 44dvh - 3mm)' }}
             >
               <div className="w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
               <div
@@ -2034,16 +2034,8 @@ export default function LiveHostScreen() {
               {/* Top Bar â€” always show creator layout for everyone */}
                 <div
                   className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none elix-live-top-chrome ${isBattleMode ? 'elix-battle-top-fundal' : ''}`}
-                  style={
-                    isBattleMode
-                      ? undefined
-                      : {
-                          backgroundColor: 'transparent',
-                          backgroundImage: 'none',
-                        }
-                  }
                 >
-                  <div className="px-3 pb-1.5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}>
+                  <div className="px-3 pb-1.5" style={{ paddingTop: 'max(2px, calc(env(safe-area-inset-top, 0px) + 6px - 9mm))' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
                         {/* BROADCASTER INFO â€” photo profile (MVP circles untouched) */}
