@@ -166,8 +166,11 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        /* Capsule longer 3mm — padding only; do not use margin/left (moves circle). */
+        /* Capsule longer 3mm — padding only. */
         paddingRight: 'calc(8px + 3mm)',
+        /* User capsule 2mm left — Join keeps screen place via +2mm cancel on Join. */
+        position: 'relative',
+        left: '-2mm',
       }}
     >
       <button
@@ -258,6 +261,8 @@ export function LiveJoinPill({
         minHeight: 'calc(36px + 0.5mm)',
         position: 'relative',
         top: '1mm',
+        /* Cancel parent capsule -2mm so Join stays put on screen. */
+        left: '2mm',
         marginTop: 0,
         ['--elix-join-accent' as string]: accent,
         color: accent,
