@@ -170,13 +170,13 @@ export function LiveHostProfileHeader({
         paddingRight: 'calc(8px + 3mm)',
         /* Capsule shell left; content cancel keeps circle + Join put. */
         position: 'relative',
-        left: '-6.5mm',
+        left: '-7mm',
       }}
     >
       {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
       <div
         className="flex items-center gap-1.5 min-w-0 w-max max-w-full"
-        style={{ position: 'relative', left: '2.5mm' }}
+        style={{ position: 'relative', left: '3mm' }}
       >
       <button
         type="button"
