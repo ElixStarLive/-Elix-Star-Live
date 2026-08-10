@@ -182,12 +182,12 @@ export function LiveHostProfileHeader({
         <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
-      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
+      <div
+        className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5"
+        style={{ paddingRight: '4mm', minWidth: 'calc(72px + 4mm)' }}
+      >
         <div className="flex items-center gap-1 min-w-0">
-          <span
-            className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden"
-            style={{ maxWidth: 'calc(64px + 14mm)' }}
-          >
+          <span className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden">
             {shortName}
           </span>
           <BadgeCheck
