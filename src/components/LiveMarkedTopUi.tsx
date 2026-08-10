@@ -188,7 +188,10 @@ export function LiveHostProfileHeader({
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
-          <span className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden">
+          <span
+            className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden relative"
+            style={{ left: '-2mm' }}
+          >
             {shortName}
           </span>
           <BadgeCheck
