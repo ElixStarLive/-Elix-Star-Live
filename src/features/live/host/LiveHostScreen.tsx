@@ -2475,15 +2475,15 @@ export default function LiveHostScreen() {
                     onClick={openSpectatorsPanel}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
-                    <span className="flex items-center justify-center w-full h-full relative z-[2]">
+                    <span className="royce-glow-disc relative z-[2]">
                       <UserPlus
-                        size={20}
+                        size={18}
                         className="text-[#F5F5F7] shrink-0"
-                        strokeWidth={2}
+                        strokeWidth={2.25}
                         style={{ transform: 'translateX(0.5mm)' }}
                       />
                     </span>
-</button>
+                  </button>
                   <span className="elix-silver-red-text text-[8px] font-medium">Co-Host</span>
                 </div>
               )}
@@ -2496,8 +2496,10 @@ export default function LiveHostScreen() {
                     onClick={openBattleChrome}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
-                    <Users size={20} className="text-[#F5F5F7] relative z-[2]" />
-</button>
+                    <span className="royce-glow-disc relative z-[2]">
+                      <Users size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                    </span>
+                  </button>
                   <span className="elix-silver-red-text text-[8px] font-medium">Battle</span>
                 </div>
               )}
@@ -2510,8 +2512,10 @@ export default function LiveHostScreen() {
                       onClick={openFindCreatorsFromHeader}
                       className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                     >
-                      <UserPlus size={20} className="text-[#F5F5F7] relative z-[2]" strokeWidth={2} />
-</button>
+                      <span className="royce-glow-disc relative z-[2]">
+                        <UserPlus size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                      </span>
+                    </button>
                     <span className="elix-silver-red-text text-[8px] font-medium">Invite</span>
                   </div>
                   {isBroadcast && (
@@ -2522,8 +2526,10 @@ export default function LiveHostScreen() {
                         onClick={startBattleWithAcceptedCreators}
                         className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                       >
-                        <Sword size={20} className="text-[#F5F5F7] relative z-[2]" />
-</button>
+                        <span className="royce-glow-disc relative z-[2]">
+                          <Sword size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                        </span>
+                      </button>
                       <span className="elix-silver-red-text text-[8px] font-medium">Start game</span>
                     </div>
                   )}
@@ -2537,21 +2543,27 @@ export default function LiveHostScreen() {
                     onClick={toggleHostPoll}
                     className={`${LIVE_BOTTOM_ICON_BTN} relative`}
                   >
-                    <BarChart3 size={20} className="text-[#A7A7AD] relative z-[2]" strokeWidth={2.2} />
+                    <span className="royce-glow-disc relative z-[2]">
+                      <BarChart3 size={18} className="text-[#A7A7AD]" strokeWidth={2.25} />
+                    </span>
                   </button>
                   <span className="elix-silver-red-text text-[8px] font-medium">Poll</span>
                 </div>
               )}
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="Share" onClick={openSharePanel} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
-                  <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
-</button>
+                  <span className="royce-glow-disc relative z-[2]">
+                    <Share2 size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                  </span>
+                </button>
                 <span className="elix-silver-red-text text-[8px] font-medium">Share</span>
               </div>
               <div className="flex flex-col items-center gap-0.5">
                 <button type="button" title="More options" onClick={openMoreMenu} className={`${LIVE_BOTTOM_ICON_BTN} relative`}>
-                  <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
-</button>
+                  <span className="royce-glow-disc relative z-[2]">
+                    <MoreVertical size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                  </span>
+                </button>
                 <span className="elix-silver-red-text text-[8px] font-medium">More</span>
               </div>
               </div>

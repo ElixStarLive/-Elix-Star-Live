@@ -2095,7 +2095,9 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <BarChart3 size={20} className="text-[#A7A7AD] shrink-0" strokeWidth={2.2} />
+                  <span className="royce-glow-disc">
+                    <BarChart3 size={18} className="text-[#A7A7AD] shrink-0" strokeWidth={2.25} />
+                  </span>
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Poll</span>
               </button>
@@ -2110,11 +2112,11 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <span className="flex items-center justify-center w-full h-full relative z-[2]">
+                  <span className="royce-glow-disc relative z-[2]">
                     <UserPlus
-                      size={20}
+                      size={18}
                       className="text-[#F5F5F7] shrink-0"
-                      strokeWidth={2}
+                      strokeWidth={2.25}
                       style={{ transform: 'translateX(0.5mm)' }}
                     />
                   </span>
@@ -2134,7 +2136,9 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <Gift size={20} className="text-[#F5F5F7] relative z-[2]" />
+                  <span className="royce-glow-disc relative z-[2]">
+                    <Gift size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                  </span>
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Gift</span>
               </button>
@@ -2145,7 +2149,9 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <Share2 size={20} className="text-[#F5F5F7] relative z-[2]" />
+                  <span className="royce-glow-disc relative z-[2]">
+                    <Share2 size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                  </span>
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Share</span>
               </button>
@@ -2156,7 +2162,9 @@ export default function SpectatorLiveScreen() {
                 className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0"
               >
                 <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <MoreVertical size={20} className="text-[#F5F5F7] relative z-[2]" />
+                  <span className="royce-glow-disc relative z-[2]">
+                    <MoreVertical size={18} className="text-[#F5F5F7]" strokeWidth={2.25} />
+                  </span>
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">More</span>
               </button>
