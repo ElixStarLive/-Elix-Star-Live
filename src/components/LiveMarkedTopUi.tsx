@@ -168,9 +168,6 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        /* Extend pill border only — never margin-left / left on oval (that moves the avatar ring). */
-        paddingRight: 'calc(8px + 3mm)',
-        marginLeft: 0,
       }}
     >
       <button
@@ -188,8 +185,8 @@ export function LiveHostProfileHeader({
       <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
           <span
-            className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden relative"
-            style={{ left: '-2mm' }}
+            className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden"
+            style={{ maxWidth: 'calc(64px + 3mm)' }}
           >
             {shortName}
           </span>
@@ -214,7 +211,7 @@ export function LiveHostProfileHeader({
         <button
           type="button"
           className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
-          style={{ position: 'relative', top: '-1.5mm', left: '-2mm' }}
+          style={{ position: 'relative', top: '-1.5mm' }}
           onPointerDown={(e) => {
             e.stopPropagation();
             onLike(e);
@@ -260,7 +257,6 @@ export function LiveJoinPill({
         position: 'relative',
         top: '1mm',
         marginTop: 0,
-        marginLeft: '3mm',
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}
