@@ -168,17 +168,14 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        /* Extend pill border only — never margin-left (that moves the avatar ring). */
+        /* Extend pill border only — never margin-left / left on oval (that moves the avatar ring). */
         paddingRight: 'calc(8px + 3mm)',
         marginLeft: 0,
-        position: 'relative',
-        left: '-4mm',
       }}
     >
       <button
         type="button"
         className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
-        style={{ left: '-4mm' }}
         onClick={(e) => {
           e.stopPropagation();
           onAvatarClick();
