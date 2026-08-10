@@ -157,7 +157,7 @@ export function LiveHostProfileHeader({
   joinSlot?: React.ReactNode;
 }) {
   const likesLabel = formatLikesShort(likes);
-  const shortName = firstNameOnly(name);
+  const displayName = String(name || '').trim() || 'User';
 
   return (
     <div className="flex items-center gap-1.5 min-w-0 w-max max-w-full pointer-events-auto">
@@ -191,9 +191,9 @@ export function LiveHostProfileHeader({
           <div className="flex items-center gap-1 min-w-0">
             <span
               data-elix-profile-name="true"
-              className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden"
+              className="elix-silver-red-text text-[12px] font-bold leading-tight block whitespace-nowrap"
             >
-              {shortName}
+              {displayName}
             </span>
             <BadgeCheck
               size={14}
