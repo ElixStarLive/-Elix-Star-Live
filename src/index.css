@@ -1858,8 +1858,13 @@ svg.lucide,
   border: 1px solid #2A2D33 !important;
   box-shadow: none !important;
   margin-top: 0 !important;
+  /* Unlocked — Join may shift horizontally (owner). */
+  margin-left: 2mm !important;
   position: relative !important;
   top: 1mm !important;
+  left: auto !important;
+  right: auto !important;
+  transform: none !important;
 }
 #root button[data-elix-join='true'] > span,
 #root button[data-elix-join='true'] svg,
