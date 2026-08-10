@@ -182,12 +182,11 @@ export function LiveHostProfileHeader({
         <AvatarRing src={avatar} alt={name} size={avatarSize} />
       </button>
 
-      {/* Name + Likes/LIVE only — Join stays to the right so LIVE never reaches it. */}
-      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-1.5">
+      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0">
           <span
             className="elix-silver-red-text text-[12px] font-bold truncate leading-tight block overflow-hidden"
-            style={{ maxWidth: 'calc(64px + 14mm)' }}
+            style={{ maxWidth: 'calc(64px + 10mm)' }}
           >
             {shortName}
           </span>
@@ -199,6 +198,15 @@ export function LiveHostProfileHeader({
             stroke="#F5F5F7"
             strokeWidth={2}
           />
+          {/* Follow + Join capsules. Join always stays when provided (owner: never remove Join). */}
+          {(showFollow || joinSlot) ? (
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">
+              {showFollow && !isFollowing ? (
+                <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
+              ) : null}
+              {joinSlot ?? null}
+            </div>
+          ) : null}
         </div>
         <button
           type="button"
@@ -218,15 +226,6 @@ export function LiveHostProfileHeader({
           </span>
         </button>
       </div>
-
-      {(showFollow || joinSlot) ? (
-        <div className="flex-shrink-0 flex items-center justify-center gap-1 relative z-30 self-center">
-          {showFollow && !isFollowing ? (
-            <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-          ) : null}
-          {joinSlot ?? null}
-        </div>
-      ) : null}
     </div>
   );
 }
