@@ -1832,7 +1832,7 @@ svg.lucide,
   border-color: rgba(216, 217, 221, 0.8) !important;
 }
 
-/* Live host name oval — covers avatar + name + Join; transparent + border; round on circle side */
+/* Live host name oval — avatar + name + likes only; Join is a sibling (unlocked). */
 #root .elix-live-host-oval {
   background: transparent !important;
   background-color: transparent !important;
