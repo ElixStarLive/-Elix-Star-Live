@@ -46,6 +46,18 @@ export function normalizeBattleGiftTarget(raw: unknown): BattleGiftSide | null {
   return null;
 }
 
+/** Resolve gift PNG/icon URL for battle tile stacks (icon only — never video). */
+export function resolveBattleGiftIconUrl(
+  icon: unknown,
+  resolveAsset: (path: string) => string,
+): string | null {
+  if (typeof icon !== "string") return null;
+  const raw = icon.trim();
+  if (!raw || raw === "🎁") return null;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  return resolveAsset(raw.startsWith("/") ? raw : `/${raw}`);
+}
+
 /** Recent gift icons shown on battle half / slot tiles (oldest → newest, capped). */
 export type BattleTileGifts = {
   host: string[];

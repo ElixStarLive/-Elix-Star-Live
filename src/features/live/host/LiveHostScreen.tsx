@@ -1537,14 +1537,14 @@ export default function LiveHostScreen() {
                         </button>
                       </div>
                       {lastGifts.host.length > 0 && (
-                        <div className="absolute bottom-1 left-1 z-20 pointer-events-none flex items-center">
+                        <div className="absolute bottom-2 left-1.5 z-30 pointer-events-none flex items-center">
                           {lastGifts.host.map((src, i) => (
                             <div
                               key={`host-gift-${i}-${src}`}
-                              className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md"
-                              style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                              className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.45)] border border-[#D8D9DD]/50 overflow-hidden flex items-center justify-center drop-shadow-md"
+                              style={{ marginLeft: i === 0 ? 0 : -8, zIndex: i + 1 }}
                             >
-                              <img src={src} alt="gift" className="w-full h-full object-cover" />
+                              <img src={src} alt="" className="w-full h-full object-contain" />
                             </div>
                           ))}
                         </div>
@@ -1677,14 +1677,14 @@ export default function LiveHostScreen() {
                         onClick={(e) => { e.stopPropagation(); openBattlePartnerMiniProfile(0); }}
                       >
                         {lastGifts.opponent.length > 0 && (
-                          <div className="flex items-center">
+                          <div className="flex items-center pointer-events-none">
                             {lastGifts.opponent.map((src, i) => (
                               <div
                                 key={`opp-gift-${i}-${src}`}
-                                className="w-5 h-5 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40 overflow-hidden flex items-center justify-center drop-shadow-md relative"
-                                style={{ marginLeft: i === 0 ? 0 : -6, zIndex: i + 1 }}
+                                className="w-9 h-9 rounded-full bg-[rgba(0,0,0,0.45)] border border-[#D8D9DD]/50 overflow-hidden flex items-center justify-center drop-shadow-md relative"
+                                style={{ marginLeft: i === 0 ? 0 : -8, zIndex: i + 1 }}
                               >
-                                <img src={src} alt="gift" className="w-full h-full object-cover" />
+                                <img src={src} alt="" className="w-full h-full object-contain" />
                               </div>
                             ))}
                           </div>

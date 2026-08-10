@@ -47,7 +47,7 @@ interface GiftOverlayProps {
   previewSrc?: string | null;
   onEnded: () => void;
   isBattleMode?: boolean;
-  /** Kept for callers; battle side no longer scopes gift video onto battle panes. */
+  /** Kept for callers; battle side scopes tile icons only, not gift video panes. */
   battleSide?: BattleGiftSide | null;
   /** When false, spectators can hear the gift video sound. Default true (muted) for creator/autoplay. */
   muted?: boolean;
@@ -172,21 +172,29 @@ export function GiftOverlay({
 
   if (!videoSrc || !videoReady) return null;
 
-  // Owner: battle + spectator gifts play in the chat zone exactly like normal live —
-  // never clipped onto left/right battle video panes.
-  void isBattleMode;
+  // Normal live: approved chat-zone frame (bottom 70% - 25mm).
+  // Battle: keep video fully below battle cameras + MVP row — panes show icons only.
   void battleSide;
-
-  return (
-    <div
-      className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
-      style={{
+  const frameStyle: React.CSSProperties = isBattleMode
+    ? {
+        top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm + 40px)',
+        bottom: 0,
+        zIndex,
+        WebkitMaskImage: 'linear-gradient(to top, black 0%, black 70%, transparent 100%)',
+        maskImage: 'linear-gradient(to top, black 0%, black 70%, transparent 100%)',
+      }
+    : {
         bottom: 0,
         height: 'calc(70% - 25mm)',
         zIndex,
         WebkitMaskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
         maskImage: 'linear-gradient(to top, black 0%, black 60%, transparent 100%)',
-      }}
+      };
+
+  return (
+    <div
+      className="fixed left-0 right-0 mx-auto w-full max-w-[480px] pointer-events-none overflow-hidden"
+      style={frameStyle}
     >
       <div className="absolute inset-0">
         <GiftVideo

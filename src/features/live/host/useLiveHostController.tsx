@@ -170,6 +170,7 @@ import {
   EMPTY_BATTLE_TILE_GIFTS,
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
+  resolveBattleGiftIconUrl,
   type BattleTileGifts,
 } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
@@ -3970,13 +3971,11 @@ export function useLiveHostController() {
         };
         setMessages((prev) => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
         if (isBattleModeRef.current) {
-          const iconRaw =
+          const iconUrl = resolveBattleGiftIconUrl(
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-          const iconUrl =
-            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-              : null;
+              (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
+            resolveGiftAssetUrl,
+          );
           const target = data.battleTarget;
           if (iconUrl) {
             setLastGifts((prev) => appendBattleTileGiftForTarget(prev, target, iconUrl));
@@ -5021,11 +5020,11 @@ export function useLiveHostController() {
         creatorName: hostName || creatorName || 'Creator',
         streamId: effectiveStreamId,
       });
-      if (isBattleMode && serverBattleTarget && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
-        const iconUrl = gift.icon.startsWith('http')
-          ? gift.icon
-          : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
-        setLastGifts((prev) => appendBattleTileGiftForTarget(prev, serverBattleTarget, iconUrl));
+      if (isBattleMode && serverBattleTarget) {
+        const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
+        if (iconUrl) {
+          setLastGifts((prev) => appendBattleTileGiftForTarget(prev, serverBattleTarget, iconUrl));
+        }
       }
     } catch {
       showToast('Gift failed');
@@ -5252,6 +5251,19 @@ export function useLiveHostController() {
         creatorName: hostName || creatorName || 'Creator',
         streamId: effectiveStreamId,
       });
+      if (isBattleMode) {
+        const comboTarget = liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+          isBroadcast,
+          isBattleJoiner,
+          effectiveStreamId,
+          hostRoomId: battleStreamIdsRef.current?.hostRoomId ?? '',
+          opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
+        });
+        const iconUrl = resolveBattleGiftIconUrl(lastSentGift.icon, resolveGiftAssetUrl);
+        if (iconUrl) {
+          setLastGifts((prev) => appendBattleTileGiftForTarget(prev, comboTarget, iconUrl));
+        }
+      }
   };
 
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {

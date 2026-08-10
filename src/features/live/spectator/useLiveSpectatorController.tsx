@@ -110,6 +110,7 @@ import {
 import {
   BATTLE_TILE_GIFT_STACK_CAP,
   normalizeBattleGiftTarget,
+  resolveBattleGiftIconUrl,
 } from '../../../lib/liveBattleGiftTarget';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
@@ -2354,13 +2355,11 @@ export function useLiveSpectatorController() {
         }
         if (spectatorBattleRef.current?.active) {
           const side = normalizeBattleGiftTarget(data.battleTarget);
-          const iconRaw =
+          const iconUrl = resolveBattleGiftIconUrl(
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef?.icon === 'string' ? giftDef.icon : '');
-          const iconUrl =
-            iconRaw && (iconRaw.startsWith('http://') || iconRaw.startsWith('https://') || iconRaw.startsWith('/'))
-              ? (iconRaw.startsWith('http') ? iconRaw : resolveGiftAssetUrl(iconRaw.startsWith('/') ? iconRaw : `/${iconRaw}`))
-              : null;
+              (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
+            resolveGiftAssetUrl,
+          );
           if (iconUrl && side === 'opponent') {
             setLastOpponentGift((prev) => {
               const next = [...prev, iconUrl];
@@ -3449,11 +3448,9 @@ export function useLiveSpectatorController() {
       creatorName: hostName || 'Creator',
       streamId: effectiveStreamId,
     });
-    if (spectatorBattle?.active && gift.icon && (gift.icon.startsWith('http') || gift.icon.startsWith('/'))) {
-      const iconUrl = gift.icon.startsWith('http')
-        ? gift.icon
-        : resolveGiftAssetUrl(gift.icon.startsWith('/') ? gift.icon : `/${gift.icon}`);
-      if (spectatorGiftBattleTarget === 'opponent') {
+    if (spectatorBattle?.active) {
+      const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
+      if (iconUrl && spectatorGiftBattleTarget === 'opponent') {
         setLastOpponentGift((prev) => {
           const next = [...prev, iconUrl];
           return next.length > BATTLE_TILE_GIFT_STACK_CAP
@@ -3461,7 +3458,7 @@ export function useLiveSpectatorController() {
             : next;
         });
       }
-      if (spectatorGiftBattleTarget === 'host') {
+      if (iconUrl && spectatorGiftBattleTarget === 'host') {
         setLastHostGift((prev) => {
           const next = [...prev, iconUrl];
           return next.length > BATTLE_TILE_GIFT_STACK_CAP
