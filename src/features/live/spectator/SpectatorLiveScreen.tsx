@@ -1070,7 +1070,7 @@ export default function SpectatorLiveScreen() {
                               MVP
                             </span>
                           )}
-                          <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
@@ -1156,7 +1156,7 @@ export default function SpectatorLiveScreen() {
                               MVP
                             </span>
                           )}
-                          <span className="mt-1.5 text-white text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
