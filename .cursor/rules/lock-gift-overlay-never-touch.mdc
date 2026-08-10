@@ -26,6 +26,8 @@ Approved solo gift video framing in `GiftOverlay`:
 - Battle uses the **same** chat-anchored frame as solo (no half-pane on battle tiles). Owner 2026-08-10.
 
 Red banner (`GiftAnimationOverlay`): full column width, edge-to-edge (`left-0 right-0`, no side padding on the bar wrapper).
+- Solo: Weekly Ranking top row.
+- Battle: bottom inside battle video stage (above MVP strip). Owner 2026-08-10.
 
 ## Creator + spectator must stay identical
 
