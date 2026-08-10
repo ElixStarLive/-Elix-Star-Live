@@ -168,7 +168,7 @@ export function LiveHostProfileHeader({
         minHeight: avatarSize + 4,
         /* Capsule longer 3mm — padding only. */
         paddingRight: 'calc(8px + 3mm)',
-        /* User capsule 2mm left — Join keeps screen place via +2mm cancel on Join. */
+        /* User capsule + Join inside — move together 2mm left. */
         position: 'relative',
         left: '-2mm',
       }}
@@ -261,8 +261,6 @@ export function LiveJoinPill({
         minHeight: 'calc(36px + 0.5mm)',
         position: 'relative',
         top: '1mm',
-        /* Cancel parent capsule -2mm so Join stays put on screen. */
-        left: '2mm',
         marginTop: 0,
         ['--elix-join-accent' as string]: accent,
         color: accent,
