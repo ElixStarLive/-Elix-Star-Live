@@ -171,6 +171,9 @@ export function LiveHostProfileHeader({
         /* Capsule shell left; content cancel keeps circle + Join put. */
         position: 'relative',
         left: '-7mm',
+        /* Shrink FRONT only to meet ring — back look (right/Join) unchanged. */
+        clipPath: 'inset(0 0 0 3mm round 9999px)',
+        WebkitClipPath: 'inset(0 0 0 3mm round 9999px)',
       }}
     >
       {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
