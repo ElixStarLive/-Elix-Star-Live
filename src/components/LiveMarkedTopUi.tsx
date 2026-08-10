@@ -171,6 +171,8 @@ export function LiveHostProfileHeader({
         /* Extend pill border only — never margin-left (that moves the avatar ring). */
         paddingRight: 'calc(8px + 3mm)',
         marginLeft: 0,
+        position: 'relative',
+        left: '-2mm',
       }}
     >
       <button
@@ -215,7 +217,7 @@ export function LiveHostProfileHeader({
         <button
           type="button"
           className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
-          style={{ position: 'relative', top: '-1.5mm' }}
+          style={{ position: 'relative', top: '-1.5mm', left: '-2mm' }}
           onPointerDown={(e) => {
             e.stopPropagation();
             onLike(e);
