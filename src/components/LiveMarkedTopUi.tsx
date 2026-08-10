@@ -168,15 +168,15 @@ export function LiveHostProfileHeader({
         minHeight: avatarSize + 4,
         /* Capsule longer 3mm — padding only. */
         paddingRight: 'calc(8px + 3mm)',
-        /* Capsule shell 2mm further left; content cancel keeps circle + Join put. */
+        /* Capsule shell left; content cancel keeps circle + Join put. */
         position: 'relative',
-        left: '-6mm',
+        left: '-6.5mm',
       }}
     >
       {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
       <div
         className="flex items-center gap-1.5 min-w-0 w-max max-w-full"
-        style={{ position: 'relative', left: '2mm' }}
+        style={{ position: 'relative', left: '2.5mm' }}
       >
       <button
         type="button"
