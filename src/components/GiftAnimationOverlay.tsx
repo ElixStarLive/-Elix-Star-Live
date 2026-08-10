@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
-import { platform } from '../lib/platform';
-import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
@@ -34,32 +32,16 @@ interface GiftAnimation {
 
 interface GiftAnimationOverlayProps {
   streamId: string;
-  /**
-   * Normal live: red banner stays under the top chrome (above chat).
-   * Battle: red banner only moves to the bottom edge of the battle video stage.
-   * Gift video animation is separate (GiftOverlay) and always plays in the chat zone.
-   */
+  /** Accepted for callers; restored overlay always uses Weekly Ranking top position. */
   isBattleMode?: boolean;
 }
 
 const MERGE_WINDOW_MS = 2000;
 const DISPLAY_DURATION_MS = 4000;
 
-/** Matches host/spectator battle stage bottom (top of MVP row). */
-const BATTLE_STAGE_BOTTOM = LIVE_BATTLE_STAGE_BOTTOM;
-
-/**
- * Normal live: sit on the Weekly Ranking capsule row.
- * Top chrome uses var(--safe-top) (iOS lifts 12mm) — must match or the bar drifts below the capsule.
- * safe-top + 6 (header pad) + 48 (avatar) + 4 (mt-1) ≈ capsule top; +11 ≈ vertical middle of h-[22px] capsule.
- */
-const WEEKLY_RANKING_BANNER_TOP = platform.isIOS
-  ? 'calc(var(--safe-top) + 6px + 48px + 4px)'
-  : 'calc(var(--safe-top) + 63px)';
-
 export default function GiftAnimationOverlay({
   streamId,
-  isBattleMode = false,
+  isBattleMode: _isBattleMode = false,
 }: GiftAnimationOverlayProps) {
   const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -154,19 +136,10 @@ export default function GiftAnimationOverlay({
   return (
     <div className="fixed inset-0 pointer-events-none z-[999996] flex justify-center">
       <div className="w-full max-w-[480px] relative">
-        {/* Normal: top of Weekly Ranking capsule row. Battle: bottom of battle stage. */}
+        {/* Vertically center on Weekly Ranking capsule row (safe + top avatar ~52 + mt-1 + half of h-[28px]). */}
         <div
           className="absolute left-0 right-0"
-          style={
-            isBattleMode
-              ? {
-                  top: BATTLE_STAGE_BOTTOM,
-                  transform: 'translateY(-100%)',
-                }
-              : {
-                  top: WEEKLY_RANKING_BANNER_TOP,
-                }
-          }
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 66px)' }}
         >
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
