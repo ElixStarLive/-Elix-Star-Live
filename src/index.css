@@ -2693,7 +2693,7 @@ body,
   box-shadow: none !important;
 }
 
-/* Fundal on the app-width column (same as bottom nav), not a full-bleed invented banner */
+/* Fundal on the app-width column (same as bottom nav), including safe-top under status bar */
 #root .elix-home-top-bar .feed-column-width,
 #root .elix-feed-chrome-shell .elix-home-top-bar .feed-column-width {
   position: relative;

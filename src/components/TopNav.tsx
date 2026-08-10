@@ -100,12 +100,16 @@ export const TopNav = () => {
   }
 
   return (
-    <div
-      className="elix-home-top-bar fixed inset-x-0 top-0 z-[9999] flex justify-center pointer-events-none"
-      style={{ paddingTop: "var(--safe-top)" }}
-    >
-      <div className="feed-column-width pointer-events-auto bg-transparent min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
-        <div className="flex items-center h-full w-full px-1.5 gap-0.5">
+    <div className="elix-home-top-bar fixed inset-x-0 top-0 z-[9999] flex justify-center pointer-events-none">
+      {/* Fundal column includes safe-top so cosmic fundal runs under status bar (time/battery) */}
+      <div
+        className="feed-column-width pointer-events-auto bg-transparent min-h-[var(--topnav-bar-height)]"
+        style={{
+          paddingTop: "var(--safe-top)",
+          minHeight: "calc(var(--safe-top) + var(--topnav-bar-height))",
+        }}
+      >
+        <div className="flex items-center w-full px-1.5 gap-0.5 min-h-[var(--topnav-bar-height)] h-[var(--topnav-bar-height)]">
           <div className="flex flex-1 items-center justify-between min-w-0 h-full flex-nowrap overflow-x-auto no-scrollbar gap-0">
             {TOP_TABS.map((tab) => {
               const isPrimary = "primary" in tab && tab.primary;
