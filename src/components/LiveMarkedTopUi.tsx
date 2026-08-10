@@ -155,83 +155,79 @@ export function LiveHostProfileHeader({
   joinSlot?: React.ReactNode;
 }) {
   const likesLabel = formatLikesShort(likes);
-  const displayName = String(name || '').trim() || 'User';
+  const displayName = displayNameFull(name);
 
   return (
-    <div className="flex items-center gap-1.5 min-w-0 w-max max-w-full pointer-events-auto">
-      {/* Profile capsule — avatar + name + likes only. Join is NOT inside (unlocked). */}
-      <div
-        className="elix-live-host-oval flex items-center gap-1.5 min-w-0 w-max max-w-full rounded-full pl-[2px] pr-2 py-[2px]"
-        style={{
-          background: 'transparent',
-          backgroundColor: 'transparent',
-          border: '1px solid #2A2D33',
-          boxShadow: 'none',
-          minHeight: avatarSize + 4,
-          /* Capsule longer 3mm — padding only; do not use margin/left (moves circle). */
-          paddingRight: 'calc(8px + 3mm)',
+    <div
+      className="elix-live-host-oval flex items-center gap-1.5 min-w-0 w-max max-w-full pointer-events-auto rounded-full pl-[2px] pr-2 py-[2px]"
+      style={{
+        background: 'transparent',
+        backgroundColor: 'transparent',
+        border: '1px solid #2A2D33',
+        boxShadow: 'none',
+        minHeight: avatarSize + 4,
+        /* Capsule longer 3mm — padding only; do not use margin/left (moves circle). */
+        paddingRight: 'calc(8px + 3mm)',
+      }}
+    >
+      <button
+        type="button"
+        data-elix-profile-ring="true"
+        className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAvatarClick();
         }}
+        aria-label="Open profile"
       >
+        <AvatarRing src={avatar} alt={name} size={avatarSize} />
+      </button>
+
+      <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
+        <div className="flex items-center gap-1 min-w-0">
+          <span
+            data-elix-profile-name="true"
+            className="elix-silver-red-text text-[12px] font-bold leading-tight block whitespace-nowrap"
+          >
+            {displayName}
+          </span>
+          <BadgeCheck
+            size={14}
+            data-elix-live-verified="true"
+            className="text-[#F5F5F7] flex-shrink-0 drop-shadow-none"
+            fill="none"
+            stroke="#F5F5F7"
+            strokeWidth={2}
+          />
+          {/* Follow + Join inside profile capsule (original layout). */}
+          {(showFollow || joinSlot) ? (
+            <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">
+              {showFollow && !isFollowing ? (
+                <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
+              ) : null}
+              {joinSlot ?? null}
+            </div>
+          ) : null}
+        </div>
         <button
           type="button"
-          data-elix-profile-ring="true"
-          className="relative flex-shrink-0 rounded-full active:scale-95 transition-transform"
-          onClick={(e) => {
+          data-elix-profile-likes="true"
+          className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
+          style={{ position: 'relative', top: '-1.5mm' }}
+          onPointerDown={(e) => {
             e.stopPropagation();
-            onAvatarClick();
+            onLike(e);
           }}
-          aria-label="Open profile"
         >
-          <AvatarRing src={avatar} alt={name} size={avatarSize} />
+          <span className="elix-silver-red-text text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
+            {likesLabel} Likes
+          </span>
+          <span className="elix-silver-red-text text-[9px] leading-none">•</span>
+          <span className="elix-silver-red-text text-[9px] font-semibold leading-none whitespace-nowrap">
+            {isLivePro ? 'LIVE Pro' : 'LIVE'}
+          </span>
         </button>
-
-        <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
-          <div className="flex items-center gap-1 min-w-0">
-            <span
-              data-elix-profile-name="true"
-              className="elix-silver-red-text text-[12px] font-bold leading-tight block whitespace-nowrap"
-            >
-              {displayName}
-            </span>
-            <BadgeCheck
-              size={14}
-              data-elix-live-verified="true"
-              className="text-[#F5F5F7] flex-shrink-0 drop-shadow-none"
-              fill="none"
-              stroke="#F5F5F7"
-              strokeWidth={2}
-            />
-          </div>
-          <button
-            type="button"
-            data-elix-profile-likes="true"
-            className="flex items-center gap-1 pointer-events-auto self-start -mt-0.5"
-            style={{ position: 'relative', top: '-1.5mm' }}
-            onPointerDown={(e) => {
-              e.stopPropagation();
-              onLike(e);
-            }}
-          >
-            <span className="elix-silver-red-text text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
-              {likesLabel} Likes
-            </span>
-            <span className="elix-silver-red-text text-[9px] leading-none">•</span>
-            <span className="elix-silver-red-text text-[9px] font-semibold leading-none whitespace-nowrap">
-              {isLivePro ? 'LIVE Pro' : 'LIVE'}
-            </span>
-          </button>
-        </div>
       </div>
-
-      {/* Follow + Join — siblings of capsule (unlocked from oval). */}
-      {(showFollow || joinSlot) ? (
-        <div className="flex-shrink-0 flex items-center justify-center gap-1 relative z-30">
-          {showFollow && !isFollowing ? (
-            <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-          ) : null}
-          {joinSlot ?? null}
-        </div>
-      ) : null}
     </div>
   );
 }
