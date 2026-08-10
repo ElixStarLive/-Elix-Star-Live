@@ -1004,14 +1004,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /* Gift pop on send only — no idle bounce (was pushing icons off the grid) */
-@keyframes elix-gift-pop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.12); }
-  100% { transform: scale(1); }
-}
-.elix-gift-pop {
-  animation: elix-gift-pop 0.52s ease-out;
-}
+/* Gift grid press pop disabled — owner: no pulse/scale on send/press */
 
 @keyframes elix-sparkle {
   0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }

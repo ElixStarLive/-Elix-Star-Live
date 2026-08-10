@@ -56,7 +56,6 @@ function giftIconCdnFallback(src: string): string | null {
 interface GiftGridItemProps {
   gift: GiftItem;
   pngUrl: string;
-  isPopped: boolean;
   isSelected: boolean;
   onTap: () => void;
   borderClass?: string;
@@ -65,7 +64,6 @@ interface GiftGridItemProps {
 function GiftGridItem({
   gift,
   pngUrl,
-  isPopped,
   isSelected: _isSelected,
   onTap,
   borderClass,
@@ -87,17 +85,12 @@ function GiftGridItem({
       type="button"
       onClick={onTap}
       className={[
-        "group flex flex-col items-center justify-start gap-1 p-1 rounded-xl bg-transparent border transition-transform duration-300 active:scale-95 relative min-w-0 w-full h-full",
+        "group flex flex-col items-center justify-start gap-1 p-1 rounded-xl bg-transparent border relative min-w-0 w-full h-full",
         borderClass ?? "border-transparent",
       ].join(" ")}
     >
       {/* Fixed square icon slot — keeps every gift on the same row baseline */}
-      <div
-        className={[
-          "w-full aspect-square flex-shrink-0 overflow-hidden flex items-center justify-center bg-transparent relative",
-          isPopped ? "elix-gift-pop" : "",
-        ].join(" ")}
-      >
+      <div className="w-full aspect-square flex-shrink-0 overflow-hidden flex items-center justify-center bg-transparent relative">
         <img
           src={imgError ? displayIcon : iconSrc}
           alt={gift.name}
@@ -151,7 +144,6 @@ export function GiftPanel({
   const [activeTab, setActiveTab] = useState<"exclusive" | "small" | "big">(
     "big",
   );
-  const [poppedGiftId, setPoppedGiftId] = useState<string | null>(null);
   const [showRecharge, setShowRecharge] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -199,11 +191,6 @@ export function GiftPanel({
 
   const handleGiftTap = useCallback(
     (gift: GiftItem) => {
-      setPoppedGiftId(gift.id);
-      window.setTimeout(
-        () => setPoppedGiftId((v) => (v === gift.id ? null : v)),
-        520,
-      );
       onSelectGift(gift);
     },
     [onSelectGift],
@@ -388,7 +375,6 @@ export function GiftPanel({
                   key={gift.id}
                   gift={gift}
                   pngUrl={posterByGiftId.get(gift.id) || ""}
-                  isPopped={poppedGiftId === gift.id}
                   isSelected={false}
                   onTap={() => handleGiftTap(gift)}
                   borderClass={goalBorder(gift.id)}
@@ -409,7 +395,6 @@ export function GiftPanel({
                 key={gift.id}
                 gift={gift}
                 pngUrl={posterByGiftId.get(gift.id) || ""}
-                isPopped={poppedGiftId === gift.id}
                 isSelected={false}
                 onTap={() => handleGiftTap(gift)}
                 borderClass={goalBorder(gift.id)}
@@ -428,7 +413,6 @@ export function GiftPanel({
                 key={gift.id}
                 gift={gift}
                 pngUrl={gift.icon}
-                isPopped={poppedGiftId === gift.id}
                 isSelected={false}
                 onTap={() => handleGiftTap(gift)}
                 borderClass={goalBorder(gift.id)}
