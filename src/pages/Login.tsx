@@ -21,7 +21,10 @@ export default function Login() {
   const showAppleSignIn = isAppleSignInEnabled();
   const showPasswordReset = isPasswordResetEnabled();
 
-  const goRegister = useCallback(() => navigate('/register'), [navigate]);
+  const goRegister = useCallback(
+    () => navigate('/register', { state: { from } }),
+    [navigate, from],
+  );
 
   // Load saved email AND password on mount
   useEffect(() => {

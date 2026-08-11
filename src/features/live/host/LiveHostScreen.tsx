@@ -94,6 +94,9 @@ import { liveChatSend } from '../chat/liveChatActions';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { EngagementDrawer } from '../../../components/engagement/EngagementDrawer';
 import { reportFailure } from '../../../lib/reportFailure';
+import { platform } from '../../../lib/platform';
+import { MembershipBuySection } from '../../membership/MembershipBuySection';
+import { stashPendingMembershipPurchase } from '../../membership/membershipPurchaseFlow';
 
 const LIVE_BOTTOM_ICON_BTN =
   'w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
@@ -297,6 +300,7 @@ export default function LiveHostScreen() {
     isReportModalOpen,
     isSpeakingUser,
     isSubscribing,
+    isMember,
     lastScreenTapRef,
     lastSentGift,
     leftPct,
@@ -304,6 +308,7 @@ export default function LiveHostScreen() {
     liveViewerLabel,
     loadCreators,
     location,
+    navigate,
     messages,
     miniProfile,
     miniProfileFollowClick,
@@ -325,6 +330,8 @@ export default function LiveHostScreen() {
     mvpGiftScoresOpponent,
     myAvatar,
     myCreatorName,
+    hostAvatar,
+    hostName,
     myHeartCount,
     onComboButtonClick,
     openBattleChrome,
@@ -1788,7 +1795,10 @@ export default function LiveHostScreen() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
                         {/* BROADCASTER INFO â€” photo profile (MVP circles untouched) */}
-                        <div className="px-0 py-1 animate-luxury-fade-in relative">
+                        <div
+                          className="px-0 py-1 animate-luxury-fade-in relative"
+                          style={platform.isIOS ? { transform: 'translateX(1mm)' } : undefined}
+                        >
                           <LiveHostProfileHeader
                             name={myCreatorName}
                             avatar={resolveCircleAvatar(myAvatar, myCreatorName)}
@@ -1810,13 +1820,21 @@ export default function LiveHostScreen() {
                                 hasJoinedToday={hasJoinedToday}
                                 onJoin={async (e) => {
                                   e.stopPropagation();
-                                  if (!user?.id) return;
-
                                   // Creator own live: send today's membership heart (orange Join), then open team status.
                                   // Spectators / battle joiners: Follow first, then send heart to this stream's creator.
                                   const creatorId = isBroadcast
-                                    ? String(user.id).trim()
+                                    ? String(user?.id || '').trim()
                                     : String(effectiveStreamId || '').trim();
+
+                                  if (!user?.id) {
+                                    if (creatorId && creatorId !== 'broadcast') {
+                                      stashPendingMembershipPurchase(creatorId);
+                                    }
+                                    navigate('/login', {
+                                      state: { from: `${location.pathname}${location.search || ''}` },
+                                    });
+                                    return;
+                                  }
 
                                   if (!isBroadcast && !isFollowing) {
                                     showToast('Follow first to give a membership heart');
@@ -1849,11 +1867,13 @@ export default function LiveHostScreen() {
                                     const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
                                     if (error) {
                                       showToast('Could not send membership heart. Try again.');
+                                      setShowTeamStatus(true);
                                       return;
                                     }
                                     const already = d?.already === true;
                                     if (!(d?.ok === true || already)) {
                                       showToast('Could not send membership heart. Try again.');
+                                      setShowTeamStatus(true);
                                       return;
                                     }
 
@@ -1868,14 +1888,14 @@ export default function LiveHostScreen() {
                                       '/royce/elix-mark.svg',
                                     );
 
-                                    // Refresh team heart counts immediately (with real profile names).
-                                    void apiLiveMembership(user.id)
+                                    // Refresh team heart counts for the membership creator being joined.
+                                    void apiLiveMembership(creatorId)
                                       .then(({ data: stats }) => {
                                         if (!stats) return;
                                         void applyMembershipStats(stats);
                                       })
                                       .catch((err) =>
-                                        reportFailure('live_membership_refresh', err, { userId: user.id }),
+                                        reportFailure('live_membership_refresh', err, { userId: creatorId }),
                                       );
 
                                     void apiLiveGetDailyHearts(creatorId)
@@ -3046,6 +3066,17 @@ export default function LiveHostScreen() {
                    ))}
                  </div>
                </div>
+
+               <MembershipBuySection
+                 creatorName={isBroadcast ? myCreatorName : (hostName || myCreatorName)}
+                 creatorAvatar={isBroadcast ? myAvatar : (hostAvatar || myAvatar)}
+                 isMember={isMember}
+                 isSubscribing={isSubscribing}
+                 isSelf={Boolean(isBroadcast || (user?.id && String(effectiveStreamId || '').trim() === user.id))}
+                 onBuy={() => {
+                   void handleSubscribe();
+                 }}
+               />
 
                {/* Total Gift Coins */}
                <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20 mt-2">

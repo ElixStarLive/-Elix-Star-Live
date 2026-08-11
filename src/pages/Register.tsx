@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Eye, EyeOff, Mail, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
 export default function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string } | null)?.from ?? '/';
   const signUpWithPassword = useAuthStore((state) => state.signUpWithPassword);
   
   const [email, setEmail] = useState('');
@@ -123,7 +125,7 @@ export default function Register() {
           res.welcomeMessage ||
             'Welcome! You received 50,000 Starter Coins to explore gifts and support creators.',
         );
-        navigate('/', { replace: true });
+        navigate(from, { replace: true });
       }
     } catch (err) {
       if (!isMounted.current) return;
@@ -290,7 +292,7 @@ export default function Register() {
         </form>
 
         <div className="mt-6 xs:mt-4 text-center space-y-2 px-1">
-          <Link to="/login" className="text-fluid-sm text-white hover:underline">
+          <Link to="/login" state={{ from }} className="text-fluid-sm text-white hover:underline">
             Already have an account? Sign in
           </Link>
           <div className="mx-auto max-w-[280px] space-y-0.5 text-[11px] leading-relaxed tracking-wide text-white/45">

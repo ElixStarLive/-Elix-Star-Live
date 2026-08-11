@@ -112,6 +112,7 @@ import {
   apiLiveStickers,
 } from '../engagement/liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
+import { apiToggleRepost } from '../../reposts/repostsApi';
 import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import {
@@ -125,7 +126,15 @@ import {
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
-import { purchaseMembership } from '../../../lib/iap';
+import { getMembershipStatus } from '../../../lib/iap';
+import {
+  purchaseCreatorMembership,
+  peekPendingMembershipCreator,
+  consumePendingMembershipOpenPanel,
+  loginReturnPath,
+  stashPendingMembershipPurchase,
+} from '../../membership/membershipPurchaseFlow';
+import { useLiveThermalQuality } from '../hooks/useLiveThermalQuality';
 import type { Room, RemoteTrack, TrackPublication, RemoteParticipant } from 'livekit-client';
 import { RoomEvent } from 'livekit-client';
 import { useWalletStore } from '../../../store/useWalletStore';
@@ -251,8 +260,6 @@ export function useLiveHostController() {
     restoreHostCameraPreview,
     acquireCamera,
     stopCamera,
-    toggleMic: toggleMicTracks,
-    toggleCam: toggleCamTracks,
     flipCamera: flipCameraFacing,
     setIsMicMuted,
     setIsCamOff,
@@ -364,6 +371,12 @@ export function useLiveHostController() {
   const liveKitRoomRef = hostSession.liveKitRoomRef;
   const liveKitCreds = hostSession.creds;
   const publishHostLiveKitTracks = hostSession.publishFromCamera;
+  const syncHostLiveKitMuteState = useCallback(async () => {
+    const lk = hostLifecycleRef.current.liveKit;
+    if (!lk?.connected) return;
+    await lk.setCamEnabled(!isCamOff);
+    await lk.setMicEnabled(!isMicMuted);
+  }, [isCamOff, isMicMuted, hostLifecycleRef]);
   const [opponentCreatorName, setOpponentCreatorName] = useState('');
   const viewerName = user?.username || user?.name || 'viewer_123';
   const viewerAvatar = resolveUiAvatarUrl(user?.avatar, viewerName);
@@ -642,16 +655,25 @@ export function useLiveHostController() {
     [enrichMembershipPeople, membershipNameMissing],
   );
 
-  /** Load creator membership stats once; refresh on Join / team panel / WS join. */
+  /** Load creator membership stats once; refresh on Join / team panel / WS join.
+   * Own broadcast → self team. Battle joiner → host being watched (effectiveStreamId). */
+  const membershipStatsCreatorId = useMemo(() => {
+    if (isBroadcast && user?.id) return String(user.id).trim();
+    const hostId = String(effectiveStreamId || '').trim();
+    if (hostId && hostId !== 'broadcast') return hostId;
+    return String(user?.id || '').trim();
+  }, [isBroadcast, user?.id, effectiveStreamId]);
+
   const refreshMembershipStats = useCallback(() => {
-    if (!user?.id) return;
-    void apiLiveMembership(user.id)
+    const creatorId = membershipStatsCreatorId;
+    if (!creatorId) return;
+    void apiLiveMembership(creatorId)
       .then(({ data: d }) => {
         if (!d) return;
         void applyMembershipStats(d);
       })
-      .catch((err) => reportFailure('live_membership_refresh', err, { userId: user.id }));
-  }, [user?.id, applyMembershipStats]);
+      .catch((err) => reportFailure('live_membership_refresh', err, { userId: creatorId }));
+  }, [membershipStatsCreatorId, applyMembershipStats]);
 
   const refreshMembershipStatsRef = useRef(refreshMembershipStats);
   useEffect(() => {
@@ -659,9 +681,9 @@ export function useLiveHostController() {
   }, [refreshMembershipStats]);
 
   useEffect(() => {
-    if (!user?.id) return;
+    if (!membershipStatsCreatorId) return;
     refreshMembershipStats();
-  }, [user?.id, refreshMembershipStats]);
+  }, [membershipStatsCreatorId, refreshMembershipStats]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
@@ -1445,6 +1467,24 @@ export function useLiveHostController() {
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
   const battleJoinerConnectIdRef = useRef(0);
+
+  const getThermalRoom = useCallback(
+    () => liveKitRoomRef.current ?? battleLkRoomRef.current ?? null,
+    [liveKitRoomRef],
+  );
+  const getThermalCameraTrack = useCallback(
+    () => cameraStreamRef.current?.getVideoTracks()?.[0] ?? null,
+    [cameraStreamRef],
+  );
+  const getThermalFacing = useCallback(() => cameraFacing, [cameraFacing]);
+  useLiveThermalQuality({
+    enabled: Boolean(isCreatorParticipant && user?.id),
+    getRoom: getThermalRoom,
+    getCameraVideoTrack: getThermalCameraTrack,
+    getCameraFacing: getThermalFacing,
+    publishesCamera: true,
+  });
+
   useEffect(() => {
     if (!isBattleJoiner || !user?.id) return;
     const connectId = ++battleJoinerConnectIdRef.current;
@@ -2220,6 +2260,97 @@ export function useLiveHostController() {
   // FAN CLUB PANEL - removed top bar, now using Sheet
   const [showFanClub, setShowFanClub] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isMember, setIsMember] = useState(false);
+
+  useEffect(() => {
+    const creatorId = membershipStatsCreatorId;
+    if (!user?.id || !creatorId || creatorId === user.id) {
+      setIsMember(false);
+      return;
+    }
+    let cancelled = false;
+    void getMembershipStatus(creatorId).then(({ status }) => {
+      if (!cancelled) setIsMember(status?.active === true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [membershipStatsCreatorId, user?.id]);
+
+  const handleSubscribe = useCallback(async () => {
+    const creatorId = membershipStatsCreatorId;
+    if (!creatorId || creatorId === 'broadcast') {
+      showToast('Creator unavailable');
+      return;
+    }
+    if (user?.id && creatorId === user.id) {
+      showToast('Viewers can subscribe to your membership.');
+      return;
+    }
+    if (!user?.id || !useAuthStore.getState().session?.access_token) {
+      stashPendingMembershipPurchase(creatorId);
+      navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
+      return;
+    }
+    setIsSubscribing(true);
+    try {
+      const result = await purchaseCreatorMembership(creatorId);
+      if (!result.ok) {
+        if (result.needsLogin) {
+          navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
+          return;
+        }
+        if (!result.cancelled) {
+          showToast(result.error || 'Membership purchase failed');
+        }
+        return;
+      }
+      setIsMember(true);
+      showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
+      refreshMembershipStats();
+    } catch {
+      showToast('Membership purchase failed');
+    } finally {
+      setIsSubscribing(false);
+    }
+  }, [
+    membershipStatsCreatorId,
+    user?.id,
+    navigate,
+    location.pathname,
+    location.search,
+    refreshMembershipStats,
+  ]);
+
+  /** After login/register: reopen Team Status and continue native IAP for pending creator. */
+  const pendingMembershipResumeRef = useRef(false);
+  useEffect(() => {
+    if (!user?.id || pendingMembershipResumeRef.current) return;
+    if (!consumePendingMembershipOpenPanel()) return;
+    const pending = peekPendingMembershipCreator();
+    if (!pending || pending !== membershipStatsCreatorId || pending === user.id) return;
+    pendingMembershipResumeRef.current = true;
+    setShowTeamStatus(true);
+    void (async () => {
+      setIsSubscribing(true);
+      try {
+        const result = await purchaseCreatorMembership(pending);
+        if (!result.ok) {
+          if (!result.cancelled && !result.needsLogin) {
+            showToast(result.error || 'Membership purchase failed');
+          }
+          return;
+        }
+        setIsMember(true);
+        showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
+        refreshMembershipStats();
+      } catch {
+        showToast('Membership purchase failed');
+      } finally {
+        setIsSubscribing(false);
+      }
+    })();
+  }, [user?.id, membershipStatsCreatorId, refreshMembershipStats]);
 
   // Photo Stickers
   const [creatorStickers, setCreatorStickers] = useState<{ id: number; image_url: string; label: string }[]>([]);
@@ -2332,40 +2463,6 @@ export function useLiveHostController() {
   const removeFanClubSticker = useCallback((id: number) => {
     void deleteSticker(id);
   }, [deleteSticker]);
-
-  const handleSubscribe = async () => {
-    setIsSubscribing(true);
-    try {
-      if (!user?.id) {
-        navigate('/login');
-        return;
-      }
-      if (!platform.isNative) {
-        showToast('Subscriptions are available through in-app purchases.');
-        return;
-      }
-      if (isBroadcast) {
-        showToast('Viewers can subscribe to your membership.');
-        return;
-      }
-      const creatorId = effectiveStreamId;
-      if (!creatorId || creatorId === 'broadcast') {
-        showToast('Creator unavailable');
-        return;
-      }
-      const result = await purchaseMembership(creatorId);
-      if (result.success) {
-        showToast('Membership activated!');
-        setShowFanClub(false);
-      } else if (result.error !== 'Purchase cancelled') {
-        showToast(result.error || 'Membership purchase failed');
-      }
-    } catch {
-      showToast('Membership purchase failed');
-    } finally {
-      setIsSubscribing(false);
-    }
-  };
 
   // Auto-close Fan Club after 10 seconds of inactivity
   useEffect(() => {
@@ -3026,7 +3123,10 @@ export function useLiveHostController() {
         return;
       }
       const newStream = await acquireCamera();
-      if (newStream) void publishHostLiveKitTracks();
+      if (newStream) {
+        await publishHostLiveKitTracks();
+        await syncHostLiveKitMuteState();
+      }
     };
     document.addEventListener('visibilitychange', handleForeground);
     let appSub: { remove: () => void } | null = null;
@@ -3039,7 +3139,7 @@ export function useLiveHostController() {
       document.removeEventListener('visibilitychange', handleForeground);
       appSub?.remove();
     };
-  }, [isBroadcast, acquireCamera, publishHostLiveKitTracks, cameraStreamRef, videoRef]);
+  }, [isBroadcast, acquireCamera, publishHostLiveKitTracks, syncHostLiveKitMuteState, cameraStreamRef, videoRef]);
 
   // Host camera recover: track `ended` owns reacquire (no interval poll).
   // Preview rebind is owned by useLiveCamera bind/acquire + visibility handler above.
@@ -3063,7 +3163,10 @@ export function useLiveHostController() {
       void (async () => {
         try {
           const newStream = await acquireCamera();
-          if (newStream) void publishHostLiveKitTracks();
+          if (newStream) {
+            await publishHostLiveKitTracks();
+            await syncHostLiveKitMuteState();
+          }
         } finally {
           cameraRecoverInFlightRef.current = false;
         }
@@ -3071,7 +3174,7 @@ export function useLiveHostController() {
     };
     track.addEventListener('ended', onEnded);
     return () => track.removeEventListener('ended', onEnded);
-  }, [isBroadcast, cameraStream, acquireCamera, publishHostLiveKitTracks, videoRef, cameraRecoverInFlightRef, cameraRecoverAtRef]);
+  }, [isBroadcast, cameraStream, acquireCamera, publishHostLiveKitTracks, syncHostLiveKitMuteState, videoRef, cameraRecoverInFlightRef, cameraRecoverAtRef]);
 
   const [activeViewers, setActiveViewers] = useState<LiveViewer[]>([]);
   const viewerIdentityCacheRef = useRef<Map<string, { username: string; displayName: string; avatar: string; level: number }>>(new Map());
@@ -4733,17 +4836,20 @@ export function useLiveHostController() {
   };
 
   const toggleMic = useCallback(() => {
-    toggleMicTracks();
     const nextMuted = !isMicMuted;
-    void hostLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
-  }, [toggleMicTracks, isMicMuted, hostLifecycleRef]);
+    void (async () => {
+      await hostLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
+      setIsMicMuted(nextMuted);
+    })();
+  }, [isMicMuted, setIsMicMuted, hostLifecycleRef]);
 
   const toggleCam = useCallback(() => {
-    if (!cameraStreamRef.current?.getVideoTracks()[0]) return;
-    toggleCamTracks();
     const nextCamOff = !isCamOff;
-    void hostLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
-  }, [toggleCamTracks, isCamOff, cameraStreamRef, hostLifecycleRef]);
+    void (async () => {
+      await hostLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
+      setIsCamOff(nextCamOff);
+    })();
+  }, [isCamOff, setIsCamOff, hostLifecycleRef]);
 
   const flipCamera = useCallback(async () => {
     if (!isBroadcast) return;
@@ -5209,17 +5315,23 @@ export function useLiveHostController() {
   }, [effectiveStreamId, recordLiveShareProgress]);
 
   const shareRepostLive = useCallback(async () => {
-    const url = `${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`;
-    const ok = await nativeShareUrl({
-      title: 'Repost live on Elix',
-      text: `Watch this LIVE on Elix!`,
-      url,
+    if (!effectiveStreamId) {
+      showToast('Live not ready to repost');
+      return;
+    }
+    const { data, error } = await apiToggleRepost({
+      targetType: 'live',
+      targetId: effectiveStreamId,
     });
-    if (ok) {
+    if (error || !data) {
+      showToast(error || 'Could not save repost');
+      return;
+    }
+    if (data.reposted) {
       recordLiveShareProgress();
-      showToast('Live ready to repost');
+      showToast('Added to Reposts');
     } else {
-      showToast('Could not open repost share');
+      showToast('Removed from Reposts');
     }
     setShowSharePanel(false);
   }, [effectiveStreamId, recordLiveShareProgress]);
@@ -6051,6 +6163,7 @@ export function useLiveHostController() {
     isReportModalOpen,
     isSpeakingUser,
     isSubscribing,
+    isMember,
     lastGifts,
     lastScreenTapRef,
     lastSentGift,

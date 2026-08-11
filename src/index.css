@@ -72,8 +72,8 @@
     --elix-icon-glow-on:
       drop-shadow(0 0 4px rgba(230, 233, 238, 0.32))
       drop-shadow(0 0 8px rgba(230, 233, 238, 0.14));
-    /* Shared icon disc — opaque round circle behind every line icon */
-    --elix-icon-disc-bg: #1A1C21;
+    /* Shared icon disc — transparent fundal behind every line icon (icons stay opaque) */
+    --elix-icon-disc-bg: transparent;
     --elix-icon-disc-border: rgba(230, 233, 238, 0.22);
     --elix-icon-disc-shadow: 0 0 8px rgba(230, 233, 238, 0.14);
     --elix-icon-disc-pad: 6px;
@@ -237,6 +237,18 @@
   html.native-app.ios {
     --safe-top: env(safe-area-inset-top, 0px);
     --page-header-top: max(8px, calc(env(safe-area-inset-top, 0px) + 8px));
+  }
+
+  /*
+   * Android-only layout owner:
+   * - entire app shell 5mm up (transform also re-parents fixed Live/Battle/Spectator)
+   * - shared live profile oval 2mm right (Live + Battle + Spectator)
+   */
+  html.native-app.android .elix-app-shell {
+    transform: translateY(-5mm);
+  }
+  html.native-app.android #root .elix-live-host-oval {
+    transform: translateX(2mm);
   }
 
   /* Same width for For You top bar, video container, and bottom home bar */
@@ -1549,7 +1561,8 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
 }
 
 /*
- * SHARED ICON DISC OWNER — round circle behind icons (same language app-wide).
+ * SHARED ICON DISC OWNER — round hit target behind icons (same language app-wide).
+ * Fundal is transparent so app fundal shows through; icon stroke/glow unchanged.
  * Use .royce-glow-disc / .royce-tile wrappers, or standalone svg.lucide disc below.
  */
 .royce-glow-disc,
@@ -1562,7 +1575,9 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
   box-sizing: border-box;
   border-radius: 9999px;
   border: 1px solid var(--elix-icon-disc-border) !important;
-  background: var(--elix-icon-disc-bg) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
   -webkit-backdrop-filter: var(--elix-glass-blur);
   backdrop-filter: var(--elix-glass-blur);
   box-shadow: var(--elix-icon-disc-shadow);
@@ -1790,8 +1805,8 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
 }
 
 /* ═══ SHARED ICON OWNER — silver stroke + soft glow + round disc ═══
-   NORMAL: #E6E9EE + --elix-icon-glow + disc
-   ACTIVE: #FFFFFF + --elix-icon-glow-on + disc
+   NORMAL: #E6E9EE + --elix-icon-glow + transparent disc fundal
+   ACTIVE: #FFFFFF + --elix-icon-glow-on + transparent disc fundal
    Semantic LIVE/error/success: colour only, no silver glow/disc. */
 svg.lucide,
 .royce-icon-gold,
@@ -1807,7 +1822,9 @@ svg.lucide,
   padding: var(--elix-icon-disc-pad);
   border-radius: 9999px;
   border: 1px solid var(--elix-icon-disc-border);
-  background: var(--elix-icon-disc-bg);
+  background: transparent;
+  background-color: transparent;
+  background-image: none;
   box-shadow: var(--elix-icon-disc-shadow);
 }
 

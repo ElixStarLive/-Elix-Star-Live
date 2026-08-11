@@ -39,6 +39,7 @@ import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 import { apiRisingStarsUserBadges } from '../features/risingStars/risingStarsApi';
 import { apiShopItemsByUser } from '../features/shop/shopApi';
+import { apiFetchUserReposts } from '../features/reposts/repostsApi';
 
 interface Video {
   id: string;
@@ -46,6 +47,10 @@ interface Video {
   url?: string;
   views: number;
   is_public: boolean;
+  /** Profile → Reposts: live items use watch navigation. */
+  content_kind?: 'video' | 'live';
+  stream_key?: string;
+  is_live?: boolean;
 }
 
 interface ProfileData {
@@ -150,8 +155,14 @@ export default function Profile() {
   );
 
   const goVideo = useCallback(
-    (videoId: string) => {
-      navigate(`/video/${videoId}`, { state: { fromProfile: true } });
+    (video: Video) => {
+      if (video.content_kind === 'live' && video.stream_key) {
+        navigate(`/watch/${encodeURIComponent(video.stream_key)}`, {
+          state: { fromProfile: true },
+        });
+        return;
+      }
+      navigate(`/video/${video.id}`, { state: { fromProfile: true } });
     },
     [navigate],
   );
@@ -573,6 +584,43 @@ export default function Profile() {
           views: v.views || 0,
           is_public: true,
         })));
+      } else if (activeTab === 'reposts') {
+        if (!effectiveUserId) {
+          setVideosLoading(false);
+          return;
+        }
+        const { items, error, hasMore } = await apiFetchUserReposts(effectiveUserId, 50, 0);
+        if (error) {
+          setVideosLoading(false);
+          showToast(error || 'Failed to load reposts');
+          /* keep prior videos — do not soft-empty on failure */
+          return;
+        }
+        setVideosHasMore(hasMore);
+        setVideos(
+          items.map((item) => {
+            if (item.target_type === 'live') {
+              return {
+                id: `live:${item.target_id}`,
+                content_kind: 'live' as const,
+                stream_key: item.target_id,
+                is_live: item.is_live,
+                thumbnail_url: item.avatar_url || '',
+                url: '',
+                views: item.views || item.viewer_count || 0,
+                is_public: true,
+              };
+            }
+            return {
+              id: item.target_id,
+              content_kind: 'video' as const,
+              thumbnail_url: resolveGridThumbnailUrl(item.thumbnail_url, item.video_url),
+              url: item.video_url || '',
+              views: item.views || 0,
+              is_public: true,
+            };
+          }),
+        );
       } else {
         setVideosHasMore(false);
         setVideos([]);
@@ -587,9 +635,49 @@ export default function Profile() {
 
   const loadMoreProfileVideos = async () => {
     if (videosLoadingMore || !videosHasMore) return;
-    if (activeTab !== 'liked' && activeTab !== 'saved') return;
+    if (activeTab !== 'liked' && activeTab !== 'saved' && activeTab !== 'reposts') return;
     setVideosLoadingMore(true);
     try {
+      if (activeTab === 'reposts') {
+        if (!effectiveUserId) return;
+        const { items, error, hasMore } = await apiFetchUserReposts(
+          effectiveUserId,
+          50,
+          videos.length,
+        );
+        if (error) {
+          showToast(error || 'Failed to load more');
+          return;
+        }
+        setVideosHasMore(hasMore);
+        setVideos((prev) => [
+          ...prev,
+          ...items.map((item) => {
+            if (item.target_type === 'live') {
+              return {
+                id: `live:${item.target_id}`,
+                content_kind: 'live' as const,
+                stream_key: item.target_id,
+                is_live: item.is_live,
+                thumbnail_url: item.avatar_url || '',
+                url: '',
+                views: item.views || item.viewer_count || 0,
+                is_public: true,
+              };
+            }
+            return {
+              id: item.target_id,
+              content_kind: 'video' as const,
+              thumbnail_url: resolveGridThumbnailUrl(item.thumbnail_url, item.video_url),
+              url: item.video_url || '',
+              views: item.views || 0,
+              is_public: true,
+            };
+          }),
+        ]);
+        return;
+      }
+
       const { videos: vids, error } =
         activeTab === 'liked'
           ? await apiFetchLikedVideos(50, videos.length)
@@ -1213,7 +1301,7 @@ export default function Profile() {
                 <button
                   key={video.id}
                   type="button"
-                  onClick={() => goVideo(video.id)}
+                  onClick={() => goVideo(video)}
                   className="aspect-[3/4] bg-transparent relative group text-left rounded-xl overflow-hidden"
                 >
                   {playbackUrl ? (

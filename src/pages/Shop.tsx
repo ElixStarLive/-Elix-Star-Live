@@ -7,7 +7,7 @@ import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight, Tr
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
 import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
-import { openExternalLink } from '../lib/platform';
+import { openStripeCheckoutUrl } from '../lib/platform';
 import { useCartStore } from '../store/useCartStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
 import { apiFetchProfiles } from '../features/feed/feedApi';
@@ -78,6 +78,10 @@ export default function Shop() {
   const cartUnitCount = useCartStore((s) => s.totalUnits());
   const [showCart, setShowCart] = useState(false);
   const [checkingOut, setCheckingOut] = useState(false);
+  /** Sync guard so double-taps cannot fire two Stripe session creates before React re-renders. */
+  const checkoutInFlightRef = useRef(false);
+  /** Idempotency key for the active checkout attempt (same key if handler re-enters). */
+  const checkoutIdempotencyKeyRef = useRef<string | null>(null);
   const cartTotal = cartItems.reduce(
     (sum, i) => sum + (Number(i.price) || 0) * Math.max(1, Math.floor(Number(i.quantity) || 1)),
     0,
@@ -158,6 +162,9 @@ export default function Shop() {
   }, []);
 
   const closeCart = useCallback(() => {
+    checkoutInFlightRef.current = false;
+    checkoutIdempotencyKeyRef.current = null;
+    setCheckingOut(false);
     setShowCart(false);
   }, []);
 
@@ -207,6 +214,9 @@ export default function Shop() {
     const purchase = params.get('purchase');
     const sessionId = params.get('session_id');
     if (purchase === 'cancelled') {
+      checkoutInFlightRef.current = false;
+      checkoutIdempotencyKeyRef.current = null;
+      setCheckingOut(false);
       showToast('Checkout cancelled');
       window.history.replaceState({}, '', window.location.pathname);
       return;
@@ -216,12 +226,18 @@ export default function Shop() {
     let cancelled = false;
     (async () => {
       if (!sessionId) {
+        checkoutInFlightRef.current = false;
+        checkoutIdempotencyKeyRef.current = null;
+        setCheckingOut(false);
         showToast('Checkout return incomplete — check email/orders if you paid');
         window.history.replaceState({}, '', window.location.pathname);
         return;
       }
       const { data, error } = await apiShopCheckoutSessionStatus(sessionId);
       if (cancelled) return;
+      checkoutInFlightRef.current = false;
+      checkoutIdempotencyKeyRef.current = null;
+      setCheckingOut(false);
       if (error) {
         showToast(error || 'Could not confirm payment status');
       } else if (data?.paid) {
@@ -480,27 +496,40 @@ export default function Shop() {
   };
 
   const handleCheckoutCart = async () => {
-    if (cartItems.length === 0 || checkingOut) return;
+    if (cartItems.length === 0 || checkingOut || checkoutInFlightRef.current) return;
+    // Transaction state first (sync) — not a timer. Blocks double-tap before re-render.
+    checkoutInFlightRef.current = true;
     setCheckingOut(true);
+    if (!checkoutIdempotencyKeyRef.current) {
+      checkoutIdempotencyKeyRef.current =
+        typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : `shop_${Date.now()}_${Math.random().toString(36).slice(2, 12)}`;
+    }
+    const idempotencyKey = checkoutIdempotencyKeyRef.current;
     try {
       const { data, error } = await apiShopCheckout({
         items: cartItems.map((i) => ({
           id: i.id,
           quantity: Math.max(1, Math.floor(Number(i.quantity) || 1)),
         })),
+        idempotencyKey,
       });
       if (error) throw new Error(error || 'Checkout failed');
       if (data?.url) {
-        // Shop is physical goods → Stripe is correct. On native, open the
-        // system browser so checkout does not hijack the Capacitor WebView.
-        openExternalLink(String(data.url));
+        // Shop is physical goods → Stripe owns payment (Apple Pay / Google Pay /
+        // card as Stripe methods). On Android, open Chrome Custom Tabs so Google
+        // Pay can appear (WebView cannot). Same Stripe Checkout Session URL.
+        await openStripeCheckoutUrl(String(data.url));
+        // Keep in-flight until cancel/success return so one tap ≠ second session.
         return;
       }
       throw new Error('Checkout URL missing');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Could not start checkout');
-    } finally {
+      checkoutInFlightRef.current = false;
+      checkoutIdempotencyKeyRef.current = null;
       setCheckingOut(false);
+      showToast(err instanceof Error ? err.message : 'Could not start checkout');
     }
   };
 
@@ -1057,6 +1086,7 @@ export default function Shop() {
                         <span className="text-lg font-extrabold text-white">£{cartTotal.toFixed(2)}</span>
                       </div>
                       <button
+                        type="button"
                         onClick={handleCheckoutCart}
                         disabled={checkingOut}
                         className="w-full py-3 rounded-xl bg-[#1A1C21] border border-white/15 text-[#F5F5F7] font-bold text-sm disabled:opacity-50"
@@ -1064,7 +1094,7 @@ export default function Shop() {
                         {checkingOut ? 'Starting checkout…' : 'Checkout with Stripe'}
                       </button>
                       <p className="text-[10px] text-white/40 text-center mt-2">
-                        Pay with card or Clearpay (when eligible) via Stripe. Elix Live App will contribute 1% of your purchase to help people in need. Eligible shop refunds are handled via Stripe/support only — not as digital coins. Digital coin purchases are separate and non-refundable.
+                        Pay via Stripe with Apple Pay, Google Pay, or card when available (Clearpay when eligible). Elix Live App will contribute 1% of your purchase to help people in need. Eligible shop refunds are handled via Stripe/support only — not as digital coins. Digital coin purchases are separate and non-refundable.
                       </p>
                     </div>
                   </>

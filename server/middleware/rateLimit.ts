@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
 import { logger } from "../lib/logger";
+import { getTokenFromRequest, verifyAuthToken } from "../routes/auth";
 
 // ── Dev/test only: local in-memory when Valkey is off (never in production) ──
 
@@ -44,6 +45,53 @@ function localRateCheck(
   return true;
 }
 
+function respondRateLimited(res: Response): void {
+  // Distinct from shop abuse copy? Keep stable API shape; client shows body.error.
+  res.status(429).json({ error: "Too many requests. Please try again later." });
+}
+
+function runRateCheck(
+  key: string,
+  windowMs: number,
+  max: number,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (isValkeyConfigured()) {
+    valkeyRateCheck(key, windowMs, max)
+      .then((allowed) => {
+        if (!allowed) {
+          logger.warn({ url: req.originalUrl, key, max }, "Rate limit 429");
+          respondRateLimited(res);
+          return;
+        }
+        next();
+      })
+      .catch((err) => {
+        logger.warn({ err: err?.message, key }, "Valkey rate-limit unavailable");
+        if (!allowLocalRateLimit) {
+          res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
+          return;
+        }
+        if (!localRateCheck(key, windowMs, max)) {
+          respondRateLimited(res);
+          return;
+        }
+        next();
+      });
+  } else if (allowLocalRateLimit) {
+    if (!localRateCheck(key, windowMs, max)) {
+      respondRateLimited(res);
+      return;
+    }
+    next();
+  } else {
+    logger.error({ key }, "Rate limit requires Valkey in production");
+    res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
+  }
+}
+
 // ── Main rate limit factory ──────────────────────────────────────
 
 function getClientIp(req: Request): string {
@@ -73,43 +121,40 @@ export function rateLimit(opts: {
 
     const ip = getClientIp(req);
     const key = `${keyPrefix}:${ip}`;
+    runRateCheck(key, windowMs, max, req, res, next);
+  };
+}
 
-    if (isValkeyConfigured()) {
-      valkeyRateCheck(key, windowMs, max)
-        .then((allowed) => {
-          if (!allowed) {
-            logger.warn({ url: req.originalUrl, ip, key, max }, 'Rate limit 429');
-            res
-              .status(429)
-              .json({ error: "Too many requests. Please try again later." });
-            return;
-          }
-          next();
-        })
-        .catch((err) => {
-          logger.warn({ err: err?.message, key }, "Valkey rate-limit unavailable");
-          if (!allowLocalRateLimit) {
-            res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
-            return;
-          }
-          if (!localRateCheck(key, windowMs, max)) {
-            res.status(429).json({ error: "Too many requests. Please try again later." });
-            return;
-          }
-          next();
-        });
-    } else if (allowLocalRateLimit) {
-      if (!localRateCheck(key, windowMs, max)) {
-        res
-          .status(429)
-          .json({ error: "Too many requests. Please try again later." });
+/**
+ * Rate-limit by an authenticated subject (e.g. user id), not by shared IP.
+ */
+export function rateLimitBySubject(opts: {
+  windowMs: number;
+  max: number;
+  keyPrefix: string;
+  resolveSubject: (req: Request) => string | null;
+  onMissingSubject: "allow" | "reject";
+}) {
+  const { windowMs, max, keyPrefix, resolveSubject, onMissingSubject } = opts;
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (LOADTEST_BYPASS_ENABLED && req.headers["x-loadtest-key"] === LOADTEST_SECRET) {
+      next();
+      return;
+    }
+
+    const subject = resolveSubject(req);
+    if (!subject) {
+      if (onMissingSubject === "allow") {
+        next();
         return;
       }
-      next();
-    } else {
-      logger.error({ key }, "Rate limit requires Valkey in production");
-      res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
+      res.status(401).json({ error: "Unauthorized" });
+      return;
     }
+
+    const key = `${keyPrefix}:${subject}`;
+    runRateCheck(key, windowMs, max, req, res, next);
   };
 }
 
@@ -155,10 +200,27 @@ export const walletReadLimiter = rateLimit({
   keyPrefix: "wallet_read",
 });
 
-export const shopCheckoutLimiter = rateLimit({
+/**
+ * Shop Checkout must NOT use a shared IP bucket.
+ *
+ * Mobile carriers / offices / Coolify proxy mis-hops share one public IP. An
+ * IP-keyed 15/min limiter falsely returns "Too many requests" on a normal
+ * customer's first checkout. Shop checkout is authenticated — key by buyer.
+ *
+ * Limit is abuse-only (many session creates per minute). One legitimate tap
+ * never consumes enough to trip this.
+ */
+export const shopCheckoutLimiter = rateLimitBySubject({
   windowMs: 60_000,
-  max: 15,
-  keyPrefix: "shop_checkout",
+  max: 30,
+  keyPrefix: "shop_checkout_user",
+  resolveSubject: (req) => {
+    const token = getTokenFromRequest(req);
+    if (!token) return null;
+    return verifyAuthToken(token)?.sub ?? null;
+  },
+  // Unauthenticated → createShopItemCheckout returns 401 (do not IP-throttle here).
+  onMissingSubject: "allow",
 });
 
 export const verifyPurchaseLimiter = rateLimit({

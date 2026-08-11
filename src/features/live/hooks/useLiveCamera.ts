@@ -8,6 +8,7 @@ import {
   getCachedCameraStream,
   setCachedCameraStream,
 } from '../../../lib/cameraStream';
+import { buildCameraGetUserMediaVideoConstraints } from '../../../lib/live/liveMediaProfile';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 
 export type LiveCameraApi = ReturnType<typeof useLiveCamera>;
@@ -108,15 +109,16 @@ export function useLiveCamera(opts: {
       }
 
       let stream: MediaStream | null = null;
+      const videoConstraints = buildCameraGetUserMediaVideoConstraints(cameraFacing);
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing },
+          video: videoConstraints,
           audio: { echoCancellation: true, noiseSuppression: true },
         });
       } catch {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: cameraFacing },
+            video: videoConstraints,
             audio: false,
           });
         } catch {

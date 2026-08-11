@@ -63,11 +63,25 @@ export const shopCheckoutSchema = z
   .object({
     // Legacy single-item checkout (still supported).
     itemId: z.string().min(1).optional(),
+    quantity: z.number().int().min(1).max(99).optional(),
     // Basket checkout: pay for multiple items in one Stripe session.
     items: z
-      .array(z.object({ id: z.string().min(1) }))
+      .array(
+        z.object({
+          id: z.string().min(1),
+          quantity: z.number().int().min(1).max(99).optional(),
+        }),
+      )
       .min(1)
       .max(10)
+      .optional(),
+    // Client one-tap key → Stripe Checkout Session idempotency (no duplicate sessions).
+    idempotencyKey: z
+      .string()
+      .trim()
+      .min(8)
+      .max(200)
+      .regex(/^[A-Za-z0-9._~-]+$/)
       .optional(),
   })
   .refine((d) => !!d.itemId || (Array.isArray(d.items) && d.items.length > 0), {

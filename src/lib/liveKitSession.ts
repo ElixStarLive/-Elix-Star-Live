@@ -11,6 +11,8 @@ import {
   type TrackPublication,
   type RemoteTrackPublication,
 } from 'livekit-client';
+import { getLiveMediaTierConfig, getLiveRoomOptions } from './live/liveMediaProfile';
+import { detachParticipantTracks, detachRemoteTrack } from './live/liveTrackCleanup';
 import { prepareLiveVideoEl } from './prepareLiveVideoEl';
 
 /**
@@ -48,6 +50,8 @@ export interface LiveKitSessionHandlers {
   onParticipantDisconnected?: (participant: RemoteParticipant) => void;
 }
 
+export { detachRemoteTrack, detachParticipantTracks } from './live/liveTrackCleanup';
+
 export class LiveKitSession {
   private room: Room | null = null;
   private handlers: LiveKitSessionHandlers = {};
@@ -80,10 +84,7 @@ export class LiveKitSession {
       }
     }
 
-    const room = new Room({
-      adaptiveStream: true, // OLD LiveStream / SpectatorPage
-      stopLocalTrackOnUnpublish: false,
-    });
+    const room = new Room(getLiveRoomOptions());
     if (generation !== this.connectGeneration) {
       try {
         room.disconnect();
@@ -101,7 +102,13 @@ export class LiveKitSession {
       })
       .on(RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
         if (generation !== this.connectGeneration) return;
+        detachRemoteTrack(track);
         this.handlers.onTrackUnsubscribed?.({ track, participant, publication });
+      })
+      .on(RoomEvent.ParticipantDisconnected, (p) => {
+        if (generation !== this.connectGeneration) return;
+        detachParticipantTracks(p);
+        this.handlers.onParticipantDisconnected?.(p);
       })
       .on(RoomEvent.TrackPublished, (publication, participant) => {
         if (generation !== this.connectGeneration) return;
@@ -122,10 +129,6 @@ export class LiveKitSession {
       .on(RoomEvent.ParticipantConnected, (p) => {
         if (generation !== this.connectGeneration) return;
         this.handlers.onParticipantConnected?.(p);
-      })
-      .on(RoomEvent.ParticipantDisconnected, (p) => {
-        if (generation !== this.connectGeneration) return;
-        this.handlers.onParticipantDisconnected?.(p);
       })
       .on(RoomEvent.Reconnecting, () => {
         if (generation !== this.connectGeneration) return;
@@ -190,34 +193,48 @@ export class LiveKitSession {
         await room.localParticipant.unpublishTrack(pubAudio.track, false);
       }
       if (wantVideoId && videoTrack) {
-        await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), { name: 'camera' });
+        const publishPreset = getLiveMediaTierConfig().publishPreset;
+        await room.localParticipant.publishTrack(new LocalVideoTrack(videoTrack), {
+          name: 'camera',
+          source: Track.Source.Camera,
+          simulcast: true,
+          videoEncoding: publishPreset.encoding,
+          degradationPreference: 'balanced',
+        });
       }
       if (wantAudioId && audioTrack) {
-        await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), { name: 'mic' });
+        await room.localParticipant.publishTrack(new LocalAudioTrack(audioTrack), {
+          name: 'mic',
+          source: Track.Source.Microphone,
+        });
       }
     } catch (err) {
       throw err instanceof Error ? err : new Error('LiveKit publish failed');
     }
   }
 
-  /** Enable/disable the published microphone without dropping the track. */
+  /** Enable/disable the published microphone without unpublishing or stopping the track. */
   async setMicEnabled(enabled: boolean): Promise<void> {
     const room = this.room;
     if (!room) return;
-    const pubAudio = [...room.localParticipant.trackPublications.values()].find((p) => p.kind === 'audio');
-    const track = pubAudio?.track;
+    const pub =
+      room.localParticipant.getTrackPublication(Track.Source.Microphone) ??
+      room.localParticipant.getTrackPublicationByName('mic');
+    const track = pub?.track;
     if (track && 'mute' in track) {
       if (enabled) await (track as LocalAudioTrack).unmute();
       else await (track as LocalAudioTrack).mute();
     }
   }
 
-  /** Enable/disable the published camera without dropping the track. */
+  /** Enable/disable the published camera without unpublishing or stopping the track. */
   async setCamEnabled(enabled: boolean): Promise<void> {
     const room = this.room;
     if (!room) return;
-    const pubVideo = [...room.localParticipant.trackPublications.values()].find((p) => p.kind === 'video');
-    const track = pubVideo?.track;
+    const pub =
+      room.localParticipant.getTrackPublication(Track.Source.Camera) ??
+      room.localParticipant.getTrackPublicationByName('camera');
+    const track = pub?.track;
     if (track && 'mute' in track) {
       if (enabled) await (track as LocalVideoTrack).unmute();
       else await (track as LocalVideoTrack).mute();

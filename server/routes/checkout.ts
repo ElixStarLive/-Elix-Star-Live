@@ -2,53 +2,7 @@ import { Request, Response } from "express";
 import Stripe from "stripe";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { dbGetShopItemById } from "../lib/postgres";
-import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
 import { logger } from "../lib/logger";
-
-const rateLimits = new Map<string, { count: number; timestamp: number }>();
-const MAX_LOCAL_RATE_ENTRIES = 10_000;
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of rateLimits) {
-    if (now - v.timestamp > 120_000) rateLimits.delete(k);
-  }
-}, 60_000).unref();
-
-async function checkRateLimit(userId: string, action: string) {
-  const windowMs = 60 * 1000;
-  const limit = 5;
-  const key = `${userId}:${action}`;
-
-  if (isValkeyConfigured()) {
-    try {
-      const allowed = await valkeyRateCheck(`rl:${key}`, windowMs, limit);
-      return { allowed, retryAfter: Math.ceil(windowMs / 1000) };
-    } catch {
-      // Valkey unavailable — fall through to local
-    }
-  }
-
-  const now = Date.now();
-  const record = rateLimits.get(key) || { count: 0, timestamp: now };
-
-  if (now - record.timestamp > windowMs) {
-    record.count = 0;
-    record.timestamp = now;
-  }
-
-  record.count++;
-  if (rateLimits.size >= MAX_LOCAL_RATE_ENTRIES && !rateLimits.has(key)) {
-    const oldest = rateLimits.keys().next().value;
-    if (oldest) rateLimits.delete(oldest);
-  }
-  rateLimits.set(key, record);
-
-  return {
-    allowed: record.count <= limit,
-    retryAfter: Math.ceil((record.timestamp + windowMs - now) / 1000),
-  };
-}
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
@@ -94,6 +48,19 @@ function resolveOrigin(req: Request): string {
   return host ? `${proto}://${host}` : "http://127.0.0.1:3000";
 }
 
+/** Sanitize client idempotency key for Stripe (max 255 chars total with prefix). */
+function shopCheckoutIdempotencyKey(
+  userId: string,
+  raw: unknown,
+): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const key = raw.trim();
+  // Stripe idempotency keys: printable ASCII, 1–255 chars.
+  if (key.length < 8 || key.length > 200) return undefined;
+  if (!/^[A-Za-z0-9._~-]+$/.test(key)) return undefined;
+  return `shop_cs_${userId}_${key}`.slice(0, 255);
+}
+
 /** POST /api/shop/checkout — create Stripe Checkout for a shop item (physical goods) */
 export async function createShopItemCheckout(req: Request, res: Response) {
   if (req.method !== "POST") {
@@ -117,6 +84,7 @@ export async function createShopItemCheckout(req: Request, res: Response) {
     }
 
     // Accept a single itemId (legacy) or a basket of items with optional quantity.
+    // Abuse rate-limit is user-scoped shopCheckoutLimiter middleware (not shared IP).
     const body = req.body ?? {};
     type BasketLine = { id: string; quantity: number };
     const clampQty = (n: unknown) => {
@@ -145,16 +113,13 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       return res.status(400).json({ error: "itemId or items required" });
     }
 
-    const rateCheck = await checkRateLimit(authUserId, "shop_buy");
-    if (!rateCheck.allowed) {
-      return res
-        .status(429)
-        .json({ error: "Too many requests", retryAfter: rateCheck.retryAfter });
-    }
-
     // Validate every item server-side (same rules as single-item purchase).
+    // No invented shop £10 floor. Charge the real basket total.
+    // Stripe GBP card minimum is 30 pence — only that provider floor is enforced here.
+    const STRIPE_GBP_MIN_PENCE = 30;
     const items = await Promise.all(capped.map((l) => dbGetShopItemById(l.id)));
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    let totalPence = 0;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const line = capped[i];
@@ -167,6 +132,11 @@ export async function createShopItemCheckout(req: Request, res: Response) {
       if (!item.price || item.price <= 0) {
         return res.status(400).json({ error: "An item has no valid price", itemId: line.id });
       }
+      const unitAmount = Math.round(Number(item.price) * 100);
+      if (!Number.isFinite(unitAmount) || unitAmount < 1) {
+        return res.status(400).json({ error: "An item has no valid price", itemId: line.id });
+      }
+      totalPence += unitAmount * line.quantity;
       lineItems.push({
         price_data: {
           currency: "gbp",
@@ -175,9 +145,18 @@ export async function createShopItemCheckout(req: Request, res: Response) {
             description: item.description || "Shop item on Elix Star Live",
             ...(item.image_url ? { images: [item.image_url] } : {}),
           },
-          unit_amount: Math.round(item.price * 100),
+          unit_amount: unitAmount,
         },
         quantity: line.quantity,
+      });
+    }
+
+    if (totalPence < STRIPE_GBP_MIN_PENCE) {
+      return res.status(400).json({
+        error: `Order total is below Stripe’s minimum for GBP (£${(STRIPE_GBP_MIN_PENCE / 100).toFixed(2)}). Increase the basket total to continue.`,
+        code: "amount_below_provider_minimum",
+        minimum_pence: STRIPE_GBP_MIN_PENCE,
+        total_pence: totalPence,
       });
     }
 
@@ -186,24 +165,36 @@ export async function createShopItemCheckout(req: Request, res: Response) {
     );
     const origin = resolveOrigin(req);
 
-    // Collect shipping so Clearpay (Afterpay UK) can appear for eligible GBP shop orders.
-    // Do not hardcode payment_method_types — enable Afterpay/Clearpay in Stripe Dashboard.
-    const session = await stripe.checkout.sessions.create({
+    // Omit payment_method_types so Stripe dynamic payment methods can offer
+    // Apple Pay (iOS), Google Pay (Android Chrome Custom Tabs), card, and Clearpay
+    // when eligible. Wallets are Stripe payment methods — not a separate owner.
+    // Android Shop must open session.url outside the WebView (see openStripeCheckoutUrl).
+    //
+    // Use the Elix Live payment method configuration (Google Pay + Apple Pay + card).
+    // Stripe's "Default" config had Google Pay display_preference off, which hid GPay
+    // even when Apple Pay appeared. Override via STRIPE_SHOP_PAYMENT_METHOD_CONFIGURATION.
+    const shopPaymentMethodConfiguration =
+      (process.env.STRIPE_SHOP_PAYMENT_METHOD_CONFIGURATION || "").trim() ||
+      "pmc_1Szm2lPj8lNavJ3kH1M7kGHj";
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       line_items: lineItems,
       mode: "payment",
       success_url: `${origin}/shop?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/shop?purchase=cancelled`,
       client_reference_id: authUserId,
+      payment_method_configuration: shopPaymentMethodConfiguration,
       shipping_address_collection: {
         allowed_countries: ["GB"],
       },
       custom_text: {
         submit: {
           message:
-            "Elix Live App will contribute 1% of your purchase to help people in need. Card and Clearpay may appear when eligible.",
+            "Elix Live App will contribute 1% of your purchase to help people in need. Pay with Apple Pay, Google Pay, or card when available (Clearpay when eligible).",
         },
         shipping_address: {
-          message: "Delivery address is required for shop orders. Clearpay may be offered for eligible UK orders.",
+          message:
+            "Delivery address is required for shop orders. Apple Pay, Google Pay, and card may appear when supported; Clearpay when eligible for UK orders.",
         },
       },
       metadata: {
@@ -216,12 +207,47 @@ export async function createShopItemCheckout(req: Request, res: Response) {
         itemQtys: capped.map((l) => String(l.quantity)).join(","),
         itemTitle: validItems[0].title.slice(0, 200),
         charity_pledge_percent: "1",
-        payment_methods_note: "clearpay_eligible_when_enabled",
+        payment_methods_note: "apple_pay_google_pay_card_clearpay_via_stripe",
+        payment_method_configuration: shopPaymentMethodConfiguration,
+        order_total_pence: String(totalPence),
       },
-    });
+    };
+
+    const idempotencyKey = shopCheckoutIdempotencyKey(
+      authUserId,
+      body.idempotencyKey,
+    );
+    const session = await stripe.checkout.sessions.create(
+      sessionParams,
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
 
     return res.status(200).json({ url: session.url, sessionId: session.id });
   } catch (error) {
+    // Surface real Stripe amount / rate errors honestly — never as a fake shop £10 rule
+    // and never confuse Stripe API rate limits with our checkout abuse limiter.
+    if (error instanceof Stripe.errors.StripeError) {
+      const code = error.code || "";
+      if (code === "amount_too_small") {
+        return res.status(400).json({
+          error:
+            "Order total is below Stripe’s permitted minimum for this currency. Increase the basket total to continue.",
+          code: "amount_below_provider_minimum",
+        });
+      }
+      if (error.type === "StripeRateLimitError" || code === "rate_limit") {
+        logger.warn({ err: error }, "Stripe API rate limit on shop checkout");
+        return res.status(503).json({
+          error: "Stripe is temporarily busy creating checkout. Please try again in a moment.",
+          code: "stripe_busy",
+        });
+      }
+      logger.error({ err: error, stripeCode: code }, "Shop item checkout Stripe error");
+      return res.status(502).json({
+        error: error.message || "Stripe could not create checkout",
+        code: code || "stripe_error",
+      });
+    }
     logger.error({ err: error }, "Shop item checkout error");
     return res.status(500).json({ error: "Failed to create shop checkout" });
   }

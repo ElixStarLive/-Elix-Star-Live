@@ -27,6 +27,8 @@ export async function apiShopCheckoutSessionStatus(sessionId: string): Promise<{
 
 export async function apiShopCheckout(payload: {
   items: { id: string; quantity?: number }[];
+  /** One UUID per checkout tap — Stripe session idempotency (no duplicate sessions). */
+  idempotencyKey?: string;
 }): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
   const { data, error } = await request<Record<string, unknown>>('/api/shop/checkout', {
     method: 'POST',

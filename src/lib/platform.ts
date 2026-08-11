@@ -48,6 +48,26 @@ export function openExternalLink(url: string): void {
 }
 
 /**
+ * Open a Stripe Checkout Session URL in a Google-Pay / Apple-Pay capable browser.
+ *
+ * Android WebView cannot show Google Pay. Chrome Custom Tabs (via @capacitor/browser)
+ * can. iOS uses SFSafariViewController so Apple Pay remains available.
+ * Still the same Stripe-hosted Checkout Session — not a separate payment owner.
+ */
+export async function openStripeCheckoutUrl(url: string): Promise<void> {
+  const safe = String(url || '').trim();
+  if (!/^https:\/\//i.test(safe)) {
+    throw new Error('Invalid checkout URL');
+  }
+  if (platform.isNative) {
+    const { Browser } = await import('@capacitor/browser');
+    await Browser.open({ url: safe });
+    return;
+  }
+  window.open(safe, '_blank', 'noopener');
+}
+
+/**
  * Trigger the native share sheet on iOS/Android, or the Web Share API,
  * or fall back to copying to clipboard.
  * Returns false only when nothing could be shared/copied (user cancel ≠ failure).

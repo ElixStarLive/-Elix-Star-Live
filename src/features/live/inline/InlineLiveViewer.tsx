@@ -15,6 +15,10 @@ import {
   LIVE_WEBRTC_VIDEO_CLASS,
   LIVE_VIDEO_TRANSPARENT_POSTER,
 } from "../../../lib/prepareLiveVideoEl";
+import {
+  LIVE_COHOST_STAGE_HEIGHT,
+  LIVE_COHOST_STAGE_TOP,
+} from "../cohost/cohostStageGeometry";
 import { Radio } from "lucide-react";
 
 interface InlineLiveViewerProps {
@@ -128,6 +132,7 @@ export default function InlineLiveViewer({
       const m = modeRef.current;
       const hostId = hostIdRef.current || streamKey;
 
+      // Host identity always maps to the host pane (never a co-host tile / never steal full card).
       if (sameId(identity, hostId) || sameId(identity, streamKey)) {
         attachToEl(track, hostVideoRef.current);
         return;
@@ -141,16 +146,18 @@ export default function InlineLiveViewer({
         }
       }
 
-      const tile = findCoHostEl(identity);
-      if (tile) {
-        attachToEl(track, tile);
+      if (m === "cohost") {
+        const tile = findCoHostEl(identity);
+        if (tile) {
+          attachToEl(track, tile);
+          return;
+        }
+        // Unknown non-host during co-host — do not dump onto the host half.
         return;
       }
 
-      // Unknown remote before layout sync — put on host pane if empty, else ignore.
-      if (hostVideoRef.current && !hostVideoRef.current.srcObject) {
-        attachToEl(track, hostVideoRef.current);
-      }
+      // Normal single-host: only the host track fills the card.
+      // Non-host remotes wait for layout/room detection → cohost mode.
     },
     [attachToEl, findCoHostEl, streamKey],
   );
@@ -171,6 +178,46 @@ export default function InlineLiveViewer({
 
   routeVideoTrackRef.current = routeVideoTrack;
   reattachAllRef.current = reattachAll;
+
+  const syncCohostTilesFromRoom = useCallback((room: Room) => {
+    if (modeRef.current === "battle") return;
+    const hostId = hostIdRef.current || streamKey;
+    const tiles: CohostTile[] = [];
+    for (const [, p] of room.remoteParticipants) {
+      const identity = p.identity || "";
+      if (!identity || sameId(identity, hostId) || sameId(identity, streamKey)) continue;
+      let liveVideo = false;
+      for (const [, pub] of p.videoTrackPublications) {
+        if (pub.track && pub.isSubscribed) {
+          liveVideo = true;
+          break;
+        }
+      }
+      if (!liveVideo) continue;
+      tiles.push({
+        userId: identity,
+        name: (p.name || identity).trim() || "User",
+        avatar: "",
+        status: "live",
+      });
+    }
+    if (tiles.length === 0) return;
+    setCoHosts((prev) => {
+      const byId = new Map(prev.map((h) => [h.userId.trim().toLowerCase(), h]));
+      return tiles.map((t) => {
+        const prevTile = byId.get(t.userId.trim().toLowerCase());
+        return prevTile
+          ? { ...t, name: prevTile.name || t.name, avatar: prevTile.avatar || t.avatar }
+          : t;
+      });
+    });
+    if (modeRef.current !== "battle") {
+      setMode("cohost");
+      modeRef.current = "cohost";
+    }
+  }, [streamKey]);
+  const syncCohostTilesFromRoomRef = useRef(syncCohostTilesFromRoom);
+  syncCohostTilesFromRoomRef.current = syncCohostTilesFromRoom;
 
   useEffect(() => {
     if (!isActive || !streamKey) {
@@ -342,6 +389,8 @@ export default function InlineLiveViewer({
             onTrackSubscribed: ({ track, participant }) => {
               if (!mounted || track.kind !== LiveKitTrack.Kind.Video) return;
               gotVideo = true;
+              const room = lifecycle.liveKit?.raw;
+              if (room) syncCohostTilesFromRoomRef.current(room);
               routeVideoTrackRef.current(track, participant?.identity || "");
             },
             onParticipantDisconnected: (participant) => {
@@ -371,7 +420,10 @@ export default function InlineLiveViewer({
           websocket.connect(streamKey, authToken);
         }
 
-        if (session.raw) reattachAllRef.current(session.raw);
+        if (session.raw) {
+          syncCohostTilesFromRoomRef.current(session.raw);
+          reattachAllRef.current(session.raw);
+        }
         if (gotVideo || (session.raw && hasAnyVideo(session.raw))) {
           gotVideo = true;
           setHasStream(true);
@@ -552,98 +604,112 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Co-host: host left + live tiles right (same idea as live stream) ── */}
+      {/* ── Co-host: same stage geometry as /watch spectator (not full-card) ── */}
       {mode === "cohost" && (
-        <div className="absolute inset-0 flex flex-row">
-          <div className="w-1/2 h-full relative bg-[rgba(0,0,0,0.35)] overflow-hidden">
-            <video
-              ref={hostVideoRef}
-              className={videoClass}
-              autoPlay
-              playsInline
-              muted
-              controls={false}
-              poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-              style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#080A0E" }}
-            />
-            {!hasStream && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(0,0,0,0.35)] z-[1]">
-                {displayAvatar ? (
-                  <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-                    <span className="text-[#F5F5F7] font-bold text-2xl">
-                      {(creatorName || "C").charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <span className="text-white font-bold text-xs">{creatorName}</span>
-              </div>
-            )}
-          </div>
-          <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] p-0 bg-transparent">
-            {Array.from({ length: 8 }).map((_, i) => {
-              const h = liveCohosts[i];
-              if (!h) {
-                return (
-                  <div
-                    key={`empty-${i}`}
-                    className="relative elix-cohost-cut-corner min-h-0 overflow-hidden rounded-none bg-transparent flex flex-col items-center justify-center"
-                  >
-                    <span className="text-white/30 text-lg font-light">+</span>
-                    <span className="text-white/30 text-[8px] font-semibold">Add</span>
-                  </div>
-                );
-              }
-              return (
-                <div
-                  key={h.userId}
-                  className="relative elix-cohost-cut-corner min-h-0 overflow-hidden rounded-none bg-transparent"
-                >
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-transparent">
-                    {h.avatar ? (
-                      <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+        <div className="absolute inset-0" style={{ background: "#080A0E" }}>
+          <div
+            className="absolute left-0 right-0 overflow-hidden"
+            data-elix-foryou-cohost-stage="1"
+            style={{
+              top: LIVE_COHOST_STAGE_TOP,
+              height: LIVE_COHOST_STAGE_HEIGHT,
+            }}
+          >
+            <div className="relative flex w-full h-full min-h-0 flex-row overflow-hidden gap-[2px]">
+              <div className="w-1/2 h-full relative elix-cohost-pill bg-[rgba(0,0,0,0.35)] overflow-hidden min-w-0">
+                <video
+                  ref={hostVideoRef}
+                  className={videoClass}
+                  autoPlay
+                  playsInline
+                  muted
+                  controls={false}
+                  poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                  style={{ opacity: hasStream ? 1 : 0, backgroundColor: "#080A0E" }}
+                />
+                {!hasStream && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[rgba(0,0,0,0.35)] z-[1]">
+                    {displayAvatar ? (
+                      <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
-                        <span className="text-[#F5F5F7]/70 text-xs font-bold">
-                          {(h.name || "?").charAt(0)}
+                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
+                        <span className="text-[#F5F5F7] font-bold text-2xl">
+                          {(creatorName || "C").charAt(0).toUpperCase()}
                         </span>
                       </div>
                     )}
+                    <span className="text-white font-bold text-xs">{creatorName}</span>
                   </div>
-                  <video
-                    ref={(el) => {
-                      if (el) {
-                        coHostVideoRefs.current.set(h.userId, el);
-                        const room = roomRef.current;
-                        if (room) {
-                          for (const [, p] of room.remoteParticipants) {
-                            if (!sameId(p.identity, h.userId)) continue;
-                            for (const [, pub] of p.videoTrackPublications) {
-                              if (pub.track && pub.isSubscribed) {
-                                attachToEl(pub.track as RemoteTrack, el);
+                )}
+                <span className="absolute bottom-1 left-1 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
+                  {creatorName}
+                </span>
+              </div>
+              <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] p-0 bg-transparent min-w-0">
+                {Array.from({ length: 8 }).map((_, i) => {
+                  const h = liveCohosts[i];
+                  if (!h) {
+                    return (
+                      <div
+                        key={`empty-${i}`}
+                        className="relative elix-cohost-pill min-h-0 overflow-hidden rounded-none bg-black/35 flex flex-col items-center justify-center"
+                      >
+                        <span className="text-white/30 text-lg font-light">+</span>
+                        <span className="text-white/30 text-[8px] font-semibold">Add</span>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div
+                      key={h.userId}
+                      className="relative elix-cohost-pill min-h-0 overflow-hidden rounded-none bg-black/35"
+                    >
+                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-transparent">
+                        {h.avatar ? (
+                          <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
+                            <span className="text-[#F5F5F7]/70 text-xs font-bold">
+                              {(h.name || "?").charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <video
+                        ref={(el) => {
+                          if (el) {
+                            coHostVideoRefs.current.set(h.userId, el);
+                            const room = roomRef.current;
+                            if (room) {
+                              for (const [, p] of room.remoteParticipants) {
+                                if (!sameId(p.identity, h.userId)) continue;
+                                for (const [, pub] of p.videoTrackPublications) {
+                                  if (pub.track && pub.isSubscribed) {
+                                    attachToEl(pub.track as RemoteTrack, el);
+                                  }
+                                }
                               }
                             }
+                          } else {
+                            coHostVideoRefs.current.delete(h.userId);
                           }
-                        }
-                      } else {
-                        coHostVideoRefs.current.delete(h.userId);
-                      }
-                    }}
-                    className={`absolute inset-0 w-full h-full object-cover z-[2] ${LIVE_WEBRTC_VIDEO_CLASS}`}
-                    autoPlay
-                    playsInline
-                    muted
-                    controls={false}
-                    poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ backgroundColor: "#080A0E" }}
-                  />
-                  <span className="absolute bottom-0.5 left-0.5 z-[3] text-white/80 text-[7px] font-bold bg-black/50 rounded px-0.5 truncate max-w-[95%]">
-                    {h.name}
-                  </span>
-                </div>
-              );
-            })}
+                        }}
+                        className={`absolute inset-0 w-full h-full object-cover z-[2] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                        autoPlay
+                        playsInline
+                        muted
+                        controls={false}
+                        poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                        style={{ backgroundColor: "#080A0E" }}
+                      />
+                      <span className="absolute bottom-0.5 left-0.5 z-[3] text-white/80 text-[7px] font-bold bg-black/50 rounded px-0.5 truncate max-w-[95%]">
+                        {h.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -41,7 +41,7 @@ import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
-import { resolveGiftUiBalance, areTestCoinsEnabled } from '../../../lib/testCoins';
+import { areTestCoinsEnabled } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
@@ -64,7 +64,7 @@ import {
   SHARE_PANEL_AVATAR_PX,
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../../../lib/sharePanelContacts';
-import { openExternalLink, nativeShareUrl } from '../../../lib/platform';
+import { openExternalLink } from '../../../lib/platform';
 import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { RankingPanel } from '../../../components/RankingPanel';
@@ -73,6 +73,8 @@ import {
   apiLiveShareCreate,
 } from '../engagement/liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
+import { MembershipBuySection } from '../../membership/MembershipBuySection';
+import { apiToggleRepost } from '../../reposts/repostsApi';
 import {
   LiveComboMissionDock,
   LiveHostProfileHeader,
@@ -184,9 +186,7 @@ export default function SpectatorLiveScreen() {
     selectTestCoinsPreset,
     submitTestCoinsAmount,
     submitTestCoinsPasswordUnlock,
-    _dailyHeartCount,
     _lastBattleScoreUpdateTraceSigRef,
-    _myHeartCount,
     _openOpponentPanel,
     battleSidePanel,
     _setModerators,
@@ -214,6 +214,7 @@ export default function SpectatorLiveScreen() {
     cohostLastGifts,
     cohostLayoutId,
     coinBalance,
+    testCoinBalance,
     comboCount,
     currentGift,
     declineBattleInviteFromWatch,
@@ -238,6 +239,10 @@ export default function SpectatorLiveScreen() {
     handleSpectatorVote,
     handleSubscribe,
     hasJoinedToday,
+    dailyHeartCount,
+    myHeartCount,
+    heartMembers,
+    topGifters,
     hasOpponentStream,
     hasStream,
     hostAvatar,
@@ -331,6 +336,8 @@ export default function SpectatorLiveScreen() {
     showCoHostPanel,
     showComboButton,
     showFanClub,
+    showTeamStatus,
+    closeTeamStatus,
     showGiftPanel,
     showOpponentPanel,
     showPromotePanel,
@@ -2285,6 +2292,104 @@ export default function SpectatorLiveScreen() {
           </>
         )}
 
+        {/* ═══ TEAM STATUS PANEL (Join Membership hearts + Buy) — same as creator/battle */}
+        {showTeamStatus && (
+          <>
+            <div
+              className="fixed inset-0 bg-black/35 pointer-events-auto"
+              style={{ zIndex: 99998 }}
+              onClick={closeTeamStatus}
+            />
+            <div className="fixed bottom-0 left-0 right-0 h-[40vh] z-[99999] pointer-events-auto max-w-[480px] mx-auto">
+              <div
+                className="elix-panel backdrop-blur-md rounded-t-2xl p-3 pb-safe h-full flex flex-col shadow-2xl w-full overflow-hidden "
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex flex-col px-1 pt-0 pb-2 border-b border-white/10 flex-shrink-0">
+                  <div className="flex justify-center pb-2" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-white/25" />
+                  </div>
+                  <span className="text-[#F5F5F7] font-bold text-sm text-center w-full">Your Team Status</span>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar min-h-0">
+                  <div className="bg-transparent rounded-xl p-3 border-0 relative overflow-hidden">
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center">
+                        <Heart className="w-6 h-6 text-[#FF6A3D] fill-[#FF6A3D]" strokeWidth={0} />
+                      </div>
+                      <div>
+                        <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Member Hearts</div>
+                        <div className="text-[#FF6A3D] font-bold text-sm tabular-nums">
+                          {dailyHeartCount} today
+                        </div>
+                        <div className="text-[#FF6A3D]/80 text-[9px] font-bold mt-0.5 tabular-nums">
+                          {myHeartCount} total hearts
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <h4 className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Hearts Sent</h4>
+                    <div className="space-y-1">
+                      {heartMembers.length === 0 && (
+                        <p className="text-white/30 text-[10px] text-center py-2">No membership hearts yet</p>
+                      )}
+                      {heartMembers.map((m, i) => (
+                        <div key={m.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#E6E9EE]/5 border border-[#D8D9DD]/15">
+                          <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
+                          <img src={m.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-white truncate">{m.username || 'Member'}</div>
+                          </div>
+                          <div className="text-[#FF6A3D] text-[10px] font-bold whitespace-nowrap tabular-nums">
+                            {m.heart_days} {m.heart_days === 1 ? 'heart' : 'hearts'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <MembershipBuySection
+                    creatorName={hostName}
+                    creatorAvatar={hostAvatar}
+                    isMember={isMember}
+                    isSubscribing={isSubscribing}
+                    isSelf={Boolean(user?.id && hostUserId && user.id === hostUserId)}
+                    onBuy={() => {
+                      void handleSubscribe();
+                    }}
+                  />
+
+                  <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20 mt-2">
+                    <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Total Gift Coins Received</div>
+                    <div className="text-[#D9A62E] font-bold text-lg">{hostTotalGiftCoins.toLocaleString()}</div>
+                  </div>
+
+                  <div className="mt-3">
+                    <h4 className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider mb-2 px-1">Top Supporters</h4>
+                    <div className="space-y-1">
+                      {topGifters.length === 0 && (
+                        <p className="text-white/30 text-[10px] text-center py-2">No gifts yet</p>
+                      )}
+                      {topGifters.map((g, i) => (
+                        <div key={g.user_id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[#E6E9EE]/5 border border-[#D8D9DD]/15">
+                          <div className="w-5 text-center font-bold text-[10px] text-[#F5F5F7]/60">{i + 1}</div>
+                          <img src={g.avatar_url || '/royce/elix-mark.svg'} alt="" className="w-7 h-7 rounded-full object-cover border border-[#D8D9DD]/20" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[10px] font-bold text-white truncate">{g.username || 'Supporter'}</div>
+                          </div>
+                          <div className="text-[#D9A62E] text-[10px] font-bold whitespace-nowrap">{g.total_coins.toLocaleString()} coins</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* ═══ SUPER FAN GOAL PANEL (Membership) — same as creator page */}
         {showFanClub && (
           <>
@@ -2468,7 +2573,7 @@ export default function SpectatorLiveScreen() {
                 onGiftSourceChange={setGiftSource}
                 onRechargeSuccess={(newBalance) => {
                   walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
-                  setCoinBalance(resolveGiftUiBalance(walletCoinBalanceRef.current, user?.id));
+                  setCoinBalance(walletCoinBalanceRef.current);
                 }}
                 battleBoost={
                   spectatorBattle?.active
@@ -2669,14 +2774,24 @@ export default function SpectatorLiveScreen() {
                       { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err)); } setShowSharePanel(false); } },
                       { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/watch/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err)); } showToast('Link copied!'); setShowSharePanel(false); } },
                       { name: 'Repost live', icon: <RefreshCw size={22} className="text-white" />, action: async () => {
-                        const url = `${window.location.origin}/watch/${effectiveStreamId}`;
-                        const ok = await nativeShareUrl({ title: 'Repost live on Elix', text: 'Watch this LIVE on Elix!', url });
-                        if (ok && effectiveStreamId) {
+                        if (!effectiveStreamId) {
+                          showToast('Live not ready to repost');
+                          return;
+                        }
+                        const { data, error } = await apiToggleRepost({
+                          targetType: 'live',
+                          targetId: effectiveStreamId,
+                        });
+                        if (error || !data) {
+                          showToast(error || 'Could not save repost');
+                          return;
+                        }
+                        if (data.reposted) {
                           earnBattleEnergyQuiet('share', effectiveStreamId);
                           void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err));
-                          showToast('Live ready to repost');
-                        } else if (!ok) {
-                          showToast('Could not open repost share');
+                          showToast('Added to Reposts');
+                        } else {
+                          showToast('Removed from Reposts');
                         }
                         setShowSharePanel(false);
                       } },
@@ -2736,17 +2851,12 @@ export default function SpectatorLiveScreen() {
                   <button
                     type="button"
                     onClick={openTestCoinsModal}
-                    className="absolute top-2.5 right-3 z-10 w-4 h-4 p-0 m-0 flex items-center justify-center"
+                    className="absolute top-1 right-1 z-20 w-10 h-10 p-0 m-0 flex items-center justify-center"
                     aria-label="Test coins"
-                    tabIndex={-1}
                   >
-                    {/* Panel-coloured mark — same as More panel; password gate; never real money */}
+                    {/* One small visible mark — top-right of More; password gate; never real money */}
                     <span
-                      className="w-2 h-2 rounded-full"
-                      style={{
-                        backgroundColor: 'var(--elix-panel)',
-                        border: '1px solid var(--elix-border)',
-                      }}
+                      className="block w-2 h-2 rounded-full bg-[#E6E9EE]/85"
                       aria-hidden
                     />
                   </button>
@@ -2928,7 +3038,7 @@ export default function SpectatorLiveScreen() {
                     <p className="text-white/40 text-xs mb-3">Test coins only — battle score + gift animation. Never real money, wallet, or creator revenue.</p>
                     <div className="flex items-center gap-2 mb-2">
                       <Coins className="w-4 h-4 text-[#D9A62E]" />
-                      <span className="text-white/60 text-xs">Test balance: {coinBalance.toLocaleString()}</span>
+                      <span className="text-white/60 text-xs">Test balance: {testCoinBalance.toLocaleString()}</span>
                     </div>
                     <input
                       type="number"

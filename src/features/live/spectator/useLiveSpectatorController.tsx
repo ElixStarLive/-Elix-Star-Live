@@ -19,11 +19,8 @@ import {
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
-  displayBalanceAfterTestSpend,
   getPersistedTestCoinsBalance,
-  getSpendableGiftBalance,
   getTestLevel,
-  resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
 } from '../../../lib/testCoins';
 import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
@@ -52,7 +49,15 @@ import {
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
-import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
+import { getMembershipStatus } from '../../../lib/iap';
+import {
+  purchaseCreatorMembership,
+  peekPendingMembershipCreator,
+  consumePendingMembershipOpenPanel,
+  loginReturnPath,
+  stashPendingMembershipPurchase,
+} from '../../membership/membershipPurchaseFlow';
+import { useLiveThermalQuality } from '../hooks/useLiveThermalQuality';
 import {
   apiLiveEngagementMissions,
   apiLiveGetDailyHearts,
@@ -175,6 +180,8 @@ export function useLiveSpectatorController() {
   const [coinBalance, setCoinBalance] = useState(0);
   /** Real wallet coins — never overwritten by test-coin display balance. */
   const walletCoinBalanceRef = useRef(0);
+  /** Local test coins (battle/animation QA only). Never merge into coinBalance. */
+  const [testCoinBalance, setTestCoinBalance] = useState(0);
   const [starterCoinBalance, setStarterCoinBalance] = useState(0);
   const [promotionalCoinBalance, setPromotionalCoinBalance] = useState(0);
   const [giftSource, setGiftSource] = useState<
@@ -193,6 +200,7 @@ export function useLiveSpectatorController() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [showFanClub, setShowFanClub] = useState(false);
+  const [showTeamStatus, setShowTeamStatus] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [isMember, setIsMember] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
@@ -480,10 +488,16 @@ export function useLiveSpectatorController() {
   }, [effectiveStreamId]);
 
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
-  const [_myHeartCount, setMyHeartCount] = useState(0);
-  const [_dailyHeartCount, setDailyHeartCount] = useState(0);
+  const [myHeartCount, setMyHeartCount] = useState(0);
+  const [dailyHeartCount, setDailyHeartCount] = useState(0);
   /** Host lifetime real gift coins — gates LIVE Pro badge (1M threshold). */
   const [hostTotalGiftCoins, setHostTotalGiftCoins] = useState(0);
+  const [heartMembers, setHeartMembers] = useState<
+    { user_id: string; heart_days: number; username?: string; avatar_url?: string }[]
+  >([]);
+  const [topGifters, setTopGifters] = useState<
+    { user_id: string; total_coins: number; username?: string; avatar_url?: string }[]
+  >([]);
   const dailyHeartFetchedRef = useRef(false);
 
   useEffect(() => {
@@ -499,24 +513,51 @@ export function useLiveSpectatorController() {
     }).catch((err) => reportFailure('live_daily_hearts', err, { hostUserId }));
   }, [hostUserId]);
 
-  useEffect(() => {
+  const refreshMembershipStats = useCallback(() => {
     const creatorId = String(hostUserId || effectiveStreamId || '').trim();
     if (!creatorId) {
       setHostTotalGiftCoins(0);
+      setHeartMembers([]);
+      setTopGifters([]);
       return;
     }
-    let cancelled = false;
     void apiLiveMembership(creatorId)
       .then(({ data: d }) => {
-        if (cancelled || !d) return;
+        if (!d) return;
         const n = typeof d.totalGiftCoins === 'number' ? d.totalGiftCoins : 0;
         setHostTotalGiftCoins(Number.isFinite(n) ? Math.max(0, n) : 0);
+        if (Array.isArray(d.heartMembers)) {
+          setHeartMembers(
+            d.heartMembers as {
+              user_id: string;
+              heart_days: number;
+              username?: string;
+              avatar_url?: string;
+            }[],
+          );
+        }
+        if (Array.isArray(d.topGifters)) {
+          setTopGifters(
+            d.topGifters as {
+              user_id: string;
+              total_coins: number;
+              username?: string;
+              avatar_url?: string;
+            }[],
+          );
+        }
       })
       .catch((err) => reportFailure('live_membership_refresh', err, { creatorId }));
-    return () => {
-      cancelled = true;
-    };
   }, [hostUserId, effectiveStreamId]);
+
+  useEffect(() => {
+    refreshMembershipStats();
+  }, [refreshMembershipStats]);
+
+  useEffect(() => {
+    if (!showTeamStatus) return;
+    refreshMembershipStats();
+  }, [showTeamStatus, refreshMembershipStats]);
 
   // ═══════════════════════════════════════════════════
   // BATTLE STATE (spectator sees host's battle status)
@@ -936,59 +977,17 @@ export function useLiveSpectatorController() {
       return;
     }
     // Opponent room id may equal host room when they already joined the battle room.
-    if (roomId === effectiveStreamId) return;
+    if (roomId === effectiveStreamId) {
+      void opponentLifecycleRef.current.disconnect();
+      opponentLkRoomRef.current = null;
+      return;
+    }
 
-    let mounted = true;
-    const opponentLifecycle = opponentLifecycleRef.current;
-    (async () => {
-      try {
-        const tok = await apiLiveToken(roomId, false);
-        if (tok.error || !tok.creds || !mounted) return;
-        const token = tok.creds.token;
-        const url = tok.creds.url.trim() || getLiveKitUrl();
-        if (!token || !url || !mounted) return;
-        const { error, session } = await opponentLifecycle.connectLiveKitOnly(
-          { url, token },
-          {
-            onTrackSubscribed: ({ track }) => {
-              if (!mounted || track.kind !== 'video') return;
-              const el = opponentVideoRef.current;
-              if (el) {
-                track.attach(el);
-                void el.play().catch(() => {});
-                setHasOpponentStream(true);
-              }
-            },
-          },
-        );
-        if (!mounted) {
-          opponentLifecycle.liveKit?.disconnect();
-          return;
-        }
-        if (error || !session) return;
-        const room = session.raw;
-        opponentLkRoomRef.current = room;
-        if (!room) return;
-        for (const [, p] of room.remoteParticipants) {
-          for (const [, pub] of p.videoTrackPublications) {
-            if (pub.track && pub.isSubscribed && opponentVideoRef.current) {
-              pub.track.attach(opponentVideoRef.current);
-              void opponentVideoRef.current.play().catch(() => {});
-              setHasOpponentStream(true);
-            }
-          }
-        }
-      } catch {
-        /* opponent solo room may already have ended — host-room path still applies */
-      }
-    })();
-    return () => {
-      mounted = false;
-      const raw = opponentLifecycle.rawRoom;
-      opponentLifecycle.liveKit?.disconnect();
-      if (opponentLkRoomRef.current === raw) opponentLkRoomRef.current = null;
-      // Connection-bug fix only: do not clear hasOpponentStream on reconnect cleanup.
-    };
+    // Battle joiners publish into the HOST LiveKit room after accept.
+    // One room owner only — secondary opponent-room connect duplicates decode/subscribe.
+    // Host-room attach effect below owns both battle tiles.
+    void opponentLifecycleRef.current.disconnect();
+    opponentLkRoomRef.current = null;
   }, [spectatorBattle?.active, spectatorBattle?.opponentRoomId, effectiveStreamId]);
 
   // ═══════════════════════════════════════════════════
@@ -1108,8 +1107,6 @@ export function useLiveSpectatorController() {
     isCamOff,
     acquireCamera,
     stopCamera,
-    toggleMic: toggleMicTracks,
-    toggleCam: toggleCamTracks,
     flipCamera: flipCameraFacing,
     setIsMicMuted,
     setIsCamOff,
@@ -1216,16 +1213,20 @@ export function useLiveSpectatorController() {
 
   const toggleMic = () => {
     if (!isCoHosting) return;
-    toggleMicTracks();
     const nextMuted = !isMicMuted;
-    void spectatorLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
+    void (async () => {
+      await spectatorLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
+      setIsMicMuted(nextMuted);
+    })();
   };
 
   const toggleCam = () => {
     if (!isCoHosting) return;
-    toggleCamTracks();
     const nextCamOff = !isCamOff;
-    void spectatorLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
+    void (async () => {
+      await spectatorLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
+      setIsCamOff(nextCamOff);
+    })();
   };
 
   // Attach co-host stream to my video ref (preview bind owned by useLiveCamera ref)
@@ -1335,6 +1336,20 @@ export function useLiveSpectatorController() {
   });
   const spectatorLifecycleRef = spectatorSession.lifecycleRef;
   const liveKitRoomRef = spectatorSession.liveKitRoomRef;
+
+  const getSpectatorThermalRoom = useCallback(() => liveKitRoomRef.current, [liveKitRoomRef]);
+  const getSpectatorThermalCameraTrack = useCallback(
+    () => coHostPublishStreamRef.current?.getVideoTracks()?.[0] ?? null,
+    [coHostPublishStreamRef],
+  );
+  const getSpectatorThermalFacing = useCallback(() => cameraFacing, [cameraFacing]);
+  useLiveThermalQuality({
+    enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
+    getRoom: getSpectatorThermalRoom,
+    getCameraVideoTrack: getSpectatorThermalCameraTrack,
+    getCameraFacing: getSpectatorThermalFacing,
+    publishesCamera: isCoHosting,
+  });
 
   // Attach featured co-host / host-small tracks when big-screen switch changes.
   useEffect(() => {
@@ -1535,6 +1550,7 @@ export function useLiveSpectatorController() {
           prepareLiveVideoEl(myVideoRef.current);
         }
         await lifecycle.publishFromStream(stream);
+        await lifecycle.liveKit?.setCamEnabled(!isCamOff);
         await lifecycle.liveKit?.setMicEnabled(!isMicMuted);
       } catch {
         if (!cancelled) showToast('Could not switch camera');
@@ -1543,7 +1559,7 @@ export function useLiveSpectatorController() {
     return () => {
       cancelled = true;
     };
-  }, [cameraFacing, isCoHosting, acquireCamera, isMicMuted, myVideoRef, spectatorLifecycleRef]);
+  }, [cameraFacing, isCoHosting, acquireCamera, isCamOff, isMicMuted, myVideoRef, spectatorLifecycleRef]);
 
   const mainVideoAttachedRef = useRef(false);
   {
@@ -1678,9 +1694,6 @@ export function useLiveSpectatorController() {
           showToast('Could not start camera. Host will not see your video.');
           return;
         }
-        stream.getAudioTracks().forEach((t) => {
-          t.enabled = false;
-        });
         await lifecycle.publishFromStream(stream);
         await lifecycle.liveKit?.setMicEnabled(false);
         if (myVideoRef.current) {
@@ -1837,7 +1850,8 @@ export function useLiveSpectatorController() {
             ? Math.max(0, wallet.balances.paid)
             : 0;
         walletCoinBalanceRef.current = walletBal;
-        setCoinBalance(resolveGiftUiBalance(walletBal, user.id));
+        setCoinBalance(walletBal);
+        setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
         const p = (progression.data?.progression ?? null) as Record<string, unknown> | null;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
         setStarterCoinBalance(starter);
@@ -1865,9 +1879,7 @@ export function useLiveSpectatorController() {
       })
       .catch(() => {
         if (cancelled) return;
-        if (shouldUseTestCoinsForGifts(user.id)) {
-          setCoinBalance(getPersistedTestCoinsBalance(user.id));
-        }
+        setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
         showToast('Could not load wallet balance');
       });
     return () => { cancelled = true; };
@@ -1915,7 +1927,7 @@ export function useLiveSpectatorController() {
         setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         return;
       }
-      setCoinBalance(result.balance);
+      setTestCoinBalance(result.balance);
       showToast(`+${result.minted.toLocaleString()} test added`);
       setShowTestCoinsModal(false);
       setTestCoinsPwd('');
@@ -1952,7 +1964,7 @@ export function useLiveSpectatorController() {
         if (result.status === 403) setTestCoinsStep('password');
         return;
       }
-      setCoinBalance(result.balance);
+      setTestCoinBalance(result.balance);
       showToast(`+${result.minted.toLocaleString()} test added`);
       setShowTestCoinsModal(false);
       setTestCoinsPwd('');
@@ -1989,24 +2001,14 @@ export function useLiveSpectatorController() {
 
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;
-    const testBal = getPersistedTestCoinsBalance(user.id);
-    if (testBal > 0) {
-      setCoinBalance(testBal);
-      // Still refresh real wallet in the background so paid gifts work when test hits 0.
-      void apiFetchWallet().then(({ balances, error: walletErr }) => {
-        if (!walletErr && balances) {
-          walletCoinBalanceRef.current = Math.max(0, balances.paid);
-        }
-      });
-    } else {
-      void apiFetchWallet().then(({ balances, error: walletErr }) => {
-        if (!walletErr && balances) {
-          const walletBal = Math.max(0, balances.paid);
-          walletCoinBalanceRef.current = walletBal;
-          setCoinBalance(walletBal);
-        }
-      });
-    }
+    setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
+    void apiFetchWallet().then(({ balances, error: walletErr }) => {
+      if (!walletErr && balances) {
+        const walletBal = Math.max(0, balances.paid);
+        walletCoinBalanceRef.current = walletBal;
+        setCoinBalance(walletBal);
+      }
+    });
     apiLiveProgressionMe().then(({ data, error }) => {
       if (!error && data?.progression) {
         const progression = data.progression as Record<string, unknown>;
@@ -2037,32 +2039,69 @@ export function useLiveSpectatorController() {
     });
   }, [showGiftPanel, user?.id]);
 
-  const handleSubscribe = async () => {
+  const handleSubscribe = useCallback(async () => {
+    const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
+    if (!creatorId || creatorId === user?.id) {
+      showToast('Creator unavailable');
+      return;
+    }
+    if (!user?.id || !useAuthStore.getState().session?.access_token) {
+      stashPendingMembershipPurchase(creatorId);
+      navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
+      return;
+    }
     setIsSubscribing(true);
     try {
-      if (!user?.id) {
-        navigate('/login');
+      const result = await purchaseCreatorMembership(creatorId);
+      if (!result.ok) {
+        if (result.needsLogin) {
+          navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
+          return;
+        }
+        if (!result.cancelled) {
+          showToast(result.error || 'Membership purchase failed');
+        }
         return;
       }
-      const creatorId = hostUserIdRef.current || hostUserId;
-      if (!creatorId || creatorId === user.id) {
-        showToast('Creator unavailable');
-        return;
-      }
-      const result = await purchaseMembership(creatorId);
-      if (result.success && result.status?.active) {
-        setIsMember(true);
-        showToast('Membership activated!');
-        setShowFanClub(false);
-      } else if (result.error !== 'Purchase cancelled') {
-        showToast(result.error || 'Membership purchase failed');
-      }
+      setIsMember(true);
+      showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
+      refreshMembershipStats();
     } catch {
       showToast('Membership purchase failed');
     } finally {
       setIsSubscribing(false);
     }
-  };
+  }, [hostUserId, user?.id, navigate, location.pathname, location.search, refreshMembershipStats]);
+
+  const pendingMembershipResumeRef = useRef(false);
+  useEffect(() => {
+    if (!user?.id || pendingMembershipResumeRef.current) return;
+    if (!consumePendingMembershipOpenPanel()) return;
+    const pending = peekPendingMembershipCreator();
+    const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
+    if (!pending || !creatorId || pending !== creatorId || pending === user.id) return;
+    pendingMembershipResumeRef.current = true;
+    setShowTeamStatus(true);
+    void (async () => {
+      setIsSubscribing(true);
+      try {
+        const result = await purchaseCreatorMembership(pending);
+        if (!result.ok) {
+          if (!result.cancelled && !result.needsLogin) {
+            showToast(result.error || 'Membership purchase failed');
+          }
+          return;
+        }
+        setIsMember(true);
+        showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
+        refreshMembershipStats();
+      } catch {
+        showToast('Membership purchase failed');
+      } finally {
+        setIsSubscribing(false);
+      }
+    })();
+  }, [user?.id, hostUserId, refreshMembershipStats]);
 
   useEffect(() => {
     const creatorId = hostUserIdRef.current || hostUserId;
@@ -2975,25 +3014,30 @@ export function useLiveSpectatorController() {
         showToast('Follow first to give a membership heart');
         return;
       }
+      const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
       if (!user?.id) {
-        showToast('Log in to give a membership heart');
-        navigate('/login', { state: { from: location.pathname } });
+        if (creatorId && creatorId !== 'broadcast') {
+          stashPendingMembershipPurchase(creatorId);
+        }
+        showToast('Log in to continue membership');
+        navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
         return;
       }
-      const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
       if (!creatorId || creatorId === 'broadcast') {
         showToast('Creator unavailable. Try again.');
         return;
       }
       const token = useAuthStore.getState().session?.access_token;
       if (!token) {
-        showToast('Log in to give a membership heart');
-        navigate('/login', { state: { from: location.pathname } });
+        stashPendingMembershipPurchase(creatorId);
+        showToast('Log in to continue membership');
+        navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
         return;
       }
 
       if (hasJoinedToday) {
         showToast('Already sent today’s membership heart');
+        setShowTeamStatus(true);
         return;
       }
 
@@ -3003,6 +3047,7 @@ export function useLiveSpectatorController() {
         if (before?.hasSent) {
           setHasJoinedToday(true);
           showToast('Already sent today’s membership heart');
+          setShowTeamStatus(true);
           return;
         }
       } catch (err) {
@@ -3013,17 +3058,20 @@ export function useLiveSpectatorController() {
         const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
         if (error) {
           showToast('Could not send membership heart. Try again.');
+          setShowTeamStatus(true);
           return;
         }
         const already = d?.already === true;
         const ok = d?.ok === true || already;
         if (!ok) {
           showToast('Could not send membership heart. Try again.');
+          setShowTeamStatus(true);
           return;
         }
 
         // Orange Join immediately after a successful send (same day) — server owns the day flag.
         setHasJoinedToday(true);
+        setShowTeamStatus(true);
 
         if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
           spawnHeartFromClient(e.clientX, e.clientY);
@@ -3065,9 +3113,11 @@ export function useLiveSpectatorController() {
         } catch (err) {
           reportFailure('live_daily_hearts', err, { creatorId });
         }
+        refreshMembershipStats();
       } catch (err) {
         reportFailure('live_membership_join', err, { creatorId });
         showToast('Could not send membership heart. Try again.');
+        setShowTeamStatus(true);
       }
     },
     [
@@ -3077,10 +3127,12 @@ export function useLiveSpectatorController() {
       hasJoinedToday,
       navigate,
       location.pathname,
+      location.search,
       spawnHeartFromClient,
       viewerName,
       viewerAvatar,
       userLevel,
+      refreshMembershipStats,
     ],
   );
 
@@ -3142,7 +3194,7 @@ export function useLiveSpectatorController() {
     if (opts?.fromCombo && comboCount >= GIFT_COMBO_MAX) return;
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
     const spendable = usedTestCoins
-      ? getSpendableGiftBalance(coinBalance, user?.id)
+      ? getPersistedTestCoinsBalance(user?.id)
       : giftSource === 'starter_coins'
         ? starterCoinBalance
         : giftSource === 'promotional_coins'
@@ -3168,9 +3220,7 @@ export function useLiveSpectatorController() {
         showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
         return;
       }
-      setCoinBalance(
-        displayBalanceAfterTestSpend(debit.newBalance, walletCoinBalanceRef.current),
-      );
+      setTestCoinBalance(debit.newBalance);
       // Test-only: drive a LOCAL level using the same curve as the server so the
       // level visibly climbs while testing. Never sent to the server / real XP.
       const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
@@ -3249,15 +3299,13 @@ export function useLiveSpectatorController() {
         } else if (result.newBalance != null) {
           const nextWallet = Math.max(0, Number(result.newBalance));
           walletCoinBalanceRef.current = nextWallet;
-          setCoinBalance(
-            resolveGiftUiBalance(nextWallet, user?.id),
-          );
+          setCoinBalance(nextWallet);
         } else {
           void apiFetchWallet().then(({ balances, error: walletErr }) => {
             if (!walletErr && balances) {
               const nextWallet = Math.max(0, balances.paid);
               walletCoinBalanceRef.current = nextWallet;
-              setCoinBalance(resolveGiftUiBalance(nextWallet, user?.id));
+              setCoinBalance(nextWallet);
             }
           });
         }
@@ -3448,9 +3496,11 @@ export function useLiveSpectatorController() {
 
   return {
     SPEED_CHALLENGE_ENABLED,
-    _dailyHeartCount,
+    dailyHeartCount,
+    myHeartCount,
+    heartMembers,
+    topGifters,
     _lastBattleScoreUpdateTraceSigRef,
-    _myHeartCount,
     _openOpponentPanel,
     openBattleSidePanel,
     battleSidePanel,
@@ -3485,6 +3535,7 @@ export function useLiveSpectatorController() {
     cohostLastGifts,
     cohostState,
     coinBalance,
+    testCoinBalance,
     comboCount,
     comboStack,
     comboTimerRef,
@@ -3705,6 +3756,9 @@ export function useLiveSpectatorController() {
     showCoHostPanel,
     showComboButton,
     showFanClub,
+    showTeamStatus,
+    setShowTeamStatus,
+    closeTeamStatus: () => setShowTeamStatus(false),
     showGiftPanel,
     showOpponentPanel,
     showPromotePanel,

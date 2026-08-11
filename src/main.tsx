@@ -15,6 +15,8 @@ if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
   if (Capacitor.getPlatform() === 'ios') {
     document.documentElement.classList.add('ios')
+  } else if (Capacitor.getPlatform() === 'android') {
+    document.documentElement.classList.add('android')
   }
 }
 

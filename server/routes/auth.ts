@@ -899,6 +899,7 @@ export async function handleDeleteAccount(req: Request, res: Response) {
     await del(`DELETE FROM comments WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM likes WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM saves WHERE user_id = $1`, [user.id]);
+    await del(`DELETE FROM elix_reposts WHERE user_id = $1`, [user.id]);
     await del(`DELETE FROM follows WHERE follower_id = $1 OR following_id = $1`, [user.id]);
     // Moderation & safety
     await del(`DELETE FROM elix_notifications WHERE user_id = $1`, [user.id]);
