@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { chromium, type Page } from "playwright";
 import { initPostgres, getPool } from "../lib/postgres.ts";
+import { requireValue } from "./_env.ts";
 
 process.env.ELIX_STRIPE_CONNECT_MODE = "test";
 
@@ -50,7 +51,7 @@ async function main() {
     "../lib/monetisation/payoutProvider.ts"
   );
   const creatorId = `express_tos_${randomUUID()}`;
-  const pool = getPool()!;
+  const pool = requireValue(getPool(), "postgres pool");
   await pool.query(
     `INSERT INTO elix_payout_methods (id, user_id, type, is_default, details)
      VALUES ($1,$2,'stripe_connect',TRUE,'{}'::jsonb)`,

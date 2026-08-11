@@ -33,6 +33,7 @@ export async function insertNotification(opts: {
   }
 
   if (opts.push !== false) {
+    // Note: return value ignored — false only if Valkey and memory enqueue both fail.
     await enqueueJob({
       type: "push_notify",
       userId: opts.userId,

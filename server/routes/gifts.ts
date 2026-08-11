@@ -105,7 +105,7 @@ export async function handleSendGift(req: Request, res: Response) {
     if (!pool) return res.status(503).json({ error: "Database not configured" });
 
     const fraud = await assertGiftRestVelocityOk(auth.userId);
-    if (!fraud.ok) {
+    if (fraud.ok === false) {
       return res.status(429).json({ error: fraud.code });
     }
 
@@ -180,7 +180,7 @@ export async function handleSendGift(req: Request, res: Response) {
         coins: coinCost,
         clientTransactionId,
       });
-      if (!starterResult.ok) {
+      if (starterResult.ok === false) {
         return res.status(400).json({
           error: starterResult.error,
           starter_coin_balance: starterResult.starter_balance,
@@ -399,7 +399,7 @@ export async function handleSendGift(req: Request, res: Response) {
         clientTransactionId,
         creatorId: recipientId,
       });
-      if (!debited.ok) {
+      if (debited.ok === false) {
         return res.status(400).json({
           error: debited.error,
           new_balance: debited.newBalance,
@@ -537,8 +537,8 @@ export async function handleGetSounds(_req: Request, res: Response) {
       });
     } catch (err) {
       logger.error({ err }, "handleGetSounds epidemic failed");
-      return res.status(200).json({
-        tracks: [],
+      return res.status(502).json({
+        tracks: null,
         configured: true,
         source: "epidemic_sound",
         error: "MUSIC_PROVIDER_ERROR",
@@ -548,7 +548,7 @@ export async function handleGetSounds(_req: Request, res: Response) {
 
   const pool = getPool();
   if (!pool) {
-    return res.status(200).json({ tracks: [], configured: false, source: null });
+    return res.status(503).json({ tracks: null, configured: false, source: null, error: "DATABASE_UNAVAILABLE" });
   }
   try {
     const r = await pool.query(
@@ -583,9 +583,14 @@ export async function handleGetSounds(_req: Request, res: Response) {
   } catch (err) {
     const code = (err as { code?: string })?.code;
     if (code === "42P01") {
-      return res.status(200).json({ tracks: [], configured: false, source: null });
+      return res.status(503).json({
+        tracks: null,
+        configured: false,
+        source: null,
+        error: "SCHEMA_UNAVAILABLE",
+      });
     }
     logger.error({ err }, "handleGetSounds failed");
-    return res.status(500).json({ tracks: [], error: "Failed to load sounds" });
+    return res.status(500).json({ tracks: null, error: "Failed to load sounds" });
   }
 }

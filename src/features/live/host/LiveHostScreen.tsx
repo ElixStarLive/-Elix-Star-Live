@@ -1,7 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
 import { showToast } from '../../../lib/toast';
-import { platform, openExternalLink, nativeShareUrl } from '../../../lib/platform';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -38,31 +36,22 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../../../lib/ai/filters';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
-import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
+import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
+import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
 import { LiveFaceEffectsLayer } from '../../../components/LiveFaceEffectsLayer';
 import { LIVE_FACE_EFFECT_OPTIONS, getLiveFaceEngineLabel } from '../../../lib/liveFaceEffectsProvider';
-import {
-  announceMvpName,
-  createTauntBurst,
-  maybeTauntLeadChange,
-  playBattleTauntSound,
-  type TauntBurst,
-} from '../../../lib/battleTaunts';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
 import { FaceARGift } from '../../../components/FaceARGift';
-import { useLivePromoStore } from '../../../store/useLivePromoStore';
 import { AvatarRing } from '../../../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
 import {
   LIVE_MVP_PROFILE_RING_PX,
-  BATTLE_MVP_ROW_EDGE_OFFSET_MM,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
@@ -70,31 +59,10 @@ import {
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
 } from '../../../lib/profileFrame';
-import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import { RoyceCloseIcon } from '../../../components/royce';
-import { useAuthStore } from '../../../store/useAuthStore';
-import { useVideoStore } from '../../../store/useVideoStore';
-import { clearCachedCameraStream, getCachedCameraStream, setCachedCameraStream } from '../../../lib/cameraStream';
-import { apiUrl, getLiveKitUrl } from '../../../lib/api';
-import { request } from '../../../lib/apiClient';
-import { giftSendErrorToast } from '../../../lib/giftSend';
+import type { LiveMessage } from '../types';
+import { sameUserId } from '../utils/ids';
 import {
-  apiLiveStart,
-  apiLiveEnd,
-  apiLiveToken,
-  apiLiveStreams,
-  LiveRoomLifecycle,
-} from '../../../lib/live';
-import type {
-  LiveMessage,
-  UniverseTickerMessage,
-  LiveViewer,
-  BattleState,
-  BattleSlot,
-} from '../types';
-import { normalizeUserId, sameUserId, isSelfUser } from '../utils/ids';
-import {
-  fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
   SHARE_PANEL_ACTION_ICON_PX,
   SHARE_PANEL_AVATAR_PX,
@@ -105,9 +73,7 @@ import PromotePanel from '../../../components/PromotePanel';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
-import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { RankingPanel } from '../../../components/RankingPanel';
-import { type LiveRankTab } from '../../../components/CyclingRankBadge';
 import {
   LiveComboMissionDock,
   LiveHostProfileHeader,
@@ -118,27 +84,16 @@ import {
 import {
   LiveSideMissionStack,
 } from '../../../components/LiveSideMissionStack';
-import { websocket } from '../../../lib/websocket';
-import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
-import { liveStreamUiGiftTargetToServerBattleTarget, normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import { engagementFlags } from '../../../config/engagementFlags';
-import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import { liveChatSend } from '../chat/liveChatActions';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
-import {
-  EngagementDrawer,
-  type EngagementPanel,
-} from '../../../components/engagement/EngagementDrawer';
-import { purchaseMembership } from '../../../lib/iap';
-import type { Room } from 'livekit-client';
-import { ConnectionState } from 'livekit-client';
-import { useWalletStore } from '../../../store/useWalletStore';
-import { App as CapacitorApp } from '@capacitor/app';
+import { EngagementDrawer } from '../../../components/engagement/EngagementDrawer';
+import { reportFailure } from '../../../lib/reportFailure';
 
 const LIVE_BOTTOM_ICON_BTN =
   'w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
@@ -185,7 +140,6 @@ import { useLiveHostController } from './useLiveHostController';
 export default function LiveHostScreen() {
   const {
     MAX_CO_HOSTS,
-    PROMOTE_LIKES_THRESHOLD_LIVE,
     SPEED_CHALLENGE_ENABLED,
     _PROMOTE_LIKES_THRESHOLD_BATTLE,
     _allSlotsAccepted,
@@ -196,8 +150,6 @@ export default function LiveHostScreen() {
     _battleUiRole,
     _closeBattleMatch,
     _formatStreamName,
-    _giftBanner,
-    _giftBannerTimer,
     _hostIsReady,
     _iAmReady,
     _isLiveNormal,
@@ -213,7 +165,6 @@ export default function LiveHostScreen() {
     _rawStreamId,
     _setBattleGiftIconFailed,
     _setBattleReadiness,
-    _setGiftBanner,
     _setHostSearchQuery,
     _setMembershipHeartActive,
     _setShowEmojiPicker,
@@ -228,49 +179,25 @@ export default function LiveHostScreen() {
     acceptBattleInvite,
     applyMembershipStats,
     acceptBattleInviteClick,
-    acceptCohostInvite,
     acceptCohostInviteClick,
-    acceptJoinRequest,
     acceptJoinRequestFromViewerList,
     activeFaceARGift,
     activeLikes,
     activeLiveFaceEffect,
     activeViewers,
-    activeViewersRef,
-    addLiveLikes,
-    allFilledAccepted,
     applyLiveFaceEffectPreset,
     applyLiveFilterPreset,
-    attachRemoteAudio,
     battleCountdown,
-    battleEndedTimeoutRef,
-    battleFreeTapUsedRef,
     battleGloves,
     battleHideScores,
-    battleJoinerConnectIdRef,
-    battleLifecycleRef,
-    battleLkRoomRef,
     battleMistSide,
-    battleMistTimerRef,
-    battleParticipantStream,
-    battlePeerRef,
-    battleRoleRef,
     battleScoreBarHidden,
-    battleScoresRef,
-    battleScreenTapCount,
-    battleScreenTapCountRef,
     battleServerTotals,
-    battleServerTotalsRef,
     battleSlots,
-    battleSlotsRef,
     battleSpectatorOverlayRef,
     battleState,
-    battleStateRef,
-    battleStreamIdsRef,
-    battleTapScoreRemainingRef,
     battleTauntBursts,
     battleTime,
-    battleTripleTapRef,
     battleVoteGridRef,
     battleWinner,
     battleTeamWinner,
@@ -282,24 +209,16 @@ export default function LiveHostScreen() {
     boosterCatches,
     buildMvpRanked,
     cameraError,
-    cameraFacing,
     cameraOffPlayers,
-    cameraRecoverAtRef,
-    cameraRecoverInFlightRef,
-    cameraStream,
-    cameraStreamRef,
     chatHeartLayerRef,
     clearActiveFaceARGift,
-    clearBattleInviteTimer,
     clearGiftGoal,
     clearInvitedBattleSlot,
-    closeAllBottomPanels,
     closeFanClub,
     closeFindCreatorsPanel,
     closeGiftPanel,
     closeLiveEffectsPanel,
     closeLiveWithSlide,
-    closeMembershipBar,
     closeMiniProfile,
     closeMoreMenu,
     closePromotePanel,
@@ -309,23 +228,16 @@ export default function LiveHostScreen() {
     closeTeamStatus,
     closeViewerList,
     coHostCameraOff,
-    coHostTimersRef,
     coHostVideoRefs,
     coHosts,
-    coHostsRef,
     cohostGiftScores,
     cohostLastGifts,
     cohostLayoutId,
     selectCohostLayout,
     coinBalance,
     comboCount,
-    comboStack,
-    comboTimerRef,
     creatorName,
-    creatorNameRef,
-    creatorQuery,
     creatorStickers,
-    creators,
     creatorsLoadFailed,
     creatorsLoading,
     creatorsToInvite,
@@ -334,30 +246,16 @@ export default function LiveHostScreen() {
     dailyHeartCount,
     declineBattleInvite,
     declineCohostInvite,
-    declineJoinRequest,
     declineJoinRequestFromViewerList,
-    deleteSticker,
-    determine4PlayerWinner,
     diamondLeagueRank,
     effectiveStreamId,
-    effectiveStreamIdRef,
-    endBattleCleanup,
     endCoHostMode,
     engagementOpen,
     engagementPanel,
-    enqueueGiftVideoRef,
-    enqueueUniverse,
-    exitBattleMode,
-    exitBattleModeRef,
     featuredBigVideoRef,
     featuredHost,
     featuredUserId,
-    featuredUserIdRef,
-    filledSlots,
     filteredCreators,
-    filteredHostCreators,
-    findCoHostVideoEl,
-    flipCamera,
     floatingHearts,
     followCreatorLive,
     followingUsers,
@@ -366,91 +264,53 @@ export default function LiveHostScreen() {
     formatTime,
     giftGoal,
     giftKey,
-    giftQueue,
     giftSource,
-    giftTarget,
-    gloveIdRef,
     goMiniProfileFromMini,
     goalPick,
     goalSaving,
     goalTargetCount,
-    handleBattleTap,
     handleComboClick,
     handleGiftEnded,
     handleLikeTap,
-    handleMiniProfileFollowToggle,
-    handleMiniProfileShare,
     handleScreenTap,
     handleSendGift,
     handleSendMessage,
     handleSubscribe,
     hasJoinedToday,
     hasOpponentStream,
-    hasOpponentStreamRef,
-    heartFloatAvatar,
-    heartFloatName,
     heartMembers,
-    hostAvatar,
-    hostLifecycleRef,
-    hostName,
-    hostSearchQuery,
     hostSmallVideoRef,
     inputValue,
-    inviteCoHost,
     inviteCoHostFromViewer,
     inviteCreatorToSlot,
-    inviteTimersRef,
     isBattleJoiner,
     isBattleMode,
-    isBattleModeRef,
     isBattleParticipant,
     isBroadcast,
-    isBroadcastRef,
-    isBroadcaster,
     isCamOff,
     isChatVisible,
     isCreatorParticipant,
     isFindCreatorsOpen,
     isFollowing,
-    isGenericViewerName,
     isMicMuted,
     isMoreMenuOpen,
-    isMyStreamLive,
     isReportModalOpen,
     isSpeakingUser,
     isSubscribing,
-    lastGifts,
     lastScreenTapRef,
     lastSentGift,
     leftPct,
-    leftPctRaw,
-    liveCoHosts,
-    liveFilterBeforeFaceGiftRef,
     liveFilterCss,
-    liveKitCreds,
-    liveKitRoomRef,
-    liveLikes,
-    liveRegisteredRef,
     liveViewerLabel,
     loadCreators,
-    localBattleTimerRef,
     location,
-    maybeEnqueueUniverse,
-    maybeResolveViewerIdentity,
-    maybeTriggerFaceARGift,
-    membershipTimerRef,
     messages,
     miniProfile,
     miniProfileFollowClick,
     miniProfileFollowsThem,
     miniProfileShareClick,
-    missionGiftsGoal,
-    missionGiftsSent,
-    missionWatchGoal,
-    missionWatchMin,
     mistFog,
     mistHidesScores,
-    moderationIntervalRef,
     moderationWarningMessage,
     moderators,
     moreFlipCamera,
@@ -466,8 +326,6 @@ export default function LiveHostScreen() {
     myAvatar,
     myCreatorName,
     myHeartCount,
-    myScore,
-    navigate,
     onComboButtonClick,
     openBattleChrome,
     openCoHostGiftFromGrid,
@@ -478,9 +336,7 @@ export default function LiveHostScreen() {
     openGiftFromRanking,
     openGiftPanel,
     openGiftPanelForCohost,
-    openGiftPanelIfSpectator,
     openLiveEffectsPanel,
-    openMembershipFromGift,
     openBattlePartnerMiniProfile,
     openMiniProfile,
     openMoreMenu,
@@ -490,197 +346,48 @@ export default function LiveHostScreen() {
     openTopGiftersAll,
     openTopGiftersHost,
     openTopGiftersOpponent,
-    openTopGiftersPanel,
-    openViewerMiniProfile,
     openWeeklyRanking,
     openGiftGoalPanel,
-    openWeeklyRankingFromGift,
-    opponentCreatorName,
-    opponentLifecycleRef,
-    opponentLkConnectIdRef,
-    opponentLkRoomRef,
     opponentRemoteAudioRef,
-    opponentScore,
-    opponentStreamKey,
     opponentVideoRef,
     pageExiting,
     pendingCohostInvite,
     pendingInvite,
     pendingJoinRequest,
-    playedGiftVideoTxnRef,
-    player3Score,
     player3VideoRef,
-    player4Score,
     player4VideoRef,
-    prevBattleSyncStatusRef,
-    prevMvpHostIdRef,
-    prevMvpOpponentIdRef,
     promotionalCoinBalance,
-    publishHostLiveKitTracks,
-    pushBattleTaunt,
-    pushComboStack,
     rankingInitialTab,
-    reachedThresholdsRef,
-    recordLiveShareProgress,
     redTeamScore,
     remoteCamOff,
     removeCoHost,
     removeFanClubSticker,
     removePlayerFromSlot,
-    resetBattleForRematch,
-    resetComboTimer,
     resolveCircleAvatar,
-    resolveSpectatorVoteTargetFromWatchedStream,
-    restoreHostCameraPreview,
     roomRemoteAudioRef,
-    roseCount,
-    roseCountRef,
     saveGiftGoal,
-    seenChatMsgIdRef,
     selectedCohostGiftUserId,
-    selfUserIdRef,
     sendShareToFollower,
     sendSpectatorCohostRequest,
-    sessionContribution,
-    setActiveFaceARGift,
-    setActiveLiveFaceEffect,
-    setActiveViewers,
-    setBattleCountdown,
-    setBattleGloves,
-    setBattleHideScores,
-    setBattleMistSide,
-    setBattleParticipantStream,
     setBattleScoreBarHidden,
-    setBattleScreenTapCount,
-    setBattleServerTotals,
-    setBattleSlots,
-    setBattleState,
-    setBattleTauntBursts,
-    setBattleTime,
-    setBattleUiRole,
-    setBattleWinner,
-    setBoosterActivations,
-    setBoosterCatches,
-    setCameraError,
-    setCameraFacing,
-    setCameraOffPlayers,
-    setCameraStream,
-    setCoHostCameraOff,
-    setCoHosts,
-    setCohostGiftScores,
-    setCohostLastGifts,
     setCoinBalance,
-    setComboCount,
-    setComboStack,
-    setCreatorQuery,
-    setCreatorStickers,
-    setCreators,
-    setCreatorsLoadFailed,
-    setCreatorsLoading,
-    setCurrentGift,
-    setCurrentUniverse,
-    setDailyHeartCount,
-    setDiamondLeagueRank,
     setEngagementOpen,
     setEngagementPanel,
     setFeaturedUserId,
-    setFloatingHearts,
-    setGiftGoal,
-    setGiftKey,
-    setGiftQueue,
     setGiftSource,
-    setGiftTarget,
     setGoalPick,
-    setGoalSaving,
     setGoalTargetCount,
     setHasJoinedToday,
-    setHasOpponentStream,
-    setHeartMembers,
-    setHostAvatar,
-    setHostIsReady,
-    setHostName,
-    setIAmReady,
     setInputValue,
-    setIsBattleMode,
-    setIsCamOff,
-    setIsChatVisible,
     setIsFindCreatorsOpen,
-    setIsFollowing,
-    setIsMicMuted,
-    setIsMoreMenuOpen,
-    setIsMyStreamLive,
-    setIsReportModalOpen,
-    setIsSubscribing,
-    setLastGifts,
-    setLastSentGift,
-    setLiveFilterCss,
-    setLiveLikes,
-    setMemberCount,
     setMessages,
-    setMiniProfile,
-    setMiniProfileFollowsThem,
-    setMissionGiftsGoal,
-    setMissionGiftsSent,
-    setMissionWatchGoal,
-    setMissionWatchMin,
-    setMistFog,
     setModerationWarningMessage,
-    setModerators,
-    setMutedPlayers,
-    setMvpGiftScores,
-    setMvpGiftScoresHost,
-    setMvpGiftScoresOpponent,
-    setMyHeartCount,
-    setMyScore,
-    setOpponentCreatorName,
-    setOpponentIsReady,
-    setOpponentScore,
-    setOpponentStreamKey,
-    setPageExiting,
-    setPendingCohostInvite,
-    setPendingInvite,
-    setPendingJoinRequest,
-    setPlayer3Score,
-    setPlayer4Score,
-    setPromo,
-    setPromotionalCoinBalance,
     setRankingInitialTab,
-    setRemoteCamOff,
-    setRoseCount,
-    setSelectedCohostGiftUserId,
-    setSessionContribution,
-    setShareFollowers,
     setShareQuery,
-    setShareSentTo,
-    setShowComboButton,
-    setShowFanClub,
-    setShowGiftPanel,
-    setShowJoinAnimation,
-    setShowLiveEffectsPanel,
     setShowModerationWarning,
-    setShowPromotePanel,
     setShowRankingPanel,
-    setShowSharePanel,
     setShowTeamStatus,
     setShowViewerList,
-    setSpeakingIds,
-    setSpectatorCoHostRequestSent,
-    setSpectatorTapsUsed,
-    setSpeedChallengeActive,
-    setSpeedChallengeResult,
-    setSpeedChallengeTaps,
-    setSpeedChallengeTime,
-    setSpeedMultiplier,
-    setStarterCoinBalance,
-    setStickerUploading,
-    setTopGifters,
-    setTopGiftersSide,
-    setTotalGiftCoins,
-    setUniverseQueue,
-    setUserLevel,
-    setUserXP,
-    setViewerCount,
-    setViewerListMode,
     shareCopyLink,
     shareFacebook,
     shareFollowers,
@@ -694,7 +401,6 @@ export default function LiveHostScreen() {
     showComboButton,
     showFanClub,
     showGiftPanel,
-    showJoinAnimation,
     showLiveEffectsPanel,
     showModerationWarning,
     showPromotePanel,
@@ -704,39 +410,23 @@ export default function LiveHostScreen() {
     showViewerList,
     sideMissions,
     sideSupporters,
-    spawnHeartAt,
-    spawnHeartAtSide,
     spawnHeartFromClient,
-    speakingIds,
     spectatorCoHostRequestSent,
-    spectatorTapPointsRef,
     speedChallengeActive,
-    speedChallengeActiveRef,
     speedChallengeResult,
-    speedChallengeTaps,
-    speedChallengeTapsRef,
     speedChallengeTime,
     speedMultiplier,
-    speedMultiplierRef,
     stageRef,
     startBattleWithAcceptedCreators,
     startMatchFromFindCreators,
     startMysteryFromMore,
-    startSpeedChallenge,
     starterCoinBalance,
     stickerUploading,
-    stickersFetchedRef,
-    stopBroadcast,
-    storePaidBalance,
-    storePromoBalance,
-    storeStarterBalance,
-    toggleBattle,
     toggleCam,
     toggleCoHostCamera,
     toggleCoHostMute,
     toggleFeaturedUser,
     toggleHostPoll,
-    toggleHostPollCore,
     toggleHostPollFromMore,
     toggleMic,
     toggleMiniProfileModerator,
@@ -744,32 +434,22 @@ export default function LiveHostScreen() {
     togglePlayerMute,
     topGifters,
     topGiftersForPanel,
-    topGiftersRanked,
     topGiftersSide,
     topMvpHostBattle,
     topMvpOpponentBattle,
     topMvpViewers,
     totalGiftCoins,
-    totalScore,
-    triggerBattleVfx,
     triggerRematch,
     triggerRematchFromMore,
-    universeGiftLabel,
-    universeQueue,
     universeText,
     uploadSticker,
-    updateUser,
     user,
     userLevel,
     userXP,
     videoRef,
-    viewerAvatar,
     viewerCount,
     viewerHasStream,
-    viewerIdentityCacheRef,
-    viewerIdentityInflightRef,
     viewerListMode,
-    viewerName,
     viewerVideoRef,
     watchMiniProfileLive,
     votePoll,
@@ -778,9 +458,6 @@ export default function LiveHostScreen() {
     engagementNowMs,
     milestoneFlash,
     stageFlash,
-    startMystery,
-    startPoll,
-    endPoll,
   } = useLiveHostController();
   /** Auto cycle x2 → x3 → x5 for gift-panel buster (no manual tier pick). */
   const hostAutoBoosterTierRef = useRef(0);
@@ -1195,42 +872,48 @@ export default function LiveHostScreen() {
                     </>
                   );
                 }
-                if (slot.type === 'invited' && slot.host) return (
+                if (slot.type === 'invited' && slot.host) {
+                  const invitedHost = slot.host;
+                  return (
                   <>
                     <button
                       type="button"
                       title="Cancel invite"
                       aria-label="Cancel invite"
-                      onClick={(e) => { e.stopPropagation(); removeCoHost(slot.host!.id); }}
+                      onClick={(e) => { e.stopPropagation(); removeCoHost(invitedHost.id); }}
                       className="absolute top-0.5 left-0.5 z-10 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
                     >
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                      {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
+                      {invitedHost.avatar ? <img src={invitedHost.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7]/60 text-base font-bold">{(invitedHost.name || '?').charAt(0)}</div>}
                     </div>
-                    <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
+                    <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{invitedHost.name}</p>
                     <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Waiting</span>
                   </>
-                );
-                if (slot.type === 'pending' && slot.host) return (
+                  );
+                }
+                if (slot.type === 'pending' && slot.host) {
+                  const pendingHost = slot.host;
+                  return (
                   <>
                     <button
                       type="button"
                       title="Decline request"
                       aria-label="Decline request"
-                      onClick={(e) => { e.stopPropagation(); removeCoHost(slot.host!.id); }}
+                      onClick={(e) => { e.stopPropagation(); removeCoHost(pendingHost.id); }}
                       className="absolute top-0.5 left-0.5 z-10 flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto hover:opacity-90 active:scale-95"
                     >
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                      {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] text-sm font-bold">{(slot.host.name || '?').charAt(0)}</div>}
+                      {pendingHost.avatar ? <img src={pendingHost.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] text-sm font-bold">{(pendingHost.name || '?').charAt(0)}</div>}
                     </div>
-                    <p className="text-white text-[8px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
+                    <p className="text-white text-[8px] font-bold mt-0.5 truncate max-w-[95%] text-center">{pendingHost.name}</p>
                     <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Pending</span>
                   </>
-                );
+                  );
+                }
                 return (
                   <button type="button" onClick={openSpectatorsPanel} className="flex flex-col items-center justify-center w-full h-full active:scale-95">
                     <div className="w-12 h-12 rounded-full flex items-center justify-center">
@@ -2154,17 +1837,12 @@ export default function LiveHostScreen() {
                                     const { data: before } = await apiLiveGetDailyHearts(creatorId);
                                     if (before?.hasSent) {
                                       setHasJoinedToday(true);
-                                      const today0 = new Date().toISOString().split('T')[0];
-                                      localStorage.setItem(
-                                        `joined_stream_${effectiveStreamId}_${user.id}_${today0}`,
-                                        'true',
-                                      );
                                       showToast("Already sent today's membership heart");
                                       setShowTeamStatus(true);
                                       return;
                                     }
-                                  } catch {
-                                    /* continue */
+                                  } catch (err) {
+                                    reportFailure('live_daily_hearts', err, { creatorId });
                                   }
 
                                   try {
@@ -2179,11 +1857,7 @@ export default function LiveHostScreen() {
                                       return;
                                     }
 
-                                    const today = new Date().toISOString().split('T')[0];
-                                    localStorage.setItem(
-                                      `joined_stream_${effectiveStreamId}_${user.id}_${today}`,
-                                      'true',
-                                    );
+                                    // Server owns the day flag (POST ok/already + GET hasSent).
                                     setHasJoinedToday(true);
                                     setShowTeamStatus(true);
                                     spawnHeartFromClient(
@@ -2200,7 +1874,17 @@ export default function LiveHostScreen() {
                                         if (!stats) return;
                                         void applyMembershipStats(stats);
                                       })
-                                      .catch(() => {});
+                                      .catch((err) =>
+                                        reportFailure('live_membership_refresh', err, { userId: user.id }),
+                                      );
+
+                                    void apiLiveGetDailyHearts(creatorId)
+                                      .then(({ data: after }) => {
+                                        if (after) setHasJoinedToday(after.hasSent === true);
+                                      })
+                                      .catch((err) =>
+                                        reportFailure('live_daily_hearts', err, { creatorId }),
+                                      );
 
                                     if (!already) {
                                       const joinBannerId = Date.now().toString();

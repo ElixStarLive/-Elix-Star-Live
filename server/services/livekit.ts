@@ -40,7 +40,7 @@ export async function listActiveRoomsFromLiveKit(): Promise<
     }));
   } catch (err) {
     logger.error({ err }, 'listActiveRoomsFromLiveKit failed');
-    return [];
+    throw err;
   }
 }
 

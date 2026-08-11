@@ -10,13 +10,14 @@ import { initPostgres, getPool } from "../lib/postgres.ts";
 import { openCreatorRewardPeriod, closeCreatorRewardPeriod } from "../lib/monetisation/creatorRewardsJob.ts";
 import { loadMonetisationConfig } from "../lib/monetisation/config.ts";
 import { runWalletLedgerReconciliation } from "../lib/monetisation/reconcile.ts";
+import { requireValue } from "./_env.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
 
 async function main() {
   await initPostgres();
-  const pool = getPool()!;
+  const pool = requireValue(getPool(), "postgres pool");
   const cfg = await loadMonetisationConfig(true);
   const creatorId = `reward_act_${randomUUID()}`;
   const minFollowers = cfg.rewardsMinFollowers || 8000;

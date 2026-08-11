@@ -87,25 +87,15 @@ function isNativeRuntime(): boolean {
 const authStateStorage: StateStorage = {
   getItem: async (name) => {
     if (isNativeRuntime()) {
-      const nativeValue = await Preferences.get({ key: name });
-      if (nativeValue.value != null) return nativeValue.value;
-      // One-time migration path from old localStorage persistence.
+      // Preferences is the sole native owner. Legacy localStorage is never
+      // rehydrated (migration already shipped); drop any leftover plaintext copy.
       try {
-        const legacy = window.localStorage.getItem(name);
-        if (legacy != null) {
-          await Preferences.set({ key: name, value: legacy });
-          // Remove the plaintext copy so the token is not left in WebView storage.
-          try {
-            window.localStorage.removeItem(name);
-          } catch {
-            // ignore
-          }
-          return legacy;
-        }
+        window.localStorage.removeItem(name);
       } catch {
-        // Ignore local storage access errors and continue unauthenticated.
+        /* ignore */
       }
-      return null;
+      const nativeValue = await Preferences.get({ key: name });
+      return nativeValue.value ?? null;
     }
     if (typeof window === "undefined") return null;
     return window.localStorage.getItem(name);
@@ -113,6 +103,11 @@ const authStateStorage: StateStorage = {
   setItem: async (name, value) => {
     if (isNativeRuntime()) {
       await Preferences.set({ key: name, value });
+      try {
+        window.localStorage.removeItem(name);
+      } catch {
+        /* ignore */
+      }
       return;
     }
     if (typeof window !== "undefined") {
@@ -122,6 +117,11 @@ const authStateStorage: StateStorage = {
   removeItem: async (name) => {
     if (isNativeRuntime()) {
       await Preferences.remove({ key: name });
+      try {
+        window.localStorage.removeItem(name);
+      } catch {
+        /* ignore */
+      }
       return;
     }
     if (typeof window !== "undefined") {
@@ -556,6 +556,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
   // ── Check session (app boot / token refresh) ─────────────────────────────
   checkUser: async () => {
+    set({ isLoading: true });
+
     const clearState = () =>
       set({
         backendUser: null,
@@ -639,7 +641,8 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
   }),
   onRehydrateStorage: () => (state) => {
     if (state) {
-      state.isLoading = false;
+      // Keep loading until checkUser completes after hydration (session ownership).
+      state.isLoading = true;
     }
   },
 }));

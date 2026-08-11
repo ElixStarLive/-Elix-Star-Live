@@ -106,7 +106,7 @@ export default function Profile() {
   const registeredViewOwnerRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
-    // Named exit only — never history.back() (reopens Settings after Settings→Profile).
+    // Named exit only — no browser history pop (reopens Settings after Settings→Profile).
     navigate(PROFILE_EXIT_TO, { replace: true });
   }, [navigate]);
 
@@ -194,8 +194,9 @@ export default function Profile() {
         navigate(`/inbox/${threadId}`);
         return;
       }
+      showToast(threadErr || 'Could not open chat');
     } catch {
-      // fall through to inbox
+      showToast('Could not open chat');
     }
     goInbox();
   }, [navigate, effectiveUserId, goInbox]);
@@ -207,7 +208,8 @@ export default function Profile() {
       const rows = await fetchAllSharePanelContacts(user?.id);
       setShareFollowers(rows);
     } catch {
-      setShareFollowers([]);
+      showToast('Could not load contacts');
+      /* keep prior shareFollowers — do not soft-empty on failure */
     }
   };
 
@@ -243,15 +245,12 @@ export default function Profile() {
     if (trimmed.includes('@')) return `${trimmed.split('@')[0]}@`;
     return displayUsername ? `${displayUsername}@` : '';
   })();
-  const localAvatar = isOwnProfile && user?.id ? localStorage.getItem('elix_avatar_' + user.id) : null;
   const isHttpUrl = (s: string | null | undefined) => !!s && /^https?:\/\//i.test(s.trim());
-  /** Prefer CDN/http URLs from server; avoid stale giant data: URLs in localStorage masking the real profile. */
+  /** Neon profile / auth user avatar URLs only — no parallel localStorage avatar cache. */
   const displayAvatar = isOwnProfile
     ? (
         (isHttpUrl(profileData?.avatar_url) ? (profileData as NonNullable<typeof profileData>).avatar_url : null) ||
         (isHttpUrl(user?.avatar) ? user.avatar : null) ||
-        (localAvatar && !localAvatar.startsWith('data:') ? localAvatar : null) ||
-        localAvatar ||
         profileData?.avatar_url ||
         user?.avatar ||
         `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random`
@@ -293,6 +292,7 @@ export default function Profile() {
         setResolvedUserId(null);
         setProfileData(null);
         setLoading(false);
+        showToast('Could not load profile');
       });
     return () => { cancelled = true; };
   }, [displayUserId]);
@@ -314,7 +314,10 @@ export default function Profile() {
           })),
         );
       })
-      .catch(() => setRisingBadges([]));
+      .catch(() => {
+        showToast('Could not load rising badges');
+        /* keep prior risingBadges — do not soft-empty on failure */
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
 
@@ -324,10 +327,14 @@ export default function Profile() {
       return;
     }
     let cancelled = false;
-    void fetchActiveStories().then((groups) => {
-      if (cancelled) return;
-      setProfileStoryGroup(groups.find((g) => g.userId === effectiveUserId) ?? null);
-    });
+    void fetchActiveStories()
+      .then((groups) => {
+        if (cancelled) return;
+        setProfileStoryGroup(groups.find((g) => g.userId === effectiveUserId) ?? null);
+      })
+      .catch(() => {
+        /* keep previous story group — do not fake empty */
+      });
     return () => {
       cancelled = true;
     };
@@ -431,13 +438,19 @@ export default function Profile() {
       };
 
       try {
-        const { videos: vids } = await apiFetchUserVideos(effectiveUserId);
-        data.likes_count = vids.reduce<number>(
-          (sum: number, v: unknown) =>
-            sum + Number((v as { likes?: number })?.likes || 0),
-          0,
-        );
-      } catch { /* intentionally empty */ }
+        const { videos: vids, error: vidsErr } = await apiFetchUserVideos(effectiveUserId);
+        if (vidsErr) {
+          showToast(vidsErr || 'Could not load video likes');
+        } else {
+          data.likes_count = vids.reduce<number>(
+            (sum: number, v: unknown) =>
+              sum + Number((v as { likes?: number })?.likes || 0),
+            0,
+          );
+        }
+      } catch {
+        showToast('Could not load video likes');
+      }
 
       setProfileData(data);
       trackEvent('profile_view', { user_id: effectiveUserId, is_own: isOwnProfile });
@@ -459,6 +472,7 @@ export default function Profile() {
         await checkFollowing(data.user_id);
       }
     } catch (_) {
+      showToast('Could not load profile');
       if (effectiveUserId === user?.id) {
         setProfileData({
           user_id: effectiveUserId,
@@ -490,8 +504,8 @@ export default function Profile() {
         try {
           const { items, error } = await apiShopItemsByUser(effectiveUserId);
           if (error) {
-            setShopItems([]);
             showToast('Failed to load shop items');
+            /* keep prior shopItems — do not soft-empty on failure */
           } else {
             setShopItems(items.map((i: { id: string; title?: string; price?: number | string; image_url?: string | null }) => ({
               id: i.id,
@@ -501,8 +515,8 @@ export default function Profile() {
             })));
           }
         } catch {
-          setShopItems([]);
           showToast('Failed to load shop items');
+          /* keep prior shopItems — do not soft-empty on failure */
         }
         setVideosLoading(false);
         return;
@@ -510,7 +524,12 @@ export default function Profile() {
 
       if (activeTab === 'videos' || activeTab === 'private') {
         const { videos: allVids, error } = await apiFetchUserVideos(effectiveUserId);
-        if (error) { setVideos([]); setVideosLoading(false); return; }
+        if (error) {
+          setVideosLoading(false);
+          showToast(error || 'Failed to load videos');
+          /* keep prior videos — do not soft-empty on failure */
+          return;
+        }
         const filtered = activeTab === 'private'
           ? allVids.filter((v: { privacy?: string }) => v.privacy === 'private')
           : allVids.filter((v: { privacy?: string }) => v.privacy !== 'private');
@@ -525,10 +544,9 @@ export default function Profile() {
       } else if (activeTab === 'liked') {
         const { videos: vids, error } = await apiFetchLikedVideos(50, 0);
         if (error) {
-          setVideos([]);
-          setVideosHasMore(false);
           setVideosLoading(false);
           showToast(error || 'Failed to load liked videos');
+          /* keep prior videos — do not soft-empty on failure */
           return;
         }
         setVideosHasMore(vids.length >= 50);
@@ -542,10 +560,9 @@ export default function Profile() {
       } else if (activeTab === 'saved') {
         const { videos: vids, error } = await apiFetchSavedVideos(50, 0);
         if (error) {
-          setVideos([]);
-          setVideosHasMore(false);
           setVideosLoading(false);
           showToast(error || 'Failed to load saved videos');
+          /* keep prior videos — do not soft-empty on failure */
           return;
         }
         setVideosHasMore(vids.length >= 50);
@@ -561,7 +578,8 @@ export default function Profile() {
         setVideos([]);
       }
     } catch {
-      setVideos([]);
+      showToast('Failed to load videos');
+      /* keep prior videos — do not soft-empty on failure */
     } finally {
       setVideosLoading(false);
     }
@@ -613,9 +631,15 @@ export default function Profile() {
     if (!idToCheck) return;
 
     try {
-      const { following } = await apiFetchFollowingIds(user.id);
+      const { following, error } = await apiFetchFollowingIds(user.id);
+      if (error) {
+        showToast(error || 'Could not load follow status');
+        return;
+      }
       setIsFollowing(following.includes(idToCheck));
-    } catch { /* ignore */ }
+    } catch {
+      showToast('Could not load follow status');
+    }
   };
 
   const toggleFollow = async () => {
@@ -648,6 +672,7 @@ export default function Profile() {
       loadProfile();
     } catch {
       setIsFollowing(wasFollowing);
+      showToast(wasFollowing ? 'Could not unfollow' : 'Could not follow');
     }
   };
 
@@ -662,7 +687,6 @@ export default function Profile() {
     try {
       // Persist to Bunny CDN + Neon via uploadAvatar (PATCH with https URL). Never store base64 data URLs in Postgres.
       const cdnUrl = await uploadAvatar(file, user.id);
-      localStorage.setItem('elix_avatar_' + user.id, cdnUrl);
       updateUser({ avatar: cdnUrl });
       setProfileData(prev => (prev ? { ...prev, avatar_url: cdnUrl } : prev));
     } catch (err) {

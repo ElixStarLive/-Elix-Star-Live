@@ -1,5 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
 import { RoyceCloseIcon } from '../../../components/royce';
 import { showToast } from '../../../lib/toast';
 import {
@@ -25,7 +24,6 @@ import {
   CameraOff,
   Coins,
   Lock,
-  Crown,
   PlusCircle,
   Play,
   BarChart3,
@@ -36,35 +34,14 @@ import {
 import { GiftPanel } from '../../../components/GiftPanel';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
-import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import {
-  EngagementDrawer,
-  type EngagementPanel,
-} from '../../../components/engagement/EngagementDrawer';
+import { EngagementDrawer } from '../../../components/engagement/EngagementDrawer';
 import { engagementFlags } from '../../../config/engagementFlags';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../../../lib/liveRuntimeCaps';
-import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
+import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
+import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
-import {
-  announceMvpName,
-  createTauntBurst,
-  maybeTauntLeadChange,
-  playBattleTauntSound,
-  type TauntBurst,
-} from '../../../lib/battleTaunts';
-import {
-  addTestGiftXp,
-  debitTestCoinsForGift,
-  displayBalanceAfterTestSpend,
-  getPersistedTestCoinsBalance,
-  getSpendableGiftBalance,
-  getTestLevel,
-  resolveGiftUiBalance,
-  shouldUseTestCoinsForGifts,
-  areTestCoinsEnabled,
-} from '../../../lib/testCoins';
+import { resolveGiftUiBalance, areTestCoinsEnabled } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
@@ -73,8 +50,6 @@ import { AvatarRing } from '../../../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
 import {
-  BATTLE_MVP_ROW_EDGE_OFFSET_MM,
-  SPECTATOR_MVP_PROFILE_RING_PX,
   LIVE_MVP_PROFILE_RING_PX,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
@@ -83,26 +58,21 @@ import {
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
 } from '../../../lib/profileFrame';
-import { useAuthStore } from '../../../store/useAuthStore';
-import { useVideoStore } from '../../../store/useVideoStore';
-import { getLiveKitUrl } from '../../../lib/api';
 import {
-  fetchAllSharePanelContacts,
   SHARE_PANEL_ACTION_DISC_PX,
   SHARE_PANEL_ACTION_ICON_PX,
   SHARE_PANEL_AVATAR_PX,
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../../../lib/sharePanelContacts';
-import { request } from '../../../lib/apiClient';
 import { openExternalLink, nativeShareUrl } from '../../../lib/platform';
 import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { RankingPanel } from '../../../components/RankingPanel';
-import { type LiveRankTab } from '../../../components/CyclingRankBadge';
 import {
   apiLiveEngagementProgress,
   apiLiveShareCreate,
 } from '../engagement/liveEngagementApi';
+import { reportFailure } from '../../../lib/reportFailure';
 import {
   LiveComboMissionDock,
   LiveHostProfileHeader,
@@ -113,19 +83,10 @@ import {
 import {
   LiveSideMissionStack,
 } from '../../../components/LiveSideMissionStack';
-import { websocket } from '../../../lib/websocket';
 import { cohostInviteAccept } from '../cohost/liveCohostActions';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
-import { normalizeBattleGiftTarget } from '../../../lib/liveBattleGiftTarget';
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
-import { parseLiveGiftGoal, type LiveGiftGoal } from '../../../lib/liveGiftGoal';
-import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
-import { getMembershipStatus, purchaseMembership } from '../../../lib/iap';
-import type { Room } from 'livekit-client';
-import { RoomEvent, ConnectionState } from 'livekit-client';
-import { apiLiveStreams, apiLiveToken, LiveRoomLifecycle } from '../../../lib/live';
-import { giftSendErrorToast } from '../../../lib/giftSend';
 
 function formatBattleScoreShort(coins: number) {
   const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
@@ -188,17 +149,6 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
   return <span className={className}>{fmt(display)}</span>;
 }
 
-function battleTeamLabelsFromPayload(data: Record<string, unknown>): { red: string; blue: string } {
-  const h = typeof data.hostName === 'string' ? data.hostName.trim() : '';
-  const o = typeof data.opponentName === 'string' ? data.opponentName.trim() : '';
-  const p3 = typeof data.player3Name === 'string' ? data.player3Name.trim() : '';
-  const p4 = typeof data.player4Name === 'string' ? data.player4Name.trim() : '';
-  const cap = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-  const red = p3 ? `${h || 'Host'} + ${p3}` : (h || 'Host');
-  const blue = p4 ? `${o || 'Guest'} + ${p4}` : (o || 'Guest');
-  return { red: cap(red, 24), blue: cap(blue, 24) };
-}
-
 type LiveMessage = {
   id: string;
   username: string;
@@ -252,52 +202,34 @@ export default function SpectatorLiveScreen() {
     battleHideScores,
     battleInviteJoining,
     battleMistSide,
-    battleMistTimerRef,
     battleScoreBarHidden,
-    battleScreenTapCount,
-    battleScreenTapCountRef,
     battleStreamIds,
     battleTauntBursts,
     boosterActivations,
     boosterCatches,
     engagementNowMs,
     engagementState,
-    coHostChanRef,
-    coHostPublishStreamRef,
-    coHostStream,
     coHostVideoRefs,
     cohostGiftScores,
     cohostLastGifts,
     cohostLayoutId,
-    cohostState,
     coinBalance,
     comboCount,
-    comboStack,
-    comboTimerRef,
     currentGift,
-    currentMainTrackRef,
-    dailyHeartFetchedRef,
     declineBattleInviteFromWatch,
     diamondLeagueRank,
     effectiveStreamId,
     engagementOpen,
     engagementPanel,
-    engagementWatchKeyedRef,
     featuredBigVideoRef,
     featuredUserId,
-    featuredUserIdRef,
-    findCoHostVideoEl,
     floatingHearts,
     followHost,
     sendMembershipHeartJoin,
     formatTime,
     giftGoal,
     giftKey,
-    giftQueue,
     giftSource,
-    giftsCatalog,
-    giftsCatalogRef,
-    gloveIdRef,
     handleComboClick,
     handleGiftEnded,
     handleLikeTap,
@@ -308,7 +240,6 @@ export default function SpectatorLiveScreen() {
     hasJoinedToday,
     hasOpponentStream,
     hasStream,
-    hasStreamRef,
     hostAvatar,
     hostLevel,
     hostName,
@@ -330,11 +261,8 @@ export default function SpectatorLiveScreen() {
     isSpeakingUser,
     isSubscribing,
     joinRequested,
-    lastOpponentGift,
-    lastHostGift,
     lastSentGift,
     leaveStreamWithSlide,
-    liveConnectRetryKey,
     liveKitRoomRef,
     location,
     mainProvisionalTrackRef,
@@ -347,7 +275,6 @@ export default function SpectatorLiveScreen() {
     missionWatchMin,
     mistFog,
     mistHidesMyScore,
-    moderators,
     mvpGiftScoresHostRef,
     mvpGiftScoresOpponentRef,
     mvpGiftScoresRef,
@@ -355,106 +282,34 @@ export default function SpectatorLiveScreen() {
     mvpSlots,
     myVideoRef,
     navigate,
-    opponentLifecycleRef,
-    opponentLkRoomRef,
     opponentProfile,
     hostBattleProfile,
-    opponentProfileFetchedRef,
     opponentVideoRef,
     pageExiting,
     pendingBattleInvite,
     pendingCoHostInvite,
-    prevMvpHostSpectatorRef,
-    prevMvpOpponentSpectatorRef,
-    prevSpectatorBattleActiveRef,
     promotionalCoinBalance,
-    pushBattleTaunt,
-    pushComboStack,
     rankingInitialTab,
-    reachedThresholdsRef,
     remoteCamOff,
-    resetComboTimer,
-    resetSpectatorSpeed,
     resolveCircleAvatar,
     retryJoinRoom,
-    roseCount,
-    roseCountRef,
-    seenGiftTxnRef,
-    selectedCohostGiftUserId,
-    selectedSpectatorUserId,
     sendCohostJoinRequest,
-    setActiveBooster,
-    setActiveLikes,
-    setBattleGloves,
-    setBattleHideScores,
-    setBattleInviteJoining,
-    setBattleMistSide,
     setBattleScoreBarHidden,
-    setBattleScreenTapCount,
-    setBattleStreamIds,
-    setBattleTauntBursts,
-    setBoosterActivations,
-    setBoosterCatches,
-    setCoHostStream,
-    setCohostGiftScores,
-    setCohostLastGifts,
     setCoinBalance,
-    setComboCount,
-    setComboStack,
-    setCurrentGift,
-    setDailyHeartCount,
-    setDiamondLeagueRank,
     setEngagementOpen,
     setEngagementPanel,
     setFeaturedUserId,
-    setFloatingHearts,
-    setGiftGoal,
-    setGiftKey,
-    setGiftQueue,
     setGiftSource,
-    setGiftsCatalog,
-    setHasJoinedToday,
-    setHasOpponentStream,
-    setHasStream,
-    setHostAvatar,
-    setHostLevel,
-    setHostName,
-    setHostUserId,
     setInputValue,
-    setIsCamOff,
     setIsChatVisible,
-    setIsCoHosting,
-    setIsFollowing,
-    setIsMember,
-    setIsMicMuted,
     setIsMoreMenuOpen,
     setIsReportModalOpen,
-    setIsSubscribing,
-    setJoinRequested,
-    setLastOpponentGift,
-    setLastSentGift,
-    setLiveConnectRetryKey,
     setMessages,
-    setMissionGiftsGoal,
-    setMissionGiftsSent,
-    setMissionWatchGoal,
-    setMissionWatchMin,
-    setMistFog,
-    setMvpSlots,
-    setMyHeartCount,
-    setOpponentProfile,
-    setPageExiting,
-    setPendingBattleInvite,
     setPendingCoHostInvite,
-    setPromotionalCoinBalance,
     setRankingInitialTab,
-    setRemoteCamOff,
-    setRoseCount,
     setSelectedCohostGiftUserId,
-    setShareContacts,
     setShareQuery,
     setShowCoHostPanel,
-    setShowComboButton,
     setShowFanClub,
     setShowGiftPanel,
     setShowOpponentPanel,
@@ -464,25 +319,11 @@ export default function SpectatorLiveScreen() {
     setShowRetryButton,
     setShowSharePanel,
     setShowViewersPanel,
-    setSpeakingIds,
-    setSpectatorBattle,
-    setSpectatorCoHostRequestSent,
-    setSpectatorCoHosts,
-    setSpectatorGiftBattleTarget,
-    setSpeedChallengeActive,
-    setSpeedChallengeTime,
-    setSpeedMultiplier,
-    setStarterCoinBalance,
-    setStreamEndedReceived,
     setStreamIsLive,
     setStreamRetryKey,
     setTestCoinsAmount,
     setTestCoinsError,
     setTestCoinsPwd,
-    setTestCoinsStep,
-    setUserLevel,
-    setUserXP,
-    setViewerCount,
     setViewersList,
     shareContacts,
     shareLiveUserIds,
@@ -498,34 +339,20 @@ export default function SpectatorLiveScreen() {
     showSharePanel,
     showTestCoinsModal,
     showViewersPanel,
-    spawnHeartAt,
-    spawnHeartAtSideSpectator,
-    spawnHeartFromClient,
-    speakingIds,
     spectatorBattle,
     battleWinStreak,
-    spectatorBattleRef,
-    spectatorBattleVoteRemainingRef,
     spectatorChatHeartsRef,
     spectatorCoHostRequestSent,
     spectatorCoHosts,
     spectatorGate,
-    spectatorGiftBattleTarget,
-    spectatorLifecycleRef,
     spectatorStageRef,
     speedChallengeActive,
     speedChallengeTime,
     speedMultiplier,
-    speedMultiplierRef,
-    startSpeedChallenge,
     stageFlash,
     starterCoinBalance,
-    stopCoHosting,
     streamEndedReceived,
     streamIsLive,
-    streamRetryKey,
-    syncMvpSlots,
-    syncMvpSlotsRef,
     testCoinsAmount,
     testCoinsBusy,
     testCoinsError,
@@ -536,8 +363,6 @@ export default function SpectatorLiveScreen() {
     flipCamera,
     toggleFeaturedUser,
     toggleMic,
-    triggerBattleVfx,
-    updateUser,
     user,
     userLevel,
     userXP,
@@ -548,7 +373,6 @@ export default function SpectatorLiveScreen() {
     viewersList,
     votePoll,
     walletCoinBalanceRef,
-    wasCohostSeatedRef,
   } = useLiveSpectatorController();
 
   if (spectatorGate === 'loading') {
@@ -2815,7 +2639,7 @@ export default function SpectatorLiveScreen() {
                                 metric: 'shares',
                                 delta: 1,
                                 roomId: effectiveStreamId,
-                              }).catch(() => {});
+                              }).catch((err) => reportFailure('live_engagement_progress', err));
                             }
                             showToast(`Shared live with ${u.name}`);
                           } catch {
@@ -2841,15 +2665,15 @@ export default function SpectatorLiveScreen() {
                   {/* Share creator's live: all links use /watch/{creatorStreamId} */}
                   <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 pt-0">
                     {[
-                      { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => undefined); } setShowSharePanel(false); } },
-                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => undefined); } setShowSharePanel(false); } },
-                      { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/watch/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => undefined); } showToast('Link copied!'); setShowSharePanel(false); } },
+                      { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => { openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch this on Elix! ' + `${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err)); } setShowSharePanel(false); } },
+                      { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => { openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/watch/${effectiveStreamId}`)}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err)); } setShowSharePanel(false); } },
+                      { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/watch/${effectiveStreamId}`); if (effectiveStreamId) { earnBattleEnergyQuiet('share', effectiveStreamId); void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err)); } showToast('Link copied!'); setShowSharePanel(false); } },
                       { name: 'Repost live', icon: <RefreshCw size={22} className="text-white" />, action: async () => {
                         const url = `${window.location.origin}/watch/${effectiveStreamId}`;
                         const ok = await nativeShareUrl({ title: 'Repost live on Elix', text: 'Watch this LIVE on Elix!', url });
                         if (ok && effectiveStreamId) {
                           earnBattleEnergyQuiet('share', effectiveStreamId);
-                          void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch(() => undefined);
+                          void apiLiveEngagementProgress({ metric: 'shares', delta: 1, roomId: effectiveStreamId }).catch((err) => reportFailure('live_engagement_progress', err));
                           showToast('Live ready to repost');
                         } else if (!ok) {
                           showToast('Could not open repost share');

@@ -60,6 +60,13 @@ export async function apiListSuggestedUsersInput(): Promise<{
   if (profilesResult.error) {
     return { profiles: [], streams: [], error: profilesResult.error };
   }
+  if (streamsResult.error) {
+    return {
+      profiles: profilesResult.profiles,
+      streams: [],
+      error: streamsResult.error,
+    };
+  }
   return {
     profiles: profilesResult.profiles,
     streams: streamsResult.streams as Record<string, unknown>[],

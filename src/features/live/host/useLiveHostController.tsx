@@ -2,49 +2,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../../../lib/toast';
 import { platform, openExternalLink, nativeShareUrl } from '../../../lib/platform';
-import {
-  prepareLiveVideoEl,
-  LIVE_WEBRTC_VIDEO_CLASS,
-  LIVE_VIDEO_TRANSPARENT_POSTER,
-} from '../../../lib/prepareLiveVideoEl';
-import {
-  Send,
-  Search,
-  Heart,
-  MessageCircle,
-  Share2,
-  RefreshCw,
-  Mic,
-  MicOff,
-  Gift,
-  MoreVertical,
-  Users,
-  Copy,
-  AlertTriangle,
-  PlusCircle,
-  TrendingUp,
-  User,
-  UserPlus,
-  X,
-  Sword,
-  Coins,
-  Lock,
-  Flag,
-  Camera,
-  CameraOff,
-  Sparkles,
-  Timer,
-  BarChart3,
-  ArrowLeftRight,
-} from 'lucide-react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { FILTER_PRESETS } from '../../../lib/ai/filters';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
-import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
-import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
-import { LiveFaceEffectsLayer } from '../../../components/LiveFaceEffectsLayer';
-import { LIVE_FACE_EFFECT_OPTIONS, getLiveFaceEngineLabel } from '../../../lib/liveFaceEffectsProvider';
+import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
+import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
+import { LIVE_FACE_EFFECT_OPTIONS } from '../../../lib/liveFaceEffectsProvider';
 import {
   announceMvpName,
   createTauntBurst,
@@ -52,32 +14,16 @@ import {
   playBattleTauntSound,
   type TauntBurst,
 } from '../../../lib/battleTaunts';
-import { GiftOverlay } from '../../../components/GiftOverlay';
-import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
-import { ChatOverlay } from '../../../components/ChatOverlay';
-import { FaceARGift } from '../../../components/FaceARGift';
+import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { useLivePromoStore } from '../../../store/useLivePromoStore';
-import { AvatarRing } from '../../../components/AvatarRing';
-import { LevelBadge } from '../../../components/LevelBadge';
-import {
-  LIVE_MVP_PROFILE_RING_PX,
-  BATTLE_MVP_ROW_EDGE_OFFSET_MM,
-  LIVE_BATTLE_VIDEO_HEIGHT,
-  LIVE_BATTLE_CHAT_HEIGHT,
-  LIVE_BATTLE_CHAT_SHIFT_Y,
-  LIVE_TOP_AVATAR_RING_PX,
-  LIVE_BOTTOM_ACTION_PADDING,
-  LIVE_BOTTOM_ACTION_RESERVE,
-} from '../../../lib/profileFrame';
+import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
-import { RoyceCloseIcon } from '../../../components/royce';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
-import { clearCachedCameraStream, getCachedCameraStream, setCachedCameraStream } from '../../../lib/cameraStream';
 import { apiUrl, getLiveKitUrl } from '../../../lib/api';
+import { useLiveCamera } from '../hooks/useLiveCamera';
 import { giftSendErrorToast } from '../../../lib/giftSend';
 import {
-  apiLiveStart,
   apiLiveEnd,
   apiLiveToken,
   apiLiveStreams,
@@ -91,9 +37,11 @@ import type {
   BattleState,
   BattleSlot,
 } from '../types';
-import { normalizeUserId, sameUserId, isSelfUser } from '../utils/ids';
+import { sameUserId, isSelfUser } from '../utils/ids';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
+import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useHostLiveSession } from './session/useHostLiveSession';
 import type { LiveKitSessionHandlers } from '../../../lib/liveKitSession';
 import {
@@ -103,7 +51,15 @@ import {
   battleJoin,
   battleSpectatorVote,
 } from '../battle/liveBattleActions';
-import { applyBattleTickTime, applyBattleWinStreak, normalizeBattleScores, normalizeBattleWinner } from '../battle/liveBattleScore';
+import {
+  applyBattleTickTime,
+  applyBattleWinStreak,
+  determinePerspectiveWinner,
+  normalizeBattleWinner,
+  resolveServerBattleWinner,
+  scoresForBattleRole,
+} from '../battle/liveBattleScore';
+import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import {
   cohostInviteAccept,
@@ -129,21 +85,9 @@ import {
   apiToggleFollow,
 } from '../../feed/feedApi';
 import { isGenericLiveCreatorName, liveNameFromStreamFields, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
-import {
-  fetchAllSharePanelContacts,
-  SHARE_PANEL_ACTION_DISC_PX,
-  SHARE_PANEL_ACTION_ICON_PX,
-  SHARE_PANEL_AVATAR_PX,
-  SHARE_PANEL_ITEM_WIDTH_PX,
-} from '../../../lib/sharePanelContacts';
-import ReportModal from '../../../components/ReportModal';
-import PromotePanel from '../../../components/PromotePanel';
-import { GiftPanel } from '../../../components/GiftPanel';
-import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
-import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
+import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
-import { RankingPanel } from '../../../components/RankingPanel';
-import { type LiveRankTab } from '../../../components/CyclingRankBadge';
+import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
@@ -155,6 +99,9 @@ import {
   apiLiveEngagementProgress,
   apiLiveEngagementWallet,
   apiLiveBlockUser,
+  apiLiveListModerators,
+  apiLiveAddModerator,
+  apiLiveRemoveModerator,
   apiLiveGetDailyHearts,
   apiLiveMembership,
   apiLiveModerationCheck,
@@ -164,6 +111,8 @@ import {
   apiLiveStickerDelete,
   apiLiveStickers,
 } from '../engagement/liveEngagementApi';
+import { reportFailure } from '../../../lib/reportFailure';
+import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import {
   appendBattleTileGiftForTarget,
@@ -175,52 +124,13 @@ import {
 } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import {
-  EngagementDrawer,
-  type EngagementPanel,
-} from '../../../components/engagement/EngagementDrawer';
+import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
 import { purchaseMembership } from '../../../lib/iap';
-import type { Room } from 'livekit-client';
-import { ConnectionState } from 'livekit-client';
+import type { Room, RemoteTrack, TrackPublication, RemoteParticipant } from 'livekit-client';
+import { RoomEvent } from 'livekit-client';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { App as CapacitorApp } from '@capacitor/app';
 
-const LIVE_BOTTOM_ICON_BTN =
-  'w-10 h-10 flex items-center justify-center rounded-full bg-black/35 backdrop-blur-sm border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
-
-function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
-  const [display, setDisplay] = useState(value);
-  const rafRef = useRef<number>(0);
-  const startRef = useRef(display);
-  const targetRef = useRef(value);
-  const fmt = format ?? ((n: number) => n.toLocaleString());
-  useEffect(() => {
-    if (durationMs <= 0) {
-      cancelAnimationFrame(rafRef.current);
-      setDisplay(value);
-      targetRef.current = value;
-      return;
-    }
-    if (value === display) { targetRef.current = value; return; }
-    cancelAnimationFrame(rafRef.current);
-    startRef.current = display;
-    targetRef.current = value;
-    const start = performance.now();
-    const duration = durationMs;
-    const from = startRef.current;
-    const to = targetRef.current;
-    const step = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      setDisplay(Math.round(from + (to - from) * ease));
-      if (t < 1) rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, durationMs]);
-  return <span className={className}>{fmt(display)}</span>;
-}
 
 const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
 
@@ -228,7 +138,6 @@ export function useLiveHostController() {
   const { streamId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const viewerVideoRef = useRef<HTMLVideoElement>(null);
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
   const player3VideoRef = useRef<HTMLVideoElement>(null);
@@ -240,26 +149,26 @@ export function useLiveHostController() {
   const stageRef = useRef<HTMLDivElement>(null);
   /** Like/hearts only in bottom chat strip — not over battle/video (see SpectatorPage `spectatorChatHeartsRef`). */
   const chatHeartLayerRef = useRef<HTMLDivElement>(null);
-  const cameraStreamRef = useRef<MediaStream | null>(null);
-  const bindHostCameraPreview = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-    if (!el) return;
-    // Prefer live ref; fall back to Create-page cached stream so remounts don't go black.
-    let stream = cameraStreamRef.current;
-    if (!stream) {
-      const cached = getCachedCameraStream();
-      if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
-        cameraStreamRef.current = cached;
-        stream = cached;
-      }
-    }
-    if (stream && el.srcObject !== stream) {
-      el.srcObject = stream;
-    }
-    prepareLiveVideoEl(el);
-  }, []);
   const [viewerHasStream, _setViewerHasStream] = useState(false);
-  const { giftsCatalog, giftsCatalogRef, seenGiftTxnRef, setGiftsCatalog } = useLiveGiftsCatalog();
+  const { giftsCatalogRef, setGiftsCatalog } = useLiveGiftsCatalog();
+  // Gift video queue + txn dedupe must live above the WS effect so creator playback
+  // never depends on hook-order / late state declarations.
+  const {
+    currentGift,
+    setCurrentGift,
+    giftQueue,
+    setGiftQueue,
+    giftKey,
+    setGiftKey,
+    enqueueGiftVideo,
+    enqueueGiftVideoRef,
+    handleGiftEnded,
+    playedGiftVideoTxnRef,
+    markGiftTxnSeen,
+    hasSeenGiftTxn,
+    hasPlayedGiftVideoTxn,
+    enqueueFromGiftSent,
+  } = useLiveGiftPlaybackQueue();
   // Dedup chat_message (room broadcast + owner-global fallback deliver once each).
   const seenChatMsgIdRef = useRef<Set<string>>(new Set());
   /** One "joined the stream" banner per user for the whole live session (not per reconnect). */
@@ -274,17 +183,6 @@ export function useLiveHostController() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [currentGift, setCurrentGift] = useState<{ video: string; battleSide?: 'host' | 'opponent' | null } | null>(null);
-  // Gift video queue must live above the WS effect so creator playback never depends
-  // on hook-order / late state declarations.
-  const [giftQueue, setGiftQueue] = useState<{ video: string; battleSide?: 'host' | 'opponent' | null }[]>([]);
-  const [giftKey, setGiftKey] = useState(0);
-  const enqueueGiftVideoRef = useRef<(url: string, battleSide?: 'host' | 'opponent' | null) => void>(() => {});
-  const playedGiftVideoTxnRef = useRef<Set<string>>(new Set());
-  enqueueGiftVideoRef.current = (url: string, battleSide?: 'host' | 'opponent' | null) => {
-    if (!url) return;
-    setGiftQueue((prev) => appendCapped(prev, { video: url, battleSide: battleSide ?? null }, LIVE_GIFT_QUEUE_CAP));
-  };
   const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
   /** Real wallet coins — never overwritten by test-coin display balance. */
@@ -331,6 +229,37 @@ export function useLiveHostController() {
   // redirected to the spectator page.
   const isBattleJoiner = !isBroadcast && new URLSearchParams(location.search).get('battle') === '1';
   const isCreatorParticipant = Boolean(isBroadcast || isBattleJoiner);
+
+  // Single getUserMedia owner for host + battle-joiner publish paths.
+  // Joiner: autoAcquire false until server token auth succeeds.
+  const liveCamera = useLiveCamera({
+    enabled: Boolean(isBroadcast || isBattleJoiner),
+    autoAcquire: Boolean(isBroadcast),
+  });
+  const {
+    videoRef,
+    cameraStreamRef,
+    cameraStream,
+    setCameraStream,
+    cameraFacing,
+    setCameraFacing,
+    isMicMuted,
+    isCamOff,
+    cameraError,
+    setCameraError,
+    bindHostCameraPreview,
+    restoreHostCameraPreview,
+    acquireCamera,
+    stopCamera,
+    toggleMic: toggleMicTracks,
+    toggleCam: toggleCamTracks,
+    flipCamera: flipCameraFacing,
+    setIsMicMuted,
+    setIsCamOff,
+    recoverInFlightRef: cameraRecoverInFlightRef,
+    recoverAtRef: cameraRecoverAtRef,
+  } = liveCamera;
+
   // Hard role separation, enforced by the page itself (not only the router):
   // this page is for creators (own broadcast or an accepted battle opponent).
   // Anyone else who lands here — deep link, stale URL, old build path — is a
@@ -341,7 +270,6 @@ export function useLiveHostController() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCreatorParticipant, streamId]);
-  const [cameraError, setCameraError] = useState<string | null>(null);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [engagementOpen, setEngagementOpen] = useState(false);
   const [engagementPanel, setEngagementPanel] = useState<EngagementPanel>('hub');
@@ -355,6 +283,7 @@ export function useLiveHostController() {
   const [viewerListMode, setViewerListMode] = useState<'spectators' | 'topGifters'>('spectators');
   /** When opening top gifters from a battle side row. */
   const [topGiftersSide, setTopGiftersSide] = useState<'all' | 'host' | 'opponent'>('all');
+  /** Server-backed live moderators for this stream. */
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const attachRemoteAudio = useCallback((track: import('livekit-client').Track, el: HTMLAudioElement | null) => {
     if (track.kind !== 'audio') return;
@@ -375,17 +304,31 @@ export function useLiveHostController() {
     }
   }, []);
 
-  const [isMicMuted, setIsMicMuted] = useState(false);
-  const [isCamOff, setIsCamOff] = useState(false);
-  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [isChatVisible, setIsChatVisible] = useState(true);
   const [viewerCount, setViewerCount] = useState(0);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   // user is already defined above
   const isBroadcaster = isBroadcast;
   const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
   const effectiveStreamIdRef = useRef(effectiveStreamId);
   effectiveStreamIdRef.current = effectiveStreamId;
+
+  useEffect(() => {
+    const key = String(effectiveStreamId || '').trim();
+    if (!key || key === 'broadcast') {
+      setModerators(new Set());
+      return;
+    }
+    let cancelled = false;
+    void apiLiveListModerators(key).then(({ moderators: ids, error }) => {
+      if (cancelled) return;
+      if (error) return;
+      setModerators(new Set(ids));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveStreamId]);
+
   const liveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
   const _formatStreamName = (id: string) =>
     id
@@ -407,7 +350,7 @@ export function useLiveHostController() {
   const myAvatar = isCreatorParticipant
     ? user?.avatar || ''
     : hostAvatar || '';
-  const getHostCameraStream = useCallback(() => cameraStreamRef.current, []);
+  const getHostCameraStream = useCallback(() => cameraStreamRef.current, [cameraStreamRef]);
   const hostSession = useHostLiveSession({
     enabled: Boolean(isBroadcast && user?.id && effectiveStreamId),
     roomId: effectiveStreamId,
@@ -588,35 +531,24 @@ export function useLiveHostController() {
         liveRegisteredRef.current = false;
       });
     };
-  }, []);
+  }, [liveRegisteredRef]);
 
   useEffect(() => {
     // Title is set at stream start via POST /api/live/start; no DB update needed here
   }, [creatorName, isBroadcast, isMyStreamLive, effectiveStreamId, user?.id]);
 
   useEffect(() => {
-    if (user?.id && effectiveStreamId) {
-      const today = new Date().toISOString().split('T')[0];
-      const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-      const hasJoined = localStorage.getItem(storageKey);
-      if (hasJoined) {
-        setHasJoinedToday(true);
-      }
-      // Personal join tally is only for watchers. While broadcasting, myHeartCount is
-      // creator total from apiLiveMembership — do not overwrite with local viewer key.
-      // Still sync whether THIS account already sent today's membership heart (Join orange).
-      const creatorId = isBroadcast ? user.id : String(effectiveStreamId).trim();
-      if (creatorId && creatorId !== 'broadcast') {
-        void apiLiveGetDailyHearts(creatorId)
-          .then(({ data: d }) => {
-            if (d?.hasSent === true) {
-              setHasJoinedToday(true);
-              localStorage.setItem(storageKey, 'true');
-            }
-          })
-          .catch(() => {});
-      }
-    }
+    if (!user?.id || !effectiveStreamId) return;
+    // Server owns Join/heart day state via hasSent (GET /api/hearts/daily/:creatorId).
+    // While broadcasting, myHeartCount stays creator total from apiLiveMembership.
+    const creatorId = isBroadcast ? user.id : String(effectiveStreamId).trim();
+    if (!creatorId || creatorId === 'broadcast') return;
+    void apiLiveGetDailyHearts(creatorId)
+      .then(({ data: d }) => {
+        if (!d) return;
+        setHasJoinedToday(d.hasSent === true);
+      })
+      .catch((err) => reportFailure('live_daily_hearts', err, { creatorId }));
   }, [user?.id, effectiveStreamId, isBroadcast]);
 
   /** Battle / opponent rooms — separate from host publish session. */
@@ -710,21 +642,26 @@ export function useLiveHostController() {
     [enrichMembershipPeople, membershipNameMissing],
   );
 
-  // Fetch membership stats for creator (hearts + real gift coins / top supporters)
+  /** Load creator membership stats once; refresh on Join / team panel / WS join. */
+  const refreshMembershipStats = useCallback(() => {
+    if (!user?.id) return;
+    void apiLiveMembership(user.id)
+      .then(({ data: d }) => {
+        if (!d) return;
+        void applyMembershipStats(d);
+      })
+      .catch((err) => reportFailure('live_membership_refresh', err, { userId: user.id }));
+  }, [user?.id, applyMembershipStats]);
+
+  const refreshMembershipStatsRef = useRef(refreshMembershipStats);
+  useEffect(() => {
+    refreshMembershipStatsRef.current = refreshMembershipStats;
+  }, [refreshMembershipStats]);
+
   useEffect(() => {
     if (!user?.id) return;
-    const fetchStats = () => {
-      apiLiveMembership(user.id)
-        .then(({ data: d }) => {
-          if (!d) return;
-          void applyMembershipStats(d);
-        })
-        .catch(() => {});
-    };
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000);
-    return () => clearInterval(interval);
-  }, [user?.id, applyMembershipStats]);
+    refreshMembershipStats();
+  }, [user?.id, refreshMembershipStats]);
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
@@ -738,9 +675,14 @@ export function useLiveHostController() {
     try {
       const [{ streams, error }, profilesResult] = await Promise.all([
         apiLiveStreams(),
-        apiFetchProfiles().catch(() => ({ profiles: [] as Record<string, unknown>[], error: null })),
+        apiFetchProfiles(),
       ]);
       if (error) throw new Error(error);
+      if (profilesResult.error) {
+        reportFailure('live_creators_profiles', new Error(profilesResult.error));
+        /* keep prior creators — do not overwrite with a de-enriched fake-success list */
+        return;
+      }
 
       const byId = new Map<string, { name: string; avatar: string }>();
       for (const p of profilesResult.profiles || []) {
@@ -823,7 +765,8 @@ export function useLiveHostController() {
       setCreatorsLoadFailed(false);
     } catch {
       setCreatorsLoadFailed(true);
-      setCreators([]);
+      reportFailure('live_creators_load', new Error('creators_load_failed'));
+      /* keep prior creators — do not fake empty directory on failure */
     } finally {
       setCreatorsLoading(false);
     }
@@ -833,14 +776,16 @@ export function useLiveHostController() {
     if (user?.id) loadCreators();
   }, [user?.id, loadCreators]);
 
-  // Keep invite list fresh while Creators panel is open (new live hosts appear when available)
+  // Keep invite list fresh while Creators panel is open via feed presence (not a timer bandage).
   useEffect(() => {
     if (!isFindCreatorsOpen || !user?.id) return;
     void loadCreators();
-    const t = window.setInterval(() => {
-      void loadCreators();
-    }, 5000);
-    return () => window.clearInterval(t);
+    const token = useAuthStore.getState().session?.access_token;
+    if (!token) return;
+    return connectLiveFeedPresence(token, {
+      onStreamStarted: () => { void loadCreators(); },
+      onStreamEnded: () => { void loadCreators(); },
+    });
   }, [isFindCreatorsOpen, user?.id, loadCreators]);
 
   const filteredCreators = creators.filter((c) => {
@@ -1215,6 +1160,7 @@ export function useLiveHostController() {
     if (inv.streamKey) {
       navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isBattleMode is declared later in this hook; adding it here TDZs. Runtime reads the binding after init; isBattleModeRef is also declared later.
   }, [pendingCohostInvite, user?.id, user?.username, user?.name, user?.avatar, effectiveStreamId, navigate, closeAllBottomPanels]);
 
   // ─── JOIN REQUEST: creator receives when someone asked to join (from viewer) ───
@@ -1283,27 +1229,7 @@ export function useLiveHostController() {
     );
   };
 
-  /** Restore host camera on the main live preview (after featured / co-host grid ends). */
-  const restoreHostCameraPreview = useCallback(() => {
-    const el = videoRef.current;
-    if (!el) return;
-    const stream =
-      cameraStreamRef.current ||
-      (() => {
-        const cached = getCachedCameraStream();
-        if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
-          cameraStreamRef.current = cached;
-          return cached;
-        }
-        return null;
-      })();
-    if (stream && el.srcObject !== stream) {
-      el.srcObject = stream;
-    }
-    prepareLiveVideoEl(el);
-    el.style.transform = 'scaleX(-1)';
-    void el.play().catch(() => {});
-  }, []);
+  /** Restore host camera on the main live preview (after featured / co-host grid ends) — useLiveCamera. */
 
   /** Host big-table X: clear every co-host seat and return to solo live — stay on this broadcast (never /feed). */
   const endCoHostMode = useCallback(() => {
@@ -1530,12 +1456,9 @@ export function useLiveHostController() {
     // Seed pane 2 with the inviting host immediately (from accept navigation
     // state) so the joiner sees the same split battle layout as the host —
     // never the host-side "Add creator" placeholders.
-    // battleHost state also marks a REAL accepted invite (battle_accept_ack
-    // received) — that creator is never demoted to the spectator page. The
-    // sessionStorage flag is a reload-proof fallback for the same signal.
-    let acceptedFlag = false;
-    try { acceptedFlag = sessionStorage.getItem(`battleAccept:${effectiveStreamId}`) === '1'; } catch { /* ignore */ }
-    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost || acceptedFlag;
+    // battleHost in location.state is set only after battle_accept_ack.
+    // Reload without that state relies on apiLiveToken authorization below.
+    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost;
     const seededHost = (location.state as { battleHost?: { userId?: string; name?: string; avatar?: string } } | null)?.battleHost;
     if (seededHost && (seededHost.userId || seededHost.name)) {
       setBattleSlots(prev => {
@@ -1632,25 +1555,17 @@ export function useLiveHostController() {
         return next;
       });
 
-      // Get camera + mic
-      let stream: MediaStream | null = null;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        cameraStreamRef.current = stream;
-        setCameraStream(stream);
-        setBattleParticipantStream(stream);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          prepareLiveVideoEl(videoRef.current);
-        }
-      } catch {
+      // Get camera + mic via shared owner (after server auth).
+      const stream = await acquireCamera();
+      if (cancelled) {
+        if (stream) stopCamera();
+        return;
+      }
+      if (!stream) {
         showToast('Camera access denied — cannot join battle');
         return;
       }
+      setBattleParticipantStream(stream);
 
       // Connect to host's LiveKit room and publish our tracks
       try {
@@ -1721,15 +1636,7 @@ export function useLiveHostController() {
       battleLifecycle.liveKit?.disconnect();
       battleLkRoomRef.current = null;
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
-      // Always stop local getUserMedia — disconnect alone leaves camera/mic hot.
-      const local = cameraStreamRef.current;
-      if (local) {
-        local.getTracks().forEach((t) => {
-          try { t.stop(); } catch { /* ignore */ }
-        });
-        cameraStreamRef.current = null;
-      }
-      setCameraStream(null);
+      // useLiveCamera stopCamera runs on enabled teardown; clear battle stream state here.
       setBattleParticipantStream(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1770,7 +1677,6 @@ export function useLiveHostController() {
   useEffect(() => {
     battleScoresRef.current = { myScore, opponentScore, player3Score, player4Score };
   }, [myScore, opponentScore, player3Score, player4Score]);
-  const localBattleTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [giftTarget, setGiftTarget] = useState<'me' | 'opponent' | 'player3' | 'player4'>('me');
   const lastScreenTapRef = useRef<number>(0);
   /** Spectator tap score budget (reference: one +5 award per battle, then exhausted — not 5 taps/sec). */
@@ -1921,10 +1827,15 @@ export function useLiveHostController() {
   const [_battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>
     isBattleJoiner ? 'opponent' : 'host',
   );
-  /** Authoritative host/opponent/P3/P4 totals from server (never role-swapped) — fixes bar showing 0 for the other team. */
-  const battleServerTotalsRef = useRef({ h: 0, o: 0, p3: 0, p4: 0 });
+  /** Authoritative host/opponent/P3/P4 totals from server (never role-swapped) — owned by useBattleServerTotals. */
+  const {
+    battleServerTotals,
+    battleServerTotalsRef,
+    setBattleServerTotals,
+    applyScores,
+    resetScores,
+  } = useBattleServerTotals();
   const _lastBattleScoreUpdateTraceSigRef = useRef('');
-  const [battleServerTotals, setBattleServerTotals] = useState({ h: 0, o: 0, p3: 0, p4: 0 });
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   // Point Multiplier Booster (glove) — transient glove-send animations (fly to the
   // weekly-ranking corner when a spectator sends one) and transient "caught" popups.
@@ -2000,27 +1911,25 @@ export function useLiveHostController() {
     }
     let cancelled = false;
     (async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        cameraStreamRef.current = stream;
-        setCameraStream(stream);
-        setBattleParticipantStream(stream);
-      } catch {
-        showToast('Camera access denied — cannot join battle');
+      const stream = await acquireCamera();
+      if (cancelled) {
+        if (stream) stopCamera();
+        return;
       }
+      if (!stream) {
+        showToast('Camera access denied — cannot join battle');
+        return;
+      }
+      setBattleParticipantStream(stream);
     })();
     return () => { cancelled = true; };
-  }, [isBattleParticipant, battleParticipantStream]);
+  }, [isBattleParticipant, battleParticipantStream, acquireCamera, stopCamera, cameraStreamRef]);
 
   useEffect(() => {
     if (!isBattleParticipant || !battleParticipantStream || !videoRef.current) return;
     videoRef.current.srcObject = battleParticipantStream;
     prepareLiveVideoEl(videoRef.current);
-  }, [isBattleParticipant, battleParticipantStream]);
+  }, [isBattleParticipant, battleParticipantStream, videoRef]);
 
   const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
@@ -2141,7 +2050,7 @@ export function useLiveHostController() {
     if (!featuredUserId) {
       restoreHostCameraPreview();
     }
-  }, [featuredUserId, isBroadcast, coHosts, restoreHostCameraPreview]);
+  }, [featuredUserId, isBroadcast, coHosts, restoreHostCameraPreview, cameraStreamRef, liveKitRoomRef]);
 
   // Re-attach remote LiveKit tracks when battle/co-host video elements mount after subscribe
   useEffect(() => {
@@ -2204,15 +2113,24 @@ export function useLiveHostController() {
       }
     };
 
+    const onTrackSubscribed = (
+      _track: RemoteTrack,
+      _pub: TrackPublication,
+      _participant: RemoteParticipant,
+    ) => {
+      attachAll();
+    };
+
     attachAll();
-    const waitingForOpponent =
-      isBattleMode &&
-      battleSlots.some((s) => s.status === 'accepted' && s.userId) &&
-      !hasOpponentStream;
-    const pollMs = waitingForOpponent ? 400 : 2000;
-    const poll = window.setInterval(attachAll, pollMs);
-    return () => window.clearInterval(poll);
-  }, [isBroadcast, isBattleMode, coHosts, battleSlots, attachRemoteAudio, user?.id, hasOpponentStream]);
+    room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
+    room.on(RoomEvent.ParticipantConnected, attachAll);
+    room.on(RoomEvent.TrackUnsubscribed, attachAll);
+    return () => {
+      room.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
+      room.off(RoomEvent.ParticipantConnected, attachAll);
+      room.off(RoomEvent.TrackUnsubscribed, attachAll);
+    };
+  }, [isBroadcast, isBattleMode, coHosts, battleSlots, attachRemoteAudio, user?.id, hasOpponentStream, liveKitRoomRef]);
 
   // Re-attach opponent room video when battle pane mounts
   useEffect(() => {
@@ -2289,21 +2207,11 @@ export function useLiveHostController() {
   const [miniProfileFollowsThem, setMiniProfileFollowsThem] = useState<boolean | undefined>(undefined);
   const [_showMembershipBar, _setShowMembershipBar] = useState(false);
   const [showTeamStatus, setShowTeamStatus] = useState(false);
-  // Refresh team stats when the panel opens so hearts/coins are current.
+  // Refresh team stats once when the panel opens so hearts/coins are current.
   useEffect(() => {
     if (!showTeamStatus || !user?.id) return;
-    const refresh = () => {
-      void apiLiveMembership(user.id)
-        .then(({ data: d }) => {
-          if (!d) return;
-          void applyMembershipStats(d);
-        })
-        .catch(() => {});
-    };
-    refresh();
-    const interval = window.setInterval(refresh, 5000);
-    return () => window.clearInterval(interval);
-  }, [showTeamStatus, user?.id, applyMembershipStats]);
+    refreshMembershipStats();
+  }, [showTeamStatus, user?.id, refreshMembershipStats]);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
   const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
   const [_membershipHeartActive, _setMembershipHeartActive] = useState(false);
@@ -2354,7 +2262,9 @@ export function useLiveHostController() {
       if (Array.isArray(d?.stickers)) {
         setCreatorStickers(d.stickers as { id: number; image_url: string; label: string }[]);
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast('Could not load stickers');
+    });
   }, [showFanClub, user?.id]);
 
   useEffect(() => {
@@ -2402,8 +2312,12 @@ export function useLiveHostController() {
         if (res.ok) {
           const sticker = await res.json();
           setCreatorStickers(prev => [...prev, sticker]);
+        } else {
+          showToast('Sticker upload failed');
         }
-      } catch { /* ignore */ }
+      } catch {
+        showToast('Sticker upload failed');
+      }
       setStickerUploading(false);
     };
     input.click();
@@ -2503,8 +2417,12 @@ export function useLiveHostController() {
           Number(progression.starter_coin_balance) || 0,
         );
         setStarterCoinBalance(starter);
+      } else if (error) {
+        showToast('Could not load starter coins');
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast('Could not load starter coins');
+    });
     apiLiveEngagementWallet().then(({ data, error }) => {
       if (!error && data?.wallet) {
         const ew = data.wallet as Record<string, number>;
@@ -2513,8 +2431,12 @@ export function useLiveHostController() {
           Number(ew.promotionalCoins ?? ew.promotional_coins ?? 0) || 0,
         );
         setPromotionalCoinBalance(promo);
+      } else if (error) {
+        showToast('Could not load promo coins');
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast('Could not load promo coins');
+    });
   }, [showGiftPanel, user?.id]);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [shareQuery, setShareQuery] = useState('');
@@ -2529,13 +2451,25 @@ export function useLiveHostController() {
     }
     let cancelled = false;
     (async () => {
-      const [rows, liveResult] = await Promise.all([
-        fetchAllSharePanelContacts(user?.id),
-        apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
-      ]);
-      if (cancelled) return;
-      setShareFollowers(rows);
-      setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
+      try {
+        const [rows, liveResult] = await Promise.all([
+          fetchAllSharePanelContacts(user?.id),
+          apiLiveStreams().catch((err) => {
+            reportFailure('live_share_live_streams', err);
+            return null;
+          }),
+        ]);
+        if (cancelled) return;
+        setShareFollowers(rows);
+        if (liveResult) {
+          setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
+        }
+      } catch (e) {
+        if (!cancelled) {
+          reportFailure('live_share_contacts', e);
+          showToast('Could not load share contacts');
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -2565,7 +2499,7 @@ export function useLiveHostController() {
           metric: 'shares',
           delta: 1,
           roomId: effectiveStreamId,
-        }).catch(() => {});
+        }).catch((err) => reportFailure('live_engagement_progress', err));
       }
     } catch {
       showToast('Could not share');
@@ -2574,20 +2508,15 @@ export function useLiveHostController() {
 
   // Team totals (same as server): red = hostScore + player3Score; blue = opponentScore + player4Score.
   // 2-player: p3/p4 are 0. 'me' = red side won; 'opponent' = blue side won (layout: left=red, right=blue).
-  const determine4PlayerWinner = useCallback(() => {
-    const s = battleServerTotalsRef.current;
-    const teamA = s.h + s.p3;
-    const teamB = s.o + s.p4;
-    if (teamA === teamB) return 'draw';
-    return teamA > teamB ? 'me' : 'opponent';
-  }, []);
+  const determine4PlayerWinner = useCallback(
+    () => determinePerspectiveWinner(battleServerTotalsRef.current),
+    [battleServerTotalsRef],
+  );
 
-    // Scores: battle_score + battle_state_sync + battle_ended. Battle countdown runs locally (no battle_tick).
+    // Scores + clock: battle_score + battle_state_sync + battle_tick + battle_ended.
+    // Remaining seconds are server-owned (battle_tick); no local authoritative countdown.
 
   const endBattleCleanup = useCallback(() => {
-    // Accepted-invite marker is battle-scoped: drop it so a later fresh visit
-    // to this room is treated as a normal spectator, not an accepted joiner.
-    try { sessionStorage.removeItem(`battleAccept:${effectiveStreamId}`); } catch { /* ignore */ }
     setIsBattleMode(false);
     setBattleScoreBarHidden(false);
     setBattleState('LIVE_SOLO');
@@ -2607,8 +2536,7 @@ export function useLiveHostController() {
     setHostIsReady(false);
     setOpponentIsReady(false);
     setOpponentCreatorName('');
-    battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
-    setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
+    resetScores();
     setGiftTarget('me');
     setBattleUiRole(isBattleJoiner ? 'opponent' : 'host');
     setMutedPlayers({});
@@ -2630,10 +2558,6 @@ export function useLiveHostController() {
     setSpeedChallengeResult(null);
     setSpeedMultiplier(1);
     speedMultiplierRef.current = 1;
-    if (localBattleTimerRef.current) {
-      clearInterval(localBattleTimerRef.current);
-      localBattleTimerRef.current = null;
-    }
     setBattleSlots([
       { userId: '', name: '', status: 'empty', avatar: '' },
       { userId: '', name: '', status: 'empty', avatar: '' },
@@ -2648,7 +2572,7 @@ export function useLiveHostController() {
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
     if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     // Battle state notified via WebSocket.
-  }, [effectiveStreamId, isBattleJoiner]);
+  }, [isBattleJoiner, resetScores]);
 
   const exitBattleMode = useCallback(() => {
     endBattleCleanup();
@@ -2692,8 +2616,7 @@ export function useLiveHostController() {
     setOpponentScore(0);
     setPlayer3Score(0);
     setPlayer4Score(0);
-    battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
-    setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
+    resetScores();
     setBattleWinner(null);
     setBattleTeamWinner(null);
     setGiftTarget('me');
@@ -2725,7 +2648,7 @@ export function useLiveHostController() {
     setIsFindCreatorsOpen(false);
     battleCreate({ hostName: creatorName });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner]);
+  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores]);
 
   /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
   const removePlayerFromSlot = useCallback((_slotIndex: number) => {
@@ -2748,13 +2671,7 @@ export function useLiveHostController() {
     setBattleCountdown(null);
     setBattleTime(300);
     battleTapScoreRemainingRef.current = 5;
-    // Countdown: local useEffect when IN_BATTLE. Winner: server battle_ended.
-    return () => {
-      if (localBattleTimerRef.current) {
-        clearInterval(localBattleTimerRef.current);
-        localBattleTimerRef.current = null;
-      }
-    };
+    // Duration clock: server battle_tick / battle_state_sync only (no local owner).
   }, [battleCountdown]);
 
   useEffect(() => {
@@ -2762,15 +2679,6 @@ export function useLiveHostController() {
     const id = setTimeout(() => setBattleCountdown((c) => (c != null && c > 0 ? c - 1 : null)), 1000);
     return () => clearTimeout(id);
   }, [battleCountdown]);
-
-  // Battle duration: local 1s countdown while IN_BATTLE (no WebSocket battle_tick).
-  useEffect(() => {
-    if (!isBattleMode || battleWinner || battleState !== 'IN_BATTLE') return;
-    const id = window.setInterval(() => {
-      setBattleTime((t) => Math.max(0, t - 1));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [isBattleMode, battleWinner, battleState]);
 
   const _startBattleWithCreator = (creatorId: string, creatorName: string) => {
     setOpponentCreatorName(creatorName);
@@ -3074,116 +2982,7 @@ export function useLiveHostController() {
     }
   }, [location.search, isBattleMode, toggleBattle, isBroadcast]);
 
-  useEffect(() => {
-    if (!isBroadcast) return;
-
-    let cancelled = false;
-
-    const start = async () => {
-      try {
-        setCameraError(null);
-
-        if (cameraFacing !== 'user') {
-          clearCachedCameraStream();
-        }
-
-        const cached = getCachedCameraStream();
-        if (cached) {
-          const cachedVideo = cached.getVideoTracks()[0];
-          if (cachedVideo?.readyState === 'live') {
-            cameraStreamRef.current = cached;
-            setCameraStream(cached);
-            cached.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
-            if (videoRef.current) {
-              videoRef.current.srcObject = cached;
-              prepareLiveVideoEl(videoRef.current);
-            }
-            return;
-          }
-          clearCachedCameraStream();
-        }
-
-        let stream: MediaStream | null = null;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: cameraFacing,
-            },
-            audio: true,
-          });
-        } catch {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: {
-                facingMode: cameraFacing,
-              },
-              audio: false,
-            });
-          } catch {
-            setCameraError('Camera access denied');
-            return;
-          }
-        }
-
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        const previous = cameraStreamRef.current;
-        cameraStreamRef.current = stream;
-        setCameraStream(stream);
-        setCachedCameraStream(stream);
-        stream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
-
-        // Set camera zoom to minimum for widest view
-        try {
-          const vTrack = stream.getVideoTracks()[0];
-          const caps = vTrack?.getCapabilities?.() as Record<string, { min?: number; max?: number }>;
-          if (caps?.zoom) {
-            await vTrack.applyConstraints({ advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet] });
-          }
-        } catch { /* zoom not supported */ }
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          prepareLiveVideoEl(videoRef.current);
-        }
-
-        // Warm-swap: attach new stream first, then stop the previous facing.
-        if (previous && previous !== stream) {
-          previous.getTracks().forEach((t) => t.stop());
-        }
-      } catch {
-        setCameraError('Camera access denied');
-      }
-    };
-
-    start();
-
-    // Facing flip must NOT stop tracks in cleanup — that races the new getUserMedia
-    // and blacks the preview. Only cancel in-flight acquire; start() stops the old
-    // stream after the new one is attached.
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBroadcast, cameraFacing]);
-
-  // True leave of broadcast page: stop camera/mic (LiveKit no longer stops them for us).
-  useEffect(() => {
-    if (!isBroadcast) return;
-    return () => {
-      const current = cameraStreamRef.current;
-      if (current) {
-        current.getTracks().forEach((t) => {
-          try { t.stop(); } catch { /* ignore */ }
-        });
-        cameraStreamRef.current = null;
-      }
-      clearCachedCameraStream();
-    };
-  }, [isBroadcast]);
+  // Host acquire / facing flip / leave-stop owned by useLiveCamera(autoAcquire).
 
   // Re-attach camera stream when battle mode toggles (solo vs battle <video> swap).
   useEffect(() => {
@@ -3209,7 +3008,7 @@ export function useLiveHostController() {
     return () => {
       cancelled = true;
     };
-  }, [isBattleMode, isBroadcast, isBattleJoiner, cameraStream]);
+  }, [isBattleMode, isBroadcast, isBattleJoiner, cameraStream, cameraStreamRef, videoRef]);
 
   useEffect(() => {
     if (!isBroadcast) return;
@@ -3226,27 +3025,8 @@ export function useLiveHostController() {
         }
         return;
       }
-      try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing },
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        const previous = cameraStreamRef.current;
-        cameraStreamRef.current = newStream;
-        setCameraStream(newStream);
-        setCachedCameraStream(newStream);
-        newStream.getAudioTracks().forEach((t) => { t.enabled = !isMicMuted; });
-        if (videoRef.current) {
-          videoRef.current.srcObject = newStream;
-          prepareLiveVideoEl(videoRef.current);
-        }
-        if (previous && previous !== newStream) {
-          previous.getTracks().forEach((t) => t.stop());
-        }
-        void publishHostLiveKitTracks();
-      } catch {
-        /* camera unavailable */
-      }
+      const newStream = await acquireCamera();
+      if (newStream) void publishHostLiveKitTracks();
     };
     document.addEventListener('visibilitychange', handleForeground);
     let appSub: { remove: () => void } | null = null;
@@ -3259,79 +3039,39 @@ export function useLiveHostController() {
       document.removeEventListener('visibilitychange', handleForeground);
       appSub?.remove();
     };
-  }, [isBroadcast, cameraFacing, isMicMuted, publishHostLiveKitTracks]);
+  }, [isBroadcast, acquireCamera, publishHostLiveKitTracks, cameraStreamRef, videoRef]);
 
-  // Keep host preview alive: rebind srcObject, and if the track was killed
-  // (LiveKit unpublish/disconnect), reacquire once with a cooldown.
-  const cameraRecoverInFlightRef = useRef(false);
-  const cameraRecoverAtRef = useRef(0);
+  // Host camera recover: track `ended` owns reacquire (no interval poll).
+  // Preview rebind is owned by useLiveCamera bind/acquire + visibility handler above.
   useEffect(() => {
     if (!isBroadcast) return;
-    const id = window.setInterval(() => {
-      let stream = cameraStreamRef.current;
-      if (!stream) {
-        const cached = getCachedCameraStream();
-        if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
-          cameraStreamRef.current = cached;
-          stream = cached;
-          setCameraStream(cached);
-        }
-      }
-      const el = videoRef.current;
-      const track = stream?.getVideoTracks()[0];
-      if (stream && el && track?.readyState === 'live') {
-        if (el.srcObject !== stream) {
-          el.srcObject = stream;
-        }
-        if (el.paused || el.style.visibility === 'hidden') {
-          prepareLiveVideoEl(el);
-        }
-        return;
-      }
+    const stream = cameraStream;
+    const track = stream?.getVideoTracks()?.[0];
+    if (!track) return;
 
+    const el = videoRef.current;
+    if (el && track.readyState === 'live') {
+      if (el.srcObject !== stream) el.srcObject = stream;
+      if (el.paused || el.style.visibility === 'hidden') prepareLiveVideoEl(el);
+    }
+
+    const onEnded = () => {
       if (cameraRecoverInFlightRef.current) return;
       if (Date.now() - cameraRecoverAtRef.current < 5000) return;
       cameraRecoverInFlightRef.current = true;
       cameraRecoverAtRef.current = Date.now();
       void (async () => {
         try {
-          const newStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: cameraFacing },
-            audio: { echoCancellation: true, noiseSuppression: true },
-          });
-          const previous = cameraStreamRef.current;
-          cameraStreamRef.current = newStream;
-          setCameraStream(newStream);
-          setCachedCameraStream(newStream);
-          newStream.getAudioTracks().forEach((t) => {
-            t.enabled = !isMicMuted;
-          });
-          if (videoRef.current) {
-            videoRef.current.srcObject = newStream;
-            prepareLiveVideoEl(videoRef.current);
-          }
-          if (previous && previous !== newStream) {
-            previous.getTracks().forEach((t) => {
-              try { t.stop(); } catch { /* ignore */ }
-            });
-          }
-          setCameraError(null);
-          void publishHostLiveKitTracks();
-        } catch {
-          /* camera unavailable — leave error state if already set */
+          const newStream = await acquireCamera();
+          if (newStream) void publishHostLiveKitTracks();
         } finally {
           cameraRecoverInFlightRef.current = false;
         }
       })();
-    }, 750);
-    return () => window.clearInterval(id);
-  }, [isBroadcast, cameraFacing, isMicMuted, publishHostLiveKitTracks]);
-
-  useEffect(() => {
-    const stream = cameraStreamRef.current;
-    if (!stream) return;
-    stream.getAudioTracks().forEach((t) => (t.enabled = !isMicMuted));
-  }, [isMicMuted]);
+    };
+    track.addEventListener('ended', onEnded);
+    return () => track.removeEventListener('ended', onEnded);
+  }, [isBroadcast, cameraStream, acquireCamera, publishHostLiveKitTracks, videoRef, cameraRecoverInFlightRef, cameraRecoverAtRef]);
 
   const [activeViewers, setActiveViewers] = useState<LiveViewer[]>([]);
   const viewerIdentityCacheRef = useRef<Map<string, { username: string; displayName: string; avatar: string; level: number }>>(new Map());
@@ -3645,6 +3385,7 @@ export function useLiveHostController() {
     };
 
     let mounted = true;
+    const joinAnnounced = joinAnnouncedRef.current;
 
     const connect = async () => {
       const token = await getToken();
@@ -3804,7 +3545,7 @@ export function useLiveHostController() {
           const fixed = Math.floor(lvl);
           setMessages((prev) => prev.map((m) => (m.id === joinMsgId ? { ...m, level: fixed } : m)));
           setActiveViewers((prev) => prev.map((v) => (v.id === uid ? { ...v, level: fixed } : v)));
-        }).catch(() => {});
+        }).catch((err) => reportFailure('live_join_profile_level', err, { userId: uid }));
       }
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
@@ -3906,31 +3647,24 @@ export function useLiveHostController() {
         membershipIcon: isMembershipJoin ? 'heart' : undefined,
       };
       setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
+      if (isMembershipJoin) {
+        refreshMembershipStatsRef.current();
+      }
     };
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
-      const txnId =
-        (typeof data.transactionId === 'string' && data.transactionId) ||
-        (typeof data.transaction_id === 'string' && data.transaction_id) ||
-        '';
-      const wsGiftId =
-        (typeof data.giftId === 'string' && data.giftId) ||
-        (typeof data.gift_id === 'string' && data.gift_id) ||
-        '';
-      const alreadySeen = !!(txnId && seenGiftTxnRef.current.has(txnId));
-      const videoAlreadyPlayed = !!(txnId && playedGiftVideoTxnRef.current.has(txnId));
+      const txnId = extractGiftTxnId(data);
+      const wsGiftId = extractGiftId(data);
+      const alreadySeen = hasSeenGiftTxn(txnId);
+      const videoAlreadyPlayed = hasPlayedGiftVideoTxn(txnId);
 
       // Skip only when this transaction's video already played — not when the first
       // payload lacked a URL (REST/WS can deliver metadata before the playable URL).
       if (alreadySeen && videoAlreadyPlayed) return;
 
       if (txnId && !alreadySeen) {
-        seenGiftTxnRef.current.add(txnId);
-        if (seenGiftTxnRef.current.size > 200) {
-          const keep = [...seenGiftTxnRef.current].slice(-100);
-          seenGiftTxnRef.current = new Set(keep);
-        }
+        markGiftTxnSeen(txnId);
       }
 
       const giftDef = wsGiftId
@@ -4060,110 +3794,42 @@ export function useLiveHostController() {
         if (giftSide && myRole && giftSide !== myRole) return;
       }
 
-      // Spectator already played from local catalog; creator must resolve from
-      // WS payload and/or catalog. If catalog is still loading, retry once.
-      const resolvePlayUrl = (catalog: GiftUiItem[]) =>
-        pickGiftVideoUrl(data, catalog) ||
-        (wsGiftId
-          ? pickGiftVideoUrl({ giftId: wsGiftId, gift_id: wsGiftId }, catalog)
-          : null) ||
-        pickGiftVideoUrl(
-          {
-            giftId: wsGiftId,
-            gift_id: wsGiftId,
-            video: typeof data?.video === 'string' ? data.video : '',
-            animation_url:
-              typeof data?.animation_url === 'string' ? data.animation_url : '',
-          },
-          catalog,
-        );
-
-      const enqueueCreatorGiftVideo = (url: string) => {
-        if (!url) return;
-        if (txnId) {
-          if (playedGiftVideoTxnRef.current.has(txnId)) return;
-          playedGiftVideoTxnRef.current.add(txnId);
-          if (playedGiftVideoTxnRef.current.size > 200) {
-            const keep = [...playedGiftVideoTxnRef.current].slice(-100);
-            playedGiftVideoTxnRef.current = new Set(keep);
-          }
-        }
-        enqueueGiftVideoRef.current(url, giftSide);
-      };
-
-      const playUrl = resolvePlayUrl(giftsCatalogRef.current);
-      if (playUrl) {
-        enqueueCreatorGiftVideo(playUrl);
-        return;
-      }
-
-      if (!wsGiftId) return;
-      void fetchGiftsFromDatabase().then((gifts) => {
-        if (!mounted) return;
-        if (txnId && playedGiftVideoTxnRef.current.has(txnId)) return;
-        if (gifts.length) {
-          giftsCatalogRef.current = gifts;
-          setGiftsCatalog(gifts);
-        }
-        const retryUrl = resolvePlayUrl(giftsCatalogRef.current);
-        if (retryUrl) enqueueCreatorGiftVideo(retryUrl);
+      enqueueFromGiftSent({
+        data,
+        catalogRef: giftsCatalogRef,
+        setGiftsCatalog,
+        battleSide: giftSide,
+        txnId,
+        trackPlayedVideo: true,
+        mounted: () => mounted,
       });
     };
 
-    // Server-controlled battle events — single source of truth
-    const applyBattleScores = (data) => {
-      const pick = (v: unknown, fallback: number) => {
-        if (v === undefined || v === null) return fallback;
-        const n = Number(v);
-        return Number.isFinite(n) ? n : fallback;
-      };
-      const prevS = battleServerTotalsRef.current;
-      const nextS = {
-        h: pick(data.hostScore ?? data.host_score, prevS.h),
-        o: pick(data.opponentScore ?? data.opponent_score, prevS.o),
-        p3: pick(data.player3Score ?? data.player3_score, prevS.p3),
-        p4: pick(data.player4Score ?? data.player4_score, prevS.p4),
-      };
-      const redDelta = (nextS.h - prevS.h) + (nextS.p3 - prevS.p3);
-      const blueDelta = (nextS.o - prevS.o) + (nextS.p4 - prevS.p4);
-      battleServerTotalsRef.current = nextS;
-      setBattleServerTotals(nextS);
-      setPlayer3Score(nextS.p3);
-      setPlayer4Score(nextS.p4);
+    // Server-controlled battle events — single source of truth (score owner: useBattleServerTotals)
+    const applyBattleScores = (data: unknown) => {
+      const result = applyScores(data);
+      setPlayer3Score(result.totals.p3);
+      setPlayer4Score(result.totals.p4);
 
-      if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
-      else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
-
-      const redTotal = nextS.h + nextS.p3;
-      const blueTotal = nextS.o + nextS.p4;
-      const prevRedTotal = prevS.h + prevS.p3;
-      const prevBlueTotal = prevS.o + prevS.p4;
-      if (redTotal > blueTotal && redTotal - prevRedTotal >= 25) {
-        maybeTauntLeadChange('host', redTotal - prevRedTotal);
-        pushBattleTaunt(createTauntBurst('opponent', 'lead'));
-      } else if (blueTotal > redTotal && blueTotal - prevBlueTotal >= 25) {
-        maybeTauntLeadChange('opponent', blueTotal - prevBlueTotal);
-        pushBattleTaunt(createTauntBurst('host', 'lead'));
+      if (result.vfx) triggerBattleVfx(result.vfx.side, result.vfx.delta);
+      if (result.leadTaunt) {
+        maybeTauntLeadChange(result.leadTaunt.side, result.leadTaunt.gain);
+        pushBattleTaunt(
+          createTauntBurst(result.leadTaunt.side === 'host' ? 'opponent' : 'host', 'lead'),
+        );
       }
 
-      const hostScore = nextS.h;
-      const oppScore = nextS.o;
-
+      const payload = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
       const selfId = user?.id || '';
-      const payloadHostId = typeof data.hostUserId === 'string' ? data.hostUserId : '';
-      const payloadOpponentId = typeof data.opponentUserId === 'string' ? data.opponentUserId : '';
+      const payloadHostId = typeof payload.hostUserId === 'string' ? payload.hostUserId : '';
+      const payloadOpponentId = typeof payload.opponentUserId === 'string' ? payload.opponentUserId : '';
       if (selfId && payloadHostId && selfId === payloadHostId) battleRoleRef.current = 'host';
       else if (selfId && payloadOpponentId && selfId === payloadOpponentId) battleRoleRef.current = 'opponent';
 
       const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : 'host'));
-      
-      if (role === 'opponent') {
-        setMyScore(oppScore);
-        setOpponentScore(hostScore);
-      } else {
-        setMyScore(hostScore);
-        setOpponentScore(oppScore);
-      }
+      const perspective = scoresForBattleRole(result.totals, role);
+      setMyScore(perspective.myScore);
+      setOpponentScore(perspective.opponentScore);
       setBattleUiRole(role);
     };
 
@@ -4279,21 +3945,19 @@ export function useLiveHostController() {
       }
       setBattleState('ENDED');
       applyBattleScores(data);
-      const winner = data.winner;
       const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
       // Server endBattle: winner is red team (host) vs blue (opponent) or draw — not individual P3/P4.
-      setBattleWinner(normalizeBattleWinner(winner, role));
-      const teamWinner =
-        winner === 'host' || winner === 'opponent' || winner === 'draw' ? winner : 'draw';
+      const teamWinner = resolveServerBattleWinner(data?.winner, battleServerTotalsRef.current);
+      setBattleWinner(normalizeBattleWinner(teamWinner, role));
       setBattleTeamWinner(teamWinner);
       if (!battleStreakCountedForEndRef.current) {
         battleStreakCountedForEndRef.current = true;
         setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
       }
-      if (winner === 'host') {
+      if (teamWinner === 'host') {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('host', 'win'));
-      } else if (winner === 'opponent') {
+      } else if (teamWinner === 'opponent') {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('opponent', 'win'));
       }
@@ -4383,10 +4047,8 @@ export function useLiveHostController() {
       setMistFog({ supportedUserId, supportedSide, expiresAt });
     };
 
-    // Server is the authority on remaining battle time (processBattleTick, 1 Hz).
-    // Sync the local countdown to it every tick so a throttled/backgrounded
-    // webview timer self-corrects instead of drifting. Scores keep flowing via
-    // battle_score, so the tick only touches time (no duplicate score/VFX).
+    // Server is the sole authority on remaining battle time (processBattleTick → battle_tick).
+    // No local setInterval owner — display follows WS timeLeft only.
     const handleBattleTick = (data: { timeLeft?: number }) => {
       const t = applyBattleTickTime(data?.timeLeft);
       if (t != null) setBattleTime(t);
@@ -4406,7 +4068,7 @@ export function useLiveHostController() {
     const handleBattleInvite = (data) => {
       if (!user?.id) return;
       const hostUserId = String(data.hostUserId || '').trim();
-      let hostAvatar = sanitizeLiveAvatar(data.hostAvatar) || '';
+      const hostAvatar = sanitizeLiveAvatar(data.hostAvatar) || '';
       setPendingInvite({
         hostName: data.hostName || 'Creator',
         hostAvatar: hostAvatar || ELIX_LOGO,
@@ -4618,12 +4280,12 @@ export function useLiveHostController() {
     const handleModerationPause = (data: { message?: string }) => {
       if (!mounted) return;
       showToast(data?.message || 'Stream paused for safety. Please review our community guidelines.');
-      navigate(-1);
+      navigate('/feed', { replace: true });
     };
     const handleModerationSuspend = (data: { message?: string }) => {
       if (!mounted) return;
       showToast(data?.message || 'Your account is under review. Contact support if you have questions.');
-      navigate('/');
+      navigate('/feed', { replace: true });
     };
     const unbindModerationWs = bindLiveModerationWs({
       onWarning: handleModerationWarning,
@@ -4644,7 +4306,7 @@ export function useLiveHostController() {
       unbindBattleInviteWs();
       unbindCohostWs();
       unbindModerationWs();
-      joinAnnouncedRef.current.clear();
+      joinAnnounced.clear();
       // Do NOT disconnect here — unstable handler deps were dropping the host WS
       // mid-battle and server treated that as "host left" → stream_ended.
     };
@@ -4658,7 +4320,8 @@ export function useLiveHostController() {
     };
   }, []);
 
-  // AI moderation: periodic frame check when broadcasting (flag + assist, all actions logged)
+  // AI moderation safety tick: WS events (bindLiveModerationWs) are preferred for
+  // warning/pause/suspend. Keep ONE 30s client frame check as backup only — no extra intervals.
   const moderationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (!isBroadcast || !user?.id || !effectiveStreamId) return;
@@ -4693,7 +4356,11 @@ export function useLiveHostController() {
           stream_key: effectiveStreamId,
           image_base64: base64,
         });
-        if (modErr || !json) return;
+        if (modErr) {
+          reportFailure('live_moderation_check', modErr, { streamKey: effectiveStreamId });
+          return;
+        }
+        if (!json) return;
         const action = typeof json?.action === 'string' ? json.action : '';
         const message = typeof json?.message === 'string' ? json.message : '';
         if (action === 'warning') {
@@ -4701,13 +4368,13 @@ export function useLiveHostController() {
           setShowModerationWarning(true);
         } else if (action === 'pause') {
           showToast(message);
-          navigate(-1);
+          navigate('/feed', { replace: true });
         } else if (action === 'suspend') {
           showToast(message);
-          navigate('/');
+          navigate('/feed', { replace: true });
         }
-      } catch {
-        // ignore
+      } catch (err) {
+        reportFailure('live_moderation_check', err, { streamKey: effectiveStreamId });
       }
     };
 
@@ -4719,10 +4386,8 @@ export function useLiveHostController() {
         moderationIntervalRef.current = null;
       }
     };
-  }, [isBroadcast, user?.id, effectiveStreamId, navigate]);
+  }, [isBroadcast, user?.id, effectiveStreamId, navigate, videoRef]);
 
-  const [_giftBanner, _setGiftBanner] = useState<{ username: string; giftName: string; icon: string } | null>(null);
-  const _giftBannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
 
@@ -4735,34 +4400,40 @@ export function useLiveHostController() {
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(10);
   const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
-  useEffect(() => {
+  const loadEngagementMissions = useCallback(() => {
     if (!user?.id) return;
-    const loadMissions = () => {
-      void apiLiveEngagementMissions()
-        .then(({ data }) => {
-          const missions = (data?.missions as Array<{
-            metric_key?: string;
-            progress?: number;
-            goal_count?: number;
-          }>) || [];
-          const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-          const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-          if (watch) {
-            setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-            if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
-          }
-          if (gifts) {
-            setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-            if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
-          }
-        })
-        .catch(() => {});
-    };
-    loadMissions();
-    const refresh = window.setInterval(loadMissions, 60_000);
-    return () => window.clearInterval(refresh);
+    void apiLiveEngagementMissions()
+      .then(({ data }) => {
+        const missions = (data?.missions as Array<{
+          metric_key?: string;
+          progress?: number;
+          goal_count?: number;
+        }>) || [];
+        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+        if (watch) {
+          setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+          if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
+        }
+        if (gifts) {
+          setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+          if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
+        }
+      })
+      .catch((err) => reportFailure('live_engagement_missions', err, { userId: user.id }));
   }, [user?.id]);
-  // Host also reports watch progress server-side (same contract as spectator).
+
+  useEffect(() => {
+    loadEngagementMissions();
+  }, [loadEngagementMissions]);
+
+  // Refresh missions when the missions panel is opened (explicit user action).
+  useEffect(() => {
+    if (!engagementOpen || engagementPanel !== 'missions') return;
+    loadEngagementMissions();
+  }, [engagementOpen, engagementPanel, loadEngagementMissions]);
+
+  // Product-required engagement watch tick: one interval POST watch_minutes + local progress.
   useEffect(() => {
     if (!isBroadcast || !effectiveStreamId) return;
     const roomId = effectiveStreamId;
@@ -4773,7 +4444,7 @@ export function useLiveHostController() {
         metric: 'watch_minutes',
         delta: 1,
         roomId,
-      }).catch(() => {});
+      }).catch((err) => reportFailure('live_engagement_watch_tick', err, { roomId }));
     }, 60_000);
     return () => window.clearInterval(id);
   }, [isBroadcast, effectiveStreamId, missionWatchGoal]);
@@ -4783,7 +4454,7 @@ export function useLiveHostController() {
       metric: 'battles_joined',
       delta: 1,
       roomId: effectiveStreamId,
-    }).catch(() => {});
+    }).catch((err) => reportFailure('live_engagement_progress', err));
   }, [isBattleMode, effectiveStreamId]);
   const sideMissions = {
         watchMin: missionWatchMin,
@@ -4849,18 +4520,6 @@ export function useLiveHostController() {
   const clearActiveFaceARGift = useCallback(() => {
     setActiveFaceARGift(null);
     setLiveFilterCss(liveFilterBeforeFaceGiftRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (giftQueue.length > 0 && !currentGift) {
-      setCurrentGift(giftQueue[0]);
-      setGiftKey((k) => k + 1);
-      setGiftQueue((prev) => prev.slice(1));
-    }
-  }, [giftQueue, currentGift]);
-
-  const handleGiftEnded = useCallback(() => {
-    setCurrentGift(null);
   }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
@@ -4999,21 +4658,12 @@ export function useLiveHostController() {
           : undefined;
 
       if (gift.video && gift.video.trim()) {
-        const raw = gift.video;
-        const ext = raw.split('?')[0].toLowerCase();
-        const isVid = ext.endsWith('.mp4') || ext.endsWith('.webm') || ext.endsWith('.mov');
-        if (isVid) {
-          const videoUrl = preferPlayableGiftVideoUrl(
-            (raw.startsWith('http://') || raw.startsWith('https://'))
-              ? raw
-              : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
-          );
-          if (videoUrl) {
-            const localBattleSide = isBattleMode
-              ? normalizeBattleGiftTarget(serverBattleTarget)
-              : null;
-            setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: localBattleSide }, LIVE_GIFT_QUEUE_CAP));
-          }
+        const videoUrl = resolveLocalGiftVideoUrl(gift.video);
+        if (videoUrl) {
+          const localBattleSide = isBattleMode
+            ? normalizeBattleGiftTarget(serverBattleTarget)
+            : null;
+          enqueueGiftVideo(videoUrl, localBattleSide);
         }
       }
       setShowGiftPanel(false);
@@ -5066,7 +4716,7 @@ export function useLiveHostController() {
       if (!isBattleMode && selectedCohostGiftUserId && gift.coins > 0) {
         const targetId = selectedCohostGiftUserId;
         if (giftTransactionId) {
-          seenGiftTxnRef.current.add(giftTransactionId);
+          markGiftTxnSeen(giftTransactionId);
         }
         setCohostGiftScores((prev) => ({
           ...prev,
@@ -5082,29 +4732,23 @@ export function useLiveHostController() {
     }
   };
 
-  const toggleMic = () => {
-    const next = !isMicMuted;
-    setIsMicMuted(next);
-    const stream = cameraStreamRef.current;
-    if (stream) stream.getAudioTracks().forEach((t) => (t.enabled = !next));
-    void hostLifecycleRef.current.liveKit?.setMicEnabled(!next);
-  };
+  const toggleMic = useCallback(() => {
+    toggleMicTracks();
+    const nextMuted = !isMicMuted;
+    void hostLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
+  }, [toggleMicTracks, isMicMuted, hostLifecycleRef]);
 
-  const toggleCam = () => {
-    const stream = cameraStreamRef.current;
-    if (!stream) return;
-    const videoTrack = stream.getVideoTracks()[0];
-    if (!videoTrack) return;
+  const toggleCam = useCallback(() => {
+    if (!cameraStreamRef.current?.getVideoTracks()[0]) return;
+    toggleCamTracks();
     const nextCamOff = !isCamOff;
-    videoTrack.enabled = !nextCamOff;
-    setIsCamOff(nextCamOff);
     void hostLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
-  };
+  }, [toggleCamTracks, isCamOff, cameraStreamRef, hostLifecycleRef]);
 
-  const flipCamera = async () => {
+  const flipCamera = useCallback(async () => {
     if (!isBroadcast) return;
-    setCameraFacing((prev) => (prev === 'user' ? 'environment' : 'user'));
-  };
+    flipCameraFacing();
+  }, [isBroadcast, flipCameraFacing]);
 
   const resetComboTimer = () => {
       if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
@@ -5250,11 +4894,7 @@ export function useLiveHostController() {
       }
       
       if (lastSentGift.video && lastSentGift.video.trim()) {
-        const videoUrl = preferPlayableGiftVideoUrl(
-          (lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://'))
-            ? lastSentGift.video
-            : resolveGiftAssetUrl(lastSentGift.video.startsWith('/') ? lastSentGift.video : `/${lastSentGift.video}`),
-        );
+        const videoUrl = resolveLocalGiftVideoUrl(lastSentGift.video);
         if (videoUrl) {
           const comboBattleSide = isBattleMode
             ? normalizeBattleGiftTarget(
@@ -5267,7 +4907,7 @@ export function useLiveHostController() {
                 }),
               )
             : null;
-          setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: comboBattleSide }, LIVE_GIFT_QUEUE_CAP));
+          enqueueGiftVideo(videoUrl, comboBattleSide);
           setShowGiftPanel(false);
         }
       }
@@ -5318,7 +4958,7 @@ export function useLiveHostController() {
       if (!isBattleMode && selectedCohostGiftUserId && lastSentGift.coins > 0) {
         const targetId = selectedCohostGiftUserId;
         if (giftTransactionId) {
-          seenGiftTxnRef.current.add(giftTransactionId);
+          markGiftTxnSeen(giftTransactionId);
         }
         setCohostGiftScores((prev) => ({
           ...prev,
@@ -5334,7 +4974,8 @@ export function useLiveHostController() {
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     void handleComboClick();
-  }, [handleComboClick]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleComboClick is a large gift-send path; wrapping it in useCallback would churn wallet/battle deps every render without UI benefit
+  }, []);
 
   const handleSendMessage = (e: React.FormEvent) => {
       e.preventDefault();
@@ -5346,7 +4987,8 @@ export function useLiveHostController() {
           text: inputValue,
           level: userLevel,
           avatar: isBroadcast ? myAvatar : viewerAvatar,
-          isMod: isBroadcast || moderators.has(user?.id || ''),
+          // Host/broadcast only — client moderators Set is not a real mod grant.
+          isMod: isBroadcast,
       };
       setMessages(prev => appendCapped(prev, newMsg, LIVE_CHAT_MESSAGE_CAP));
 
@@ -5363,7 +5005,7 @@ export function useLiveHostController() {
           metric: 'comments',
           delta: 1,
           roomId: effectiveStreamId,
-        }).catch(() => {});
+        }).catch((err) => reportFailure('live_engagement_progress', err));
       }
   };
 
@@ -5379,22 +5021,7 @@ export function useLiveHostController() {
     setIsMyStreamLive(false);
 
     // Stop local camera/mic
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-      cameraStreamRef.current = null;
-      setCameraStream(null);
-    }
-    clearCachedCameraStream();
-
-    // Remember last ended stream locally so For You feed can hide it immediately for this device
-    if (roomId && typeof window !== 'undefined') {
-      try {
-        const payload = { roomId, endedAt: Date.now() };
-        window.localStorage.setItem('elix_last_ended_stream', JSON.stringify(payload));
-      } catch {
-        // ignore storage errors
-      }
-    }
+    stopCamera();
 
     const { restEnded, error: endErr } = await hostSession.endHostBroadcast(roomId);
     if (restEnded) {
@@ -5559,7 +5186,7 @@ export function useLiveHostController() {
       metric: 'shares',
       delta: 1,
       roomId: effectiveStreamId,
-    }).catch(() => {});
+    }).catch((err) => reportFailure('live_engagement_progress', err));
   }, [effectiveStreamId]);
 
   const shareWhatsApp = useCallback(() => {
@@ -5688,8 +5315,7 @@ export function useLiveHostController() {
     setOpponentScore(0);
     setPlayer3Score(0);
     setPlayer4Score(0);
-    battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
-    setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
+    resetScores();
     setBattleWinner(null);
     setBattleTeamWinner(null);
     battleStreakCountedForEndRef.current = false;
@@ -5699,7 +5325,7 @@ export function useLiveHostController() {
     setRoseCount(0);
     battleScreenTapCountRef.current = 0;
     setBattleScreenTapCount(0);
-  }, []);
+  }, [resetScores]);
 
   const triggerRematch = useCallback(() => {
     startBattleWithAcceptedCreators();
@@ -5794,17 +5420,17 @@ export function useLiveHostController() {
   const moreFlipCamera = useCallback(() => {
     void flipCamera();
     setIsMoreMenuOpen(false);
-  }, []);
+  }, [flipCamera]);
 
   const moreToggleMic = useCallback(() => {
     toggleMic();
     setIsMoreMenuOpen(false);
-  }, []);
+  }, [toggleMic]);
 
   const moreToggleCam = useCallback(() => {
     toggleCam();
     setIsMoreMenuOpen(false);
-  }, []);
+  }, [toggleCam]);
 
   const handleScreenTap = (e?: React.MouseEvent | React.TouchEvent) => {
     let clientX: number | undefined;
@@ -5950,6 +5576,9 @@ export function useLiveHostController() {
     } catch { /* keep what we have */ }
   };
 
+  const openMiniProfileRef = useRef(openMiniProfile);
+  openMiniProfileRef.current = openMiniProfile;
+
   /** Battle pane tap: open the other creator's bottom profile (host↔opponent same). */
   const openBattlePartnerMiniProfile = useCallback((slotIndex: 0 | 1 | 2) => {
     const slot = battleSlotsRef.current[slotIndex];
@@ -5970,7 +5599,7 @@ export function useLiveHostController() {
     } else if (slotIndex === 0 && opponentStreamKey) {
       liveStreamKey = opponentStreamKey;
     }
-    void openMiniProfile(slot.name || 'Creator', undefined, {
+    void openMiniProfileRef.current(slot.name || 'Creator', undefined, {
       userId: slot.userId,
       avatar: slot.avatar || undefined,
       liveStreamKey,
@@ -5981,17 +5610,17 @@ export function useLiveHostController() {
     displayName: string,
     viewer: { userId: string; avatar?: string; level?: number },
   ) => {
-    void openMiniProfile(displayName, undefined, { userId: viewer.userId, avatar: viewer.avatar, level: viewer.level });
+    void openMiniProfileRef.current(displayName, undefined, { userId: viewer.userId, avatar: viewer.avatar, level: viewer.level });
     setShowViewerList(false);
   }, []);
 
-  const closeMiniProfile = () => setMiniProfile(null);
+  const closeMiniProfile = useCallback(() => setMiniProfile(null), []);
 
   const goMiniProfileFromMini = useCallback(() => {
     if (!miniProfile) return;
     closeMiniProfile();
     navigate(`/profile/${miniProfile.id ?? miniProfile.username}`);
-  }, [miniProfile, navigate]);
+  }, [miniProfile, navigate, closeMiniProfile]);
 
   const watchMiniProfileLive = useCallback(() => {
     if (!miniProfile?.liveStreamKey) return;
@@ -6003,7 +5632,7 @@ export function useLiveHostController() {
     }
     closeMiniProfile();
     navigate(`/watch/${key}`);
-  }, [miniProfile, navigate, user?.id]);
+  }, [miniProfile, navigate, user?.id, closeMiniProfile]);
 
   const handleMiniProfileFollowToggle = useCallback(async () => {
     if (!miniProfile) return;
@@ -6111,17 +5740,28 @@ export function useLiveHostController() {
     void handleMiniProfileShare();
   }, [handleMiniProfileShare]);
 
+  /** Toggle Make Mod via server; update local Set only from successful response. */
   const toggleMiniProfileModerator = useCallback(() => {
     if (!miniProfile?.id) return;
-    setModerators(prev => {
-      const next = new Set(prev);
-      const mpId = miniProfile.id as NonNullable<typeof miniProfile.id>;
-      if (next.has(mpId)) { next.delete(mpId); showToast(`@${miniProfile.username} removed as moderator`); }
-      else { next.add(mpId); showToast(`@${miniProfile.username} is now a moderator`); }
-      return next;
-    });
-    closeMiniProfile();
-  }, [miniProfile]);
+    const targetId = miniProfile.id;
+    const streamKey = effectiveStreamIdRef.current;
+    if (!streamKey || streamKey === 'broadcast') {
+      showToast('Moderator assignment unavailable');
+      return;
+    }
+    const isMod = moderators.has(targetId);
+    void (async () => {
+      const result = isMod
+        ? await apiLiveRemoveModerator(streamKey, targetId)
+        : await apiLiveAddModerator(streamKey, targetId);
+      if (result.error) {
+        showToast(result.error);
+        return;
+      }
+      setModerators(new Set(result.moderators));
+      closeMiniProfile();
+    })();
+  }, [miniProfile, moderators, closeMiniProfile]);
 
   const blockMiniProfileUser = useCallback(async () => {
     if (!user?.id || !miniProfile?.id) return;
@@ -6129,15 +5769,17 @@ export function useLiveHostController() {
       await apiLiveBlockUser(miniProfile.id);
       showToast(`@${miniProfile.username} blocked`);
       closeMiniProfile();
-    } catch { /* intentionally empty */ }
-  }, [user?.id, miniProfile]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Block failed';
+      showToast(msg);
+    }
+  }, [user?.id, miniProfile, closeMiniProfile]);
 
   const _startBattleMatch = () => {
     if (!isBattleMode) return;
     setMyScore(0);
     setOpponentScore(0);
-    battleServerTotalsRef.current = { h: 0, o: 0, p3: 0, p4: 0 };
-    setBattleServerTotals({ h: 0, o: 0, p3: 0, p4: 0 });
+    resetScores();
     setBattleWinner(null);
     setBattleTeamWinner(null);
     battleFreeTapUsedRef.current = false;
@@ -6188,8 +5830,6 @@ export function useLiveHostController() {
     _battleUiRole,
     _closeBattleMatch,
     _formatStreamName,
-    _giftBanner,
-    _giftBannerTimer,
     _hostIsReady,
     _iAmReady,
     _isLiveNormal,
@@ -6205,7 +5845,6 @@ export function useLiveHostController() {
     _rawStreamId,
     _setBattleGiftIconFailed,
     _setBattleReadiness,
-    _setGiftBanner,
     _setHostSearchQuery,
     _setMembershipHeartActive,
     _setShowEmojiPicker,
@@ -6426,7 +6065,6 @@ export function useLiveHostController() {
     liveRegisteredRef,
     liveViewerLabel,
     loadCreators,
-    localBattleTimerRef,
     location,
     maybeEnqueueUniverse,
     maybeResolveViewerIdentity,

@@ -372,8 +372,8 @@ export async function valkeySmembers(key: string): Promise<string[]> {
   try {
     return await v.smembers(key);
   } catch (err) {
-    logger.warn({ err: err?.message, key }, "valkeySmembers failed");
-    return [];
+    logger.error({ err: err?.message, key }, "valkeySmembers failed");
+    throw err;
   }
 }
 

@@ -7,7 +7,6 @@ export const LIVE_WEBRTC_VIDEO_CLASS = 'live-webrtc-video';
 
 type HideUntilPlayingEl = HTMLVideoElement & {
   __elixRevealOnPlaying?: () => void;
-  __elixRevealPoll?: ReturnType<typeof setInterval>;
   __elixRevealTimer?: ReturnType<typeof setTimeout>;
 };
 
@@ -16,10 +15,9 @@ type HideUntilPlayingEl = HTMLVideoElement & {
  * before the first frame. CSS opacity does NOT hide that overlay —
  * visibility:hidden does.
  *
- * Important: LiveKit/WebRTC (srcObject) often never fires `playing` on Android.
- * Poll videoWidth and, for stream media only, reveal after a short timeout so
- * For You live cards are not stuck permanently blank.
- * File/URL gifts keep waiting for a real frame (GiftOverlay owns that path).
+ * Reveal owner: first decoded frame via requestVideoFrameCallback when available,
+ * else media events (`loadeddata` / `playing` / `loadedmetadata`), else MediaStream
+ * track `unmute` when the element has srcObject.
  */
 export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): void {
   if (!el) return;
@@ -27,11 +25,8 @@ export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): 
   if (flagged.__elixRevealOnPlaying) {
     el.removeEventListener('playing', flagged.__elixRevealOnPlaying);
     el.removeEventListener('loadeddata', flagged.__elixRevealOnPlaying);
+    el.removeEventListener('loadedmetadata', flagged.__elixRevealOnPlaying);
     flagged.__elixRevealOnPlaying = undefined;
-  }
-  if (flagged.__elixRevealPoll != null) {
-    clearInterval(flagged.__elixRevealPoll);
-    flagged.__elixRevealPoll = undefined;
   }
   if (flagged.__elixRevealTimer != null) {
     clearTimeout(flagged.__elixRevealTimer);
@@ -40,10 +35,6 @@ export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): 
 
   const reveal = () => {
     el.style.visibility = 'visible';
-    if (flagged.__elixRevealPoll != null) {
-      clearInterval(flagged.__elixRevealPoll);
-      flagged.__elixRevealPoll = undefined;
-    }
     if (flagged.__elixRevealTimer != null) {
       clearTimeout(flagged.__elixRevealTimer);
       flagged.__elixRevealTimer = undefined;
@@ -63,25 +54,26 @@ export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): 
   flagged.__elixRevealOnPlaying = onFrame;
   el.addEventListener('playing', onFrame, { once: true });
   el.addEventListener('loadeddata', onFrame, { once: true });
+  el.addEventListener('loadedmetadata', onFrame, { once: true });
 
-  flagged.__elixRevealPoll = setInterval(() => {
-    if (el.videoWidth > 0) reveal();
-  }, 50);
+  const rvfc = (el as HTMLVideoElement & {
+    requestVideoFrameCallback?: (cb: () => void) => number;
+  }).requestVideoFrameCallback;
+  if (typeof rvfc === 'function') {
+    rvfc.call(el, () => reveal());
+  }
 
-  // LiveKit remote tracks on Android often skip `playing` — don't leave For You blank.
-  // Only auto-reveal for MediaStream (camera / LiveKit). URL gifts stay hidden until a frame.
-  const isStreamMedia = Boolean(el.srcObject);
-  flagged.__elixRevealTimer = setTimeout(() => {
-    flagged.__elixRevealTimer = undefined;
-    if (isStreamMedia) {
-      reveal();
-      return;
+  const stream = el.srcObject;
+  if (stream && typeof MediaStream !== 'undefined' && stream instanceof MediaStream) {
+    for (const track of stream.getVideoTracks()) {
+      const onUnmute = () => {
+        track.removeEventListener('unmute', onUnmute);
+        onFrame();
+      };
+      track.addEventListener('unmute', onUnmute);
+      if (!track.muted && track.readyState === 'live') onFrame();
     }
-    if (flagged.__elixRevealPoll != null) {
-      clearInterval(flagged.__elixRevealPoll);
-      flagged.__elixRevealPoll = undefined;
-    }
-  }, 900);
+  }
 }
 
 /** Strip Android WebView white play / media chrome without changing mute policy. */

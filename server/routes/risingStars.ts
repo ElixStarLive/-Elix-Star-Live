@@ -36,11 +36,18 @@ function optionalUserId(req: Request): string | null {
   return payload?.sub || null;
 }
 
+function rsDbUnavailable(err: unknown): boolean {
+  return err instanceof Error && err.message === "DATABASE_UNAVAILABLE";
+}
+
 export async function handleGetCurrentSeason(_req: Request, res: Response) {
   try {
     const season = await rsGetCurrentSeason();
     return res.json({ season });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs current season failed");
     return res.status(500).json({ error: "SERVER_ERROR" });
   }
@@ -52,6 +59,9 @@ export async function handleGetSeason(req: Request, res: Response) {
     if (!season) return res.status(404).json({ error: "NOT_FOUND" });
     return res.json({ season });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs get season failed");
     return res.status(500).json({ error: "SERVER_ERROR" });
   }
@@ -64,8 +74,11 @@ export async function handleListCategories(req: Request, res: Response) {
     const categories = await rsListCategories(seasonId);
     return res.json({ categories });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs categories failed");
-    return res.status(500).json({ error: "SERVER_ERROR", categories: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -76,8 +89,11 @@ export async function handleListRegions(req: Request, res: Response) {
     const regions = await rsListRegions(seasonId);
     return res.json({ regions });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs regions failed");
-    return res.status(500).json({ error: "SERVER_ERROR", regions: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -93,8 +109,11 @@ export async function handleListChallenges(req: Request, res: Response) {
     });
     return res.json({ challenges });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs challenges failed");
-    return res.status(500).json({ error: "SERVER_ERROR", challenges: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -108,6 +127,9 @@ export async function handleGetChallenge(req: Request, res: Response) {
       : false;
     return res.json({ challenge, voted_today: votedToday });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs get challenge failed");
     return res.status(500).json({ error: "SERVER_ERROR" });
   }
@@ -118,8 +140,11 @@ export async function handleListEntries(req: Request, res: Response) {
     const entries = await rsListEntries(String(req.params.id));
     return res.json({ entries });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs entries failed");
-    return res.status(500).json({ error: "SERVER_ERROR", entries: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -129,8 +154,11 @@ export async function handleGetLeaderboard(req: Request, res: Response) {
     const rankings = await rsGetLeaderboard(String(req.params.id), limit);
     return res.json({ rankings });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs leaderboard failed");
-    return res.status(500).json({ error: "SERVER_ERROR", rankings: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -139,8 +167,11 @@ export async function handleGetSeasonStandings(req: Request, res: Response) {
     const standings = await rsGetSeasonStandings(String(req.params.id));
     return res.json({ standings });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs standings failed");
-    return res.status(500).json({ error: "SERVER_ERROR", standings: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -154,8 +185,11 @@ export async function handleListTeams(req: Request, res: Response) {
     );
     return res.json({ teams });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs teams failed");
-    return res.status(500).json({ error: "SERVER_ERROR", teams: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -166,8 +200,11 @@ export async function handleListRewards(req: Request, res: Response) {
     const rewards = await rsListRewardDefinitions(seasonId);
     return res.json({ rewards });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs rewards failed");
-    return res.status(500).json({ error: "SERVER_ERROR", rewards: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -178,8 +215,11 @@ export async function handleMyBadges(req: Request, res: Response) {
     const badges = await rsListUserBadges(userId);
     return res.json({ badges });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs badges failed");
-    return res.status(500).json({ error: "SERVER_ERROR", badges: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -188,8 +228,11 @@ export async function handleUserBadges(req: Request, res: Response) {
     const badges = await rsListUserBadges(String(req.params.userId));
     return res.json({ badges });
   } catch (err) {
+    if (rsDbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "rs user badges failed");
-    return res.status(500).json({ error: "SERVER_ERROR", badges: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 }
 
@@ -212,7 +255,7 @@ export async function handleEnterChallenge(req: Request, res: Response) {
       videoId: parsed.data.videoId,
       teamId: parsed.data.teamId,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       return res.status(result.status).json({ error: result.code });
     }
     await insertNotification({
@@ -235,7 +278,7 @@ export async function handleWithdrawEntry(req: Request, res: Response) {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await rsWithdrawEntry(String(req.params.id), userId);
-    if (!result.ok) return res.status(result.status).json({ error: result.code });
+    if (result.ok === false) return res.status(result.status).json({ error: result.code });
     return res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "rs withdraw failed");
@@ -247,7 +290,7 @@ export async function handleVote(req: Request, res: Response) {
   const userId = req.auth?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   const velocity = await assertRisingStarsVoteVelocityOk(userId);
-  if (!velocity.ok) {
+  if (velocity.ok === false) {
     return res.status(429).json({ error: velocity.code });
   }
   try {
@@ -255,7 +298,7 @@ export async function handleVote(req: Request, res: Response) {
       entryId: String(req.params.id),
       voterUserId: userId,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       return res.status(result.status).json({ error: result.code });
     }
     return res.json({
@@ -305,7 +348,7 @@ export async function handleJoinTeam(req: Request, res: Response) {
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
   try {
     const result = await rsJoinTeam(String(req.params.id), userId);
-    if (!result.ok) return res.status(result.status).json({ error: result.code });
+    if (result.ok === false) return res.status(result.status).json({ error: result.code });
     return res.json({ ok: true });
   } catch (err) {
     logger.error({ err }, "rs join team failed");

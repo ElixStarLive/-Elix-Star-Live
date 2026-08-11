@@ -1,6 +1,5 @@
 import { apiUrl } from "./api";
 import { request } from "./apiClient";
-import Hls from "hls.js";
 
 export type SoundTrack = {
   id: string;
@@ -35,7 +34,9 @@ function isHlsUrl(url: string): boolean {
   return /\.m3u8(\?|$)/i.test(url) || /\/hls\//i.test(url);
 }
 
-const hlsByAudio = new WeakMap<HTMLAudioElement, Hls>();
+/** HLS instances are created via dynamic import so hls.js stays out of the app shell. */
+type HlsHandle = { destroy: () => void };
+const hlsByAudio = new WeakMap<HTMLAudioElement, HlsHandle>();
 
 /** All library / picker / upload preview elements (including detached `new Audio()`). */
 const previewAudioRegistry = new Set<HTMLAudioElement>();
@@ -149,6 +150,7 @@ export async function resolvePlayableSoundUrl(url: string): Promise<string> {
 async function attachHls(audio: HTMLAudioElement, src: string): Promise<void> {
   stopSoundPreview(audio);
 
+  const { default: Hls } = await import("hls.js");
   if (Hls.isSupported()) {
     const hls = new Hls({
       enableWorker: true,
@@ -417,36 +419,50 @@ export async function searchLicensedTracks(term: string): Promise<SoundTrack[]> 
   const { data, error } = await request<{ tracks?: SoundTrack[] }>(
     `/api/music/search?term=${encodeURIComponent(q)}&limit=40`,
   );
-  if (error) return [];
+  if (error) {
+    throw new Error(error.message || 'Music search failed');
+  }
   return mapSoundTracks(data?.tracks ?? []);
 }
 
 const SAVED_SOUNDS_KEY = 'elix_saved_sounds_v1';
 
 export function listSavedSounds(): SoundTrack[] {
+  const raw = localStorage.getItem(SAVED_SOUNDS_KEY);
+  if (!raw) return [];
+  let parsed: unknown;
   try {
-    const raw = localStorage.getItem(SAVED_SOUNDS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as SoundTrack[]) : [];
+    parsed = JSON.parse(raw);
   } catch {
-    return [];
+    localStorage.removeItem(SAVED_SOUNDS_KEY);
+    throw new Error('Saved sounds storage is corrupt');
   }
+  if (!Array.isArray(parsed)) {
+    localStorage.removeItem(SAVED_SOUNDS_KEY);
+    throw new Error('Saved sounds storage is corrupt');
+  }
+  return parsed as SoundTrack[];
 }
 
 export function isSoundSaved(trackId: string): boolean {
-  return listSavedSounds().some((t) => t.id === trackId);
+  try {
+    return listSavedSounds().some((t) => t.id === trackId);
+  } catch {
+    // Corrupt key already cleared by listSavedSounds — treat as unsaved.
+    return false;
+  }
 }
 
 /** Returns true if the track is saved after the toggle. */
 export function toggleSavedSound(track: SoundTrack): boolean {
-  const prev = listSavedSounds();
+  let prev: SoundTrack[] = [];
+  try {
+    prev = listSavedSounds();
+  } catch {
+    prev = [];
+  }
   const exists = prev.some((t) => t.id === track.id);
   const next = exists ? prev.filter((t) => t.id !== track.id) : [...prev, track];
-  try {
-    localStorage.setItem(SAVED_SOUNDS_KEY, JSON.stringify(next));
-  } catch {
-    /* ignore quota */
-  }
+  localStorage.setItem(SAVED_SOUNDS_KEY, JSON.stringify(next));
   return !exists;
 }

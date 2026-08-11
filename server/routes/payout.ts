@@ -11,23 +11,10 @@ function getUserId(req: Request): string | null {
   return payload?.sub ?? null;
 }
 
-async function ensurePayoutTables(): Promise<void> {
-  const db = getPool();
-  if (!db) return;
-}
-
-let tablesReady = false;
-async function ensureTables(): Promise<void> {
-  if (tablesReady) return;
-  await ensurePayoutTables();
-  tablesReady = true;
-}
-
 export async function handleGetCreatorBalance(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -160,7 +147,6 @@ export async function handleGetCreatorEarnings(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -183,7 +169,6 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -263,7 +248,6 @@ export async function handleGetCreatorPayouts(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -282,7 +266,6 @@ export async function handleSetPayoutMethod(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -305,7 +288,6 @@ export async function handleGetPayoutMethods(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -335,7 +317,6 @@ export async function handleAdminListPayouts(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -403,7 +384,6 @@ export async function handleAdminApprovePayout(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -459,7 +439,6 @@ export async function handleAdminRejectPayout(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -522,7 +501,6 @@ export async function handleAdminMarkPayoutPaid(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -574,7 +552,6 @@ export async function handleAdminCancelPayout(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -633,7 +610,6 @@ export async function handleAdminReviewPayout(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -686,7 +662,6 @@ export async function handleAdminChargeback(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
   try {
-    await ensureTables();
     const adminId = await requireAdmin(req, db);
     if (!adminId) return res.status(403).json({ error: 'Admin only' });
 
@@ -776,7 +751,7 @@ export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
       amountPence,
       idempotencyKey,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       const status =
         result.error === 'insufficient_available'
           ? 400
@@ -807,6 +782,9 @@ export async function handleGetCreatorGbpWithdrawals(req: Request, res: Response
     const rows = await listGbpWithdrawals(userId);
     return res.json({ withdrawals: rows });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, 'handleGetCreatorGbpWithdrawals failed');
     return res.status(500).json({ error: 'list_failed' });
   }

@@ -325,20 +325,22 @@ router.get("/boosters/catalog", async (_req, res) => {
   const { getPool } = await import("../lib/postgres");
   const { logger } = await import("../lib/logger");
   const db = getPool();
-  if (!db) return res.json({ data: [] });
+  if (!db) {
+    return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: null });
+  }
   try {
     const exists = await db.query(
       `SELECT to_regclass('public.elix_boosters') AS tbl`,
     );
-    if (!exists.rows[0]?.tbl) return res.json({ data: [] });
+    if (!exists.rows[0]?.tbl) return res.status(200).json({ data: [] });
     const r = await db.query(
       `SELECT id, name, coin_cost, effect_type, is_active
        FROM elix_boosters ORDER BY coin_cost ASC`,
     );
-    return res.json({ data: r.rows });
+    return res.status(200).json({ data: r.rows });
   } catch (err) {
     logger.error({ err }, "GET /boosters/catalog failed");
-    return res.json({ data: [] });
+    return res.status(500).json({ error: "BOOSTERS_CATALOG_FAILED", data: null });
   }
 });
 

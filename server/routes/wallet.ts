@@ -22,13 +22,18 @@ export async function handleGetWallet(req: Request, res: Response) {
   }
   const auth = requireAuth(req, res);
   if (!auth) return;
-  await neonEnsureBalanceFromFile(auth.userId);
-  const balance = await neonGetCoinBalance(auth.userId);
-  res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).json({
-    user_id: auth.userId,
-    coin_balance: Math.max(0, Number(balance ?? 0)),
-  });
+  try {
+    await neonEnsureBalanceFromFile(auth.userId);
+    const balance = await neonGetCoinBalance(auth.userId);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({
+      user_id: auth.userId,
+      coin_balance: Math.max(0, Number(balance ?? 0)),
+    });
+  } catch {
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+  }
 }
 
 export async function handleGetWalletTransactions(req: Request, res: Response) {
@@ -38,7 +43,12 @@ export async function handleGetWalletTransactions(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
   const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-  const transactions = await neonListLedger(auth.userId, limit);
-  res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).json({ transactions });
+  try {
+    const transactions = await neonListLedger(auth.userId, limit);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({ transactions });
+  } catch {
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(503).json({ error: "DATABASE_UNAVAILABLE", transactions: null });
+  }
 }

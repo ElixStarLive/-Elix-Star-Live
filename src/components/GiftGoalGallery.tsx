@@ -64,7 +64,7 @@ export function GiftGoalGallery(props: Props) {
         if (!cancelled) setGifts(items);
       })
       .catch(() => {
-        if (!cancelled) setGifts([]);
+        /* keep prior gifts — never treat failure as empty catalog */
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

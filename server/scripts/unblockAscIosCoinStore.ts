@@ -6,13 +6,49 @@ import "dotenv/config";
 import { SignJWT, importPKCS8 } from "jose";
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { requireEnv } from "./_env.ts";
 
 const APP_ID = "6794781473";
-const VERSION_ID = "2eed2666-f7d3-42a2-91b7-3a90aa5b2b0d";
-const APP_INFO_ID = "dfa4a62d-48d9-4c3b-98f9-f48223b65afc";
+const _VERSION_ID = "2eed2666-f7d3-42a2-91b7-3a90aa5b2b0d";
+const _APP_INFO_ID = "dfa4a62d-48d9-4c3b-98f9-f48223b65afc";
 const AGE_ID = "dfa4a62d-48d9-4c3b-98f9-f48223b65afc";
 const LOC_ID = "606ce526-a565-4b9c-908f-f4329b9493dc";
 const COINS100_ID = "6797675268";
+
+type AscResource = {
+  id?: string;
+  attributes?: {
+    screenshotDisplayType?: string;
+    productId?: string;
+    state?: string;
+    customerPrice?: string;
+    socialMedia?: unknown;
+    uploadOperations?: Array<{
+      requestHeaders?: Array<{ name: string; value: string }>;
+      offset: number;
+      length: number;
+      url: string;
+      method: string;
+    }>;
+    imageAsset?: { templateUrl?: string; width?: number; height?: number };
+  };
+};
+
+type AscApiJson = {
+  raw?: string;
+  data?: AscResource | AscResource[];
+  errors?: Array<{ detail?: string }>;
+};
+
+function asAscList(data: AscResource | AscResource[] | undefined): AscResource[] {
+  if (!data) return [];
+  return Array.isArray(data) ? data : [data];
+}
+
+function asAscOne(data: AscResource | AscResource[] | undefined): AscResource | undefined {
+  if (!data) return undefined;
+  return Array.isArray(data) ? data[0] : data;
+}
 
 async function normalizePem(raw: string): Promise<string> {
   const trimmed = raw.trim();
@@ -34,10 +70,10 @@ async function normalizePem(raw: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID!.trim();
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID!.trim();
+  const issuerId = requireEnv("APP_STORE_CONNECT_ISSUER_ID").trim();
+  const keyId = requireEnv("APP_STORE_CONNECT_KEY_ID").trim();
   const privateKey = await importPKCS8(
-    await normalizePem(process.env.APP_STORE_CONNECT_PRIVATE_KEY!),
+    await normalizePem(requireEnv("APP_STORE_CONNECT_PRIVATE_KEY")),
     "ES256",
   );
 
@@ -62,7 +98,7 @@ async function main(): Promise<void> {
     method: string,
     url: string,
     body?: unknown,
-  ): Promise<{ status: number; j: any }> {
+  ): Promise<{ status: number; j: AscApiJson }> {
     const send = async () => {
       const r = await fetch(url, {
         method,
@@ -70,9 +106,9 @@ async function main(): Promise<void> {
         body: body === undefined ? undefined : JSON.stringify(body),
       });
       const text = await r.text();
-      let j: any;
+      let j: AscApiJson;
       try {
-        j = JSON.parse(text);
+        j = JSON.parse(text) as AscApiJson;
       } catch {
         j = { raw: text.slice(0, 400) };
       }
@@ -123,8 +159,8 @@ async function main(): Promise<void> {
   });
   out.age = {
     status: age.status,
-    errors: age.j?.errors?.map((e: any) => e.detail) ?? null,
-    socialMedia: age.j?.data?.attributes?.socialMedia,
+    errors: age.j?.errors?.map((e) => e.detail) ?? null,
+    socialMedia: asAscOne(age.j?.data)?.attributes?.socialMedia,
   };
 
   // Free app price (GBR base)
@@ -139,14 +175,14 @@ async function main(): Promise<void> {
       { data: { type: "territories", id: "GBR" } },
     );
   } else {
-    out.baseTerritory = bt.j.data.id;
+    out.baseTerritory = asAscOne(bt.j.data)?.id;
   }
 
   const pps = await api(
     "GET",
     `https://api.appstoreconnect.apple.com/v1/apps/${APP_ID}/appPricePoints?filter[territory]=GBR&limit=20`,
   );
-  const free = (pps.j?.data ?? []).find((p: any) =>
+  const free = asAscList(pps.j?.data).find((p) =>
     ["0", "0.0", "0.00"].includes(String(p.attributes?.customerPrice ?? "")),
   );
   out.freePoint = free?.id ?? null;
@@ -169,7 +205,7 @@ async function main(): Promise<void> {
     "GET",
     `https://api.appstoreconnect.apple.com/v2/inAppPurchases/${COINS100_ID}/appStoreReviewScreenshot`,
   );
-  const asset = shotMeta.j?.data?.attributes?.imageAsset;
+  const asset = asAscOne(shotMeta.j?.data)?.attributes?.imageAsset;
   const template = String(asset?.templateUrl ?? "");
   const imgUrl = template
     .replace("{w}", String(asset?.width ?? 1242))
@@ -184,8 +220,8 @@ async function main(): Promise<void> {
     "GET",
     `https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/${LOC_ID}/appScreenshotSets`,
   );
-  let iphoneSet = (sets.j?.data ?? []).find(
-    (s: any) => s.attributes?.screenshotDisplayType === "APP_IPHONE_65",
+  let iphoneSet = asAscList(sets.j?.data).find(
+    (s) => s.attributes?.screenshotDisplayType === "APP_IPHONE_65",
   );
   if (!iphoneSet) {
     const created = await api("POST", "https://api.appstoreconnect.apple.com/v1/appScreenshotSets", {
@@ -199,8 +235,12 @@ async function main(): Promise<void> {
         },
       },
     });
-    out.createIphoneSet = { status: created.status, id: created.j?.data?.id, errors: created.j?.errors };
-    iphoneSet = created.j?.data;
+    out.createIphoneSet = {
+      status: created.status,
+      id: asAscOne(created.j?.data)?.id,
+      errors: created.j?.errors,
+    };
+    iphoneSet = asAscOne(created.j?.data);
   }
 
   if (iphoneSet?.id) {
@@ -213,8 +253,9 @@ async function main(): Promise<void> {
         },
       },
     });
-    out.reserveIphone = { status: reserve.status, id: reserve.j?.data?.id, errors: reserve.j?.errors };
-    const ops = reserve.j?.data?.attributes?.uploadOperations ?? [];
+    const reserveData = asAscOne(reserve.j?.data);
+    out.reserveIphone = { status: reserve.status, id: reserveData?.id, errors: reserve.j?.errors };
+    const ops = reserveData?.attributes?.uploadOperations ?? [];
     for (const op of ops) {
       const headers: Record<string, string> = {};
       for (const hh of op.requestHeaders ?? []) headers[hh.name] = hh.value;
@@ -222,15 +263,15 @@ async function main(): Promise<void> {
       const up = await fetch(op.url, { method: op.method, headers, body: part });
       out[`upload_${op.offset}`] = up.status;
     }
-    if (reserve.j?.data?.id) {
+    if (reserveData?.id) {
       const checksum = createHash("md5").update(imgBuf).digest("hex");
       out.commitIphone = await api(
         "PATCH",
-        `https://api.appstoreconnect.apple.com/v1/appScreenshots/${reserve.j.data.id}`,
+        `https://api.appstoreconnect.apple.com/v1/appScreenshots/${reserveData.id}`,
         {
           data: {
             type: "appScreenshots",
-            id: reserve.j.data.id,
+            id: reserveData.id,
             attributes: { uploaded: true, sourceFileChecksum: checksum },
           },
         },
@@ -240,16 +281,16 @@ async function main(): Promise<void> {
 
   // iPad Pro 12.9 — create a solid black PNG of required size if sharp unavailable
   // Minimal valid PNG 2048x2732 is huge to synthesize by hand; reuse phone image in a set and let Apple validate.
-  let ipadSet = (sets.j?.data ?? []).find(
-    (s: any) => s.attributes?.screenshotDisplayType === "APP_IPAD_PRO_3GEN_129",
+  let ipadSet = asAscList(sets.j?.data).find(
+    (s) => s.attributes?.screenshotDisplayType === "APP_IPAD_PRO_3GEN_129",
   );
   if (!ipadSet) {
     sets = await api(
       "GET",
       `https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/${LOC_ID}/appScreenshotSets`,
     );
-    ipadSet = (sets.j?.data ?? []).find(
-      (s: any) => s.attributes?.screenshotDisplayType === "APP_IPAD_PRO_3GEN_129",
+    ipadSet = asAscList(sets.j?.data).find(
+      (s) => s.attributes?.screenshotDisplayType === "APP_IPAD_PRO_3GEN_129",
     );
   }
   if (!ipadSet) {
@@ -264,8 +305,12 @@ async function main(): Promise<void> {
         },
       },
     });
-    out.createIpadSet = { status: created.status, id: created.j?.data?.id, errors: created.j?.errors };
-    ipadSet = created.j?.data;
+    out.createIpadSet = {
+      status: created.status,
+      id: asAscOne(created.j?.data)?.id,
+      errors: created.j?.errors,
+    };
+    ipadSet = asAscOne(created.j?.data);
   }
 
   // Verify coin states still READY
@@ -273,9 +318,9 @@ async function main(): Promise<void> {
     "GET",
     `https://api.appstoreconnect.apple.com/v1/apps/${APP_ID}/inAppPurchasesV2?limit=50`,
   );
-  out.coinStates = (iaps.j?.data ?? [])
-    .filter((p: any) => String(p.attributes?.productId ?? "").startsWith("coins"))
-    .map((p: any) => `${p.attributes.productId}:${p.attributes.state}`);
+  out.coinStates = asAscList(iaps.j?.data)
+    .filter((p) => String(p.attributes?.productId ?? "").startsWith("coins"))
+    .map((p) => `${p.attributes?.productId}:${p.attributes?.state}`);
 
   const path = `docs/evidence/asc-ios-coin-unblock-v2-${Date.now()}.json`;
   writeFileSync(path, JSON.stringify(out, null, 2));

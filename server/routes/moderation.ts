@@ -34,14 +34,6 @@ interface AIModerationResult {
   severity?: Severity | null;
 }
 
-let tableReady = false;
-async function ensureModerationTable(): Promise<void> {
-  if (tableReady) return;
-  const db = getPool();
-  if (!db) return;
-  tableReady = true;
-}
-
 async function classifyImageWithAI(imageBase64: string): Promise<AIModerationResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return { flagged: false };
@@ -149,8 +141,6 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
   if (typeof imageBase64 === 'string' && imageBase64.length > 80_000) {
     return res.status(413).json({ error: 'image_base64 too large' });
   }
-
-  await ensureModerationTable();
 
   const logEntry = async (kind: string, category: string | null, severity: string | null, action_taken: string, details: Record<string, unknown>) => {
     try {

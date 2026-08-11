@@ -4,7 +4,9 @@ import { Bookmark, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetchSavedVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
+import { SETTINGS_EXIT_TO } from '../lib/settingsNav';
 
 interface SavedVideo {
   id: string;
@@ -37,22 +39,31 @@ export default function SavedVideos() {
     try {
       const { videos: vids, error } = await apiFetchSavedVideos(50, offset);
       if (error) {
+        const msg = error || 'Failed to load saved videos';
+        reportFailure('saved_videos_load', new Error(msg));
+        showToast(msg);
+        /* keep prior videos — do not soft-empty on failure */
         if (!append) {
-          setVideos([]);
-          setLoadError(error || 'Failed to load saved videos');
+          setVideos((prev) => {
+            if (prev.length === 0) setLoadError(msg);
+            return prev;
+          });
         }
-        showToast(error || 'Failed to load saved videos');
         return;
       }
       setHasMore(vids.length >= 50);
       setLoadError(null);
       setVideos((prev) => (append ? [...prev, ...mapVids(vids as SavedVideo[])] : mapVids(vids as SavedVideo[])));
-    } catch {
-      if (!append) {
-        setVideos([]);
-        setLoadError('Failed to load saved videos');
-      }
+    } catch (err) {
+      reportFailure('saved_videos_load', err);
       showToast('Failed to load saved videos');
+      /* keep prior videos — do not soft-empty on failure */
+      if (!append) {
+        setVideos((prev) => {
+          if (prev.length === 0) setLoadError('Failed to load saved videos');
+          return prev;
+        });
+      }
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -79,7 +90,7 @@ export default function SavedVideos() {
   }, [load]);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(SETTINGS_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const openVideo = useCallback((videoId: string) => {

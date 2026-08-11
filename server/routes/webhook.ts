@@ -131,7 +131,6 @@ export async function handleStripeWebhook(req: Request, res: Response) {
       case "transfer.created":
       case "transfer.updated":
       case "transfer.reversed":
-      case "transfer.failed":
       case "account.updated": {
         const { handleStripeConnectPayoutWebhook } = await import(
           "../lib/monetisation/payoutProvider"
@@ -139,9 +138,19 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         await handleStripeConnectPayoutWebhook(event);
         break;
       }
-      default:
+      default: {
+        // Stripe may emit transfer.failed; handle via shared Connect payout owner.
+        if (String(event.type) === "transfer.failed") {
+          const { handleStripeConnectPayoutWebhook } = await import(
+            "../lib/monetisation/payoutProvider"
+          );
+          await handleStripeConnectPayoutWebhook(event);
+          break;
+        }
         // Shop checkout + Connect payout events only.
         logger.info({ eventType: event.type }, "Ignoring unhandled Stripe event");
+        break;
+      }
     }
 
     res.status(200).json({ received: true });

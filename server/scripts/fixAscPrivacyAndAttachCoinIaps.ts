@@ -7,6 +7,7 @@
 import "dotenv/config";
 import { SignJWT, importPKCS8 } from "jose";
 import { writeFileSync } from "node:fs";
+import { requireEnv } from "./_env.ts";
 
 const APP_ID = "6794781473";
 const VERSION_ID = "2eed2666-f7d3-42a2-91b7-3a90aa5b2b0d";
@@ -34,10 +35,10 @@ async function normalizePem(raw: string): Promise<string> {
 }
 
 async function main(): Promise<void> {
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID!.trim();
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID!.trim();
+  const issuerId = requireEnv("APP_STORE_CONNECT_ISSUER_ID").trim();
+  const keyId = requireEnv("APP_STORE_CONNECT_KEY_ID").trim();
   const privateKey = await importPKCS8(
-    await normalizePem(process.env.APP_STORE_CONNECT_PRIVATE_KEY!),
+    await normalizePem(requireEnv("APP_STORE_CONNECT_PRIVATE_KEY")),
     "ES256",
   );
   const now = Math.floor(Date.now() / 1000);

@@ -204,13 +204,13 @@ export default function ElixCameraLayout({
     let cancelled = false;
     apiFetchCameraOptionList<CameraFilterOption>('/api/camera-filters').then((list) => {
       if (!cancelled && list.length) setCameraFilters(list);
-    });
+    }).catch(() => { /* keep DEFAULT_CAMERA_FILTERS */ });
     apiFetchCameraOptionList<SpeedOption>('/api/speed-options').then((list) => {
       if (!cancelled && list.length) setSpeedOptions(list);
-    });
+    }).catch(() => { /* keep DEFAULT_SPEED_OPTIONS */ });
     apiFetchCameraOptionList<StickerOption>('/api/sticker-options').then((list) => {
       if (!cancelled && list.length) setStickerOptions(list);
-    });
+    }).catch(() => { /* keep DEFAULT_STICKER_OPTIONS */ });
     return () => { cancelled = true; };
   }, []);
 

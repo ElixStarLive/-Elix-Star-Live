@@ -7,13 +7,14 @@ import {
   isGiftGoalComplete,
   type LiveGiftGoal,
 } from '../lib/liveGiftGoal';
-import type { LiveRankTab } from './CyclingRankBadge';
+import type { LiveRankTab } from '../lib/liveRankTab';
 import { GiftGoalGallery } from './GiftGoalGallery';
 import {
   apiLiveRankingsDaily,
   apiLiveRankingsWeekly,
 } from '../features/live/engagement/liveEngagementApi';
 import { apiLiveStreams } from '../lib/live';
+import { showToast } from '../lib/toast';
 
 interface CreatorRanking {
   rank: number;
@@ -151,9 +152,8 @@ export function RankingPanel({
         setLivePopular(liveList);
       } catch {
         if (!cancelled) {
-          setWeekly([]);
-          setDaily([]);
-          setLivePopular([]);
+          showToast('Could not load rankings');
+          /* keep prior weekly/daily/livePopular — do not soft-empty on failure */
         }
       } finally {
         if (!cancelled) setLoading(false);

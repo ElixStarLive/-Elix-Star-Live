@@ -39,26 +39,6 @@ export type FraudReviewStatus =
   | "confirmed_fraud"
   | "appealed";
 
-export async function ensureFraudTables(): Promise<void> {
-  const pool = getPool();
-  if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_fraud_decisions (
-      id BIGSERIAL PRIMARY KEY,
-      subject_type TEXT NOT NULL,
-      subject_id TEXT NOT NULL,
-      user_id TEXT,
-      reason_code TEXT NOT NULL,
-      details JSONB NOT NULL DEFAULT '{}'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_fraud_decisions_subject
-      ON elix_fraud_decisions (subject_type, subject_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_fraud_decisions_user
-      ON elix_fraud_decisions (user_id, created_at DESC);
-  `);
-}
-
 export async function recordFraudDecision(input: {
   subjectType: string;
   subjectId: string;
@@ -69,7 +49,6 @@ export async function recordFraudDecision(input: {
   const pool = getPool();
   if (!pool) return;
   try {
-    await ensureFraudTables();
     await pool.query(
       `INSERT INTO elix_fraud_decisions (subject_type, subject_id, user_id, reason_code, details)
        VALUES ($1, $2, $3, $4, $5::jsonb)`,
@@ -116,7 +95,6 @@ export async function hasUnresolvedFraudFlag(userId: string): Promise<boolean> {
   const pool = getPool();
   if (!pool || !userId) return false;
   try {
-    await ensureFraudTables();
     const r = await pool.query(
       `SELECT 1 FROM elix_fraud_decisions
         WHERE user_id = $1
@@ -299,7 +277,6 @@ export async function isMultiAccountDeviceBurst(input: {
     userAgent: input.userAgent || undefined,
   });
   try {
-    await ensureFraudTables();
     await pool.query(
       `INSERT INTO elix_fraud_decisions (subject_type, subject_id, user_id, reason_code, details)
        VALUES ('device_seen', $1, $2, 'duplicate_device_burst', $3::jsonb)`,

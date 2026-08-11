@@ -366,7 +366,7 @@ export async function handleMessage(
         // If REST already claimed the txn (possibly without a playable URL),
         // still push a gift_sent with giftId (+ video when available) so the
         // creator GiftOverlay can play for paid and starter gifts.
-        if (!delivered.delivered && delivered.reason === "duplicate") {
+        if (delivered.delivered === false && delivered.reason === "duplicate") {
           try {
             const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
             const { sendToUserGlobal, broadcastToRoom } = await import("./index");
@@ -416,7 +416,7 @@ export async function handleMessage(
 
         sendToClient(client, "gift_ack", {
           transactionId,
-          status: delivered.delivered ? "success" : delivered.reason,
+          status: delivered.delivered === true ? "success" : delivered.reason,
           timestamp: Date.now(),
         });
         break;
@@ -563,14 +563,6 @@ export async function handleMessage(
         } else {
           await valkeyDel(inviteKey);
         }
-        break;
-      }
-
-      case "battle_gift_score": {
-        // Deprecated + insecure: battle scoring is applied server-side inside the
-        // verified "gift_sent" handler (tied to a real paid transaction). This
-        // standalone event carried no payment proof and is ignored to prevent
-        // free battle-score injection.
         break;
       }
 
@@ -1050,10 +1042,10 @@ export async function handleMessage(
                 .filter(Boolean)
             : [],
         );
-        const nextIds = new Set(
+        const nextIds = new Set<string>(
           coHosts
             .map((h) => (typeof (h as Record<string, string>).userId === "string" ? (h as Record<string, string>).userId : ""))
-            .filter(Boolean),
+            .filter((uid): uid is string => Boolean(uid)),
         );
         for (const uid of previousIds) {
           if (!nextIds.has(uid)) {

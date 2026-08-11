@@ -4,6 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Hash, TrendingUp } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { apiFetchHashtag, apiFetchHashtagVideos } from '../features/feed/feedApi';
+import { showToast } from '../lib/toast';
 
 interface Video {
   id: string;
@@ -47,7 +48,10 @@ export default function Hashtag() {
           setVideos(vids as unknown as Video[]);
         }
       } catch {
-        if (!cancelled) setVideos([]);
+        if (!cancelled) {
+          showToast('Failed to load hashtag videos');
+          /* keep prior videos — do not soft-empty on failure */
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -96,6 +96,10 @@ export async function handleGetLiveShareRequests(req: Request, res: Response): P
     res.setHeader("Cache-Control", "private, no-store");
     res.json({ items });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+      return;
+    }
     logger.error({ err, userId: jwt.sub }, "handleGetLiveShareRequests failed");
     res.status(500).json({ error: "Failed to load requests" });
   }

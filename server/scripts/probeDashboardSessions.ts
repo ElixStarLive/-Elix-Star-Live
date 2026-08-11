@@ -25,9 +25,6 @@ async function copyEssential(src: string, dest: string) {
   const defSrc = path.join(src, "Default");
   const defDest = path.join(dest, "Default");
   fs.mkdirSync(path.join(defDest, "Network"), { recursive: true });
-  for (const f of ["Local State", "Default/Preferences", "Default/Network/Cookies", "Default/Network/Cookies-journal"]) {
-    const from = path.join(src, f.replace(/^Default\//, f.startsWith("Default") ? "" : "").replace(/^/, ""));
-  }
   // Simpler: copy Cookies DB if present
   const cookieSrc = path.join(defSrc, "Network", "Cookies");
   if (fs.existsSync(cookieSrc)) {

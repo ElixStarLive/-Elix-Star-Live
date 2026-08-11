@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { namedExitForPath } from './settingsNav';
 
 const ROOT_PATHS = new Set(['/', '/feed', '/friends', '/inbox', '/profile', '/login']);
 const WEB_HOSTS = new Set(['www.elixstarlive.co.uk', 'elixstarlive.co.uk']);
@@ -77,7 +78,12 @@ export const useDeepLinks = () => {
         if (handled) return;
 
         if (canGoBack && !ROOT_PATHS.has(window.location.pathname)) {
-          window.history.back();
+          const exit = namedExitForPath(window.location.pathname);
+          if (exit === window.location.pathname) {
+            CapacitorApp.minimizeApp();
+          } else {
+            navigate(exit, { replace: true });
+          }
         } else {
           CapacitorApp.minimizeApp();
         }

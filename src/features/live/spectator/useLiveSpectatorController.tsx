@@ -1,52 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { RoyceCloseIcon } from '../../../components/royce';
 import { showToast } from '../../../lib/toast';
-import {
-  prepareLiveVideoEl,
-  LIVE_WEBRTC_VIDEO_CLASS,
-  LIVE_VIDEO_TRANSPARENT_POSTER,
-} from '../../../lib/prepareLiveVideoEl';
-import {
-  Send,
-  Search,
-  Heart,
-  Share2,
-  Gift,
-  MoreVertical,
-  Copy,
-  UserPlus,
-  Eye,
-  MessageCircle,
-  Flag,
-  TrendingUp,
-  Mic,
-  MicOff,
-  Camera,
-  CameraOff,
-  Coins,
-  Lock,
-  Crown,
-  PlusCircle,
-  Play,
-  CloudFog,
-  BarChart3,
-  ArrowLeftRight,
-} from 'lucide-react';
-import { GiftPanel } from '../../../components/GiftPanel';
-import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
-import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
+import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
-import {
-  EngagementDrawer,
-  type EngagementPanel,
-} from '../../../components/engagement/EngagementDrawer';
+import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
 import { engagementFlags } from '../../../config/engagementFlags';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, fetchGiftsFromDatabase, pickGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_GIFT_QUEUE_CAP } from '../../../lib/liveRuntimeCaps';
-import { BattleVfxOverlays, GloveIcon, type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
-import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
+import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
 import {
   announceMvpName,
   createTauntBurst,
@@ -63,40 +25,15 @@ import {
   getTestLevel,
   resolveGiftUiBalance,
   shouldUseTestCoinsForGifts,
-  areTestCoinsEnabled,
 } from '../../../lib/testCoins';
 import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
-import { GiftOverlay } from '../../../components/GiftOverlay';
-import GiftAnimationOverlay, { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
-import { ChatOverlay } from '../../../components/ChatOverlay';
-import { AvatarRing } from '../../../components/AvatarRing';
-import { LevelBadge } from '../../../components/LevelBadge';
-import {
-  BATTLE_MVP_ROW_EDGE_OFFSET_MM,
-  SPECTATOR_MVP_PROFILE_RING_PX,
-  LIVE_MVP_PROFILE_RING_PX,
-  LIVE_BATTLE_VIDEO_HEIGHT,
-  LIVE_BATTLE_CHAT_HEIGHT,
-  LIVE_BATTLE_CHAT_SHIFT_Y,
-  LIVE_TOP_AVATAR_RING_PX,
-  LIVE_BOTTOM_ACTION_PADDING,
-  LIVE_BOTTOM_ACTION_RESERVE,
-} from '../../../lib/profileFrame';
+import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
+import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
 import { getLiveKitUrl } from '../../../lib/api';
-import {
-  fetchAllSharePanelContacts,
-  SHARE_PANEL_ACTION_DISC_PX,
-  SHARE_PANEL_ACTION_ICON_PX,
-  SHARE_PANEL_AVATAR_PX,
-  SHARE_PANEL_ITEM_WIDTH_PX,
-} from '../../../lib/sharePanelContacts';
-import { openExternalLink } from '../../../lib/platform';
-import ReportModal from '../../../components/ReportModal';
-import PromotePanel from '../../../components/PromotePanel';
-import { RankingPanel } from '../../../components/RankingPanel';
-import { type LiveRankTab } from '../../../components/CyclingRankBadge';
+import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
+import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
@@ -125,7 +62,9 @@ import {
   apiLiveEngagementWallet,
   apiLiveProgressionMe,
   apiLiveRankingsWeekly,
+  apiLiveListModerators,
 } from '../engagement/liveEngagementApi';
+import { reportFailure } from '../../../lib/reportFailure';
 import {
   apiFetchFollowingIds,
   apiFetchProfileById,
@@ -134,83 +73,30 @@ import {
 import type { Room } from 'livekit-client';
 import { RoomEvent, ConnectionState } from 'livekit-client';
 import { apiLiveStreams, apiLiveToken, collectLiveUserIds, LiveRoomLifecycle } from '../../../lib/live';
-import { giftSendErrorToast } from '../../../lib/giftSend';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
+import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
+import { useLiveCamera } from '../hooks/useLiveCamera';
 import { useSpectatorLiveSession } from './session/useSpectatorLiveSession';
 import type { LiveKitSessionHandlers } from '../../../lib/liveKitSession';
 import {
   battleGetState,
   battleSpectatorVote,
 } from '../battle/liveBattleActions';
-import { applyBattleTickTime, applyBattleWinStreak } from '../battle/liveBattleScore';
+import {
+  applyBattleTickTime,
+  applyBattleWinStreak,
+  resolveServerBattleWinner,
+} from '../battle/liveBattleScore';
+import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
 
-function formatBattleScoreShort(coins: number) {
-  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
-  if (c >= 1_000_000) {
-    const m = Math.round((c / 1_000_000) * 10) / 10;
-    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
-  }
-  if (c >= 1000) {
-    const k = Math.round((c / 1000) * 10) / 10;
-    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
-  }
-  return String(c);
-}
-
 /** Co-host tile gift totals — 15K / 100K / 500K style. */
-function formatCohostGiftScore(coins: number) {
-  const c = typeof coins === 'number' && Number.isFinite(coins) ? coins : 0;
-  if (c >= 1_000_000) {
-    const m = Math.round((c / 1_000_000) * 10) / 10;
-    return `${Number.isInteger(m) ? Math.trunc(m) : m}M`;
-  }
-  if (c >= 1000) {
-    const k = Math.round((c / 1000) * 10) / 10;
-    return `${Number.isInteger(k) ? Math.trunc(k) : k}K`;
-  }
-  return String(c);
-}
-
-function AnimatedScore({ value, className = '', durationMs = 300, format }: { value: number; className?: string; durationMs?: number; format?: (n: number) => string }) {
-  const [display, setDisplay] = useState(value);
-  const rafRef = useRef<number>(0);
-  const startRef = useRef(display);
-  const targetRef = useRef(value);
-  const fmt = format ?? ((n: number) => n.toLocaleString());
-  useEffect(() => {
-    if (durationMs <= 0) {
-      cancelAnimationFrame(rafRef.current);
-      setDisplay(value);
-      targetRef.current = value;
-      return;
-    }
-    if (value === display) { targetRef.current = value; return; }
-    cancelAnimationFrame(rafRef.current);
-    startRef.current = display;
-    targetRef.current = value;
-    const start = performance.now();
-    const duration = durationMs;
-    const from = startRef.current;
-    const to = targetRef.current;
-    const step = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-      setDisplay(Math.round(from + (to - from) * ease));
-      if (t < 1) rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value, durationMs]);
-  return <span className={className}>{fmt(display)}</span>;
-}
-
 function battleTeamLabelsFromPayload(data: Record<string, unknown>): { red: string; blue: string } {
   const h = typeof data.hostName === 'string' ? data.hostName.trim() : '';
   const o = typeof data.opponentName === 'string' ? data.opponentName.trim() : '';
@@ -257,9 +143,22 @@ export function useLiveSpectatorController() {
   const {
     giftsCatalog,
     giftsCatalogRef,
-    seenGiftTxnRef,
     setGiftsCatalog,
   } = useLiveGiftsCatalog();
+  const {
+    currentGift,
+    setCurrentGift,
+    giftQueue,
+    setGiftQueue,
+    giftKey,
+    setGiftKey,
+    enqueueGiftVideo,
+    handleGiftEnded,
+    seenGiftTxnRef,
+    markGiftTxnSeen,
+    hasSeenGiftTxn,
+    enqueueFromGiftSent,
+  } = useLiveGiftPlaybackQueue();
   const [hostName, setHostName] = useState('Creator');
   const [hostAvatar, setHostAvatar] = useState('');
   const [hostLevel, setHostLevel] = useState(1);
@@ -327,8 +226,6 @@ export function useLiveSpectatorController() {
   const [testCoinsError, setTestCoinsError] = useState('');
   const [testCoinsBusy, setTestCoinsBusy] = useState(false);
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
-  const [currentGift, setCurrentGift] = useState<{video: string; battleSide?: 'host' | 'opponent' | null} | null>(null);
-  const [giftQueue, setGiftQueue] = useState<{video: string; battleSide?: 'host' | 'opponent' | null}[]>([]);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
   const [shareLiveUserIds, setShareLiveUserIds] = useState<Set<string>>(() => new Set());
@@ -342,39 +239,38 @@ export function useLiveSpectatorController() {
   const [missionWatchGoal, setMissionWatchGoal] = useState(10);
   const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   const [userXP, setUserXP] = useState(0);
-  useEffect(() => {
+  const loadEngagementMissions = useCallback(() => {
     if (!user?.id) return;
-    const loadMissions = () => {
-      void apiLiveEngagementMissions()
-        .then(({ data }) => {
-          const missions = (data?.missions as Array<{
-            metric_key?: string;
-            progress?: number;
-            goal_count?: number;
-          }>) || [];
-          const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-          const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-          if (watch) {
-            setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-            if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
-          }
-          if (gifts) {
-            setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-            if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
-          }
-        })
-        .catch(() => {});
-    };
-    loadMissions();
-    const refresh = window.setInterval(loadMissions, 60_000);
-    return () => window.clearInterval(refresh);
+    void apiLiveEngagementMissions()
+      .then(({ data }) => {
+        const missions = (data?.missions as Array<{
+          metric_key?: string;
+          progress?: number;
+          goal_count?: number;
+        }>) || [];
+        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
+        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
+        if (watch) {
+          setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
+          if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
+        }
+        if (gifts) {
+          setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
+          if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
+        }
+      })
+      .catch((err) => reportFailure('live_engagement_missions', err, { userId: user.id }));
   }, [user?.id]);
+
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
-    }, 60_000);
-    return () => window.clearInterval(id);
-  }, [missionWatchGoal]);
+    loadEngagementMissions();
+  }, [loadEngagementMissions]);
+
+  // Refresh missions when the missions panel is opened (explicit user action).
+  useEffect(() => {
+    if (!engagementOpen || engagementPanel !== 'missions') return;
+    loadEngagementMissions();
+  }, [engagementOpen, engagementPanel, loadEngagementMissions]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
@@ -562,8 +458,26 @@ export function useLiveSpectatorController() {
   const viewerName = user?.username || user?.name || 'Viewer';
   const viewerAvatar = user?.avatar || '';
 
-  const [moderators, _setModerators] = useState<Set<string>>(new Set());
-  const isModerator = moderators.has(user?.id || '');
+  /** Server-backed moderators; isModerator derived from list. */
+  const [moderators, setModerators] = useState<Set<string>>(new Set());
+  const isModerator = Boolean(user?.id && moderators.has(user.id));
+
+  useEffect(() => {
+    const key = String(effectiveStreamId || '').trim();
+    if (!key) {
+      setModerators(new Set());
+      return;
+    }
+    let cancelled = false;
+    void apiLiveListModerators(key).then(({ moderators: ids, error }) => {
+      if (cancelled) return;
+      if (error) return;
+      setModerators(new Set(ids));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveStreamId]);
 
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
   const [_myHeartCount, setMyHeartCount] = useState(0);
@@ -580,9 +494,9 @@ export function useLiveSpectatorController() {
       if (d) {
         if (typeof d.todayCount === 'number') setDailyHeartCount(d.todayCount);
         if (typeof d.totalCount === 'number') setMyHeartCount(d.totalCount);
-        if (d.hasSent) setHasJoinedToday(true);
+        setHasJoinedToday(d.hasSent === true);
       }
-    }).catch(() => {});
+    }).catch((err) => reportFailure('live_daily_hearts', err, { hostUserId }));
   }, [hostUserId]);
 
   useEffect(() => {
@@ -592,20 +506,15 @@ export function useLiveSpectatorController() {
       return;
     }
     let cancelled = false;
-    const load = () => {
-      apiLiveMembership(creatorId)
-        .then(({ data: d }) => {
-          if (cancelled || !d) return;
-          const n = typeof d.totalGiftCoins === 'number' ? d.totalGiftCoins : 0;
-          setHostTotalGiftCoins(Number.isFinite(n) ? Math.max(0, n) : 0);
-        })
-        .catch(() => {});
-    };
-    load();
-    const interval = window.setInterval(load, 60_000);
+    void apiLiveMembership(creatorId)
+      .then(({ data: d }) => {
+        if (cancelled || !d) return;
+        const n = typeof d.totalGiftCoins === 'number' ? d.totalGiftCoins : 0;
+        setHostTotalGiftCoins(Number.isFinite(n) ? Math.max(0, n) : 0);
+      })
+      .catch((err) => reportFailure('live_membership_refresh', err, { creatorId }));
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
     };
   }, [hostUserId, effectiveStreamId]);
 
@@ -630,6 +539,11 @@ export function useLiveSpectatorController() {
   } | null>(null);
   const spectatorBattleRef = useRef(spectatorBattle);
   spectatorBattleRef.current = spectatorBattle;
+  const {
+    applyScores,
+    resetScores,
+    battleServerTotalsRef,
+  } = useBattleServerTotals();
   const [battleWinStreak, setBattleWinStreak] = useState<{ host: number; opponent: number }>({ host: 0, opponent: 0 });
   const battleWinStreakRef = useRef(battleWinStreak);
   battleWinStreakRef.current = battleWinStreak;
@@ -717,6 +631,7 @@ export function useLiveSpectatorController() {
     if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
     if (tryUnlock(1000, 3, 3, 40, [200])) return;
     tryUnlock(200, 2, 1, 15, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on score/status fields only; full spectatorBattle would re-run on unrelated battle metadata changes
   }, [
     spectatorBattle?.hostScore,
     spectatorBattle?.opponentScore,
@@ -885,7 +800,7 @@ export function useLiveSpectatorController() {
         metric: 'battles_joined',
         delta: 1,
         roomId: effectiveStreamId || undefined,
-      }).catch(() => {});
+      }).catch((err) => reportFailure('live_engagement_progress', err));
     }
     prevSpectatorBattleActiveRef.current = active;
   }, [spectatorBattle?.active, spectatorBattle?.status, effectiveStreamId]);
@@ -925,7 +840,9 @@ export function useLiveSpectatorController() {
         };
         if (side === 'opponent') setOpponentProfile(profile);
         else setHostBattleProfile(profile);
-      } catch { /* non-fatal */ }
+      } catch {
+        showToast('Could not load profile');
+      }
     })();
   }, [
     battleStreamIds?.opponentUserId,
@@ -1005,17 +922,8 @@ export function useLiveSpectatorController() {
     setShowCoHostPanel(false);
   };
 
-  // Battle countdown only while the fight is ACTIVE (not during WAITING invite).
-  useEffect(() => {
-    if (!spectatorBattle?.active || spectatorBattle.status !== 'ACTIVE') return;
-    const id = window.setInterval(() => {
-      setSpectatorBattle((prev) => {
-        if (!prev?.active || prev.status !== 'ACTIVE') return prev;
-        return { ...prev, timeLeft: Math.max(0, prev.timeLeft - 1) };
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [spectatorBattle?.active, spectatorBattle?.status]);
+  // Battle remaining seconds: server battle_tick / battle_state only (no local owner).
+  // Display updates when WS delivers timeLeft — do not race a second setInterval.
 
   // Connect to opponent's LiveKit room so spectators see both battle videos.
   // Also keep host-room attach below — after accept the opponent may publish there.
@@ -1129,37 +1037,6 @@ export function useLiveSpectatorController() {
     setFeaturedUserId((prev) => (sameUserId(prev, userId) ? null : userId));
   }, []);
 
-  // Attach featured co-host / host-small tracks when big-screen switch changes.
-  useEffect(() => {
-    const room = liveKitRoomRef.current;
-    if (!room) return;
-    const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
-
-    if (featuredUserId && featuredBigVideoRef.current) {
-      for (const [, p] of room.remoteParticipants) {
-        if (!sameUserId(p.identity, featuredUserId)) continue;
-        for (const [, pub] of p.videoTrackPublications) {
-          if (pub.track && pub.isSubscribed) {
-            pub.track.attach(featuredBigVideoRef.current);
-            prepareLiveVideoEl(featuredBigVideoRef.current);
-          }
-        }
-      }
-    }
-
-    if (featuredUserId && hostSmallVideoRef.current && hostId) {
-      for (const [, p] of room.remoteParticipants) {
-        if (!sameUserId(p.identity, hostId) && !sameUserId(p.identity, effectiveStreamId)) continue;
-        for (const [, pub] of p.videoTrackPublications) {
-          if (pub.track && pub.isSubscribed) {
-            pub.track.attach(hostSmallVideoRef.current);
-            prepareLiveVideoEl(hostSmallVideoRef.current);
-          }
-        }
-      }
-    }
-  }, [featuredUserId, hostUserId, effectiveStreamId, spectatorCoHosts]);
-
   const markRemoteCam = useCallback((identity: string, off: boolean) => {
     if (!identity) return;
     setRemoteCamOff((prev) => {
@@ -1181,7 +1058,6 @@ export function useLiveSpectatorController() {
   }, []);
 
   const [isCoHosting, setIsCoHosting] = useState(false);
-  const [coHostStream, setCoHostStream] = useState<MediaStream | null>(null);
 
   useEffect(() => {
     if (!featuredUserId) return;
@@ -1208,10 +1084,6 @@ export function useLiveSpectatorController() {
     // Cohost invite uses explicit navigation / WebSocket.
     return () => {};
   }, [user?.id]);
-  const myVideoRef = useRef<HTMLVideoElement>(null);
-  const [isMicMuted, setIsMicMuted] = useState(true);
-  const [isCamOff, setIsCamOff] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
 
   // Co-host publish is invite/accept only — URL alone is not enough.
   const cohostState = (location.state as Record<string, unknown>) || {};
@@ -1219,20 +1091,48 @@ export function useLiveSpectatorController() {
     new URLSearchParams(location.search).get('cohost') === '1' &&
     cohostState.fromCohostInvite === true;
 
+  // Separate useLiveCamera instance from host (only one live screen mounted).
+  // Enabled only while this spectator is publishing as cohost; autoAcquire false
+  // until session connect / explicit start (same pattern as host battle joiner).
+  const liveCamera = useLiveCamera({
+    enabled: Boolean(isCoHostFromUrl || isCoHosting),
+    autoAcquire: false,
+  });
+  const {
+    videoRef: myVideoRef,
+    cameraStreamRef: coHostPublishStreamRef,
+    cameraStream: coHostStream,
+    setCameraStream: setCoHostStream,
+    cameraFacing,
+    isMicMuted,
+    isCamOff,
+    acquireCamera,
+    stopCamera,
+    toggleMic: toggleMicTracks,
+    toggleCam: toggleCamTracks,
+    flipCamera: flipCameraFacing,
+    setIsMicMuted,
+    setIsCamOff,
+  } = liveCamera;
+
   const _startCoHosting = async () => {
     try {
       setIsCoHosting(true);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: { echoCancellation: true, noiseSuppression: true },
+      setIsMicMuted(true);
+      setIsCamOff(false);
+      const stream = await acquireCamera();
+      if (!stream) {
+        setIsCoHosting(false);
+        showToast('Camera access denied');
+        return;
+      }
+      stream.getAudioTracks().forEach((t) => {
+        t.enabled = false;
       });
-      const audioTrack = stream.getAudioTracks()[0];
-      if (audioTrack) audioTrack.enabled = false;
-      setCoHostStream(stream);
 
       if (myVideoRef.current) {
         myVideoRef.current.srcObject = stream;
-        myVideoRef.current.play().catch(() => {});
+        prepareLiveVideoEl(myVideoRef.current);
       }
 
       showToast('You are now co-hosting!');
@@ -1244,22 +1144,20 @@ export function useLiveSpectatorController() {
       }, LIVE_CHAT_MESSAGE_CAP));
     } catch {
       setIsCoHosting(false);
+      stopCamera();
       showToast('Camera access denied');
     }
   };
 
   const stopCoHosting = useCallback(() => {
-    if (coHostStream) {
-      coHostStream.getTracks().forEach((t) => t.stop());
-      setCoHostStream(null);
-    }
+    stopCamera();
     if (coHostChanRef.current) {
       coHostChanRef.current = null;
     }
     setIsCoHosting(false);
     setIsMicMuted(true);
     setIsCamOff(false);
-  }, [coHostStream]);
+  }, [stopCamera, setIsMicMuted, setIsCamOff]);
 
   // Host removed this co-host from the table — leave publish mode.
   const wasCohostSeatedRef = useRef(false);
@@ -1318,38 +1216,25 @@ export function useLiveSpectatorController() {
 
   const toggleMic = () => {
     if (!isCoHosting) return;
+    toggleMicTracks();
     const nextMuted = !isMicMuted;
-    setIsMicMuted(nextMuted);
-    const audioTrack = coHostStream?.getAudioTracks()[0];
-    if (audioTrack) audioTrack.enabled = !nextMuted;
     void spectatorLifecycleRef.current.liveKit?.setMicEnabled(!nextMuted);
   };
 
   const toggleCam = () => {
     if (!isCoHosting) return;
+    toggleCamTracks();
     const nextCamOff = !isCamOff;
-    setIsCamOff(nextCamOff);
-    const videoTrack = coHostStream?.getVideoTracks()[0];
-    if (videoTrack) videoTrack.enabled = !nextCamOff;
     void spectatorLifecycleRef.current.liveKit?.setCamEnabled(!nextCamOff);
   };
 
-  // Cleanup co-host camera on unmount
-  useEffect(() => {
-    return () => {
-      if (coHostStream) {
-        coHostStream.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, [coHostStream]);
-
-  // Attach co-host stream to my video ref
+  // Attach co-host stream to my video ref (preview bind owned by useLiveCamera ref)
   useEffect(() => {
     if (isCoHosting && coHostStream && myVideoRef.current) {
       myVideoRef.current.srcObject = coHostStream;
       prepareLiveVideoEl(myVideoRef.current);
     }
-  }, [isCoHosting, coHostStream]);
+  }, [isCoHosting, coHostStream, myVideoRef]);
 
   // Video ref for live stream (LiveKit)
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -1450,6 +1335,38 @@ export function useLiveSpectatorController() {
   });
   const spectatorLifecycleRef = spectatorSession.lifecycleRef;
   const liveKitRoomRef = spectatorSession.liveKitRoomRef;
+
+  // Attach featured co-host / host-small tracks when big-screen switch changes.
+  useEffect(() => {
+    const room = liveKitRoomRef.current;
+    if (!room) return;
+    const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
+
+    if (featuredUserId && featuredBigVideoRef.current) {
+      for (const [, p] of room.remoteParticipants) {
+        if (!sameUserId(p.identity, featuredUserId)) continue;
+        for (const [, pub] of p.videoTrackPublications) {
+          if (pub.track && pub.isSubscribed) {
+            pub.track.attach(featuredBigVideoRef.current);
+            prepareLiveVideoEl(featuredBigVideoRef.current);
+          }
+        }
+      }
+    }
+
+    if (featuredUserId && hostSmallVideoRef.current && hostId) {
+      for (const [, p] of room.remoteParticipants) {
+        if (!sameUserId(p.identity, hostId) && !sameUserId(p.identity, effectiveStreamId)) continue;
+        for (const [, pub] of p.videoTrackPublications) {
+          if (pub.track && pub.isSubscribed) {
+            pub.track.attach(hostSmallVideoRef.current);
+            prepareLiveVideoEl(hostSmallVideoRef.current);
+          }
+        }
+      }
+    }
+  }, [featuredUserId, hostUserId, effectiveStreamId, spectatorCoHosts, liveKitRoomRef]);
+
   const retryJoinRoom = () => {
     setHasStream(false);
     setLiveConnectRetryKey((k) => k + 1);
@@ -1462,6 +1379,7 @@ export function useLiveSpectatorController() {
   }, [hasStream]);
 
   // Engagement Phase 1: capped Battle Energy from watching (server enforces daily caps).
+  // Product-required engagement watch tick — single owner for watch_minutes POST + local UI.
   const engagementWatchKeyedRef = useRef<string>('');
   useEffect(() => {
     if (!effectiveStreamId || !hasStream) return;
@@ -1472,23 +1390,25 @@ export function useLiveSpectatorController() {
         metric: 'lives_watched',
         delta: 1,
         roomId: effectiveStreamId,
-      }).catch(() => {});
+      }).catch((err) => reportFailure('live_engagement_progress', err));
       void apiLiveEngagementProgress({
         metric: 'unique_creators',
         delta: 1,
         roomId: effectiveStreamId,
-      }).catch(() => {});
+      }).catch((err) => reportFailure('live_engagement_progress', err));
     }
+    const roomId = effectiveStreamId;
     const id = window.setInterval(() => {
-      earnBattleEnergyQuiet('watch', effectiveStreamId);
+      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
+      earnBattleEnergyQuiet('watch', roomId);
       void apiLiveEngagementProgress({
         metric: 'watch_minutes',
         delta: 1,
-        roomId: effectiveStreamId,
-      }).catch(() => {});
+        roomId,
+      }).catch((err) => reportFailure('live_engagement_watch_tick', err, { roomId }));
     }, 60_000);
     return () => window.clearInterval(id);
-  }, [effectiveStreamId, hasStream]);
+  }, [effectiveStreamId, hasStream, missionWatchGoal]);
 
   // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
   // that list is publishing-gated and can be stale, so other spectators would
@@ -1533,7 +1453,13 @@ export function useLiveSpectatorController() {
           showToast('Stream is offline');
           return;
         }
-        const streamRows = streams as Array<any>;
+        const streamRows = (Array.isArray(streams) ? streams : []) as Array<{
+          stream_key?: string;
+          room_id?: string;
+          viewer_count?: number;
+          user_id?: string;
+          title?: string;
+        }>;
         const stream =
           streamRows.find((s) => s.stream_key === effectiveStreamId) ||
           streamRows.find((s) => s.room_id === effectiveStreamId);
@@ -1576,39 +1502,48 @@ export function useLiveSpectatorController() {
   }, [effectiveStreamId, navigate, streamRetryKey]);
 
   // Track attach handlers for useSpectatorLiveSession (connect owner). No parallel Room().
-  const coHostPublishStreamRef = useRef<MediaStream | null>(null);
+  // coHostPublishStreamRef is cameraStreamRef from useLiveCamera (shared publish owner).
 
-  /** Turn camera around while co-hosting — republish new facing stream. */
-  const flipCamera = useCallback(async () => {
+  /** Turn camera around while co-hosting — facing flip + reacquire via useLiveCamera. */
+  const flipCamera = useCallback(() => {
     if (!isCoHosting) return;
-    const nextFacing = cameraFacing === 'user' ? 'environment' : 'user';
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: nextFacing },
-        audio: { echoCancellation: true, noiseSuppression: true },
-      });
-      const mic = stream.getAudioTracks()[0];
-      if (mic) mic.enabled = !isMicMuted;
-      const vid = stream.getVideoTracks()[0];
-      if (vid) vid.enabled = !isCamOff;
-      const previous = coHostStream;
-      coHostPublishStreamRef.current = stream;
-      setCoHostStream(stream);
-      setCameraFacing(nextFacing);
-      if (myVideoRef.current) {
-        myVideoRef.current.srcObject = stream;
-        prepareLiveVideoEl(myVideoRef.current);
-      }
-      const lifecycle = spectatorLifecycleRef.current;
-      await lifecycle.publishFromStream(stream);
-      await lifecycle.liveKit?.setMicEnabled(!isMicMuted);
-      if (previous && previous !== stream) {
-        previous.getTracks().forEach((t) => t.stop());
-      }
-    } catch {
-      showToast('Could not switch camera');
+    flipCameraFacing();
+  }, [isCoHosting, flipCameraFacing]);
+
+  // After a facing flip (skip the facing value present when cohost started), reacquire + republish.
+  const cohostFacingBootRef = useRef(true);
+  useEffect(() => {
+    if (!isCoHosting) {
+      cohostFacingBootRef.current = true;
+      return;
     }
-  }, [cameraFacing, isCamOff, isCoHosting, isMicMuted, coHostStream, spectatorLifecycleRef]);
+    if (cohostFacingBootRef.current) {
+      cohostFacingBootRef.current = false;
+      return;
+    }
+    let cancelled = false;
+    const lifecycle = spectatorLifecycleRef.current;
+    (async () => {
+      try {
+        const stream = await acquireCamera();
+        if (cancelled || !stream) {
+          if (!cancelled) showToast('Could not switch camera');
+          return;
+        }
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+          prepareLiveVideoEl(myVideoRef.current);
+        }
+        await lifecycle.publishFromStream(stream);
+        await lifecycle.liveKit?.setMicEnabled(!isMicMuted);
+      } catch {
+        if (!cancelled) showToast('Could not switch camera');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraFacing, isCoHosting, acquireCamera, isMicMuted, myVideoRef, spectatorLifecycleRef]);
 
   const mainVideoAttachedRef = useRef(false);
   {
@@ -1618,7 +1553,7 @@ export function useLiveSpectatorController() {
     const attachHostVideo = (track: import('livekit-client').RemoteTrack) => {
       if (!videoRef.current) return;
       if (mainProvisionalTrackRef.current && mainProvisionalTrackRef.current !== track) {
-        try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* noop */ }
+        try { mainProvisionalTrackRef.current.detach(videoRef.current); } catch { /* already stopped */ }
       }
       mainProvisionalTrackRef.current = null;
       track.attach(videoRef.current);
@@ -1641,7 +1576,7 @@ export function useLiveSpectatorController() {
       track.attach(el);
       prepareLiveVideoEl(el);
       if (mainProvisionalTrackRef.current === track && videoRef.current) {
-        try { track.detach(videoRef.current); } catch { /* noop */ }
+        try { track.detach(videoRef.current); } catch { /* already stopped */ }
         mainProvisionalTrackRef.current = null;
         mainVideoAttachedRef.current = false;
       }
@@ -1732,37 +1667,50 @@ export function useLiveSpectatorController() {
     const lifecycle = spectatorLifecycleRef.current;
     // Flip layout to split immediately; camera publish can finish after.
     setIsCoHosting(true);
+    setIsMicMuted(true);
+    setIsCamOff(false);
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
+        const stream = await acquireCamera();
+        if (!mounted) return;
+        if (!stream) {
+          setIsCoHosting(false);
+          showToast('Could not start camera. Host will not see your video.');
           return;
         }
-        coHostPublishStreamRef.current = stream;
-        const mic = stream.getAudioTracks()[0];
-        if (mic) mic.enabled = false;
+        stream.getAudioTracks().forEach((t) => {
+          t.enabled = false;
+        });
         await lifecycle.publishFromStream(stream);
         await lifecycle.liveKit?.setMicEnabled(false);
-        setCoHostStream(stream);
+        if (myVideoRef.current) {
+          myVideoRef.current.srcObject = stream;
+          prepareLiveVideoEl(myVideoRef.current);
+        }
         showToast('You are co-hosting. Unmute to speak.');
       } catch (e) {
         console.warn('[LiveKit] Co-host publish failed:', e);
-        if (mounted) setIsCoHosting(false);
+        if (mounted) {
+          setIsCoHosting(false);
+          stopCamera();
+        }
         showToast('Could not start camera. Host will not see your video.');
       }
     })();
     return () => {
       mounted = false;
-      if (coHostPublishStreamRef.current) {
-        coHostPublishStreamRef.current.getTracks().forEach((t) => t.stop());
-        coHostPublishStreamRef.current = null;
-      }
+      // Camera stop is owned by useLiveCamera when enabled becomes false.
     };
-  }, [spectatorSession.connected, isCoHostFromUrl, spectatorLifecycleRef]);
+  }, [
+    spectatorSession.connected,
+    isCoHostFromUrl,
+    spectatorLifecycleRef,
+    acquireCamera,
+    stopCamera,
+    setIsMicMuted,
+    setIsCamOff,
+    myVideoRef,
+  ]);
 
   // When user selects a spectator slot, show that participant on the main (big) screen; otherwise show creator.
   useEffect(() => {
@@ -1786,7 +1734,7 @@ export function useLiveSpectatorController() {
     videoTrack.attach(videoEl);
     prepareLiveVideoEl(videoEl);
     currentMainTrackRef.current = videoTrack;
-  }, [selectedSpectatorUserId, hasStream, effectiveStreamId]);
+  }, [selectedSpectatorUserId, hasStream, effectiveStreamId, liveKitRoomRef]);
 
   // Re-attach host LiveKit track when DOM video element is recreated (e.g. battle mode toggle)
   useEffect(() => {
@@ -1809,7 +1757,7 @@ export function useLiveSpectatorController() {
         }
       }
     }
-  }, [spectatorBattle?.active, effectiveStreamId, markRemoteCam]);
+  }, [spectatorBattle?.active, effectiveStreamId, markRemoteCam, liveKitRoomRef]);
 
   // Battle: the opponent publishes into the HOST's LiveKit room (their solo room
   // ends when they join the battle). Route their host-room track to the opponent
@@ -1855,13 +1803,11 @@ export function useLiveSpectatorController() {
     };
     room.on(RoomEvent.TrackSubscribed, onSub);
     room.on(RoomEvent.ParticipantConnected, tryAttach);
-    const poll = window.setInterval(tryAttach, 2000);
     return () => {
       room.off(RoomEvent.TrackSubscribed, onSub);
       room.off(RoomEvent.ParticipantConnected, tryAttach);
-      window.clearInterval(poll);
     };
-  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream, effectiveStreamId]);
+  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream, effectiveStreamId, liveKitRoomRef]);
 
   // If we're still "connecting" after 18s, hint that host may not be publishing
   useEffect(() => {
@@ -1922,6 +1868,7 @@ export function useLiveSpectatorController() {
         if (shouldUseTestCoinsForGifts(user.id)) {
           setCoinBalance(getPersistedTestCoinsBalance(user.id));
         }
+        showToast('Could not load wallet balance');
       });
     return () => { cancelled = true; };
   }, [user?.id, user?.level, updateUser]);
@@ -2068,8 +2015,12 @@ export function useLiveSpectatorController() {
           Number(progression.starter_coin_balance) || 0,
         );
         setStarterCoinBalance(starter);
+      } else if (error) {
+        showToast('Could not load starter coins');
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast('Could not load starter coins');
+    });
     apiLiveEngagementWallet().then(({ data, error }) => {
       if (!error && data?.wallet) {
         const ew = data.wallet as Record<string, number>;
@@ -2078,8 +2029,12 @@ export function useLiveSpectatorController() {
           Number(ew.promotionalCoins ?? ew.promotional_coins ?? 0) || 0,
         );
         setPromotionalCoinBalance(promo);
+      } else if (error) {
+        showToast('Could not load promo coins');
       }
-    }).catch(() => {});
+    }).catch(() => {
+      showToast('Could not load promo coins');
+    });
   }, [showGiftPanel, user?.id]);
 
   const handleSubscribe = async () => {
@@ -2124,23 +2079,12 @@ export function useLiveSpectatorController() {
     };
   }, [hostUserId, user?.id]);
 
-  // Join tracking
-  useEffect(() => {
-    if (user?.id && effectiveStreamId) {
-      const today = new Date().toISOString().split('T')[0];
-      const storageKey = `joined_stream_${effectiveStreamId}_${user.id}_${today}`;
-      if (localStorage.getItem(storageKey)) setHasJoinedToday(true);
-      const heartKey = `my_heart_count_${effectiveStreamId}_${user.id}`;
-      const saved = localStorage.getItem(heartKey);
-      if (saved) setMyHeartCount(parseInt(saved, 10));
-    }
-  }, [user?.id, effectiveStreamId]);
-
   // WebSocket: spectators join the creator's live room (same room id = effectiveStreamId) for real-time chat, gifts, join/leave
   useEffect(() => {
     if (!effectiveStreamId || !user?.id || !streamIsLive) return;
 
     let mounted = true;
+    const joinAnnounced = joinAnnouncedRef.current;
 
     const connect = async () => {
       const token = useAuthStore.getState().session?.access_token || '';
@@ -2236,7 +2180,7 @@ export function useLiveSpectatorController() {
           const cached = actualViewersRef.current.get(uid);
           if (cached) actualViewersRef.current.set(uid, { ...cached, level: fixed });
           syncMvpSlotsRef.current();
-        }).catch(() => {});
+        }).catch((err) => reportFailure('live_join_profile_level', err, { userId: uid }));
       }
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
@@ -2308,22 +2252,12 @@ export function useLiveSpectatorController() {
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
-      const txnId =
-        (typeof data.transactionId === 'string' && data.transactionId) ||
-        (typeof data.transaction_id === 'string' && data.transaction_id) ||
-        '';
+      const txnId = extractGiftTxnId(data);
       if (txnId) {
-        if (seenGiftTxnRef.current.has(txnId)) return;
-        seenGiftTxnRef.current.add(txnId);
-        if (seenGiftTxnRef.current.size > 200) {
-          const keep = [...seenGiftTxnRef.current].slice(-100);
-          seenGiftTxnRef.current = new Set(keep);
-        }
+        if (hasSeenGiftTxn(txnId)) return;
+        markGiftTxnSeen(txnId);
       }
-      const wsGiftId =
-        (typeof data.giftId === 'string' && data.giftId) ||
-        (typeof data.gift_id === 'string' && data.gift_id) ||
-        '';
+      const wsGiftId = extractGiftId(data);
       const giftDef = wsGiftId
         ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
         : undefined;
@@ -2436,49 +2370,19 @@ export function useLiveSpectatorController() {
         }
       }
       // Play gift video for other users' gifts (sender already queued locally).
-      // Same resolve path as creator LiveStream so Spectator GiftOverlay matches.
       // In battle: video plays only on the receiving side's half (battleSide).
-      {
-        const resolvePlayUrl = (catalog: GiftUiItem[]) =>
-          pickGiftVideoUrl(data, catalog) ||
-          (wsGiftId
-            ? pickGiftVideoUrl({ giftId: wsGiftId, gift_id: wsGiftId }, catalog)
-            : null) ||
-          pickGiftVideoUrl(
-            {
-              giftId: wsGiftId,
-              gift_id: wsGiftId,
-              video: typeof data?.video === 'string' ? data.video : '',
-              animation_url:
-                typeof data?.animation_url === 'string' ? data.animation_url : '',
-            },
-            catalog,
-          );
-
-        const battleSide = spectatorBattleRef.current?.active
-          ? normalizeBattleGiftTarget(data.battleTarget)
-          : null;
-
-        const enqueueSpectatorGiftVideo = (url: string) => {
-          if (!url) return;
-          setGiftQueue((prev) => appendCapped(prev, { video: url, battleSide }, LIVE_GIFT_QUEUE_CAP));
-        };
-
-        const playUrl = resolvePlayUrl(giftsCatalogRef.current);
-        if (playUrl) {
-          enqueueSpectatorGiftVideo(playUrl);
-        } else if (wsGiftId) {
-          void fetchGiftsFromDatabase().then((gifts) => {
-            if (!mounted) return;
-            if (gifts.length) {
-              giftsCatalogRef.current = gifts;
-              setGiftsCatalog(gifts);
-            }
-            const retryUrl = resolvePlayUrl(giftsCatalogRef.current);
-            if (retryUrl) enqueueSpectatorGiftVideo(retryUrl);
-          });
-        }
-      }
+      const battleSide = spectatorBattleRef.current?.active
+        ? normalizeBattleGiftTarget(data.battleTarget)
+        : null;
+      enqueueFromGiftSent({
+        data,
+        catalogRef: giftsCatalogRef,
+        setGiftsCatalog,
+        battleSide,
+        txnId,
+        trackPlayedVideo: false,
+        mounted: () => mounted,
+      });
     };
 
     const handleStreamEnded = (data?: Record<string, unknown>) => {
@@ -2522,7 +2426,7 @@ export function useLiveSpectatorController() {
 
     const handleBattleStateSync = (data) => {
       if (!mounted) return;
-      const toScore = (value: unknown, fallback = 0) => {
+      const toTime = (value: unknown, fallback = 0) => {
         const n = Number(value);
         return Number.isFinite(n) ? n : fallback;
       };
@@ -2552,14 +2456,15 @@ export function useLiveSpectatorController() {
           resetSpectatorSpeed();
         }
         battleStreakCountedForEndRef.current = false;
+        const scoreResult = applyScores(data);
         setSpectatorBattle((prev) => ({
           active: true,
           status,
-          hostScore: toScore(data.hostScore ?? data.host_score, prev?.hostScore ?? 0),
-          opponentScore: toScore(data.opponentScore ?? data.opponent_score, prev?.opponentScore ?? 0),
-          player3Score: toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0),
-          player4Score: toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0),
-          timeLeft: toScore(data.timeLeft, status === 'WAITING' ? 300 : (prev?.timeLeft ?? 300)),
+          hostScore: scoreResult.totals.h,
+          opponentScore: scoreResult.totals.o,
+          player3Score: scoreResult.totals.p3,
+          player4Score: scoreResult.totals.p4,
+          timeLeft: toTime(data.timeLeft, status === 'WAITING' ? 300 : (prev?.timeLeft ?? 300)),
           opponentName: data.opponentName || data.opponent_name || prev?.opponentName,
           opponentRoomId: data.opponentRoomId || prev?.opponentRoomId,
           redTeamLabel: labels.red || prev?.redTeamLabel || '',
@@ -2572,16 +2477,15 @@ export function useLiveSpectatorController() {
           prev ? { ...prev, active: true, status: 'ENDED' } : null,
         );
         resetSpectatorSpeed();
-        setTimeout(() => setSpectatorBattle(null), 2500);
+        setTimeout(() => {
+          setSpectatorBattle(null);
+          resetScores();
+        }, 2500);
       }
     };
 
     const handleBattleScore = (data) => {
       if (!mounted) return;
-      const toScore = (value: unknown, fallback = 0) => {
-        const n = Number(value);
-        return Number.isFinite(n) ? n : fallback;
-      };
       setBattleStreamIds(prev => {
         if (!prev) return prev;
         const newHostUid = typeof data.hostUserId === 'string' && data.hostUserId ? data.hostUserId : prev.hostUserId;
@@ -2590,45 +2494,36 @@ export function useLiveSpectatorController() {
         return { ...prev, hostUserId: newHostUid, opponentUserId: newOppUid };
       });
       const labels = battleTeamLabelsFromPayload(data);
-      const prev = spectatorBattleRef.current;
-      const newH = toScore(data.hostScore, prev?.hostScore ?? 0);
-      const newO = toScore(data.opponentScore, prev?.opponentScore ?? 0);
-      const newP3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
-      const newP4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
-      const redDelta = (newH - (prev?.hostScore ?? 0)) + (newP3 - (prev?.player3Score ?? 0));
-      const blueDelta = (newO - (prev?.opponentScore ?? 0)) + (newP4 - (prev?.player4Score ?? 0));
-      if (redDelta > blueDelta && redDelta > 0) triggerBattleVfx('red', redDelta);
-      else if (blueDelta > 0) triggerBattleVfx('blue', blueDelta);
-
-      const redTotal = newH + newP3;
-      const blueTotal = newO + newP4;
-      const prevRedTotal = (prev?.hostScore ?? 0) + (prev?.player3Score ?? 0);
-      const prevBlueTotal = (prev?.opponentScore ?? 0) + (prev?.player4Score ?? 0);
-      if (redTotal > blueTotal && redTotal - prevRedTotal >= 25) {
-        maybeTauntLeadChange('host', redTotal - prevRedTotal);
-        pushBattleTaunt(createTauntBurst('opponent', 'lead'));
-      } else if (blueTotal > redTotal && blueTotal - prevBlueTotal >= 25) {
-        maybeTauntLeadChange('opponent', blueTotal - prevBlueTotal);
-        pushBattleTaunt(createTauntBurst('host', 'lead'));
+      const result = applyScores(data);
+      if (result.vfx) triggerBattleVfx(result.vfx.side, result.vfx.delta);
+      if (result.leadTaunt) {
+        maybeTauntLeadChange(result.leadTaunt.side, result.leadTaunt.gain);
+        pushBattleTaunt(
+          createTauntBurst(result.leadTaunt.side === 'host' ? 'opponent' : 'host', 'lead'),
+        );
       }
 
       setSpectatorBattle(prevState => {
         const newOppName = (typeof data.opponentName === 'string' && data.opponentName) || prevState?.opponentName;
         const newOppRoom = (typeof data.opponentRoomId === 'string' && data.opponentRoomId) || prevState?.opponentRoomId;
-        if (prevState?.active && newH === prevState.hostScore && newO === prevState.opponentScore &&
-            newP3 === (prevState.player3Score ?? 0) && newP4 === (prevState.player4Score ?? 0) &&
-            newOppName === prevState.opponentName && newOppRoom === prevState.opponentRoomId &&
-            labels.red === prevState.redTeamLabel && labels.blue === prevState.blueTeamLabel) {
+        if (
+          prevState?.active &&
+          !result.changed &&
+          newOppName === prevState.opponentName &&
+          newOppRoom === prevState.opponentRoomId &&
+          labels.red === prevState.redTeamLabel &&
+          labels.blue === prevState.blueTeamLabel
+        ) {
           return prevState;
         }
         return {
           active: true,
           status: 'ACTIVE' as const,
           timeLeft: prevState?.timeLeft ?? 300,
-          hostScore: newH,
-          opponentScore: newO,
-          player3Score: newP3,
-          player4Score: newP4,
+          hostScore: result.totals.h,
+          opponentScore: result.totals.o,
+          player3Score: result.totals.p3,
+          player4Score: result.totals.p4,
           opponentName: newOppName,
           opponentRoomId: newOppRoom,
           winner: prevState?.winner,
@@ -2640,21 +2535,9 @@ export function useLiveSpectatorController() {
 
     const handleBattleEnded = (data) => {
       if (!mounted) return;
-      const toScore = (value: unknown, fallback = 0) => {
-        const n = Number(value);
-        return Number.isFinite(n) ? n : fallback;
-      };
       setBattleStreamIds(null);
-      const prev = spectatorBattleRef.current;
-      const h = toScore(data.hostScore ?? data.host_score, prev?.hostScore ?? 0);
-      const o = toScore(data.opponentScore ?? data.opponent_score, prev?.opponentScore ?? 0);
-      const p3 = toScore(data.player3Score ?? data.player3_score, prev?.player3Score ?? 0);
-      const p4 = toScore(data.player4Score ?? data.player4_score, prev?.player4Score ?? 0);
-      const teamA = h + p3;
-      const teamB = o + p4;
-      const winner =
-        (typeof data.winner === 'string' && data.winner) ||
-        (teamA > teamB ? 'host' : teamA < teamB ? 'opponent' : 'draw');
+      const result = applyScores(data);
+      const winner = resolveServerBattleWinner(data?.winner, battleServerTotalsRef.current);
       if (winner === 'host') {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('host', 'win'));
@@ -2662,11 +2545,9 @@ export function useLiveSpectatorController() {
         playBattleTauntSound('win');
         pushBattleTaunt(createTauntBurst('opponent', 'win'));
       }
-      const teamWinner =
-        winner === 'host' || winner === 'opponent' || winner === 'draw' ? winner : 'draw';
       if (!battleStreakCountedForEndRef.current) {
         battleStreakCountedForEndRef.current = true;
-        setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
+        setBattleWinStreak((prev) => applyBattleWinStreak(prev, winner));
       }
       const labels = battleTeamLabelsFromPayload(data);
       setSpectatorBattle((prevState) => {
@@ -2676,10 +2557,10 @@ export function useLiveSpectatorController() {
           // Keep active so WIN/LOSS + streak overlay stays visible for the end banner.
           active: true,
           status: 'ENDED',
-          hostScore: h,
-          opponentScore: o,
-          player3Score: p3,
-          player4Score: p4,
+          hostScore: result.totals.h,
+          opponentScore: result.totals.o,
+          player3Score: result.totals.p3,
+          player4Score: result.totals.p4,
           winner,
           redTeamLabel: labels.red || prevState.redTeamLabel || '',
           blueTeamLabel: labels.blue || prevState.blueTeamLabel || '',
@@ -2687,7 +2568,10 @@ export function useLiveSpectatorController() {
       });
       resetSpectatorSpeed();
       // Return spectators to normal live layout after a short end banner.
-      setTimeout(() => setSpectatorBattle(null), 2500);
+      setTimeout(() => {
+        setSpectatorBattle(null);
+        resetScores();
+      }, 2500);
     };
 
     const handleHeartSent = (data) => {
@@ -2849,9 +2733,8 @@ export function useLiveSpectatorController() {
       setMistFog({ supportedUserId, supportedSide, expiresAt });
     };
 
-    // Server-authoritative battle clock (processBattleTick, 1 Hz). Sync the
-    // spectator countdown to it so a backgrounded/throttled webview timer
-    // self-corrects instead of drifting; scores still arrive via battle_score.
+    // Server-authoritative battle clock (processBattleTick → battle_tick, ~1 Hz).
+    // Sole time owner — no local setInterval race. Scores still arrive via battle_score.
     const handleBattleTick = (data: { timeLeft?: number }) => {
       if (!mounted) return;
       const t = applyBattleTickTime(data?.timeLeft);
@@ -2902,7 +2785,10 @@ export function useLiveSpectatorController() {
       try {
         const { streams, error: goOfflineErr } = await apiLiveStreams();
         if (goOfflineErr) return;
-        const streamRows = streams as Array<any>;
+        const streamRows = (Array.isArray(streams) ? streams : []) as Array<{
+          stream_key?: string;
+          room_id?: string;
+        }>;
         const stillLive = streamRows.some(
           (s) => s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId,
         );
@@ -2939,7 +2825,7 @@ export function useLiveSpectatorController() {
       unbindBattleWs();
       unbindBattleInviteWs();
       unbindCohostWs();
-      joinAnnouncedRef.current.clear();
+      joinAnnounced.clear();
       // Do NOT websocket.disconnect() here — battle/MVP callback identity churn was
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
@@ -2982,7 +2868,10 @@ export function useLiveSpectatorController() {
       try {
         const [rows, liveResult] = await Promise.all([
           fetchAllSharePanelContacts(user?.id),
-          apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
+          apiLiveStreams().catch((err) => {
+            reportFailure('spectator_share_live_streams', err);
+            return null;
+          }),
         ]);
         const mapped = rows.map((r) => ({
           id: r.user_id,
@@ -2991,27 +2880,22 @@ export function useLiveSpectatorController() {
         }));
         if (cancelled) return;
         setShareContacts(mapped);
-        setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
-      } catch { /* intentionally empty */ }
+        if (liveResult) {
+          setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
+        }
+      } catch (e) {
+        if (!cancelled) {
+          reportFailure('spectator_share_contacts', e);
+          showToast('Could not load share contacts');
+        }
+      }
     })();
     return () => {
       cancelled = true;
     };
   }, [user?.id, showSharePanel]);
 
-  // Gift queue processor
-  const [giftKey, setGiftKey] = useState(0);
-  useEffect(() => {
-    if (giftQueue.length > 0 && !currentGift) {
-      setCurrentGift(giftQueue[0]);
-      setGiftKey(k => k + 1);
-      setGiftQueue(prev => prev.slice(1));
-    }
-  }, [giftQueue, currentGift]);
-
-  const handleGiftEnded = useCallback(() => {
-    setCurrentGift(null);
-  }, []);
+  // Gift queue processor owned by useLiveGiftPlaybackQueue.
 
   useEffect(() => {
     if (!user?.id || !hostUserId) {
@@ -3026,11 +2910,18 @@ export function useLiveSpectatorController() {
     (async () => {
       try {
         const { following: ids, error: followingErr } = await apiFetchFollowingIds(user.id);
-        if (followingErr || cancelled) return;
+        if (cancelled) return;
+        if (followingErr) {
+          showToast(followingErr || 'Could not load follow status');
+          return;
+        }
         const hid = String(hostUserId);
         if (!cancelled) setIsFollowing(ids.some((id) => String(id) === hid));
       } catch {
-        if (!cancelled) setIsFollowing(false);
+        if (!cancelled) {
+          setIsFollowing(false);
+          showToast('Could not load follow status');
+        }
       }
     })();
     return () => {
@@ -3111,21 +3002,12 @@ export function useLiveSpectatorController() {
         const { data: before } = await apiLiveGetDailyHearts(creatorId);
         if (before?.hasSent) {
           setHasJoinedToday(true);
-          const today = new Date().toISOString().split('T')[0];
-          if (effectiveStreamId) {
-            localStorage.setItem(`joined_stream_${effectiveStreamId}_${user.id}_${today}`, 'true');
-          }
           showToast('Already sent today’s membership heart');
           return;
         }
-      } catch {
-        /* continue — POST will still enforce one-per-day */
+      } catch (err) {
+        reportFailure('live_daily_hearts', err, { creatorId });
       }
-
-      const today = new Date().toISOString().split('T')[0];
-      const storageKey = effectiveStreamId
-        ? `joined_stream_${effectiveStreamId}_${user.id}_${today}`
-        : '';
 
       try {
         const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
@@ -3140,9 +3022,8 @@ export function useLiveSpectatorController() {
           return;
         }
 
-        // Orange Join immediately after a successful send (same day).
+        // Orange Join immediately after a successful send (same day) — server owns the day flag.
         setHasJoinedToday(true);
-        if (storageKey) localStorage.setItem(storageKey, 'true');
 
         if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
           spawnHeartFromClient(e.clientX, e.clientY);
@@ -3174,13 +3055,18 @@ export function useLiveSpectatorController() {
           showToast("Already sent today's membership heart");
         }
 
-        const { data: after } = await apiLiveGetDailyHearts(creatorId);
-        if (after) {
-          if (typeof after.todayCount === 'number') setDailyHeartCount(after.todayCount);
-          if (typeof after.totalCount === 'number') setMyHeartCount(after.totalCount);
-          if (after.hasSent) setHasJoinedToday(true);
+        try {
+          const { data: after } = await apiLiveGetDailyHearts(creatorId);
+          if (after) {
+            if (typeof after.todayCount === 'number') setDailyHeartCount(after.todayCount);
+            if (typeof after.totalCount === 'number') setMyHeartCount(after.totalCount);
+            setHasJoinedToday(after.hasSent === true);
+          }
+        } catch (err) {
+          reportFailure('live_daily_hearts', err, { creatorId });
         }
-      } catch {
+      } catch (err) {
+        reportFailure('live_membership_join', err, { creatorId });
         showToast('Could not send membership heart. Try again.');
       }
     },
@@ -3188,7 +3074,6 @@ export function useLiveSpectatorController() {
       isFollowing,
       user?.id,
       hostUserId,
-      effectiveStreamId,
       hasJoinedToday,
       navigate,
       location.pathname,
@@ -3247,7 +3132,7 @@ export function useLiveSpectatorController() {
         metric: 'comments',
         delta: 1,
         roomId: effectiveStreamId,
-      }).catch(() => {});
+      }).catch((err) => reportFailure('live_engagement_progress', err));
     }
   };
 
@@ -3255,10 +3140,6 @@ export function useLiveSpectatorController() {
   const handleSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
     if (!gift) return;
     if (opts?.fromCombo && comboCount >= GIFT_COMBO_MAX) return;
-    const isGiftVideoFile = (value: string) => {
-      const p = value.split('?')[0].toLowerCase();
-      return p.endsWith('.mp4') || p.endsWith('.webm');
-    };
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
     const spendable = usedTestCoins
       ? getSpendableGiftBalance(coinBalance, user?.id)
@@ -3425,15 +3306,12 @@ export function useLiveSpectatorController() {
       setMissionGiftsSent((n) => n + 1);
     }
 
-    if (gift.video && gift.video.trim() && isGiftVideoFile(gift.video)) {
-      const raw = gift.video;
-      const videoUrl = preferPlayableGiftVideoUrl(
-        raw.startsWith('http://') || raw.startsWith('https://')
-          ? raw
-          : resolveGiftAssetUrl(raw.startsWith('/') ? raw : `/${raw}`),
-      );
-      const localBattleSide = spectatorBattle?.active ? spectatorGiftBattleTarget : null;
-      setGiftQueue(prev => appendCapped(prev, { video: videoUrl, battleSide: localBattleSide }, LIVE_GIFT_QUEUE_CAP));
+    if (gift.video && gift.video.trim()) {
+      const videoUrl = resolveLocalGiftVideoUrl(gift.video);
+      if (videoUrl) {
+        const localBattleSide = spectatorBattle?.active ? spectatorGiftBattleTarget : null;
+        enqueueGiftVideo(videoUrl, localBattleSide);
+      }
     }
 
     const giftMsg: LiveMessage = {
@@ -3445,9 +3323,9 @@ export function useLiveSpectatorController() {
       avatar: viewerAvatar,
     };
     setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
-    // Test coins: animation + battle MATCH points only (never wallet/money).
-    // Paid coins: REST-verified delivery applies money + battle in giftDelivery.
-    if (usedTestCoins || giftTransactionId) {
+    // Test coins: local WS gift_sent for animation + battle match points only.
+    // Paid / starter / promo: REST sendLivePaidGift is the sole authority (same as host) — never gift_sent.
+    if (usedTestCoins) {
       const wsVideo =
         gift.video && gift.video.trim()
           ? preferPlayableGiftVideoUrl(
@@ -3456,7 +3334,7 @@ export function useLiveSpectatorController() {
                 : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
             )
           : null;
-      liveGiftSentWs( {
+      liveGiftSentWs({
         giftId: gift.id,
         giftName: gift.name,
         username: viewerName,
@@ -3467,8 +3345,8 @@ export function useLiveSpectatorController() {
         avatar: viewerAvatar,
         video: wsVideo,
         animation_url: wsVideo,
-        transactionId: usedTestCoins ? null : giftTransactionId,
-        giftSource: usedTestCoins ? 'test_coins' : giftSource,
+        transactionId: null,
+        giftSource: 'test_coins',
         creator_name: hostName || 'Creator',
         host_user_id: hostUserId || effectiveStreamId,
         ...(spectatorBattle?.active
@@ -3528,7 +3406,7 @@ export function useLiveSpectatorController() {
     if (!spectatorBattle?.active && selectedCohostGiftUserId && gift.coins > 0) {
       const targetId = selectedCohostGiftUserId;
       if (giftTransactionId) {
-        seenGiftTxnRef.current.add(giftTransactionId);
+        markGiftTxnSeen(giftTransactionId);
       }
       setCohostGiftScores((prev) => ({
         ...prev,
@@ -3557,13 +3435,10 @@ export function useLiveSpectatorController() {
     setPageExiting(true);
     window.setTimeout(() => {
       websocket.disconnect();
-      if (coHostStream) {
-        coHostStream.getTracks().forEach((t) => t.stop());
-        setCoHostStream(null);
-      }
+      stopCamera();
       navigate('/feed', { replace: true });
     }, 250);
-  }, [pageExiting, isCoHosting, exitCohostStayWatching, coHostStream, navigate]);
+  }, [pageExiting, isCoHosting, exitCohostStayWatching, stopCamera, navigate]);
 
 
   const spectatorGate =
@@ -3579,7 +3454,7 @@ export function useLiveSpectatorController() {
     _openOpponentPanel,
     openBattleSidePanel,
     battleSidePanel,
-    _setModerators,
+    _setModerators: setModerators,
     _setSelectedSpectatorUserId,
     _startCoHosting,
     acceptBattleInviteFromWatch,

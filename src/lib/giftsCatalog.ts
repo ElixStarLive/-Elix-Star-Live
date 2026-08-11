@@ -51,8 +51,7 @@ export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
     const { data, error } = await api.gifts.getCatalog();
 
     if (error) {
-      await warnCatalogLoadFailed(error.message || 'Could not load gifts catalog');
-      return [];
+      throw new Error(error.message || 'Could not load gifts catalog');
     }
 
     const giftsData = Array.isArray(data) ? data : (data?.catalog ?? data?.gifts ?? []);
@@ -60,7 +59,7 @@ export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Could not load gifts catalog';
     await warnCatalogLoadFailed(msg);
-    return [];
+    throw e instanceof Error ? e : new Error(msg);
   }
 }
 
@@ -69,8 +68,7 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
     const { data, error } = await api.gifts.getCatalog();
 
     if (error) {
-      await warnCatalogLoadFailed(error.message || 'Could not load gift prices');
-      return new Map();
+      throw new Error(error.message || 'Could not load gift prices');
     }
 
     const giftsData = Array.isArray(data) ? data : (data?.catalog ?? data?.gifts ?? []);
@@ -84,7 +82,7 @@ export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'Could not load gift prices';
     await warnCatalogLoadFailed(msg);
-    return new Map();
+    throw e instanceof Error ? e : new Error(msg);
   }
 }
 
@@ -108,16 +106,6 @@ export function isGiftVideoPath(value: string): boolean {
   return p.endsWith('.mp4') || p.endsWith('.webm') || p.endsWith('.mov');
 }
 
-/** Map legacy DB gift ids to real Bunny Storage filenames. */
-const GIFT_ANIMATION_OVERRIDES: Record<string, string> = {
-  rose: '/gifts/treasure_drake_cub.mp4',
-  heart: '/gifts/pink_love_jet.mp4',
-  kiss: '/gifts/romantic_jet.mp4',
-  crown: '/gifts/crown_kitty_treasure.mp4',
-  diamond: '/gifts/celestial_star_wand.mp4',
-  rocket: '/gifts/lightning_hypercar.mp4',
-};
-
 /** Resolve playable gift video URL from WS payload + optional catalog row. */
 export function pickGiftVideoUrl(
   data: Record<string, unknown>,
@@ -128,13 +116,11 @@ export function pickGiftVideoUrl(
     (typeof data.gift_id === 'string' && data.gift_id.trim()) ||
     '';
   const giftDef = giftId && catalog?.length ? catalog.find((g) => g.id === giftId) : undefined;
-  const override = giftId ? GIFT_ANIMATION_OVERRIDES[giftId] : undefined;
 
   const candidates = [
     typeof data.video === 'string' ? data.video.trim() : '',
     typeof data.animation_url === 'string' ? data.animation_url.trim() : '',
     typeof giftDef?.video === 'string' ? giftDef.video.trim() : '',
-    typeof override === 'string' ? override : '',
   ].filter(Boolean);
 
   for (const raw of candidates) {
@@ -189,15 +175,6 @@ function giftPosterPath(animationPath: string): string {
 }
 
 export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[] {
-  const faceArFallback: Record<string, { icon: string; video: string }> = {
-    face_ar_crown: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_global_universe.webm' },
-    face_ar_glasses: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_live_universe.webm' },
-    face_ar_hearts: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_gold_universe.webm' },
-    face_ar_mask: { icon: '/royce/elix-mark.svg', video: '/gifts/beast_relic_of_the_ancients.webm' },
-    face_ar_ears: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_live_universe.webm' },
-    face_ar_stars: { icon: '/royce/elix-mark.svg', video: '/gifts/elix_global_universe.webm' },
-  };
-
   const sanitizeGiftUrl = (url: string | null): string | null => {
       if (!url) return null;
       
@@ -244,19 +221,15 @@ export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[
         Number.isFinite(r.coin_cost),
     )
     .map((row) => {
-      const fallback = faceArFallback[row.gift_id];
-      const dbAnimation = sanitizeGiftUrl(row.animation_url);
-      const overrideAnimation = GIFT_ANIMATION_OVERRIDES[row.gift_id];
-
-      const animation = overrideAnimation ?? dbAnimation ?? (fallback ? fallback.video : null);
-      const videoRaw = animation ? resolveGiftAssetUrl(animation) : '/Icons/Gift%20icon.png?v=3';
-      const video = isGiftVideoPath(videoRaw)
+      const animation = sanitizeGiftUrl(row.animation_url);
+      const videoRaw = animation ? resolveGiftAssetUrl(animation) : '';
+      const video = videoRaw && isGiftVideoPath(videoRaw)
         ? preferPlayableGiftVideoUrl(videoRaw)
         : videoRaw;
       const iconFromApi = row.icon_url ? resolveGiftAssetUrl(row.icon_url) : null;
-      const icon = fallback?.icon
-        ?? iconFromApi
-        ?? (animation ? resolveGiftAssetUrl(giftPosterPath(animation)) : '/Icons/Gift%20icon.png?v=3');
+      const icon =
+        iconFromApi
+        ?? (animation ? resolveGiftAssetUrl(giftPosterPath(animation)) : '/Icons/Elix%20Star%20Live.png');
 
       return {
         id: row.gift_id,

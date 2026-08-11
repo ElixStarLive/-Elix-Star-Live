@@ -118,6 +118,9 @@ router.get("/missions", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({ missions });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "GET engagement/missions failed");
     return res.status(500).json({ error: "MISSIONS_LOAD_FAILED" });
   }
@@ -168,6 +171,9 @@ router.get("/achievements", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({ achievements });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "GET engagement/achievements failed");
     return res.status(500).json({ error: "ACHIEVEMENTS_LOAD_FAILED" });
   }
@@ -209,6 +215,9 @@ router.get("/mvp", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({ period, leaderboard: board, viewer_id: userId });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "GET engagement/mvp failed");
     return res.status(500).json({ error: "MVP_LOAD_FAILED" });
   }

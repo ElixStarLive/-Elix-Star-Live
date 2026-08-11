@@ -22,6 +22,16 @@ describe.skipIf(!RUN)("Monetisation DB integration", () => {
     if (process.env.ALLOW_MONEY_IT_ON_URL !== "1") {
       throw new Error("Refusing without ALLOW_MONEY_IT_ON_URL=1");
     }
+    const dbName = (() => {
+      try {
+        return new URL(TEST_URL.replace(/^postgres(ql)?:/i, "http:")).pathname.replace(/^\//, "").toLowerCase();
+      } catch { return ""; }
+    })();
+    if (!dbName || !/(test|dev|ephemeral|money.?it)/.test(dbName)) {
+      throw new Error(
+        `Refusing database "${dbName}" — name must contain test, dev, ephemeral, or money_it.`,
+      );
+    }
     pool = new pg.Pool({
       connectionString: TEST_URL,
       max: 4,

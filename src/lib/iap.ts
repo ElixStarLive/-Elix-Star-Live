@@ -175,16 +175,23 @@ export async function isBillingAvailable(): Promise<boolean> {
 }
 
 export async function loadProducts(): Promise<IAPProduct[]> {
-  if (!platform.isNative) return [];
+  if (!platform.isNative) {
+    throw new Error('IAP_NOT_NATIVE');
+  }
+
+  const mod = await getPlugin();
+  if (!mod) {
+    reportIapStage('plugin_unavailable');
+    throw new Error('IAP_PLUGIN_UNAVAILABLE');
+  }
+
+  // Select the store catalogue first — never a merged/filtered list.
+  const requestedIds = [...storeCoinProductIdsForNativePlatform(nativePlatformKey())];
+  if (requestedIds.length === 0) {
+    throw new Error('IAP_NO_CATALOGUE');
+  }
 
   try {
-    const mod = await getPlugin();
-    if (!mod) return [];
-
-    // Select the store catalogue first — never a merged/filtered list.
-    const requestedIds = [...storeCoinProductIdsForNativePlatform(nativePlatformKey())];
-    if (requestedIds.length === 0) return [];
-
     const { products } = await mod.NativePurchases.getProducts({
       productIdentifiers: requestedIds,
       productType: mod.PURCHASE_TYPE.INAPP,
@@ -195,6 +202,7 @@ export async function loadProducts(): Promise<IAPProduct[]> {
         requested: requestedIds,
         store: currentStoreProvider(),
       });
+      // Honest empty StoreKit result — not a swallowed plugin/network failure.
       return [];
     }
 
@@ -226,8 +234,9 @@ export async function loadProducts(): Promise<IAPProduct[]> {
       };
     });
   } catch (err) {
-    reportIapStage('load_products_error', { error: (err as { message?: string })?.message || String(err) });
-    return [];
+    const message = (err as { message?: string })?.message || String(err);
+    reportIapStage('load_products_error', { error: message });
+    throw err instanceof Error ? err : new Error(message);
   }
 }
 

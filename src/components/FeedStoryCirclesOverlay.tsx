@@ -8,9 +8,11 @@ import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { fetchActiveStories, type StoryItem, type StoryUserGroup } from '../lib/storiesApi';
 import { prepareFeedVideoEl } from '../lib/prepareLiveVideoEl';
-import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
+import { apiLiveStreams, collectLiveUserIds, connectLiveFeedPresence } from '../lib/live';
 import { usePullRevealStrip } from '../hooks/usePullRevealStrip';
 import { isGenuineAppUser } from '../lib/genuineUser';
+import { FEED_HOME } from '../lib/settingsNav';
+import { reportFailure } from '../lib/reportFailure';
 
 interface SuggestedUser {
   id: string;
@@ -79,7 +81,6 @@ function StorySlide({
       <div className="absolute top-3 left-3 right-12 z-10 flex items-center gap-2 pointer-events-none">
         <StoryGoldRingAvatar
           size={36}
-          glow
           src={group.avatar || '/royce/default-avatar.svg'}
           alt={group.displayName}
         />
@@ -120,7 +121,7 @@ type Props = {
  */
 export function FeedStoryCirclesOverlay({
   pageRef,
-  topOffset,
+  topOffset: _topOffset,
   layout = 'overlay',
   initiallyVisible = false,
   followingFirst = false,
@@ -130,6 +131,7 @@ export function FeedStoryCirclesOverlay({
 }: Props) {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const token = useAuthStore((s) => s.session?.access_token) ?? '';
   const followingIds = useVideoStore((s) => s.followingUsers);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
   const [storyGroups, setStoryGroups] = useState<StoryUserGroup[]>([]);
@@ -161,17 +163,19 @@ export function FeedStoryCirclesOverlay({
   }, []);
 
   const reloadStories = useCallback(() => {
-    void fetchActiveStories().then(setStoryGroups);
+    void fetchActiveStories()
+      .then(setStoryGroups)
+      .catch(() => {
+        /* keep previous groups — do not fake empty success */
+      });
   }, []);
 
   useEffect(() => {
     reloadStories();
     const onFocus = () => reloadStories();
     window.addEventListener('focus', onFocus);
-    const t = window.setInterval(reloadStories, 60_000);
     return () => {
       window.removeEventListener('focus', onFocus);
-      window.clearInterval(t);
     };
   }, [reloadStories]);
 
@@ -180,8 +184,13 @@ export function FeedStoryCirclesOverlay({
       try {
         const [profilesResult, liveResult] = await Promise.all([
           apiFetchProfiles(),
-          apiLiveStreams().catch(() => ({ streams: [], error: null })),
+          apiLiveStreams(),
         ]);
+        if (liveResult.error) {
+          reportFailure('feed_story_live_streams', new Error(liveResult.error));
+          /* keep prior liveUserIds / suggestedUsers — do not fake empty success */
+          return;
+        }
         const profilesBody = { profiles: profilesResult.profiles ?? [] };
         const liveBody = { streams: liveResult.streams ?? [] };
         const liveSet = collectLiveUserIds(liveBody.streams || []);
@@ -220,18 +229,28 @@ export function FeedStoryCirclesOverlay({
           return a.is_live ? -1 : 1;
         });
         setSuggestedUsers(mapped);
-      } catch {
-        /* intentionally empty */
+      } catch (e) {
+        reportFailure('feed_story_users', e);
+        /* keep prior suggestedUsers / liveUserIds — do not fake empty success */
       }
     };
 
     void fetchUsers();
-    const livePoll = window.setInterval(() => {
-      void fetchUsers();
-    }, 30_000);
-    return () => window.clearInterval(livePoll);
+    const disposePresence = token
+      ? connectLiveFeedPresence(token, {
+          onStreamStarted: () => {
+            void fetchUsers();
+          },
+          onStreamEnded: () => {
+            void fetchUsers();
+          },
+        })
+      : () => {};
+    return () => {
+      disposePresence();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, followingFirst, (followingIds || []).join(',')]);
+  }, [user?.id, followingFirst, (followingIds || []).join(','), token]);
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
 
@@ -259,7 +278,7 @@ export function FeedStoryCirclesOverlay({
   }, [navigate]);
 
   const goBackDefault = useCallback(() => {
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate]);
 
   const handleSearch = onSearch || goSearchDefault;
@@ -299,7 +318,6 @@ export function FeedStoryCirclesOverlay({
         <div className="relative overflow-visible" style={{ width: 58, height: 58 }}>
           <StoryGoldRingAvatar
             size={58}
-            glow
             src={user?.avatar || '/royce/default-avatar.svg'}
             alt={user?.username || 'You'}
           />
@@ -343,7 +361,6 @@ export function FeedStoryCirclesOverlay({
           >
             <StoryGoldRingAvatar
               size={58}
-              glow
               live={isLive}
               data-avatar-circle={isLive ? 'live' : undefined}
               src={g.avatar || '/royce/default-avatar.svg'}
@@ -369,7 +386,6 @@ export function FeedStoryCirclesOverlay({
           >
             <StoryGoldRingAvatar
               size={58}
-              glow
               live={isLive}
               data-avatar-circle={isLive ? 'live' : undefined}
               src={u.avatar_url || '/royce/default-avatar.svg'}

@@ -86,7 +86,7 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
           receipt: result.receipt || '',
           productId,
           provider: useAppleIAP ? 'apple' : 'google',
-          contentType,
+          contentType: boostType === 'live' ? 'live' : contentType,
           contentId: content?.id ?? '',
         });
         if (ok) {
@@ -228,7 +228,13 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             ) : (
               <>
                 <p className="text-white font-bold text-base">{priceDisplay}</p>
-                <button type="button" className="text-white/50 text-[10px] underline">See price details</button>
+                <button
+                  type="button"
+                  className="text-white/50 text-[10px] underline"
+                  onClick={() => setPanelMessage(`Price: ${priceDisplay}`)}
+                >
+                  See price details
+                </button>
               </>
             )}
           </div>

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import SoundLibraryView from '../components/SoundLibraryView';
 import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore';
+import { FEED_HOME } from '../lib/settingsNav';
 
 /**
  * /music — same Sound panel as Create/Upload Add sound (SoundLibraryView).
@@ -19,7 +20,7 @@ export default function MusicFeed() {
 
   const goBack = useCallback(() => {
     stopLibraryPlayer();
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate, stopLibraryPlayer]);
 
   const goSearch = useCallback(() => {

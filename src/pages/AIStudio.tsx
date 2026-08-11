@@ -3,6 +3,7 @@ import { RoyceBackIcon } from '../components/royce';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
+import { AI_STUDIO_EXIT_TO } from '../lib/settingsNav';
 
 export default function AIStudio() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function AIStudio() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(AI_STUDIO_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const openFilePicker = useCallback(() => {

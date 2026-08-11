@@ -15,20 +15,25 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_URL = normalizeDatabaseUrl((process.env.TEST_DATABASE_URL || "").trim());
 const RUN = !!TEST_URL;
 
-function assertNotProductionHost(url: string) {
+function assertNotProductionDatabase(url: string) {
   if (process.env.ALLOW_MONEY_IT_ON_URL !== "1") {
     throw new Error("Refusing money IT without ALLOW_MONEY_IT_ON_URL=1");
   }
-  const host = (() => {
+  const dbName = (() => {
     try {
-      return new URL(url.replace(/^postgres(ql)?:/i, "http:")).hostname;
+      return new URL(url.replace(/^postgres(ql)?:/i, "http:")).pathname.replace(/^\//, "").toLowerCase();
     } catch {
       return "";
     }
   })();
-  const marker = `${host} ${url}`.toLowerCase();
-  if (/neon\.tech/.test(marker) && !/(test|branch|ephemeral|dev|money.?it)/.test(marker)) {
-    throw new Error("Refusing Neon host that does not look like a dedicated test branch");
+  if (!dbName) {
+    throw new Error("TEST_DATABASE_URL has no database name in the path");
+  }
+  if (!/(test|dev|ephemeral|money.?it)/.test(dbName)) {
+    throw new Error(
+      `Refusing database "${dbName}" — name must contain test, dev, ephemeral, or money_it. ` +
+      "Create a dedicated test database (e.g. elix_test) on your Neon branch.",
+    );
   }
 }
 
@@ -36,7 +41,7 @@ describe.skipIf(!RUN)("For You feed lifecycle DB", () => {
   let pool: pg.Pool;
 
   beforeAll(async () => {
-    assertNotProductionHost(TEST_URL);
+    assertNotProductionDatabase(TEST_URL);
     pool = new pg.Pool({
       connectionString: TEST_URL,
       max: 8,

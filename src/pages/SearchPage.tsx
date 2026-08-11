@@ -7,6 +7,7 @@ import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
+import { SEARCH_EXIT_TO } from '../lib/settingsNav';
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -52,7 +53,7 @@ export default function SearchPage() {
 
   const closePanel = useCallback(() => {
     setVisible(false);
-    setTimeout(() => navigate(-1), 250);
+    setTimeout(() => navigate(SEARCH_EXIT_TO, { replace: true }), 250);
   }, [navigate]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {

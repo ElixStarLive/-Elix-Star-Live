@@ -11,8 +11,8 @@ export function validateBody(schema: ZodSchema) {
         const issues = "issues" in err && Array.isArray((err as ZodError).issues) ? (err as ZodError).issues : [];
         return res.status(400).json({
           error: "VALIDATION_ERROR",
-          details: issues.map((e: { path: (string | number)[]; message: string }) => ({
-            path: e.path.join("."),
+          details: issues.map((e) => ({
+            path: (Array.isArray(e.path) ? e.path : []).map(String).join("."),
             message: e.message,
           })),
         });
@@ -32,8 +32,8 @@ export function validateQuery(schema: ZodSchema) {
         const issues = "issues" in err && Array.isArray((err as ZodError).issues) ? (err as ZodError).issues : [];
         return res.status(400).json({
           error: "VALIDATION_ERROR",
-          details: issues.map((e: { path: (string | number)[]; message: string }) => ({
-            path: e.path.join("."),
+          details: issues.map((e) => ({
+            path: (Array.isArray(e.path) ? e.path : []).map(String).join("."),
             message: e.message,
           })),
         });

@@ -3,7 +3,6 @@
  */
 import { Router, Request, Response } from "express";
 import { getPool, deleteVideoFromDb } from "../lib/postgres";
-import { deleteVideoFromCache } from "../lib/videoStore";
 import { insertNotification } from "../lib/notifications";
 import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
@@ -37,7 +36,6 @@ async function enforceReportAction(
 
   if (action === "removed") {
     if (type === "video" || type === "post" || type === "clip") {
-      deleteVideoFromCache(targetId);
       await deleteVideoFromDb(targetId);
     } else if (type === "comment") {
       await db
@@ -176,9 +174,12 @@ router.get("/reports", async (req: Request, res: Response) => {
     return res.json(rows);
   } catch (e) {
     const code = (e as { code?: string })?.code;
-    if (code === "42P01") return res.json([]);
+    if (code === "42P01") {
+      logger.error({ err: e }, "admin GET /reports missing table");
+      return res.status(503).json({ error: "SCHEMA_UNAVAILABLE" });
+    }
     logger.error({ err: e }, "admin GET /reports failed");
-    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+    return res.status(500).json({ error: "DATABASE_ERROR" });
   }
 });
 
@@ -205,16 +206,19 @@ router.get("/purchases", async (req: Request, res: Response) => {
     return res.json({ data: r.rows, source: "iap" });
   } catch (e) {
     const code = (e as { code?: string })?.code;
-    if (code === "42P01") return res.json({ data: [], source: "iap" });
+    if (code === "42P01") {
+      logger.error({ err: e }, "admin GET /purchases missing table");
+      return res.status(503).json({ error: "SCHEMA_UNAVAILABLE", data: null });
+    }
     logger.error({ err: e }, "admin GET /purchases failed");
-    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+    return res.status(500).json({ error: "DATABASE_ERROR", data: null });
   }
 });
 
 router.get("/iap-purchases", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "private, no-store");
   const db = getPool();
-  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: [] });
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", data: null });
   try {
     const r = await db.query(
       `SELECT id,
@@ -234,16 +238,19 @@ router.get("/iap-purchases", async (req: Request, res: Response) => {
     return res.json({ data: r.rows, source: "iap" });
   } catch (e) {
     const code = (e as { code?: string })?.code;
-    if (code === "42P01") return res.json({ data: [], source: "iap" });
+    if (code === "42P01") {
+      logger.error({ err: e }, "admin GET /iap-purchases missing table");
+      return res.status(503).json({ error: "SCHEMA_UNAVAILABLE", data: null });
+    }
     logger.error({ err: e }, "admin GET /iap-purchases failed");
-    return res.status(500).json({ error: "DATABASE_ERROR", data: [] });
+    return res.status(500).json({ error: "DATABASE_ERROR", data: null });
   }
 });
 
 router.get("/stats/dau", async (req: Request, res: Response) => {
   res.setHeader("Cache-Control", "private, max-age=60");
   const db = getPool();
-  if (!db) return res.status(503).json({ dau: 0 });
+  if (!db) return res.status(503).json({ error: "DATABASE_UNAVAILABLE", dau: null });
   try {
     const r = await db.query(
       `SELECT COUNT(DISTINCT user_id) AS dau FROM elix_auth_sessions WHERE created_at > NOW() - INTERVAL '24 hours'`,
@@ -252,9 +259,12 @@ router.get("/stats/dau", async (req: Request, res: Response) => {
     return res.json({ dau });
   } catch (e) {
     const code = (e as { code?: string })?.code;
-    if (code === "42P01") return res.json({ dau: 0 });
+    if (code === "42P01") {
+      logger.error({ err: e }, "admin stats/dau missing table");
+      return res.status(503).json({ error: "SCHEMA_UNAVAILABLE", dau: null });
+    }
     logger.error({ err: e }, "admin stats/dau failed");
-    return res.status(500).json({ dau: 0 });
+    return res.status(500).json({ error: "DATABASE_ERROR", dau: null });
   }
 });
 

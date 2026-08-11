@@ -2,18 +2,13 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
 import {
-  trackLike,
-  trackComment,
-  trackShare,
-  trackFollow,
-} from '../lib/interactionTracker';
-import {
   apiDeleteVideo,
   apiDeleteVideoComment,
   apiFetchAllVideos,
   apiFetchFollowingIds,
   apiFetchForYouFeed,
   apiFetchFriendsFeed,
+  apiFetchFollowingFeed,
   apiFetchVideoById,
   apiPostVideoComment,
   apiToggleCommentLike,
@@ -21,6 +16,10 @@ import {
   apiToggleVideoLike,
   apiToggleVideoSave,
   apiTrackFeedView,
+  trackComment,
+  trackFollow,
+  trackLike,
+  trackShare,
 } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { getVideoPosterUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
@@ -250,6 +249,7 @@ export interface Video {
 interface VideoStore {
   videos: Video[];
   friendVideos: Video[];
+  followingVideos: Video[];
   stemVideos: Video[];
   likedVideos: string[];
   savedVideos: string[];
@@ -258,6 +258,7 @@ interface VideoStore {
   mutualFollowIds: string[];
   loading: boolean;
   friendsLoading: boolean;
+  followingLoading: boolean;
   stemLoading: boolean;
   /** For You pagination — backend hasMore from GET /api/feed/foryou */
   forYouPage: number;
@@ -267,12 +268,11 @@ interface VideoStore {
   fetchVideos: () => Promise<void>;
   fetchMoreForYou: () => Promise<void>;
   fetchFriendVideos: () => Promise<void>;
+  fetchFollowingVideos: () => Promise<void>;
   fetchStemVideos: () => Promise<void>;
   /** Load a single video from API when missing from store (deep link / shared /video/:id). Returns true if loaded. */
   fetchVideoById: (videoId: string) => Promise<boolean>;
   getVideoById: (videoId: string) => Video | undefined;
-  addVideo: (video: Video) => void;
-  removeVideo: (videoId: string) => void;
   /** Drop every feed video from a blocked creator (For You / Friends / STEM). */
   removeVideosByCreator: (userId: string) => void;
   updateVideo: (videoId: string, updates: Partial<Video>) => void;
@@ -311,6 +311,7 @@ export const useVideoStore = create<VideoStore>()(
     (set, get) => ({
       videos: [],
       friendVideos: [],
+      followingVideos: [],
       stemVideos: [],
       likedVideos: [],
       savedVideos: [],
@@ -318,14 +319,16 @@ export const useVideoStore = create<VideoStore>()(
       mutualFollowIds: [],
       loading: false,
       friendsLoading: false,
+      followingLoading: false,
       stemLoading: false,
       forYouPage: 1,
       forYouHasMore: false,
 
       getVideoById: (videoId: string) => {
-        const { friendVideos, videos, stemVideos } = get();
+        const { friendVideos, followingVideos, videos, stemVideos } = get();
         return (
           friendVideos.find((v) => v.id === videoId) ??
+          followingVideos.find((v) => v.id === videoId) ??
           videos.find((v) => v.id === videoId) ??
           stemVideos.find((v) => v.id === videoId)
         );
@@ -538,21 +541,56 @@ export const useVideoStore = create<VideoStore>()(
         }
       },
 
-      // Video actions
-      addVideo: (video) => set((state) => ({ 
-        videos: [video, ...state.videos] 
-      })),
-      
-      removeVideo: (videoId) => set((state) => ({
-        videos: state.videos.filter(video => video.id !== videoId)
-      })),
+      fetchFollowingVideos: async () => {
+        set({ followingLoading: true });
+        try {
+          const authUser = useAuthStore.getState().user;
+          if (!authUser?.id) {
+            set({ followingLoading: false });
+            return;
+          }
 
+          const { following: ids, error: followListErr } = await apiFetchFollowingIds(authUser.id);
+          if (!followListErr) {
+            set({ followingUsers: ids });
+          }
+
+          const { followingUsers } = get();
+          const { videos: apiVideos, error } = await apiFetchFollowingFeed();
+          if (error) {
+            set({ followingLoading: false });
+            return;
+          }
+          if (apiVideos.length === 0) {
+            set({ followingVideos: [], followingLoading: false });
+            return;
+          }
+
+          const { likedVideos, savedVideos } = get();
+          const likedSet = new Set(likedVideos);
+          const savedSet = new Set(savedVideos);
+          const followingSet = new Set(followingUsers);
+
+          const mappedVideos: Video[] = withoutBlockedCreators(
+            apiVideos.map((v: unknown) =>
+              mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
+            ),
+          );
+          set({ followingVideos: mappedVideos, followingLoading: false });
+        } catch {
+          set({ followingLoading: false });
+          if (!navigator.onLine) showToast('No internet connection');
+        }
+      },
+
+      // Video actions
       removeVideosByCreator: (userId) => {
         const id = String(userId || '').trim();
         if (!id) return;
         set((state) => ({
           videos: state.videos.filter((v) => v.user?.id !== id),
           friendVideos: state.friendVideos.filter((v) => v.user?.id !== id),
+          followingVideos: state.followingVideos.filter((v) => v.user?.id !== id),
           stemVideos: state.stemVideos.filter((v) => v.user?.id !== id),
         }));
       },
@@ -562,6 +600,8 @@ export const useVideoStore = create<VideoStore>()(
         return {
           videos: state.videos.map(upd),
           friendVideos: state.friendVideos.map(upd),
+          followingVideos: state.followingVideos.map(upd),
+          stemVideos: state.stemVideos.map(upd),
         };
       }),
 
@@ -579,9 +619,17 @@ export const useVideoStore = create<VideoStore>()(
             throw new Error(error || 'Failed to delete video');
           }
 
-          set((s) => ({ videos: s.videos.filter((v) => v.id !== videoId), friendVideos: s.friendVideos.filter((v) => v.id !== videoId) }));
+          set((s) => ({
+            videos: s.videos.filter((v) => v.id !== videoId),
+            friendVideos: s.friendVideos.filter((v) => v.id !== videoId),
+            followingVideos: s.followingVideos.filter((v) => v.id !== videoId),
+          }));
         } catch (err) {
-          set({ videos: snapshot.videos, friendVideos: snapshot.friendVideos });
+          set({
+            videos: snapshot.videos,
+            friendVideos: snapshot.friendVideos,
+            followingVideos: snapshot.followingVideos,
+          });
           throw err instanceof Error ? err : new Error('Failed to delete video.');
         }
       },
@@ -610,6 +658,8 @@ export const useVideoStore = create<VideoStore>()(
         set({
           videos: state.videos.map(likeUpdate),
           friendVideos: state.friendVideos.map(likeUpdate),
+          followingVideos: state.followingVideos.map(likeUpdate),
+          stemVideos: state.stemVideos.map(likeUpdate),
           likedVideos: newLikedVideos
         });
         publishVideoCollection({ type: 'liked', videoId, liked: nextLiked });
@@ -633,6 +683,8 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(revert),
             friendVideos: s.friendVideos.map(revert),
+            followingVideos: s.followingVideos.map(revert),
+            stemVideos: s.stemVideos.map(revert),
             likedVideos: wasLiked ? [...s.likedVideos, videoId] : s.likedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'liked', videoId, liked: wasLiked });
@@ -670,6 +722,8 @@ export const useVideoStore = create<VideoStore>()(
         set({
           videos: state.videos.map(saveUpdate),
           friendVideos: state.friendVideos.map(saveUpdate),
+          followingVideos: state.followingVideos.map(saveUpdate),
+          stemVideos: state.stemVideos.map(saveUpdate),
           savedVideos: newSavedVideos,
         });
         publishVideoCollection({ type: 'saved', videoId, saved: nextSaved });
@@ -686,6 +740,8 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(revert),
             friendVideos: s.friendVideos.map(revert),
+            followingVideos: s.followingVideos.map(revert),
+            stemVideos: s.stemVideos.map(revert),
             savedVideos: wasSaved ? [...s.savedVideos, videoId] : s.savedVideos.filter(id => id !== videoId),
           }));
           publishVideoCollection({ type: 'saved', videoId, saved: wasSaved });
@@ -713,6 +769,7 @@ export const useVideoStore = create<VideoStore>()(
             followingUsers,
             videos: applyUserFollowing(s.videos, userId, isFollowing, followerDelta),
             friendVideos: applyUserFollowing(s.friendVideos, userId, isFollowing, followerDelta),
+            followingVideos: applyUserFollowing(s.followingVideos, userId, isFollowing, followerDelta),
             stemVideos: applyUserFollowing(s.stemVideos, userId, isFollowing, followerDelta),
           };
         });
@@ -772,6 +829,7 @@ export const useVideoStore = create<VideoStore>()(
         set({
           videos: state.videos.map(shareUpdate),
           friendVideos: state.friendVideos.map(shareUpdate),
+          followingVideos: state.followingVideos.map(shareUpdate),
         });
 
         try {
@@ -780,6 +838,7 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(revertShare),
             friendVideos: s.friendVideos.map(revertShare),
+            followingVideos: s.followingVideos.map(revertShare),
           }));
           showToast('Couldn’t record share. Please try again.');
         }
@@ -814,6 +873,7 @@ export const useVideoStore = create<VideoStore>()(
         set({
           videos: state.videos.map(commentUpdate),
           friendVideos: state.friendVideos.map(commentUpdate),
+          followingVideos: state.followingVideos.map(commentUpdate),
         });
 
         try {
@@ -833,6 +893,7 @@ export const useVideoStore = create<VideoStore>()(
             set(s => ({
               videos: s.videos.map(commentIdUpdate),
               friendVideos: s.friendVideos.map(commentIdUpdate),
+              followingVideos: s.followingVideos.map(commentIdUpdate),
             }));
           }
 
@@ -847,6 +908,9 @@ export const useVideoStore = create<VideoStore>()(
               ? { ...v, comments: v.comments.filter(c => c.id !== tempId), stats: { ...v.stats, comments: Math.max(0, v.stats.comments - 1) } }
               : v),
             friendVideos: s.friendVideos.map(v => v.id === videoId
+              ? { ...v, comments: v.comments.filter(c => c.id !== tempId), stats: { ...v.stats, comments: Math.max(0, v.stats.comments - 1) } }
+              : v),
+            followingVideos: s.followingVideos.map(v => v.id === videoId
               ? { ...v, comments: v.comments.filter(c => c.id !== tempId), stats: { ...v.stats, comments: Math.max(0, v.stats.comments - 1) } }
               : v),
           }));
@@ -879,6 +943,7 @@ export const useVideoStore = create<VideoStore>()(
         set({
           videos: state.videos.map(commentDelUpdate),
           friendVideos: state.friendVideos.map(commentDelUpdate),
+          followingVideos: state.followingVideos.map(commentDelUpdate),
         });
         try {
           const { ok, error } = await apiDeleteVideoComment(videoId, commentId);
@@ -887,6 +952,7 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(revertDel),
             friendVideos: s.friendVideos.map(revertDel),
+            followingVideos: s.followingVideos.map(revertDel),
           }));
           showToast('Couldn’t delete comment. Please try again.');
         }
@@ -914,6 +980,7 @@ export const useVideoStore = create<VideoStore>()(
         set((s) => ({
           videos: s.videos.map(commentLikeUpdate),
           friendVideos: s.friendVideos.map(commentLikeUpdate),
+            followingVideos: s.followingVideos.map(commentLikeUpdate),
         }));
 
         const action = wasLiked ? 'unlike' : 'like';
@@ -935,6 +1002,7 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(revertLike),
             friendVideos: s.friendVideos.map(revertLike),
+            followingVideos: s.followingVideos.map(revertLike),
           }));
           showToast('Couldn’t update comment like. Please try again.');
         }
@@ -980,6 +1048,7 @@ export const useVideoStore = create<VideoStore>()(
           set((s) => ({
             videos: s.videos.map(viewsUpdate),
             friendVideos: s.friendVideos.map(viewsUpdate),
+            followingVideos: s.followingVideos.map(viewsUpdate),
           }));
         } catch {
           /* view analytics must not block feed */
@@ -1007,6 +1076,7 @@ export const useVideoStore = create<VideoStore>()(
       partialize: (state) => ({
         videos: state.videos,
         friendVideos: state.friendVideos,
+        followingVideos: state.followingVideos,
         likedVideos: state.likedVideos,
         savedVideos: state.savedVideos,
         followingUsers: state.followingUsers

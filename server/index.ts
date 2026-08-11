@@ -297,7 +297,15 @@ async function healthCheck(_req: express.Request, res: express.Response) {
         )
       : Promise.resolve(false),
     valkeyPingPromise,
-    healthLight ? Promise.resolve<number | null>(null) : getVideoCountAsync(),
+    healthLight
+      ? Promise.resolve<number | null>(null)
+      : getVideoCountAsync().then(
+          (n) => n,
+          (err: unknown) => {
+            logger.warn({ err: err instanceof Error ? err.message : err }, "Health check video count failed");
+            return null;
+          },
+        ),
   ]);
 
   const dbOk = Boolean(dbPing);
@@ -323,6 +331,14 @@ async function healthCheck(_req: express.Request, res: express.Response) {
       bunnyStorage: isBunnyConfigured(),
       // Boolean only — never expose credentials. Lets Coolify/smoke verify FCM/APNS wiring.
       push: isPushConfigured(),
+      // Boolean only — proves APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are loaded
+      // into this process (no secret values). Does not change IAP verify behaviour.
+      appleIap: Boolean(
+        process.env.APPLE_ISSUER_ID?.trim() &&
+          process.env.APPLE_KEY_ID?.trim() &&
+          process.env.APPLE_PRIVATE_KEY?.trim(),
+      ),
+      appleBundleId: (process.env.APPLE_BUNDLE_ID || "com.elixstarlive.app").trim(),
     },
   };
   healthCache = { data, code, ts: now };
@@ -670,6 +686,7 @@ try {
     );
     if (runBackgroundJobs) {
       startJobWorker(processJob, 1500);
+      // Note: enqueueJob false ignored — only if Valkey and memory both fail.
       void enqueueJob({ type: "cleanup_retention" });
       setInterval(() => {
         void enqueueJob({ type: "cleanup_retention" });

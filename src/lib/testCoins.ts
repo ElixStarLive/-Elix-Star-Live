@@ -1,12 +1,19 @@
 /** Local test coins — BATTLE GAME SCORE + gift animation only. Never real money / IAP / Stripe. */
 
+import { IS_STORE_BUILD } from "../config/build";
+
 /**
  * Test coins = BATTLE GAME SCORE + animation only (£0 money).
  * Password-gated spectator/admin mint. Never creator revenue / IAP / Stripe.
- * Optional kill-switch for store builds: VITE_ALLOW_TEST_COINS=0
+ *
+ * Store / production-store builds: off unless VITE_ALLOW_TEST_COINS is explicitly "1".
+ * Non-store builds: on unless VITE_ALLOW_TEST_COINS is "0" / "false" / "off".
  */
 export function areTestCoinsEnabled(): boolean {
   const raw = String(import.meta.env.VITE_ALLOW_TEST_COINS ?? "").trim().toLowerCase();
+  if (IS_STORE_BUILD) {
+    return raw === "1" || raw === "true" || raw === "on";
+  }
   if (raw === "0" || raw === "false" || raw === "off") return false;
   return true;
 }

@@ -11,13 +11,11 @@ const ICON_IN_DISC = 18;
 type RoyceIconProps = {
   icon: LucideIcon;
   size?: number;
-  /** Kept for call-site compatibility. */
-  active?: boolean;
   tile?: boolean;
   className?: string;
 };
 
-export function RoyceIcon({ icon: Icon, size = ICON_IN_DISC, active: _active = false, tile = true, className = '' }: RoyceIconProps) {
+export function RoyceIcon({ icon: Icon, size = ICON_IN_DISC, tile = true, className = '' }: RoyceIconProps) {
   const glyph = typeof size === 'number' && size > 0 ? Math.min(size, ICON_IN_DISC) : ICON_IN_DISC;
   const iconEl = (
     <Icon
@@ -44,7 +42,7 @@ type RoyceNavIconProps = {
   className?: string;
 };
 
-export function RoyceBackIcon({ size = 18, className = '' }: RoyceNavIconProps) {
+export function RoyceBackIcon({ size: _size = 18, className = '' }: RoyceNavIconProps) {
   return (
     <span className={`${DISC} ${className}`} aria-hidden>
       <ChevronLeft size={ICON_IN_DISC} strokeWidth={2.35} className="royce-icon-gold block" />

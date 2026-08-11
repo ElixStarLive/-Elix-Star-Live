@@ -5,6 +5,7 @@ import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
+import { FEED_HOME } from '../lib/settingsNav';
 
 const REPORT_REASONS = {
   video: [
@@ -47,7 +48,7 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(FEED_HOME, { replace: true }), [navigate]);
 
   const reasons = REPORT_REASONS[contentType] || REPORT_REASONS.video;
 

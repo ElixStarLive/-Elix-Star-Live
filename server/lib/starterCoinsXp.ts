@@ -548,7 +548,7 @@ export async function awardPaidGiftXp(input: {
 
 export async function listXpHistory(userId: string, limit = 100) {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const r = await pool.query(
     `SELECT id, xp_amount, source, related_activity_type,
             related_activity_id, reason, created_at
@@ -563,7 +563,7 @@ export async function listXpHistory(userId: string, limit = 100) {
 
 export async function listStarterCoinHistory(userId: string, limit = 100) {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const r = await pool.query(
     `SELECT id, kind, amount_delta, balance_after, gift_id, room_id,
             recipient_user_id, reason, created_at
@@ -578,7 +578,7 @@ export async function listStarterCoinHistory(userId: string, limit = 100) {
 
 export async function listXpConfig() {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const r = await pool.query(
     `SELECT source, xp_amount, enabled, description, updated_by, updated_at
        FROM xp_activity_config
@@ -607,7 +607,7 @@ export async function updateXpConfig(input: {
 
 export async function listLevelRequirements() {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const r = await pool.query(
     `SELECT level, total_xp_required, title, badge_code,
             cosmetic_payload, updated_by, updated_at

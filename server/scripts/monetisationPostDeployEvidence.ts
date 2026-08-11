@@ -11,8 +11,7 @@ import pg from "pg";
 import { randomUUID, createHash } from "crypto";
 import { normalizeDatabaseUrl } from "../lib/databaseUrl.ts";
 import { splitNetRevenue, promotePlatformOnly } from "../lib/monetisation/moneyMath.ts";
-import { parseAppleFinancialCsv, importStoreFinancialReport } from "../lib/monetisation/financialReports.ts";
-import { runWalletLedgerReconciliation } from "../lib/monetisation/reconcile.ts";
+import { parseAppleFinancialCsv } from "../lib/monetisation/financialReports.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "../..");
@@ -59,7 +58,6 @@ async function main() {
   const lotId = `lot_${randomUUID()}`;
   const giftId = `gift_${randomUUID()}`;
   const giftLedger = `led_gift_${randomUUID()}`;
-  const platformLedgerNote = `led_gift_plat_ref_${randomUUID()}`;
   const wdId = `wdgbp_${randomUUID()}`;
 
   const client = await pool.connect();

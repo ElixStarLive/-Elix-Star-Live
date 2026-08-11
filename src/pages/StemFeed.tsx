@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { FeedStoryCirclesOverlay } from "../components/FeedStoryCirclesOverlay";
 import { useVideoStore } from "../store/useVideoStore";
+import { FEED_HOME } from "../lib/settingsNav";
 
 export default function StemFeed() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function StemFeed() {
   }, [navigate]);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate]);
 
   const refreshStem = useCallback(() => {

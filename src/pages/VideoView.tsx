@@ -4,6 +4,7 @@ import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 import { useNavigate, useParams } from 'react-router-dom';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { useVideoStore } from '../store/useVideoStore';
+import { VIDEO_EXIT_TO } from '../lib/settingsNav';
 
 export default function VideoView() {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ export default function VideoView() {
   const video = useVideoStore((s) => (videoId ? s.getVideoById(videoId) : undefined));
   const [loadPhase, setLoadPhase] = useState<'idle' | 'loading' | 'done'>('idle');
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(VIDEO_EXIT_TO, { replace: true }), [navigate]);
 
   useEffect(() => {
     if (!videoId) return;

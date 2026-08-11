@@ -4,6 +4,13 @@ import {
   handleResendConfirmation, handleVerifyEmail, handleAppleNative, handleAppleStart, handleGuestLogin,
   handleDeleteAccount, handleForgotPassword, handleResetPassword,
 } from "./auth";
+import { handlePostConsent } from "./authConsent";
+import {
+  handleTwoFactorStatus,
+  handleTwoFactorEnroll,
+  handleTwoFactorVerify,
+  handleTwoFactorDisable,
+} from "./auth2fa";
 import { authLimiter, registerLimiter } from "../middleware/rateLimit";
 import { validateBody } from "../middleware/validate";
 import { loginSchema, registerSchema, emailOnlySchema, resetPasswordSchema, verifyEmailSchema } from "../validation/schemas";
@@ -15,6 +22,11 @@ router.post("/register", registerLimiter, authLimiter, validateBody(registerSche
 router.post("/logout", handleLogout);
 router.post("/delete", handleDeleteAccount);
 router.get("/me", handleMe);
+router.post("/consent", handlePostConsent);
+router.get("/2fa/status", handleTwoFactorStatus);
+router.post("/2fa/enroll", handleTwoFactorEnroll);
+router.post("/2fa/verify", handleTwoFactorVerify);
+router.post("/2fa/disable", handleTwoFactorDisable);
 router.post("/resend-confirmation", authLimiter, validateBody(emailOnlySchema), handleResendConfirmation);
 router.post("/verify-email", authLimiter, validateBody(verifyEmailSchema), handleVerifyEmail);
 router.post("/apple/start", handleAppleStart);

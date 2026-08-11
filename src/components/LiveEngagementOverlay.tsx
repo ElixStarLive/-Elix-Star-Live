@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Users, Sparkles, X } from "lucide-react";
+import { X } from "lucide-react";
 import {
   type EngagementMilestoneEvent,
   type EngagementPublicState,

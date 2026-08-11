@@ -11,12 +11,23 @@ export type {
 
 export { normalizeUserId, sameUserId, isSelfUser } from './utils/ids';
 
-export { useLiveRole } from './hooks/useLiveRole';
 export { useLiveCamera, type LiveCameraApi } from './hooks/useLiveCamera';
-export { useHostLiveKit } from './hooks/useHostLiveKit';
-export { useLiveWallet } from './hooks/useLiveWallet';
 export { useLiveGiftsCatalog } from './hooks/useLiveGiftsCatalog';
 export { sendLivePaidGift, type SendLiveGiftArgs } from './gifts/sendLiveGift';
+export {
+  useLiveGiftPlaybackQueue,
+} from './gifts/useLiveGiftPlaybackQueue';
+export {
+  extractGiftTxnId,
+  extractGiftId,
+  resolveGiftSentPlayUrl,
+  resolveLocalGiftVideoUrl,
+  appendGiftPlayback,
+  enqueueGiftSentVideo,
+  markBoundedTxn,
+  type GiftPlaybackItem,
+  type GiftBattleSide,
+} from './gifts/liveGiftIngest';
 
 export { default as LiveHostScreen } from './host/LiveHostScreen';
 export { default as SpectatorLiveScreen } from './spectator/SpectatorLiveScreen';
@@ -32,6 +43,7 @@ export { useHostLiveSession } from './host/session/useHostLiveSession';
 export { useSpectatorLiveSession } from './spectator/session/useSpectatorLiveSession';
 export * from './battle/liveBattleActions';
 export * from './battle/liveBattleScore';
+export { useBattleServerTotals } from './battle/useBattleServerTotals';
 export * from './battle/liveBattleInviteHandshake';
 export * from './cohost/liveCohostActions';
 export * from './chat/liveChatActions';

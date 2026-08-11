@@ -38,7 +38,7 @@ export default function Upload() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const cameraFacingRef = useRef<'user' | 'environment'>('user');
-  const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
+  const [_cameraFacing, setCameraFacing] = useState<'user' | 'environment'>('user');
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [chunks, setChunks] = useState<Blob[]>([]);
@@ -210,7 +210,7 @@ export default function Upload() {
     return () => { cancelled = true; };
   }, [duetParam]);
 
-  const { addVideo: _addVideo, fetchVideos } = useVideoStore();
+  const { fetchVideos } = useVideoStore();
 
   const ZOOM_MIN = 1;
   const ZOOM_MAX = 3;
@@ -886,7 +886,6 @@ export default function Upload() {
   };
 
   const openImagePicker = () => handleFileUpload('image/*');
-  const openVideoPicker = () => handleFileUpload('video/*');
   /** Story Upload = photos from phone; video post Upload = videos. */
   const openGalleryPicker = () => handleFileUpload(isStoryUpload ? 'image/*' : 'video/*');
 

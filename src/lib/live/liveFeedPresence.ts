@@ -1,18 +1,27 @@
 /**
  * Lobby / For You feed presence over `/live/__feed__`.
- * Separate from the room singleton (cannot share one socket with an active live room).
- * Same server contract as before — ownership moved out of page components.
+ *
+ * One transport owner: the shared `websocket` singleton (same as App presence).
+ * Pages register stream_started / stream_ended handlers only — they must not open
+ * a second raw WebSocket to `__feed__`.
  */
 
-import { getWsUrl } from '../api';
+import { websocket } from '../websocket';
 
 export type FeedPresenceHandlers = {
   onStreamStarted?: (data: Record<string, unknown>) => void;
   onStreamEnded?: (data: Record<string, unknown>) => void;
 };
 
+function isLiveRoomId(roomId: string | null): boolean {
+  if (!roomId) return false;
+  if (roomId === '__feed__') return false;
+  return true;
+}
+
 /**
- * Connect to the feed discovery socket. Returns a disposer.
+ * Subscribe to feed discovery events on the existing `__feed__` singleton.
+ * Returns a disposer that removes listeners only (does not tear down App presence).
  */
 export function connectLiveFeedPresence(
   token: string,
@@ -20,74 +29,23 @@ export function connectLiveFeedPresence(
 ): () => void {
   if (!token) return () => {};
 
-  const url = `${getWsUrl()}/live/__feed__?token=${encodeURIComponent(token)}`;
-  let ws: WebSocket | null = null;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let reconnectAttempt = 0;
-  let cancelled = false;
+  // While in a live room the singleton must stay on that room; App reconnects __feed__ after exit.
+  if (!isLiveRoomId(websocket.getCurrentRoomId())) {
+    websocket.connect('__feed__', token, { persistent: true });
+  }
 
-  const clearReconnect = () => {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
+  const onStarted = (data: unknown) => {
+    handlers.onStreamStarted?.((data || {}) as Record<string, unknown>);
+  };
+  const onEnded = (data: unknown) => {
+    handlers.onStreamEnded?.((data || {}) as Record<string, unknown>);
   };
 
-  const connect = () => {
-    if (cancelled) return;
-    try {
-      ws = new WebSocket(url);
-    } catch {
-      reconnectAttempt += 1;
-      const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
-      const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
-      reconnectTimer = setTimeout(connect, delay);
-      return;
-    }
-
-    ws.onmessage = (evt) => {
-      try {
-        const msg = JSON.parse(evt.data as string) as {
-          event?: string;
-          data?: Record<string, unknown>;
-        };
-        const event = msg?.event;
-        const data = msg?.data || {};
-        if (event === 'stream_started') handlers.onStreamStarted?.(data);
-        if (event === 'stream_ended') handlers.onStreamEnded?.(data);
-      } catch {
-        /* malformed frame */
-      }
-    };
-
-    ws.onopen = () => {
-      reconnectAttempt = 0;
-    };
-
-    ws.onclose = () => {
-      if (cancelled) return;
-      reconnectAttempt += 1;
-      const base = 1000 * Math.pow(2, Math.min(reconnectAttempt - 1, 8));
-      const delay = Math.min(30_000, base + Math.floor(Math.random() * 400));
-      clearReconnect();
-      reconnectTimer = setTimeout(connect, delay);
-    };
-  };
-
-  connect();
+  websocket.on('stream_started', onStarted);
+  websocket.on('stream_ended', onEnded);
 
   return () => {
-    cancelled = true;
-    clearReconnect();
-    if (ws) {
-      ws.onclose = null;
-      ws.onmessage = null;
-      try {
-        ws.close();
-      } catch {
-        /* ignore */
-      }
-      ws = null;
-    }
+    websocket.off('stream_started', onStarted);
+    websocket.off('stream_ended', onEnded);
   };
 }

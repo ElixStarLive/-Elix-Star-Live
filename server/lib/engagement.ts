@@ -638,7 +638,7 @@ export async function awardEngagementXp(
 
 export async function listMissionsForUser(userId: string) {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const { getMissionAdminMeta } = await import("./engagementAdmin");
     const meta = await getMissionAdminMeta();
@@ -711,8 +711,9 @@ export async function listMissionsForUser(userId: string) {
       });
     }
     return out;
-  } catch {
-    return [];
+  } catch (err) {
+    logger.error({ err, userId }, "listMissionsForUser failed");
+    throw err;
   }
 }
 
@@ -808,7 +809,7 @@ export async function claimMission(
 
 export async function listAchievementsForUser(userId: string) {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const a = await db.query(
       `SELECT * FROM engagement_achievements WHERE enabled = TRUE ORDER BY rarity, id`,
@@ -837,8 +838,9 @@ export async function listAchievementsForUser(userId: string) {
       });
     }
     return out;
-  } catch {
-    return [];
+  } catch (err) {
+    logger.error({ err, userId }, "listAchievementsForUser failed");
+    throw err;
   }
 }
 
@@ -1031,7 +1033,7 @@ export async function getMvpLeaderboard(
   limit = 50,
 ) {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   let where = "TRUE";
   if (period === "today") where = "day_key = CURRENT_DATE";
   if (period === "week") {

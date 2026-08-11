@@ -18,7 +18,7 @@ export async function queryRankedForYouPage(input: {
   viewerUserId?: string | null;
 }): Promise<ForYouCandidateRow[]> {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const limit = Math.min(50, Math.max(1, input.limit));
   const offset = Math.max(0, input.offset);
   const viewer = input.viewerUserId ? String(input.viewerUserId) : null;
@@ -112,7 +112,7 @@ export async function queryRankedForYouPage(input: {
       return rows || [];
     } catch (err2) {
       logger.error({ err: err2 }, "For You recency fallback failed");
-      return [];
+      throw err2;
     }
   }
 }

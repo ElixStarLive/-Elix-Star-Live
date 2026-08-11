@@ -10,6 +10,7 @@ import { isIndecentExploreCaption } from '../lib/suggestiveCaption';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 import { generateWebLink } from '../lib/deepLinks';
 import {
   apiFetchAllVideos,
@@ -19,6 +20,7 @@ import {
   apiToggleFollow,
 } from '../features/feed/feedApi';
 import { apiLiveRankingsWeekly } from '../features/live/engagement/liveEngagementApi';
+import { FEED_HOME } from '../lib/settingsNav';
 
 interface Video {
   id: string;
@@ -90,10 +92,9 @@ export default function Discover() {
 
   const loadTrending = async () => {
     setLoading(true);
-    setTrendingVideos([]);
     try {
       const { videos: list, error } = await apiFetchAllVideos();
-      if (error) throw new Error('Failed');
+      if (error) throw new Error(error || 'Failed');
 
 
       if (list.length > 0) {
@@ -122,9 +123,13 @@ export default function Discover() {
           engagement_score: 0,
           creator: profileMap[v.userId || v.user_id] || { username: v.username || 'User', avatar_url: v.avatar || null },
         })));
+      } else {
+        setTrendingVideos([]);
       }
-    } catch {
-      setTrendingVideos([]);
+    } catch (err) {
+      reportFailure('discover_trending', err);
+      showToast('Could not load trending videos');
+      /* keep prior trendingVideos — do not soft-empty on failure */
     } finally {
       setLoading(false);
     }
@@ -139,8 +144,10 @@ export default function Discover() {
       videos.forEach(v => (v.hashtags || []).forEach(h => tagCount.set(h, (tagCount.get(h) || 0) + 1)));
       const sorted = [...tagCount.entries()].sort((a, b) => b[1] - a[1]).slice(0, 50);
       setTrendingHashtags(sorted.map(([name, count]) => ({ tag: name, use_count: count })));
-    } catch {
-      setTrendingHashtags([]);
+    } catch (err) {
+      reportFailure('discover_hashtags', err);
+      showToast('Could not load hashtags');
+      /* keep prior trendingHashtags — do not soft-empty on failure */
     } finally {
       setLoading(false);
     }
@@ -150,12 +157,14 @@ export default function Discover() {
     setLoading(true);
     try {
       const { data: rankBody, error } = await apiLiveRankingsWeekly();
-      if (error) throw new Error('Failed');
+      if (error) throw new Error(error || 'Failed');
       setRankings(
         (Array.isArray(rankBody?.rankings) ? rankBody.rankings : []) as unknown as CreatorRanking[],
       );
-    } catch {
-      setRankings([]);
+    } catch (err) {
+      reportFailure('discover_rankings', err);
+      showToast('Could not load rankings');
+      /* keep prior rankings — do not soft-empty on failure */
     } finally {
       setLoading(false);
     }
@@ -170,6 +179,13 @@ export default function Discover() {
         apiFetchAllVideos(),
         apiFetchProfiles(),
       ]);
+      if (videosResult.error || profilesResult.error) {
+        const msg = videosResult.error || profilesResult.error || 'Search failed';
+        reportFailure('discover_search', new Error(msg));
+        showToast(msg);
+        /* keep prior searchResults — do not soft-empty on failure */
+        return;
+      }
       const allVids = videosResult.videos || [];
       const allProfiles = (profilesResult.profiles || []) as unknown as User[];
       const q = searchQuery.toLowerCase();
@@ -186,8 +202,10 @@ export default function Discover() {
         })),
         users: matchedUsers,
       });
-    } catch {
-      setSearchResults({ videos: [], users: [] });
+    } catch (err) {
+      reportFailure('discover_search', err);
+      showToast('Search failed');
+      /* keep prior searchResults — do not soft-empty on failure */
     } finally {
       setLoading(false);
     }
@@ -198,7 +216,7 @@ export default function Discover() {
   }, []);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate]);
 
   const clearSearchQuery = useCallback(() => {
@@ -674,7 +692,10 @@ function UserSearchResult({ user }: { user: User }) {
     try {
       const { error } = await apiToggleFollow(user.user_id, false);
       if (!error) setFollowed(true);
-    } catch { /* network failure */ }
+      else showToast(error || 'Could not follow');
+    } catch {
+      showToast('Could not follow');
+    }
   }, [followed, user.user_id]);
 
   return (

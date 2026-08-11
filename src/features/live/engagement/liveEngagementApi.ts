@@ -281,3 +281,55 @@ export async function apiLiveBlockUser(blockedId: string): Promise<{
   });
   return { ok: !error, error: error?.message ?? null };
 }
+
+export async function apiLiveListModerators(streamKey: string): Promise<{
+  moderators: string[];
+  error: string | null;
+}> {
+  const key = String(streamKey || '').trim();
+  if (!key) return { moderators: [], error: 'streamKey required' };
+  const { data, error } = await request<{ moderators?: string[] }>(
+    `/api/live/${encodeURIComponent(key)}/moderators`,
+  );
+  if (error) return { moderators: [], error: error.message };
+  const moderators = Array.isArray(data?.moderators)
+    ? data.moderators.map((id) => String(id)).filter(Boolean)
+    : [];
+  return { moderators, error: null };
+}
+
+export async function apiLiveAddModerator(
+  streamKey: string,
+  userId: string,
+): Promise<{ moderators: string[]; error: string | null }> {
+  const key = String(streamKey || '').trim();
+  const uid = String(userId || '').trim();
+  if (!key || !uid) return { moderators: [], error: 'streamKey and userId required' };
+  const { data, error } = await request<{ moderators?: string[] }>(
+    `/api/live/${encodeURIComponent(key)}/moderators`,
+    { method: 'POST', body: JSON.stringify({ userId: uid }) },
+  );
+  if (error) return { moderators: [], error: error.message };
+  const moderators = Array.isArray(data?.moderators)
+    ? data.moderators.map((id) => String(id)).filter(Boolean)
+    : [];
+  return { moderators, error: null };
+}
+
+export async function apiLiveRemoveModerator(
+  streamKey: string,
+  userId: string,
+): Promise<{ moderators: string[]; error: string | null }> {
+  const key = String(streamKey || '').trim();
+  const uid = String(userId || '').trim();
+  if (!key || !uid) return { moderators: [], error: 'streamKey and userId required' };
+  const { data, error } = await request<{ moderators?: string[] }>(
+    `/api/live/${encodeURIComponent(key)}/moderators/${encodeURIComponent(uid)}`,
+    { method: 'DELETE' },
+  );
+  if (error) return { moderators: [], error: error.message };
+  const moderators = Array.isArray(data?.moderators)
+    ? data.moderators.map((id) => String(id)).filter(Boolean)
+    : [];
+  return { moderators, error: null };
+}

@@ -12,6 +12,7 @@ import {
   apiRisingStarsStandings,
   apiRisingStarsTeams,
 } from "../features/risingStars/risingStarsApi";
+import { RISING_STARS_EXIT_TO } from "../lib/settingsNav";
 
 interface Season {
   id: string;
@@ -74,7 +75,7 @@ export default function RisingStars() {
   const [tab, setTab] = useState<"challenges" | "standings" | "teams">("challenges");
   const [loading, setLoading] = useState(true);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(RISING_STARS_EXIT_TO, { replace: true }), [navigate]);
   const openChallenge = useCallback(
     (challengeId: string) => navigate(`/rising-stars/challenge/${challengeId}`),
     [navigate],

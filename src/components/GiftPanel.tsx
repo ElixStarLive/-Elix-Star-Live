@@ -8,6 +8,7 @@ import React, {
 import { Coins, CloudFog } from "lucide-react";
 import { BuyCoinsModal } from "./BuyCoinsModal";
 import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
+import { showToast } from "../lib/toast";
 import { GloveIcon } from "./BattleVfxOverlays";
 
 interface GiftPanelBattleBoost {
@@ -161,7 +162,11 @@ export function GiftPanel({
     let cancelled = false;
     fetchGiftsFromDatabase().then((items) => {
       if (!cancelled) setGifts(items);
-    }).catch(() => {});
+    }).catch((err) => {
+      if (!cancelled) {
+        showToast(err instanceof Error ? err.message : 'Failed to load gifts');
+      }
+    });
     return () => { cancelled = true; };
   }, []);
 

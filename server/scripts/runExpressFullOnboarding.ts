@@ -9,6 +9,7 @@ import { fileURLToPath } from "url";
 import { randomUUID } from "crypto";
 import { chromium, type Page } from "playwright";
 import { initPostgres, getPool } from "../lib/postgres.ts";
+import { requireValue } from "./_env.ts";
 
 process.env.ELIX_STRIPE_CONNECT_MODE = "test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -56,7 +57,7 @@ async function clickText(page: Page, texts: string[]) {
 
 async function main() {
   await initPostgres();
-  const pool = getPool()!;
+  const pool = requireValue(getPool(), "postgres pool");
   const {
     createOrGetPayoutAccount,
     refreshPayoutAccountStatus,
@@ -70,7 +71,8 @@ async function main() {
   );
 
   let onboard = await createOrGetPayoutAccount(creatorId);
-  if (!onboard.onboardingUrl) {
+  const onboardingUrl = onboard.onboardingUrl;
+  if (!onboardingUrl) {
     console.log(JSON.stringify({ ok: false, error: onboard.error || "no_url" }));
     process.exit(1);
   }
@@ -89,7 +91,7 @@ async function main() {
   const trail: string[] = [];
 
   try {
-    await page.goto(onboard.onboardingUrl!, { waitUntil: "domcontentloaded", timeout: 90_000 });
+    await page.goto(onboardingUrl, { waitUntil: "domcontentloaded", timeout: 90_000 });
     await page.waitForTimeout(4000);
     trail.push(page.url());
 

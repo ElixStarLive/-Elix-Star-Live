@@ -46,6 +46,13 @@ describe("Monitoring instrumentation contract", () => {
     expect(indexSrc).toContain("isPushConfigured");
     expect(indexSrc).toContain("push: isPushConfigured()");
   });
+
+  it("exposes appleIap configured boolean on health (no secrets)", () => {
+    expect(indexSrc).toContain("appleIap:");
+    expect(indexSrc).toContain("APPLE_ISSUER_ID");
+    expect(indexSrc).toContain("APPLE_KEY_ID");
+    expect(indexSrc).toContain("APPLE_PRIVATE_KEY");
+  });
 });
 
 describe("Monitoring live verification gate", () => {

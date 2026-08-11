@@ -78,7 +78,7 @@ async function writeAdminAudit(
 
 export async function listMissionsAdmin() {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   const r = await db.query(
     `SELECT id, scope, title, description, goal_count, reward_xp,
             reward_promo_coins, reward_energy, metric_key, enabled, sort_order
@@ -296,7 +296,7 @@ export async function getMissionStatsAdmin(missionId: string) {
 
 export async function listDailyRewardConfigAdmin() {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   const r = await db.query(
     `SELECT streak_day, reward_xp, reward_promo_coins, reward_label
        FROM daily_reward_config
@@ -846,7 +846,7 @@ export async function updateDailyRewardPolicyAdmin(
 
 export async function listAdminAuditHistory(limit = 50) {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const r = await db.query(
       `SELECT id, admin_user_id, action, target, previous_value, new_value, created_at
@@ -856,8 +856,9 @@ export async function listAdminAuditHistory(limit = 50) {
       [Math.min(200, Math.max(1, limit))],
     );
     return r.rows;
-  } catch {
-    return [];
+  } catch (err) {
+    logger.error({ err }, "listAdminAuditHistory failed");
+    throw err;
   }
 }
 

@@ -9,12 +9,13 @@ import {
   closeCreatorRewardPeriod,
 } from "../lib/monetisation/creatorRewardsJob.ts";
 import { runWalletLedgerReconciliation } from "../lib/monetisation/reconcile.ts";
+import { requireValue } from "./_env.ts";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 async function main() {
   await initPostgres();
-  const pool = getPool()!;
+  const pool = requireValue(getPool(), "postgres pool");
   const creatorId = `reward_ok_${randomUUID()}`;
   const starts = new Date(Date.now() - 3 * 86400000);
   const ends = new Date(Date.now() - 2 * 86400000);

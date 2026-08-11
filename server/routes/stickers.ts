@@ -11,7 +11,11 @@ export async function handleGetStickers(req: Request, res: Response) {
     return res.json({ stickers });
   } catch (err) {
     logger.error({ err, creatorUserId }, "handleGetStickers failed");
-    return res.status(500).json({ error: "Failed to load stickers", stickers: [] });
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE", stickers: null });
+    }
+    return res.status(500).json({ error: "Failed to load stickers", stickers: null });
   }
 }
 

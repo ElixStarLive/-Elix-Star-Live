@@ -6,7 +6,6 @@ import { fetchGiftsFromDatabase, type GiftUiItem } from '../../../lib/giftsCatal
 export function useLiveGiftsCatalog() {
   const [giftsCatalog, setGiftsCatalog] = useState<GiftUiItem[]>([]);
   const giftsCatalogRef = useRef<GiftUiItem[]>([]);
-  const seenGiftTxnRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     giftsCatalogRef.current = giftsCatalog;
@@ -14,13 +13,17 @@ export function useLiveGiftsCatalog() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchGiftsFromDatabase().then((g) => {
-      if (!cancelled) setGiftsCatalog(g);
-    });
+    fetchGiftsFromDatabase()
+      .then((g) => {
+        if (!cancelled) setGiftsCatalog(g);
+      })
+      .catch(() => {
+        /* keep previous catalog — never treat failure as empty success */
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return { giftsCatalog, giftsCatalogRef, seenGiftTxnRef, setGiftsCatalog };
+  return { giftsCatalog, giftsCatalogRef, setGiftsCatalog };
 }

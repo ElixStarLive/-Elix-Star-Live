@@ -15,11 +15,19 @@ export type LiveCameraApi = ReturnType<typeof useLiveCamera>;
 export function useLiveCamera(opts: {
   enabled: boolean;
   facing?: 'user' | 'environment';
+  /**
+   * When false, do not auto getUserMedia on enable (caller acquires after auth).
+   * Default true — host broadcast path.
+   */
+  autoAcquire?: boolean;
 }) {
+  const autoAcquire = opts.autoAcquire !== false;
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const recoverInFlightRef = useRef(false);
   const recoverAtRef = useRef(0);
+  const isMicMutedRef = useRef(false);
+  const isCamOffRef = useRef(false);
 
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [cameraFacing, setCameraFacing] = useState<'user' | 'environment'>(
@@ -28,6 +36,9 @@ export function useLiveCamera(opts: {
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCamOff, setIsCamOff] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+
+  isMicMutedRef.current = isMicMuted;
+  isCamOffRef.current = isCamOff;
 
   const bindHostCameraPreview = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
@@ -65,16 +76,89 @@ export function useLiveCamera(opts: {
     }
   }, []);
 
-  const acquireCamera = useCallback(async () => {
+  const acquireCamera = useCallback(async (): Promise<MediaStream | null> => {
     try {
       setCameraError(null);
-      const prev = cameraStreamRef.current;
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: cameraFacing },
-        audio: { echoCancellation: true, noiseSuppression: true },
+
+      // Create→Live handoff only for front camera. Never reuse cache on flip
+      // (cache would still hold the previous facing's live tracks).
+      if (cameraFacing !== 'user') {
+        clearCachedCameraStream();
+      } else {
+        const cached = getCachedCameraStream();
+        if (cached) {
+          const cachedVideo = cached.getVideoTracks()[0];
+          if (cachedVideo?.readyState === 'live') {
+            cameraStreamRef.current = cached;
+            setCameraStream(cached);
+            cached.getAudioTracks().forEach((t) => {
+              t.enabled = !isMicMutedRef.current;
+            });
+            cached.getVideoTracks().forEach((t) => {
+              t.enabled = !isCamOffRef.current;
+            });
+            if (videoRef.current) {
+              videoRef.current.srcObject = cached;
+              prepareLiveVideoEl(videoRef.current);
+            }
+            return cached;
+          }
+          clearCachedCameraStream();
+        }
+      }
+
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: cameraFacing },
+          audio: { echoCancellation: true, noiseSuppression: true },
+        });
+      } catch {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: cameraFacing },
+            audio: false,
+          });
+        } catch {
+          setCameraError('Camera access denied');
+          return null;
+        }
+      }
+
+      const previous = cameraStreamRef.current;
+      cameraStreamRef.current = stream;
+      setCachedCameraStream(stream);
+      setCameraStream(stream);
+      stream.getAudioTracks().forEach((t) => {
+        t.enabled = !isMicMutedRef.current;
       });
-      if (prev && prev !== stream) {
-        prev.getTracks().forEach((t) => {
+      stream.getVideoTracks().forEach((t) => {
+        t.enabled = !isCamOffRef.current;
+      });
+
+      // Widest view when the device exposes zoom.
+      try {
+        const vTrack = stream.getVideoTracks()[0];
+        const caps = vTrack?.getCapabilities?.() as
+          | Record<string, { min?: number; max?: number }>
+          | undefined;
+        if (caps?.zoom && typeof caps.zoom.min === 'number') {
+          await vTrack.applyConstraints({
+            advanced: [{ zoom: caps.zoom.min } as MediaTrackConstraintSet],
+          });
+        }
+      } catch {
+        /* zoom not supported */
+      }
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        prepareLiveVideoEl(videoRef.current);
+      }
+
+      // Warm-swap: attach new stream first, then stop the previous facing.
+      if (previous && previous !== stream) {
+        previous.getTracks().forEach((t) => {
           try {
             t.stop();
           } catch {
@@ -82,47 +166,28 @@ export function useLiveCamera(opts: {
           }
         });
       }
-      cameraStreamRef.current = stream;
-      setCachedCameraStream(stream);
-      setCameraStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        prepareLiveVideoEl(videoRef.current);
-      }
-      const mic = stream.getAudioTracks()[0];
-      if (mic) mic.enabled = !isMicMuted;
-      const cam = stream.getVideoTracks()[0];
-      if (cam) cam.enabled = !isCamOff;
       return stream;
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Camera access denied';
       setCameraError(msg);
       return null;
     }
-  }, [cameraFacing, isMicMuted, isCamOff]);
+  }, [cameraFacing]);
 
   useEffect(() => {
-    if (!opts.enabled) return;
+    if (!opts.enabled || !autoAcquire) return;
     let cancelled = false;
     (async () => {
-      const cached = getCachedCameraStream();
-      if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
-        cameraStreamRef.current = cached;
-        setCameraStream(cached);
-        if (videoRef.current) {
-          videoRef.current.srcObject = cached;
-          prepareLiveVideoEl(videoRef.current);
-        }
-        return;
-      }
       if (!cancelled) await acquireCamera();
     })();
+    // Facing flip must NOT stop tracks in cleanup — that races the new getUserMedia
+    // and blacks the preview. Only cancel in-flight acquire; acquireCamera stops the
+    // old stream after the new one is attached.
     return () => {
       cancelled = true;
     };
-    // Re-run when facing flips; acquireCamera closes previous tracks.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.enabled, cameraFacing]);
+  }, [opts.enabled, autoAcquire, cameraFacing]);
 
   useEffect(() => {
     if (!opts.enabled) return;
@@ -165,20 +230,34 @@ export function useLiveCamera(opts: {
 
   const restoreHostCameraPreview = useCallback(() => {
     const el = videoRef.current;
-    const stream = cameraStreamRef.current || getCachedCameraStream();
+    const stream =
+      cameraStreamRef.current ||
+      (() => {
+        const cached = getCachedCameraStream();
+        if (cached?.getVideoTracks()?.some((t) => t.readyState === 'live')) {
+          cameraStreamRef.current = cached;
+          return cached;
+        }
+        return null;
+      })();
     if (!el || !stream) return;
     if (el.srcObject !== stream) el.srcObject = stream;
     prepareLiveVideoEl(el);
+    el.style.transform = 'scaleX(-1)';
+    void el.play().catch(() => {});
   }, []);
 
   return {
     videoRef,
     cameraStreamRef,
     cameraStream,
+    setCameraStream,
     cameraFacing,
+    setCameraFacing,
     isMicMuted,
     isCamOff,
     cameraError,
+    setCameraError,
     bindHostCameraPreview,
     restoreHostCameraPreview,
     acquireCamera,

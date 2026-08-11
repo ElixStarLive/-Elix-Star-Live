@@ -3,11 +3,12 @@ import { Camera } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
-import { avatarUploadService } from '../lib/avatarUploadService';
+import { avatarUploadService } from '../lib/avatarUpload';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { apiFetchProfileById, apiPatchProfile } from '../features/feed/feedApi';
+import { EDIT_PROFILE_EXIT_TO } from '../lib/settingsNav';
 
 interface Profile {
   username: string;
@@ -39,7 +40,7 @@ export default function EditProfile() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(EDIT_PROFILE_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const openAvatarPicker = useCallback(() => {
@@ -104,11 +105,6 @@ export default function EditProfile() {
 
       if (result.success && result.publicUrl) {
         setProfile((prev) => ({ ...prev, avatar_url: (result.publicUrl as NonNullable<typeof result.publicUrl>) }));
-        try {
-          localStorage.setItem('elix_avatar_' + uid, result.publicUrl);
-        } catch {
-          /* ignore */
-        }
         trackEvent('profile_avatar_change', {});
         updateUser({ avatar: result.publicUrl });
         showToast('Photo updated');
@@ -166,15 +162,8 @@ export default function EditProfile() {
           avatar: profile.avatar_url || user.avatar,
         });
       }
-      if (profile.avatar_url) {
-        try {
-          localStorage.setItem('elix_avatar_' + uid, profile.avatar_url);
-        } catch {
-          /* ignore */
-        }
-      }
       showToast('Profile saved');
-      navigate(-1);
+      navigate(EDIT_PROFILE_EXIT_TO, { replace: true });
     } catch {
       showToast('Failed to save profile');
     } finally {

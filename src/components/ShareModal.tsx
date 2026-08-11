@@ -27,10 +27,11 @@ import {
 } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
-import { trackShare } from '../lib/interactionTracker';
+import { trackShare } from '../features/feed/feedApi';
 import { sendDmToUser } from '../lib/chatMessages';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
 import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
+import { reportFailure } from '../lib/reportFailure';
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -70,13 +71,25 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
     if (!isOpen) return;
     let cancelled = false;
     (async () => {
-      const [rows, liveResult] = await Promise.all([
-        fetchAllSharePanelContacts(user?.id),
-        apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null })),
-      ]);
-      if (cancelled) return;
-      setFollowers(rows);
-      setLiveUserIds(collectLiveUserIds(liveResult.streams || []));
+      try {
+        const [rows, liveResult] = await Promise.all([
+          fetchAllSharePanelContacts(user?.id),
+          apiLiveStreams().catch((err) => {
+            reportFailure('share_modal_live_streams', err);
+            return null;
+          }),
+        ]);
+        if (cancelled) return;
+        setFollowers(rows);
+        if (liveResult) {
+          setLiveUserIds(collectLiveUserIds(liveResult.streams || []));
+        }
+      } catch (e) {
+        if (!cancelled) {
+          reportFailure('share_modal_contacts', e);
+          showToast('Could not load share contacts');
+        }
+      }
     })();
     return () => {
       cancelled = true;
@@ -104,7 +117,9 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
       await navigator.clipboard.writeText(videoUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
-    } catch { /* intentionally empty */ }
+    } catch {
+      showToast('Could not copy link');
+    }
   };
 
   const filteredFollowers = followers.filter(f => f.username?.toLowerCase().includes(shareQuery.toLowerCase()));

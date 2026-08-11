@@ -216,7 +216,7 @@ export async function handleMusicGlobal(_req: Request, res: Response) {
     });
   } catch (err) {
     logger.error({ err }, "handleMusicGlobal failed");
-    return res.status(200).json({
+    return res.status(502).json({
       playlist: null,
       configured: true,
       error: "MUSIC_PROVIDER_ERROR",
@@ -246,8 +246,8 @@ export async function handleMusicPlaylists(req: Request, res: Response) {
     });
   } catch (err) {
     logger.error({ err }, "handleMusicPlaylists failed");
-    return res.status(200).json({
-      playlists: [],
+    return res.status(502).json({
+      playlists: null,
       configured: true,
       error: "MUSIC_PROVIDER_ERROR",
     });

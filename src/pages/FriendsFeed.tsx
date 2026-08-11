@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
+import { FEED_HOME } from '../lib/settingsNav';
 
 export default function FriendsFeed() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function FriendsFeed() {
   }, [navigate]);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate]);
 
   const goUploadStory = useCallback(() => {

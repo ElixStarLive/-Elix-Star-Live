@@ -123,19 +123,6 @@ async function auditIssue(input: {
   if (!db) return;
   try {
     await db.query(
-      `CREATE TABLE IF NOT EXISTS elix_test_coin_issue_audit (
-         id BIGSERIAL PRIMARY KEY,
-         admin_user_id TEXT NOT NULL,
-         amount INTEGER NOT NULL,
-         balance_after INTEGER NOT NULL,
-         origin TEXT NOT NULL DEFAULT 'test_coins',
-         outcome TEXT NOT NULL,
-         reason TEXT,
-         ip TEXT,
-         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-       )`,
-    );
-    await db.query(
       `INSERT INTO elix_test_coin_issue_audit
          (admin_user_id, amount, balance_after, origin, outcome, reason, ip)
        VALUES ($1, $2, $3, 'test_coins', $4, $5, $6)`,
@@ -189,10 +176,10 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
 
   const userLimit = checkRateLimit(failByUser, auth.userId);
   const ipLimit = checkRateLimit(failByIp, ip);
-  if (!userLimit.ok || !ipLimit.ok) {
+  if (userLimit.ok === false || ipLimit.ok === false) {
     const retry = Math.max(
-      userLimit.ok ? 0 : userLimit.retryAfterSec,
-      ipLimit.ok ? 0 : ipLimit.retryAfterSec,
+      userLimit.ok === false ? userLimit.retryAfterSec : 0,
+      ipLimit.ok === false ? ipLimit.retryAfterSec : 0,
     );
     await auditIssue({
       adminUserId: auth.userId,
@@ -248,10 +235,10 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
 
   const userLimit = checkRateLimit(failByUser, auth.userId);
   const ipLimit = checkRateLimit(failByIp, ip);
-  if (!userLimit.ok || !ipLimit.ok) {
+  if (userLimit.ok === false || ipLimit.ok === false) {
     const retry = Math.max(
-      userLimit.ok ? 0 : userLimit.retryAfterSec,
-      ipLimit.ok ? 0 : ipLimit.retryAfterSec,
+      userLimit.ok === false ? userLimit.retryAfterSec : 0,
+      ipLimit.ok === false ? ipLimit.retryAfterSec : 0,
     );
     await auditIssue({
       adminUserId: auth.userId,

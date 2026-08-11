@@ -4,7 +4,6 @@
  */
 
 import { bunnyUpload } from "./bunnyStorage";
-import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 import { trackEvent } from "./analytics";
 import { showToast } from "./toast";

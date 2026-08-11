@@ -315,16 +315,18 @@ router.get("/audit", async (req, res) => {
 
 router.get("/reconciliation", async (_req, res) => {
   try {
-    const { ensureReconcileTables } = await import("../lib/monetisation/reconcile");
-    await ensureReconcileTables();
     const pool = getPool();
-    const latest = pool
-      ? await pool.query(
-          `SELECT * FROM elix_reconciliation_runs ORDER BY created_at DESC LIMIT 10`,
-        )
-      : { rows: [] };
+    if (!pool) return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    const latest = await pool.query(
+      `SELECT * FROM elix_reconciliation_runs ORDER BY created_at DESC LIMIT 10`,
+    );
     return res.json({ runs: latest.rows });
   } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === "42P01") {
+      logger.error({ err }, "admin reconciliation list missing table");
+      return res.status(503).json({ error: "SCHEMA_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin reconciliation list failed");
     return res.status(500).json({ error: "SERVER_ERROR" });
   }

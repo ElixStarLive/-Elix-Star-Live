@@ -1,6 +1,7 @@
 /**
  * Automatic wallet ↔ ledger reconciliation. Never silently repairs money —
  * records mismatches for admin review.
+ * Schema required via migration `20260811120000_fraud_reconcile_audit_tables.sql`.
  */
 import { getPool } from "../postgres";
 import { logger } from "../logger";
@@ -12,30 +13,14 @@ export type ReconcileMismatch = {
   detail: string;
 };
 
-export async function ensureReconcileTables(): Promise<void> {
-  const pool = getPool();
-  if (!pool) return;
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS elix_reconciliation_runs (
-      id BIGSERIAL PRIMARY KEY,
-      status TEXT NOT NULL,
-      mismatch_count INT NOT NULL DEFAULT 0,
-      mismatches JSONB NOT NULL DEFAULT '[]'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-    CREATE INDEX IF NOT EXISTS idx_reconciliation_runs_created
-      ON elix_reconciliation_runs (created_at DESC);
-  `);
-}
-
 export async function runWalletLedgerReconciliation(): Promise<{
   ok: boolean;
   mismatches: ReconcileMismatch[];
   runId?: number;
+  error?: string;
 }> {
   const pool = getPool();
-  if (!pool) return { ok: false, mismatches: [{ scope: "db", expected_pence: 0, actual_pence: 0, detail: "no_pool" }] };
-  await ensureReconcileTables();
+  if (!pool) return { ok: false, mismatches: [{ scope: "db", expected_pence: 0, actual_pence: 0, detail: "no_pool" }], error: "DATABASE_UNAVAILABLE" };
   const mismatches: ReconcileMismatch[] = [];
 
   try {
@@ -167,6 +152,15 @@ export async function runWalletLedgerReconciliation(): Promise<{
     }
     return { ok: mismatches.length === 0, mismatches, runId: Number(ins.rows[0].id) };
   } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === "42P01") {
+      logger.error({ err }, "runWalletLedgerReconciliation missing table");
+      return {
+        ok: false,
+        mismatches: [],
+        error: "SCHEMA_UNAVAILABLE",
+      };
+    }
     logger.error({ err }, "runWalletLedgerReconciliation failed");
     return {
       ok: false,

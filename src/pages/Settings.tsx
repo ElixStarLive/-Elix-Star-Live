@@ -67,7 +67,11 @@ export default function Settings() {
   const goLogin = useCallback(() => navigate('/login'), [navigate]);
 
   const handleLogout = async () => {
-    try { await signOut(); } catch { /* best-effort */ }
+    try {
+      await signOut();
+    } catch {
+      showToast('Sign out failed');
+    }
     goLogin();
   };
 

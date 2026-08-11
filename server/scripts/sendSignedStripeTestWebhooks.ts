@@ -6,7 +6,7 @@ import "../config.ts";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { randomUUID, randomBytes } from "crypto";
+import { randomUUID } from "crypto";
 import Stripe from "stripe";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

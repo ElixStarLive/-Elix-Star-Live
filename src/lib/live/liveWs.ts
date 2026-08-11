@@ -29,7 +29,8 @@ export const LIVE_WS_IN = {
   /** Server emits viewer_count (not viewer_count_update). */
   viewer_count: 'viewer_count',
   cohost_invite: 'cohost_invite',
-  cohost_accepted: 'cohost_accepted',
+  /** Server emits `cohost_invite_accepted` (see websocket handlers). */
+  cohost_invite_accepted: 'cohost_invite_accepted',
   cohost_request: 'cohost_request',
   cohost_layout_sync: 'cohost_layout_sync',
   booster_activated: 'booster_activated',

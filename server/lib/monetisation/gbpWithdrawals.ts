@@ -312,7 +312,7 @@ export async function adminSetGbpWithdrawalStatus(input: {
 
 export async function listGbpWithdrawals(creatorUserId: string, limit = 50) {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   const r = await pool.query(
     `SELECT * FROM elix_creator_withdrawals_gbp
       WHERE creator_user_id = $1

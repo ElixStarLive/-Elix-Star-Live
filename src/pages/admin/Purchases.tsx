@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DollarSign } from "lucide-react";
 import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+import { reportFailure } from "../../lib/reportFailure";
 
 type Tab = "iap" | "shop";
 
@@ -23,9 +24,14 @@ export default function AdminPurchases() {
       data?: Record<string, unknown>[];
     }>(path);
     if (err) {
-      setError(err.message || "Failed to load");
-      setRows([]);
+      const msg = err.message || "Failed to load";
+      reportFailure("admin_purchases_load", err);
       showToast(err.message || "Failed to load purchases");
+      /* keep prior rows — do not soft-empty on failure */
+      setRows((prev) => {
+        if (prev.length === 0) setError(msg);
+        return prev;
+      });
     } else {
       setRows(Array.isArray(data?.data) ? data.data : []);
     }

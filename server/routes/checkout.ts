@@ -55,7 +55,7 @@ if (!stripeSecretKey) {
   logger.warn("[shop-checkout] STRIPE_SECRET_KEY is not set in server environment");
 }
 const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" })
+  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion })
   : (null as unknown as Stripe);
 
 function getAuthenticatedUserId(req: Request): string | null {

@@ -239,6 +239,9 @@ export async function handleForYouFeed(req: Request, res: Response) {
     setCacheHeaders(res, personalized);
     return res.json(foryouResponse(videos, page, limit, offset, "postgres"));
   } catch (err: any) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err: err?.message }, "ForYouFeed error");
     res.status(500).json({ error: "Failed to generate feed" });
   }
@@ -534,6 +537,43 @@ export async function handleFriendsFeed(req: Request, res: Response) {
     return res.json({ videos: mapped });
   } catch (err: any) {
     logger.error({ err: err?.message }, "Friends feed error");
+    return res.status(500).json({ error: "FEED_ERROR" });
+  }
+}
+
+/** GET /api/feed/following — DB only; followingIds only (not followers union). */
+export async function handleFollowingFeed(req: Request, res: Response) {
+  try {
+    const token = getTokenFromRequest(req);
+    const jwtUser = token ? verifyAuthToken(token) : null;
+    res.setHeader("Cache-Control", "private, no-store");
+    if (!jwtUser) {
+      return res.json({ videos: [] });
+    }
+
+    const { getFollowingIdsAsync } = await import("./profiles");
+    const followingIds = (await getFollowingIdsAsync(jwtUser.sub)).filter(
+      (id) => id && id !== jwtUser.sub,
+    );
+    if (followingIds.length === 0) {
+      return res.json({ videos: [] });
+    }
+
+    const followingSet = new Set(followingIds);
+    const likedSet = new Set<string>();
+
+    const db = getPool();
+    if (!db) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
+
+    const { rows } = await db.query(FRIENDS_SQL, [followingIds]);
+    const mapped = (rows || []).map((v: any) =>
+      formatVideoForClient(v, likedSet, followingSet, "Following"),
+    );
+    return res.json({ videos: mapped });
+  } catch (err: any) {
+    logger.error({ err: err?.message }, "Following feed error");
     return res.status(500).json({ error: "FEED_ERROR" });
   }
 }

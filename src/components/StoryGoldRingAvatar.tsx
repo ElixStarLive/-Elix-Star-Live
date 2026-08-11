@@ -14,7 +14,6 @@ export function StoryGoldRingAvatar({
   alt = '',
   live = false,
   className = '',
-  glow: _glow = true,
   innerDiameterAddMm: _innerDiameterAddMm = 0,
   innerTranslateYmm = 0,
   'data-avatar-circle': dataAvatarCircle,
@@ -24,8 +23,6 @@ export function StoryGoldRingAvatar({
   alt?: string;
   live?: boolean;
   className?: string;
-  /** Kept for call-site compatibility. */
-  glow?: boolean;
   innerDiameterAddMm?: number;
   innerTranslateYmm?: number;
   'data-avatar-circle'?: string;

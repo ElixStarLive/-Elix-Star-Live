@@ -1,13 +1,13 @@
+/**
+ * Commercial face SDK slot (DeepAR / Banuba).
+ * Until the SDK package is installed AND initialized here, this never reports ready.
+ * MediaPipe is the production tracking path — not a silent fake commercial success.
+ */
 import type { LiveFaceEffectsEngine } from './liveFaceEffectsProvider';
 
 let commercialReady = false;
 let initAttempted = false;
 
-/**
- * Commercial face SDK slot (DeepAR / Banuba).
- * Set VITE_DEEPAR_LICENSE_KEY or VITE_BANUBA_CLIENT_TOKEN, then install the SDK package
- * and wire init here. Until then, MediaPipe tracking is used automatically.
- */
 export async function initCommercialFaceEngine(
   engine: LiveFaceEffectsEngine,
 ): Promise<boolean> {
@@ -17,19 +17,10 @@ export async function initCommercialFaceEngine(
   }
   if (initAttempted) return commercialReady;
   initAttempted = true;
-
-  const hasDeepAR = Boolean(String(import.meta.env.VITE_DEEPAR_LICENSE_KEY || '').trim());
-  const hasBanuba = Boolean(String(import.meta.env.VITE_BANUBA_CLIENT_TOKEN || '').trim());
-
-  if (engine === 'deepar' && hasDeepAR) {
-    // Install `deepar` and initialize with VITE_DEEPAR_LICENSE_KEY when ready.
-    commercialReady = false;
-  } else if (engine === 'banuba' && hasBanuba) {
-    // Install `@banuba/webar` and initialize with VITE_BANUBA_CLIENT_TOKEN when ready.
-    commercialReady = false;
-  }
-
-  return commercialReady;
+  commercialReady = false;
+  // License env alone is not enough — SDK init is not wired in this build.
+  // Callers must use MediaPipe via shouldTrackWithMediaPipe until this returns true.
+  return false;
 }
 
 export function isCommercialSdkActive(): boolean {

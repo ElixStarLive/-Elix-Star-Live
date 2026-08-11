@@ -111,7 +111,7 @@ export class SubtitleGenerator {
 
     this.recognition.onend = () => {
       if (this.isRunning) {
-        try { this.recognition?.start(); } catch { /* intentionally empty */ }
+        try { this.recognition?.start(); } catch { /* already stopped */ }
       }
     };
 
@@ -126,7 +126,7 @@ export class SubtitleGenerator {
 
   stop(): SubtitleSegment[] {
     this.isRunning = false;
-    try { this.recognition?.stop(); } catch { /* intentionally empty */ }
+    try { this.recognition?.stop(); } catch { /* already stopped */ }
     this.recognition = null;
     return this.getSegments();
   }

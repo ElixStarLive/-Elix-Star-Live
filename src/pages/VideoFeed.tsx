@@ -14,7 +14,7 @@ import {
   sanitizeLiveAvatar,
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
-import { apiLiveStreams, connectLiveFeedPresence, createLiveRoomEndMonitor } from "../lib/live";
+import { apiLiveStreams, connectLiveFeedPresence } from "../lib/live";
 import { apiFetchProfileById as apiFeedFetchProfileById } from "../features/feed/feedApi";
 
 /* ------------------------------------------------------------------ */
@@ -108,8 +108,10 @@ export default function VideoFeed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [liveStreams, setLiveStreams] = useState<LiveStreamCard[]>([]);
   const [liveLoading, setLiveLoading] = useState(true);
+  // Suppress keys after stream_ended so a REST reconcile cannot re-add a room
+  // before the live-streams DB row is cleared. Feed presence is source of truth
+  // for realtime add/remove; this only bridges REST lag.
   const removedKeysRef = useRef<Set<string>>(new Set());
-  const monitorRef = useRef<ReturnType<typeof createLiveRoomEndMonitor> | null>(null);
 
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
@@ -126,11 +128,10 @@ export default function VideoFeed() {
     }
   }, [activeIndex, videos.length, liveStreams.length, forYouHasMore, videosLoading, fetchMoreForYou]);
 
-  /* ---- Remove a live stream instantly ---- */
+  /* ---- Remove a live stream (feed presence stream_ended) ---- */
   const removeLiveStream = useCallback((streamKey: string) => {
     removedKeysRef.current.add(streamKey);
     setLiveStreams((prev) => prev.filter((s) => s.streamKey !== streamKey));
-    // Keep it suppressed for 20s so polling doesn't re-add a stale entry
     setTimeout(() => removedKeysRef.current.delete(streamKey), 20_000);
   }, []);
 
@@ -148,35 +149,12 @@ export default function VideoFeed() {
 
       // When API returns [], still merge with prev so streams from stream_started stay visible
       const removed = removedKeysRef.current;
-      // Hide streams that were just ended on this device (creator closed live)
-      let lastEndedRoom: string | null = null;
-      let lastEndedAt = 0;
-      if (typeof window !== "undefined") {
-        try {
-          const raw = window.localStorage.getItem("elix_last_ended_stream");
-          if (raw) {
-            const parsed = JSON.parse(raw) as { roomId?: string; endedAt?: number };
-            if (parsed?.roomId && typeof parsed.endedAt === "number") {
-              lastEndedRoom = parsed.roomId;
-              lastEndedAt = parsed.endedAt;
-            }
-          }
-        } catch {
-          /* ignore */
-        }
-      }
-      const hideOwnRecentlyEnded = (roomId: string | undefined | null) => {
-        if (!roomId || !lastEndedRoom) return false;
-        const fresh = Date.now() - lastEndedAt < 5 * 60 * 1000; // 5 minutes
-        return fresh && roomId === lastEndedRoom;
-      };
 
       const mapped: LiveStreamCard[] = streams
         .filter((s: RawStream) => {
           const key =
             s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
           if (!key || removed.has(key)) return false;
-          if (hideOwnRecentlyEnded(key)) return false;
           return true;
         })
         .map((s: RawStream) => {
@@ -201,10 +179,10 @@ export default function VideoFeed() {
         });
 
       // Merge with current list so streams added by stream_started (realtime) don't disappear
-      // when the poll runs before LiveKit has the room (creator still connecting)
+      // when reconcile runs before LiveKit has the room (creator still connecting)
       setLiveStreams((prev) => {
         const fromApi = new Set(mapped.map((s) => s.streamKey));
-        // If API returned an empty list, keep previous discovery (WS / last good poll)
+        // If API returned an empty list, keep previous discovery (WS / last good reconcile)
         // so a transient LiveKit verification miss does not wipe For You lives.
         if (mapped.length === 0 && prev.length > 0) {
           return prev.filter((s) => !removed.has(s.streamKey));
@@ -227,29 +205,32 @@ export default function VideoFeed() {
     setLiveLoading(false);
   }, []);
 
-  /* ---- Bootstrap: polling + WebSocket monitor ---- */
+  /* ---- Bootstrap: REST hydration (realtime add/remove = feed presence) ---- */
   useEffect(() => {
     setLiveLoading(true);
     fetchLiveStreams();
     fetchVideos();
+  }, [fetchLiveStreams, fetchVideos]);
 
-    // Poll every 3 seconds for fast discovery of NEW streams
-    const poll = setInterval(fetchLiveStreams, 3_000);
+  /* ---- Reconcile: visibility/focus (recover missed WS); realtime = feed presence ---- */
+  useEffect(() => {
+    if (location.pathname !== "/feed") return;
 
-    // Create room monitor for instant stream_ended detection
-    if (token) {
-      monitorRef.current = createLiveRoomEndMonitor(
-        () => useAuthStore.getState().session?.access_token || token,
-        { onStreamEnded: (endedKey) => removeLiveStream(endedKey) },
-      );
-    }
+    const reconcile = () => {
+      void fetchLiveStreams();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") reconcile();
+    };
+
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", reconcile);
 
     return () => {
-      clearInterval(poll);
-      monitorRef.current?.dispose();
-      monitorRef.current = null;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", reconcile);
     };
-  }, [fetchLiveStreams, fetchVideos, removeLiveStream, token]);
+  }, [location.pathname, fetchLiveStreams]);
 
   /* ---- Enrich live stream names/avatars from profiles ---- */
   useEffect(() => {
@@ -318,10 +299,6 @@ export default function VideoFeed() {
 
   /* ---- All live streams visible on For You (everyone) ---- */
   const visibleLiveStreams = liveStreams;
-
-  useEffect(() => {
-    monitorRef.current?.setActiveKeys(visibleLiveStreams.map((s) => s.streamKey));
-  }, [visibleLiveStreams]);
 
   /* ---- Build unified feed: live first, then videos ---- */
   const feedItems: FeedItem[] = [

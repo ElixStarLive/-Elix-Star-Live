@@ -45,8 +45,11 @@ router.get("/seasons", async (_req, res) => {
     const seasons = await rsListSeasons();
     return res.json({ seasons });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin rs seasons failed");
-    return res.status(500).json({ error: "SERVER_ERROR", seasons: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 });
 
@@ -128,7 +131,7 @@ const challengeSchema = z.object({
   title: z.string().min(2).max(120),
   description: z.string().max(2000).optional(),
   sound_track_id: z.string().min(1).max(200),
-  sound_meta: z.record(z.unknown()).optional(),
+  sound_meta: z.record(z.string(), z.unknown()).optional(),
   opens_at: z.string().min(1),
   closes_at: z.string().min(1),
   exclusive_until: z.string().optional().nullable(),
@@ -288,7 +291,7 @@ router.post(
         phase: req.body.phase,
         advanceTopN: req.body.advanceTopN,
       });
-      if (!result.ok) return res.status(500).json({ error: result.code });
+      if (result.ok === false) return res.status(500).json({ error: result.code });
       await rsAdminAudit({
         adminUserId: adminId,
         action: "snapshot_phase",
@@ -354,7 +357,7 @@ router.post("/badges/award", validateBody(awardSchema), async (req: Request, res
       challengeId: req.body.challengeId,
       awardedBy: adminId,
     });
-    if (!result.ok) return res.status(500).json({ error: result.code });
+    if (result.ok === false) return res.status(500).json({ error: result.code });
     await rsAdminAudit({
       adminUserId: adminId,
       action: "award_badge",
@@ -393,7 +396,7 @@ const rewardDefSchema = z.object({
     "creator_credit_manual",
     "none",
   ]),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 router.post(
@@ -471,8 +474,11 @@ router.get("/audit", async (req: Request, res: Response) => {
     const audit = await rsListAdminAudit(limit);
     return res.json({ audit });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin rs audit failed");
-    return res.status(500).json({ error: "SERVER_ERROR", audit: [] });
+    return res.status(500).json({ error: "SERVER_ERROR" });
   }
 });
 

@@ -9,6 +9,7 @@ import {
   SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES, SubtitleStyle,
   BACKGROUND_OPTIONS, BackgroundOption,
 } from '../lib/ai';
+import { showToast } from '../lib/toast';
 
 type AITab = 'filters' | 'enhance' | 'captions' | 'thumbnails' | 'voice' | 'subtitles' | 'background';
 
@@ -130,6 +131,8 @@ export default function AIToolsPanel({
     try {
       const candidates = await extractThumbnails(videoUrl, 8);
       setThumbnails(candidates);
+    } catch {
+      showToast('Could not extract thumbnails');
     } finally {
       setIsLoadingThumbnails(false);
     }
@@ -149,8 +152,15 @@ export default function AIToolsPanel({
       if (!subtitleGenRef.current) {
         subtitleGenRef.current = new SubtitleGenerator();
       }
-      if (!subtitleGenRef.current.supported) return;
-      subtitleGenRef.current.start(() => {}, subLang);
+      if (!subtitleGenRef.current.supported) {
+        showToast('Speech recognition not supported on this device');
+        return;
+      }
+      const started = subtitleGenRef.current.start(() => {}, subLang);
+      if (!started) {
+        showToast('Could not start auto-subtitles');
+        return;
+      }
       setIsSubtitling(true);
     }
   }, [isSubtitling, subLang]);

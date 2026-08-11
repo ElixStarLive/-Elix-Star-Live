@@ -8,12 +8,8 @@ import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 
-let deviceTokensTableEnsured = false;
-async function ensureDeviceTokensTable(): Promise<void> {
-  if (deviceTokensTableEnsured) return;
-  const pool = getPool();
-  if (!pool) return;
-  deviceTokensTableEnsured = true;
+function isSchemaMissing(err: unknown): boolean {
+  return (err as { code?: string })?.code === "42P01";
 }
 
 /** POST /api/device-tokens — register push token; auth required */
@@ -48,11 +44,10 @@ export async function handleRegisterDeviceToken(req: Request, res: Response): Pr
   const storedPlatform = platformNorm === "iphone" ? "ios" : platformNorm;
   const pool = getPool();
   if (!pool) {
-    res.status(503).json({ error: "Database not configured" });
+    res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     return;
   }
   try {
-    await ensureDeviceTokensTable();
     await pool.query(
       `INSERT INTO elix_device_tokens (user_id, platform, token, updated_at)
        VALUES ($1, $2, $3, NOW())
@@ -62,6 +57,11 @@ export async function handleRegisterDeviceToken(req: Request, res: Response): Pr
     );
     res.json({ success: true });
   } catch (err) {
+    if (isSchemaMissing(err)) {
+      logger.error({ err }, "handleRegisterDeviceToken missing table");
+      res.status(503).json({ error: "SCHEMA_UNAVAILABLE" });
+      return;
+    }
     logger.error({ err }, "handleRegisterDeviceToken failed");
     res.status(500).json({ error: "DATABASE_ERROR" });
   }
@@ -89,7 +89,7 @@ export async function handleDeleteDeviceToken(req: Request, res: Response): Prom
 
   const pool = getPool();
   if (!pool) {
-    res.status(503).json({ error: "Database not configured" });
+    res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     return;
   }
   // Match the normalization used at register time (iphone -> ios); otherwise a
@@ -98,12 +98,15 @@ export async function handleDeleteDeviceToken(req: Request, res: Response): Prom
   const platformNorm = String(platform).toLowerCase();
   const storedPlatform = platformNorm === "iphone" ? "ios" : platformNorm;
   try {
-    await ensureDeviceTokensTable();
     await pool.query(`DELETE FROM elix_device_tokens WHERE user_id = $1 AND platform = $2`, [userId, storedPlatform]);
     res.json({ success: true });
   } catch (err) {
+    if (isSchemaMissing(err)) {
+      logger.error({ err }, "handleDeleteDeviceToken missing table");
+      res.status(503).json({ error: "SCHEMA_UNAVAILABLE" });
+      return;
+    }
     logger.error({ err }, "handleDeleteDeviceToken failed");
     res.status(500).json({ error: "DATABASE_ERROR" });
   }
 }
-

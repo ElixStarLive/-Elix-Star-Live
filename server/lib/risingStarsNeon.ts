@@ -159,7 +159,7 @@ function mapEntry(r: Record<string, unknown>): RsEntry {
 
 export async function rsGetCurrentSeason(): Promise<RsSeason | null> {
   const p = db();
-  if (!p) return null;
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT * FROM rs_seasons
      WHERE status = 'active'
@@ -171,14 +171,14 @@ export async function rsGetCurrentSeason(): Promise<RsSeason | null> {
 
 export async function rsGetSeasonById(id: string): Promise<RsSeason | null> {
   const p = db();
-  if (!p) return null;
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(`SELECT * FROM rs_seasons WHERE id = $1`, [id]);
   return r.rows[0] ? mapSeason(r.rows[0]) : null;
 }
 
 export async function rsListCategories(seasonId: string): Promise<RsCategory[]> {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT * FROM rs_categories
      WHERE season_id = $1 AND is_active = TRUE
@@ -197,7 +197,7 @@ export async function rsListCategories(seasonId: string): Promise<RsCategory[]> 
 
 export async function rsListRegions(seasonId: string): Promise<RsRegion[]> {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT * FROM rs_regions
      WHERE season_id = $1 AND is_active = TRUE
@@ -224,7 +224,7 @@ export async function rsListChallenges(opts: {
   week?: number;
 }): Promise<RsChallenge[]> {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const params: unknown[] = [opts.seasonId];
   let sql = `SELECT * FROM rs_challenges WHERE season_id = $1`;
   if (opts.categoryId) {
@@ -246,7 +246,7 @@ export async function rsListChallenges(opts: {
 
 export async function rsGetChallenge(id: string): Promise<RsChallenge | null> {
   const p = db();
-  if (!p) return null;
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(`SELECT * FROM rs_challenges WHERE id = $1`, [id]);
   return r.rows[0] ? mapChallenge(r.rows[0]) : null;
 }
@@ -256,7 +256,7 @@ export async function rsListEntries(
   limit = 500,
 ): Promise<Array<RsEntry & { username?: string; avatar_url?: string | null }>> {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const cap = Math.max(1, Math.min(1000, Math.floor(limit) || 500));
   const r = await p.query(
     `SELECT e.*,
@@ -885,7 +885,7 @@ export async function rsJoinTeam(
 
 export async function rsListTeams(seasonId: string, regionId?: string) {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const params: unknown[] = [seasonId];
   let sql = `SELECT t.*,
                     COALESCE(SUM(e.vote_count) FILTER (WHERE e.status IN ('active','advanced')), 0)::int AS team_votes,
@@ -917,7 +917,7 @@ export async function rsListTeams(seasonId: string, regionId?: string) {
 
 export async function rsListSeasons(): Promise<RsSeason[]> {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(`SELECT * FROM rs_seasons ORDER BY starts_at DESC`);
   return r.rows.map((row) => mapSeason(row));
 }
@@ -968,7 +968,7 @@ export async function rsAwardBadge(opts: {
 
 export async function rsListUserBadges(userId: string) {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT ub.awarded_at, ub.challenge_id, b.*
      FROM rs_user_badges ub
@@ -1020,7 +1020,7 @@ export async function rsCreateRewardDefinition(input: {
 
 export async function rsListRewardDefinitions(seasonId: string) {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT * FROM rs_reward_definitions
      WHERE season_id = $1 AND is_active = TRUE
@@ -1090,7 +1090,7 @@ export async function rsAdminAudit(opts: {
 
 export async function rsListAdminAudit(limit = 100) {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT * FROM rs_admin_audit ORDER BY created_at DESC LIMIT $1`,
     [Math.min(500, Math.max(1, limit))],
@@ -1100,7 +1100,7 @@ export async function rsListAdminAudit(limit = 100) {
 
 export async function rsGetSeasonStandings(seasonId: string) {
   const p = db();
-  if (!p) return [];
+  if (!p) throw new Error("DATABASE_UNAVAILABLE");
   const r = await p.query(
     `SELECT e.creator_user_id,
             COALESCE(p.username, p.display_name, 'Creator') AS username,

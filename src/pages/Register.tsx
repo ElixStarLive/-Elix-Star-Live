@@ -71,17 +71,18 @@ export default function Register() {
         return;
       }
 
-      // Consent recorded locally — timestamp stored with registration
+      // Consent recorded locally (cache) + server source of truth when session exists
+      const consentPayload = {
+        consent_type: 'terms_privacy_and_age_13_plus',
+        version: '2026-07-21',
+        age_confirmed_13_plus: true,
+        accepted_at: new Date().toISOString(),
+        email: email.trim(),
+      };
       try {
-        localStorage.setItem('elix_consent_latest', JSON.stringify({
-          consent_type: 'terms_privacy_and_age_13_plus',
-          version: '2026-07-21',
-          age_confirmed_13_plus: true,
-          accepted_at: new Date().toISOString(),
-          email: email.trim(),
-        }));
+        localStorage.setItem('elix_consent_latest', JSON.stringify(consentPayload));
       } catch {
-        // Non-blocking
+        // Non-blocking cache write
       }
 
       if (res.needsEmailConfirmation) {
@@ -90,6 +91,30 @@ export default function Register() {
           setIsSubmitting(false);
         }
         return;
+      }
+
+      // Session exists — persist consent on server (fail-visible)
+      {
+        const { request } = await import('../lib/apiClient');
+        const { error: consentError } = await request('/api/auth/consent', {
+          method: 'POST',
+          body: JSON.stringify({
+            consent_type: consentPayload.consent_type,
+            version: consentPayload.version,
+            age_confirmed_13_plus: true,
+            meta: { email: email.trim() },
+          }),
+        });
+        if (consentError) {
+          if (isMounted.current) {
+            setError(
+              consentError.message ||
+                'Account created but consent could not be saved. Please try again from settings.',
+            );
+            setIsSubmitting(false);
+          }
+          return;
+        }
       }
 
       if (isMounted.current) {

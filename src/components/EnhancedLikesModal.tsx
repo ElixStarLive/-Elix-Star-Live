@@ -52,7 +52,9 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
           following: 0,
           bio: '',
         })));
-      } catch { /* ignore */ }
+      } catch {
+        showToast('Could not load likes');
+      }
       setLoading(false);
     })();
   }, [isOpen, videoId]);

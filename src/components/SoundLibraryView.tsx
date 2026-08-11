@@ -96,6 +96,9 @@ export default function SoundLibraryView({
         .then((tracks) => {
           if (!cancelled) setSearchResults(tracks);
         })
+        .catch(() => {
+          /* keep previous results — do not fake empty search success */
+        })
         .finally(() => {
           if (!cancelled) setSearching(false);
         });

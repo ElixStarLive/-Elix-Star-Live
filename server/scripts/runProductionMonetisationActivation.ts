@@ -11,6 +11,7 @@ import { randomUUID } from "crypto";
 import { chromium } from "playwright";
 import Stripe from "stripe";
 import { initPostgres, getPool } from "../lib/postgres.ts";
+import { requireValue } from "./_env.ts";
 
 process.env.ELIX_STRIPE_CONNECT_MODE = "test";
 
@@ -99,7 +100,7 @@ async function main() {
   });
 
   await initPostgres();
-  const pool = getPool()!;
+  const pool = requireValue(getPool(), "postgres pool");
   const mig = await pool.query(
     `SELECT COUNT(*)::int AS c, MAX(filename) AS last FROM elix_schema_migrations`,
   );
@@ -178,7 +179,7 @@ async function main() {
 
   // Transfer rail: Express if ready, else labeled dashboard:none recipient
   const stripeV2 = new Stripe(key, { apiVersion: "2026-07-29.preview" as never });
-  let usedExpressForTransfer = !!refreshed.payoutsEnabled;
+  const usedExpressForTransfer = !!refreshed.payoutsEnabled;
   let transferAccountId = onboard.accountId || null;
   if (!usedExpressForTransfer) {
     const ready = await createTransfersActiveRecipient(stripeV2, creatorId);

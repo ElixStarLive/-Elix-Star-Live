@@ -87,7 +87,7 @@ async function reconcileAppleSubscriptionEntitlement(
   productIdHint?: string,
 ): Promise<{ ok: boolean; updated: boolean; detail?: string }> {
   const pool = getPool();
-  if (!pool) return { ok: false, detail: "database_unavailable" };
+  if (!pool) return { ok: false, updated: false, detail: "database_unavailable" };
 
   const purchaseTokenHash = hashAppleOriginalTransactionId(originalTransactionId);
   const existing = await pool.query(
@@ -139,7 +139,7 @@ async function reconcileAppleSubscriptionEntitlement(
         expiresAt: verified.expiresAt,
       },
     });
-    if (!upserted.ok) return { ok: false, updated: false, detail: upserted.error };
+    if (upserted.ok === false) return { ok: false, updated: false, detail: upserted.error };
     try {
       const { autoPostSubscriptionRevenue } = await import("../lib/monetisation/storeSettlement");
       await autoPostSubscriptionRevenue({
@@ -162,7 +162,7 @@ async function reconcileAppleSubscriptionEntitlement(
     expiresAt: null,
     autoRenewEnabled: false,
   });
-  if (!updated.ok) return { ok: false, updated: false, detail: updated.error };
+  if (updated.ok === false) return { ok: false, updated: false, detail: updated.error };
   return { ok: true, updated: updated.updated };
 }
 
@@ -172,7 +172,7 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
   detail?: string;
 }> {
   const pool = getPool();
-  if (!pool) return { ok: false, detail: "database_unavailable" };
+  if (!pool) return { ok: false, updated: false, detail: "database_unavailable" };
 
   const purchaseTokenHash = hashPurchaseToken(purchaseToken);
   const existing = await pool.query(
@@ -217,7 +217,7 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
         expiresAt: verified.expiresAt,
       },
     });
-    if (!upserted.ok) return { ok: false, updated: false, detail: upserted.error };
+    if (upserted.ok === false) return { ok: false, updated: false, detail: upserted.error };
     try {
       const { autoPostSubscriptionRevenue } = await import("../lib/monetisation/storeSettlement");
       await autoPostSubscriptionRevenue({
@@ -240,7 +240,7 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
     expiresAt: null,
     autoRenewEnabled: false,
   });
-  if (!updated.ok) return { ok: false, updated: false, detail: updated.error };
+  if (updated.ok === false) return { ok: false, updated: false, detail: updated.error };
   return { ok: true, updated: updated.updated };
 }
 
@@ -293,7 +293,7 @@ export async function handleGooglePlayRtdn(req: Request, res: Response) {
         provider: "google",
         providerTransactionId,
       });
-      if (!result.ok && result.error !== "purchase_not_found") {
+      if (result.ok === false && result.error !== "purchase_not_found") {
         logger.error({ result }, "Google RTDN reverse failed");
         return res.status(500).json({ error: "reverse_failed" });
       }
@@ -407,7 +407,7 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
         provider: "apple",
         providerTransactionId: transactionId,
       });
-      if (!result.ok && result.error !== "purchase_not_found") {
+      if (result.ok === false && result.error !== "purchase_not_found") {
         logger.error({ result, notificationType }, "Apple IAP reverse failed");
         return res.status(500).json({ error: "reverse_failed" });
       }

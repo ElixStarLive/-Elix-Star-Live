@@ -13,10 +13,12 @@ import { TopNav } from "./components/TopNav";
 import { useAuthStore } from "./store/useAuthStore";
 import { cn } from "./lib/utils";
 import { useDeepLinks } from "./lib/deepLinks";
+import { namedExitForPath } from "./lib/settingsNav";
 import { analytics } from "./lib/analytics";
 import { notificationService } from "./lib/notifications";
 import { initializeIAP, reconcileOwnedCoinPurchases } from "./lib/iap";
 import { crashReporting } from "./lib/crashReporting";
+import { reportFailure } from "./lib/reportFailure";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { OfflineBanner } from "./components/OfflineBanner";
 import { IncomingCallModal } from "./components/IncomingCallModal";
@@ -172,9 +174,12 @@ function App() {
       const endX = e.changedTouches[0].clientX;
       const dx = endX - swipeStart.current.x;
       swipeStart.current = null;
-      if (dx > SWIPE_THRESHOLD) navigate(-1); // swipe right to go back
+      if (dx > SWIPE_THRESHOLD) {
+        const exit = namedExitForPath(location.pathname);
+        if (exit !== location.pathname) navigate(exit, { replace: true });
+      }
     },
-    [navigate],
+    [navigate, location.pathname],
   );
 
   // Initialize deep links
@@ -202,13 +207,6 @@ function App() {
   }, [authUserId]);
 
   useEffect(() => {
-    // Failsafe: if loading takes too long (e.g. auth hanging), force stop loading
-    const timer = setTimeout(() => {
-      if (useAuthStore.getState().isLoading) {
-        useAuthStore.setState({ isLoading: false });
-      }
-    }, 3000);
-
     try {
       analytics.initialize();
     } catch (_) {
@@ -221,14 +219,12 @@ function App() {
       const error = err instanceof Error ? err : new Error(String(err || "iap_init_failed"));
       void crashReporting.logError(error, { source: "initializeIAP" });
     });
-
-    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
     if (user?.id) {
       analytics.setUserId(user.id);
-      void notificationService.registerTokenWithBackend().catch(() => {});
+      void notificationService.registerTokenWithBackend().catch((e) => reportFailure('push_register', e));
       void reconcileOwnedCoinPurchases().catch((err) => {
         const error = err instanceof Error ? err : new Error(String(err || "iap_reconcile_failed"));
         void crashReporting.logError(error, { source: "reconcileOwnedCoinPurchases" });
@@ -236,18 +232,17 @@ function App() {
       const unsubCalls = subscribeToIncomingCalls(user.id);
 
       const onForceDisconnect = () => {
-        void useAuthStore.getState().signOut().catch(() => undefined);
+        void useAuthStore.getState().signOut().catch((e) => reportFailure('force_disconnect_signout', e));
       };
       websocket.on("force_disconnect", onForceDisconnect);
       websocket.on("user_banned", onForceDisconnect);
 
-      // Keep a presence socket on __feed__ so call_invite / force_disconnect and
-      // other user-global events work while browsing (Inbox, Feed, etc.). Live
-      // pages take over the singleton when the user joins a room.
-      const ensurePresence = () => {
+      // Feed presence owned by the websocket singleton. Sync on auth + route —
+      // not a polling timer. Live screens take over the singleton for room IDs.
+      const syncFeedPresence = () => {
         const token = useAuthStore.getState().session?.access_token;
         if (!token) return;
-        const path = window.location.pathname;
+        const path = location.pathname;
         const onLiveSurface =
           path.startsWith("/live/") ||
           path.startsWith("/watch/") ||
@@ -255,26 +250,25 @@ function App() {
           path === "/call";
         if (onLiveSurface) return;
         try {
-          if (!websocket.isConnected()) {
+          if (!websocket.isConnected() || websocket.getCurrentRoomId() !== "__feed__") {
             websocket.connect("__feed__", token, { persistent: true });
           }
-        } catch {
-          /* presence is best-effort */
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error(String(err || "feed_presence_failed"));
+          void crashReporting.logError(error, { source: "syncFeedPresence" });
         }
       };
-      ensurePresence();
-      const presenceTimer = window.setInterval(ensurePresence, 5000);
+      syncFeedPresence();
 
       return () => {
         unsubCalls();
         websocket.off("force_disconnect", onForceDisconnect);
         websocket.off("user_banned", onForceDisconnect);
-        window.clearInterval(presenceTimer);
       };
     } else {
       analytics.setUserId(null);
     }
-  }, [user]);
+  }, [user, location.pathname]);
 
   useEffect(() => {
     const handleVisibility = () => {

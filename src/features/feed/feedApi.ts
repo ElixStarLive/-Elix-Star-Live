@@ -1,10 +1,19 @@
 /**
  * Feed / video REST owner — same production endpoints as FEED_CONNECTION_MAP.
- * Analytics track-view / track-interaction stay in interactionTracker.
+ * Analytics track-view / track-interaction stay in interactionTracker;
+ * re-exported here so callers use one feed surface without duplicate HTTP owners.
  */
 
 import { request } from '../../lib/apiClient';
-import { fetchForYouFeed } from '../../lib/interactionTracker';
+import {
+  fetchForYouFeed,
+  trackComment,
+  trackFollow,
+  trackLike,
+  trackShare,
+} from '../../lib/interactionTracker';
+
+export { trackComment, trackFollow, trackLike, trackShare };
 
 export interface ForYouFeedPage {
   videos: unknown[];
@@ -107,6 +116,16 @@ export async function apiFetchFriendsFeed(): Promise<{
   error: string | null;
 }> {
   const { data, error } = await request<Record<string, unknown>>('/api/feed/friends');
+  if (error) return { videos: [], error: error.message };
+  const videos = Array.isArray(data?.videos) ? data.videos : [];
+  return { videos, error: null };
+}
+
+export async function apiFetchFollowingFeed(): Promise<{
+  videos: unknown[];
+  error: string | null;
+}> {
+  const { data, error } = await request<Record<string, unknown>>('/api/feed/following');
   if (error) return { videos: [], error: error.message };
   const videos = Array.isArray(data?.videos) ? data.videos : [];
   return { videos, error: null };

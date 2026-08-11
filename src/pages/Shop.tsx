@@ -9,9 +9,11 @@ import { showToast } from '../lib/toast';
 import { bunnyUpload } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 import { useCartStore } from '../store/useCartStore';
-import { apiLiveStreams } from '../lib/live';
+import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiShopCheckout, apiShopCheckoutSessionStatus } from '../features/shop/shopApi';
+import { SHOP_EXIT_TO } from '../lib/settingsNav';
+import { reportFailure } from '../lib/reportFailure';
 
 const SHOP_LIVE_RING = 56;
 
@@ -34,6 +36,7 @@ interface ShopItem {
 export default function Shop() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const token = useAuthStore((s) => s.session?.access_token) ?? '';
   const [items, setItems] = useState<ShopItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -81,7 +84,7 @@ export default function Shop() {
   );
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(SHOP_EXIT_TO, { replace: true });
   }, [navigate]);
 
   const goSearch = useCallback(() => {
@@ -245,11 +248,21 @@ export default function Shop() {
     const load = async () => {
       try {
         const [streamsResult, profilesResult] = await Promise.all([
-          apiLiveStreams().catch(() => ({ streams: [], error: null })),
-          apiFetchProfiles().catch(() => ({ profiles: [], error: null })),
+          apiLiveStreams().catch((err) => {
+            reportFailure('shop_live_streams', err);
+            return null;
+          }),
+          apiFetchProfiles().catch((err) => {
+            reportFailure('shop_profiles', err);
+            return null;
+          }),
         ]);
+        if (!streamsResult) {
+          /* keep prior liveUsers — do not fake empty streams on failure */
+          return;
+        }
         const streamsBody = { streams: streamsResult.streams ?? [] };
-        const profilesBody = { profiles: profilesResult.profiles ?? [] };
+        const profilesBody = { profiles: profilesResult?.profiles ?? [] };
 
         const profiles = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
         const byId = new Map<string, { name: string; avatar: string }>();
@@ -278,18 +291,28 @@ export default function Shop() {
           .slice(0, 25);
 
         if (!cancelled) setLiveUsers(mapped);
-      } catch {
-        if (!cancelled) setLiveUsers([]);
+      } catch (e) {
+        reportFailure('shop_live_users', e);
+        /* keep prior liveUsers — never treat failure as empty success */
       }
     };
 
     load();
-    const t = window.setInterval(load, 15000);
+    const disposePresence = token
+      ? connectLiveFeedPresence(token, {
+          onStreamStarted: () => {
+            void load();
+          },
+          onStreamEnded: () => {
+            void load();
+          },
+        })
+      : () => {};
     return () => {
       cancelled = true;
-      window.clearInterval(t);
+      disposePresence();
     };
-  }, []);
+  }, [token]);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -313,10 +336,11 @@ export default function Shop() {
         list.forEach((item: ShopItem) => { item.seller = byId[item.user_id]; });
       }
       setItems(list);
-    } catch {
-      setItems([]);
+    } catch (err) {
+      reportFailure('shop_list_items', err);
       if (!navigator.onLine) showToast('No internet connection');
       else showToast('Failed to load shop items');
+      /* keep prior items — do not soft-empty on failure */
     }
     setLoading(false);
   };

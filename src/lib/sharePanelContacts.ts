@@ -19,11 +19,6 @@ export type SharePanelContact = {
   avatar_url: string | null;
 };
 
-/** @deprecated use isGenuineAppUser — kept for existing imports */
-export function isRealShareContact(username: string, userId = ''): boolean {
-  return isGenuineAppUser(username, userId);
-}
-
 /**
  * Share contacts — owner allowlist only (real named accounts).
  * See isGenuineAppUser.
@@ -61,7 +56,7 @@ export async function fetchAllSharePanelContacts(
     }
 
     return Array.from(dedup.values());
-  } catch {
-    return [];
+  } catch (err) {
+    throw err instanceof Error ? err : new Error(String(err || 'share_panel_contacts_failed'));
   }
 }

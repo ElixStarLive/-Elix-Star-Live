@@ -52,6 +52,9 @@ router.get("/xp-history", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({ history });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "GET progression/xp-history failed");
     return res.status(500).json({ error: "XP_HISTORY_LOAD_FAILED" });
   }
@@ -67,6 +70,9 @@ router.get("/starter-history", async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, no-store");
     return res.json({ history });
   } catch (err) {
+    if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "GET progression/starter-history failed");
     return res.status(500).json({ error: "STARTER_HISTORY_LOAD_FAILED" });
   }

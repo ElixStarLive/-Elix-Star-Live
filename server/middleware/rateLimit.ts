@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { valkeyRateCheck, isValkeyConfigured } from "../lib/valkey";
 import { logger } from "../lib/logger";
 
-// ── Fallback: local in-memory (used only when Valkey is unavailable) ──
+// ── Dev/test only: local in-memory when Valkey is off (never in production) ──
 
 interface WindowEntry {
   timestamps: number[];
@@ -10,15 +10,18 @@ interface WindowEntry {
 
 const localWindows = new Map<string, WindowEntry>();
 const MAX_LOCAL_WINDOWS = 50_000;
+const allowLocalRateLimit = process.env.NODE_ENV !== "production";
 
 const CLEANUP_INTERVAL = 60_000;
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of localWindows) {
-    entry.timestamps = entry.timestamps.filter((t) => now - t < 120_000);
-    if (entry.timestamps.length === 0) localWindows.delete(key);
-  }
-}, CLEANUP_INTERVAL).unref();
+if (allowLocalRateLimit) {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of localWindows) {
+      entry.timestamps = entry.timestamps.filter((t) => now - t < 120_000);
+      if (entry.timestamps.length === 0) localWindows.delete(key);
+    }
+  }, CLEANUP_INTERVAL).unref();
+}
 
 function localRateCheck(
   key: string,
@@ -84,14 +87,18 @@ export function rateLimit(opts: {
           next();
         })
         .catch((err) => {
-          logger.warn({ err: err?.message, key }, "Valkey rate-limit unavailable, falling back to local");
+          logger.warn({ err: err?.message, key }, "Valkey rate-limit unavailable");
+          if (!allowLocalRateLimit) {
+            res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
+            return;
+          }
           if (!localRateCheck(key, windowMs, max)) {
             res.status(429).json({ error: "Too many requests. Please try again later." });
             return;
           }
           next();
         });
-    } else {
+    } else if (allowLocalRateLimit) {
       if (!localRateCheck(key, windowMs, max)) {
         res
           .status(429)
@@ -99,6 +106,9 @@ export function rateLimit(opts: {
         return;
       }
       next();
+    } else {
+      logger.error({ key }, "Rate limit requires Valkey in production");
+      res.status(503).json({ error: "RATE_LIMIT_UNAVAILABLE" });
     }
   };
 }

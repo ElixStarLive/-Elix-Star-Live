@@ -38,9 +38,10 @@ async function main() {
     });
     created = true;
   } else {
-    const missing = EVENTS.filter((e) => !endpoint!.enabled_events.includes(e));
-    if (missing.length || endpoint.status !== "enabled") {
-      endpoint = await stripe.webhookEndpoints.update(endpoint.id, {
+    const existing = endpoint;
+    const missing = EVENTS.filter((e) => !existing.enabled_events.includes(e));
+    if (missing.length || existing.status !== "enabled") {
+      endpoint = await stripe.webhookEndpoints.update(existing.id, {
         enabled_events: [...EVENTS] as unknown as Stripe.WebhookEndpointUpdateParams.EnabledEvent[],
         disabled: false,
       });

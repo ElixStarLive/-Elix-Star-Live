@@ -514,7 +514,8 @@ export default function Inbox() {
         const { threads: rows, error: convError } = await apiListChatThreads();
         if (cancelled) return;
         if (convError) {
-          setConversations([]);
+          showToast(convError);
+          /* keep prior conversations — do not soft-empty on failure */
           return;
         }
         const mapped: Conversation[] = rows.map((t: Record<string, unknown>) => {
@@ -545,8 +546,8 @@ export default function Inbox() {
         setConversations(filtered);
       } catch {
         if (!cancelled) {
-          setConversations([]);
           showToast('Could not load messages');
+          /* keep prior conversations — do not soft-empty on failure */
         }
       }
     };
@@ -555,8 +556,8 @@ export default function Inbox() {
         const { body: backendBody, error: followersErr } = await apiListFollowers(currentUserId);
         if (cancelled) return;
         if (followersErr || !backendBody) {
-          setFollowers([]);
-          setFollowersTotalCount(0);
+          showToast(followersErr || 'Could not load followers');
+          /* keep prior followers — do not soft-empty on failure */
           return;
         }
         const ids: string[] = Array.isArray(backendBody?.followers) ? backendBody.followers : [];
@@ -573,13 +574,21 @@ export default function Inbox() {
           .filter((p) => p.user_id && p.user_id !== currentUserId);
         setFollowers(list);
       } catch {
-        if (!cancelled) setFollowers([]);
+        if (!cancelled) {
+          showToast('Could not load followers');
+          /* keep prior followers — do not soft-empty on failure */
+        }
       }
     };
     const fetchSuggestedUsers = async () => {
       try {
-        const { profiles, streams } = await apiListSuggestedUsersInput();
+        const { profiles, streams, error: suggestedError } = await apiListSuggestedUsersInput();
         if (cancelled) return;
+        if (suggestedError) {
+          showToast(suggestedError);
+          /* keep prior suggestedUsers / liveUserIds — do not fake empty success */
+          return;
+        }
         const liveSet = new Set<string>(streams.map((s) => {
           const row = s as { userId?: string; user_id?: string };
           return row.userId || row.user_id || '';
@@ -601,7 +610,7 @@ export default function Inbox() {
         mapped.sort((a, b) => (a.is_live === b.is_live ? 0 : a.is_live ? -1 : 1));
         setSuggestedUsers(mapped);
       } catch {
-        if (!cancelled) setSuggestedUsers([]);
+        if (!cancelled) showToast('Could not load suggested users');
       }
     };
     const fetchActivity = async () => {
@@ -609,7 +618,8 @@ export default function Inbox() {
         const { rows: raw, error: actError } = await apiListActivityItems();
         if (cancelled) return;
         if (actError) {
-          setActivityItems([]);
+          showToast(actError);
+          /* keep prior activityItems */
           return;
         }
         const list: ActivityItem[] = raw
@@ -627,7 +637,10 @@ export default function Inbox() {
           }));
         setActivityItems(list);
       } catch {
-        if (!cancelled) setActivityItems([]);
+        if (!cancelled) {
+          showToast('Could not load activity');
+          /* keep prior activityItems — do not soft-empty on failure */
+        }
       }
     };
     const fetchLiveShareRequests = async () => {
@@ -635,7 +648,8 @@ export default function Inbox() {
         const { rows: raw, error: lsError } = await apiListLiveShareRequests();
         if (cancelled) return;
         if (lsError) {
-          setLiveShareRequests([]);
+          showToast(lsError);
+          /* keep prior liveShareRequests — do not soft-empty on failure */
           return;
         }
         setLiveShareRequests(
@@ -669,7 +683,10 @@ export default function Inbox() {
           })(),
         );
       } catch {
-        if (!cancelled) setLiveShareRequests([]);
+        if (!cancelled) {
+          showToast('Could not load live shares');
+          /* keep prior liveShareRequests — do not soft-empty on failure */
+        }
       }
     };
     fetchNotifications();
@@ -713,7 +730,6 @@ export default function Inbox() {
       cancelled = true;
       websocket.off('dm_thread_updated', onDmThreadUpdated);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserId, location.pathname]);
 
   const isRealUser = (f: FollowerProfile) =>

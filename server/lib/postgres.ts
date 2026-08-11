@@ -186,14 +186,13 @@ export async function connectPostgres(): Promise<void> {
   }
 }
 
-/** @deprecated Use connectPostgres */
+/** @deprecated Use connectPostgres — kept for ops scripts that still import this alias. */
 export const initPostgres = connectPostgres;
 
-/** Schema is created by migrations — no DDL on request path or worker boot. */
-export async function ensureFollowsTable(): Promise<void> {}
-
 export async function loadVideosFromDb(): Promise<Video[]> {
-  if (!pool) return [];
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await pool.query(
       `SELECT id, url, thumbnail, duration, description, hashtags, views, likes, comments, shares, saves, created_at, privacy, user_id
@@ -221,13 +220,15 @@ export async function loadVideosFromDb(): Promise<Video[]> {
     }));
   } catch (err) {
     logger.error({ err }, "Postgres load videos failed");
-    return [];
+    throw err;
   }
 }
 
 /** Single video by id — used when in-memory store misses (feed reads Postgres directly). */
 export async function loadVideoByIdFromDb(id: string): Promise<Video | null> {
-  if (!pool) return null;
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   const trimmed = String(id || "").trim();
   if (!trimmed) return null;
   try {
@@ -256,7 +257,7 @@ export async function loadVideoByIdFromDb(id: string): Promise<Video | null> {
     };
   } catch (err) {
     logger.error({ err, id: trimmed }, "loadVideoByIdFromDb failed");
-    return null;
+    throw err;
   }
 }
 
@@ -380,7 +381,9 @@ export async function dbUpdateViewerCount(
 export async function dbGetLiveStreams(): Promise<
   { stream_key: string; user_id: string; display_name: string | null; started_at: string; viewer_count: number }[]
 > {
-  if (!pool) return [];
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await pool.query(
       `SELECT stream_key, user_id, display_name, started_at, viewer_count
@@ -390,13 +393,16 @@ export async function dbGetLiveStreams(): Promise<
     return res.rows;
   } catch (err) {
     logger.error({ err }, "Postgres get live_streams failed");
-    return [];
+    throw err;
   }
 }
 
 /** Targeted owner lookup for a single room/user — avoids scanning all live streams. */
 export async function dbGetStreamOwnerUserId(keyOrUser: string): Promise<string | null> {
-  if (!pool || !keyOrUser) return null;
+  if (!keyOrUser) return null;
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await pool.query<{ user_id: string }>(
       `SELECT user_id
@@ -409,7 +415,7 @@ export async function dbGetStreamOwnerUserId(keyOrUser: string): Promise<string 
     return res.rows[0]?.user_id?.trim() || null;
   } catch (err) {
     logger.error({ err }, "Postgres get stream owner failed");
-    return null;
+    throw err;
   }
 }
 
@@ -468,7 +474,7 @@ export async function upsertLiveShareInbox(row: {
 
 /** Shares from people you do not follow — keeps Main chat list uncluttered. */
 export async function listLiveShareRequestsNonFollowing(recipientId: string): Promise<LiveShareInboxRow[]> {
-  if (!pool) return [];
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const res = await pool.query(
       `SELECT l.sharer_id, l.stream_key, l.host_user_id,
@@ -501,7 +507,7 @@ export async function listLiveShareRequestsNonFollowing(recipientId: string): Pr
     }));
   } catch (err) {
     logger.error({ err, recipientId }, "Postgres list live_share_inbox failed");
-    return [];
+    throw err;
   }
 }
 
@@ -541,7 +547,9 @@ function rowToScores(rows: { slot: string; score: unknown }[]): BattleScoresRow 
 /** Insert or refresh four creator buckets (P1–P4) for a battle. */
 export async function dbEnsureBattleCreatorBuckets(ctx: BattleSessionScoreContext): Promise<void> {
   const p = getPool();
-  if (!p) return;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   const creators: Record<BattleSlot, string> = {
     host: ctx.hostUserId || "",
     opponent: ctx.opponentUserId || "",
@@ -568,8 +576,11 @@ export async function dbSyncBattleCreatorSlot(
   slot: BattleSlot,
   creatorUserId: string,
 ): Promise<void> {
+  if (!creatorUserId) return;
   const p = getPool();
-  if (!p || !creatorUserId) return;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     await p.query(
       `UPDATE battle_creator_buckets SET creator_user_id = $3, updated_at = NOW()
@@ -578,6 +589,7 @@ export async function dbSyncBattleCreatorSlot(
     );
   } catch (err) {
     logger.error({ err, hostRoomId, slot }, "dbSyncBattleCreatorSlot failed");
+    throw err;
   }
 }
 
@@ -588,11 +600,13 @@ export async function dbAddBattleScoreAndFetchAll(
   points: number,
   ensureCtx: BattleSessionScoreContext | null,
 ): Promise<BattleScoresRow | null> {
-  const pool = getPool();
-  if (!pool) return null;
+  const battlePool = getPool();
+  if (!battlePool) {
+    throw new Error("Postgres pool is not initialized");
+  }
 
   async function doIncrement(): Promise<BattleScoresRow | null> {
-    const client = await pool.connect();
+    const client = await battlePool.connect();
     try {
       await client.query("BEGIN");
       const up = await client.query(
@@ -617,7 +631,7 @@ export async function dbAddBattleScoreAndFetchAll(
         logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle bucket increment");
       }
       logger.error({ err, hostRoomId, target }, "battle bucket increment failed");
-      return null;
+      throw err;
     } finally {
       client.release();
     }
@@ -638,14 +652,16 @@ export async function dbAddBattleScoreTeamSideAndFetchAll(
   pointsPerPlayer: number,
   ensureCtx: BattleSessionScoreContext | null,
 ): Promise<BattleScoresRow | null> {
-  const pool = getPool();
-  if (!pool) return null;
+  const battlePool = getPool();
+  if (!battlePool) {
+    throw new Error("Postgres pool is not initialized");
+  }
 
   const slots: [BattleSlot, BattleSlot] =
     side === "red" ? ["host", "player3"] : ["opponent", "player4"];
 
   async function doIncrement(): Promise<BattleScoresRow | null> {
-    const client = await pool.connect();
+    const client = await battlePool.connect();
     try {
       await client.query("BEGIN");
       for (const slot of slots) {
@@ -672,7 +688,7 @@ export async function dbAddBattleScoreTeamSideAndFetchAll(
         logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle team side increment");
       }
       logger.error({ err, hostRoomId, side }, "battle team side increment failed");
-      return null;
+      throw err;
     } finally {
       client.release();
     }
@@ -688,7 +704,9 @@ export async function dbAddBattleScoreTeamSideAndFetchAll(
 
 export async function dbLoadBattleScores(hostRoomId: string): Promise<BattleScoresRow | null> {
   const p = getPool();
-  if (!p) return null;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const sel = await p.query(
       `SELECT slot, score FROM battle_creator_buckets WHERE host_room_id = $1`,
@@ -698,17 +716,20 @@ export async function dbLoadBattleScores(hostRoomId: string): Promise<BattleScor
     return rowToScores(sel.rows as { slot: string; score: unknown }[]);
   } catch (err) {
     logger.error({ err, hostRoomId }, "dbLoadBattleScores failed");
-    return null;
+    throw err;
   }
 }
 
 export async function dbDeleteBattleBuckets(hostRoomId: string): Promise<void> {
   const p = getPool();
-  if (!p) return;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     await p.query(`DELETE FROM battle_creator_buckets WHERE host_room_id = $1`, [hostRoomId]);
   } catch (err) {
     logger.error({ err, hostRoomId }, "dbDeleteBattleBuckets failed");
+    throw err;
   }
 }
 
@@ -716,7 +737,9 @@ export async function dbDeleteBattleBuckets(hostRoomId: string): Promise<void> {
 
 export async function dbGetCreatorStickers(creatorUserId: string): Promise<{ id: number; image_url: string; label: string }[]> {
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(
       `SELECT id, image_url, label FROM creator_stickers WHERE creator_user_id = $1 ORDER BY sort_order, id`,
@@ -725,7 +748,7 @@ export async function dbGetCreatorStickers(creatorUserId: string): Promise<{ id:
     return res.rows;
   } catch (err) {
     logger.error({ err, creatorUserId }, "dbGetCreatorStickers failed");
-    return [];
+    throw err;
   }
 }
 
@@ -845,7 +868,9 @@ export async function dbLogGift(senderUserId: string, creatorUserId: string, roo
 
 export async function dbGetWeeklyRanking(): Promise<{ user_id: string; total_coins: number }[]> {
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(`
       SELECT creator_user_id AS user_id, SUM(coins) AS total_coins
@@ -858,7 +883,7 @@ export async function dbGetWeeklyRanking(): Promise<{ user_id: string; total_coi
     return res.rows.map(r => ({ user_id: r.user_id, total_coins: Number(r.total_coins) || 0 }));
   } catch (err) {
     logger.error({ err }, "dbGetWeeklyRanking failed");
-    return [];
+    throw err;
   }
 }
 
@@ -1022,7 +1047,10 @@ export async function dbIsBlockedEitherWay(
 
 export async function dbEnsureChatThread(userId: string, otherUserId: string): Promise<DbChatThreadRow | null> {
   const p = getPool();
-  if (!p || !userId || !otherUserId || userId === otherUserId) return null;
+  if (!userId || !otherUserId || userId === otherUserId) return null;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     if (await dbIsBlockedEitherWay(userId, otherUserId)) return null;
     const existing = await p.query(
@@ -1060,13 +1088,16 @@ export async function dbEnsureChatThread(userId: string, otherUserId: string): P
     };
   } catch (err) {
     logger.error({ err }, "dbEnsureChatThread failed");
-    return null;
+    throw err;
   }
 }
 
 export async function dbListChatThreadsForUser(userId: string, limit: number): Promise<DbChatThreadRow[]> {
   const p = getPool();
-  if (!p || !userId) return [];
+  if (!userId) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const lim = Math.max(1, Math.min(100, limit || 50));
     const res = await p.query(
@@ -1087,7 +1118,7 @@ export async function dbListChatThreadsForUser(userId: string, limit: number): P
     }));
   } catch (err) {
     logger.error({ err }, "dbListChatThreadsForUser failed");
-    return [];
+    throw err;
   }
 }
 
@@ -1120,7 +1151,9 @@ export async function dbGetChatThread(threadId: string, userId: string): Promise
 
 export async function dbListChatMessages(threadId: string, userId: string, limit: number): Promise<DbChatMessageRow[]> {
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   const thread = await dbGetChatThread(threadId, userId);
   if (!thread) return [];
   try {
@@ -1143,7 +1176,7 @@ export async function dbListChatMessages(threadId: string, userId: string, limit
     }));
   } catch (err) {
     logger.error({ err }, "dbListChatMessages failed");
-    return [];
+    throw err;
   }
 }
 
@@ -1282,7 +1315,9 @@ export async function dbListShopItems(filter: {
   limit?: number;
 }): Promise<DbShopItemRow[]> {
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   const lim = Math.min(200, Math.max(1, filter.limit ?? 50));
   const params: unknown[] = [];
   let where = "WHERE 1=1";
@@ -1318,7 +1353,7 @@ export async function dbListShopItems(filter: {
     }));
   } catch (err) {
     logger.error({ err }, "dbListShopItems failed");
-    return [];
+    throw err;
   }
 }
 
@@ -1540,7 +1575,9 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
   }
 
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(
       `SELECT gift_id, name, gift_type, coin_cost, animation_url, sfx_url, is_active, battle_points
@@ -1564,13 +1601,15 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
     return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadGifts failed");
-    return [];
+    throw err;
   }
 }
 
 export async function dbGetGiftCost(giftId: string): Promise<number | null> {
   const p = getPool();
-  if (!p) return null;
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(
       `SELECT coin_cost FROM elix_gifts WHERE gift_id = $1 AND is_active = TRUE LIMIT 1`,
@@ -1580,7 +1619,7 @@ export async function dbGetGiftCost(giftId: string): Promise<number | null> {
     return Number(res.rows[0].coin_cost);
   } catch (err) {
     logger.error({ err, giftId }, "dbGetGiftCost failed");
-    return null;
+    throw err;
   }
 }
 
@@ -1638,7 +1677,9 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
   }
 
   const p = getPool();
-  if (!p) return [];
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(
       `SELECT id, coins, price, label, bonus_coins, is_popular, product_id
@@ -1661,13 +1702,15 @@ export async function dbLoadCoinPackages(): Promise<DbCoinPackageRow[]> {
     return rows;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinPackages failed");
-    return [];
+    throw err;
   }
 }
 
 export async function dbLoadCoinMap(): Promise<Record<string, number>> {
   const p = getPool();
-  if (!p) return {};
+  if (!p) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await p.query(`SELECT product_id, coins FROM elix_coin_packages`);
     const map: Record<string, number> = {};
@@ -1677,6 +1720,6 @@ export async function dbLoadCoinMap(): Promise<Record<string, number>> {
     return map;
   } catch (err) {
     logger.error({ err }, "dbLoadCoinMap failed");
-    return {};
+    throw err;
   }
 }

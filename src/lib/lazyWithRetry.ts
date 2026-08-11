@@ -2,51 +2,59 @@ import { lazy as reactLazy } from "react";
 import type { ComponentType, LazyExoticComponent } from "react";
 
 /**
- * Wrapper around React.lazy that recovers from stale-chunk failures.
+ * Sole stale-chunk recovery for Vite (web + Capacitor WebView).
  *
- * After a new deployment, an already-loaded client references old chunk
- * filenames (content-hashed). When it tries to lazy-load a route whose
- * hashed file no longer exists on the server, the dynamic import rejects
- * with "Failed to fetch dynamically imported module".
+ * After a deploy, an already-open client may request old content-hashed chunks.
+ * Dynamic import then fails with "Failed to fetch dynamically imported module".
  *
- * On that failure we force a single full-page reload so the browser pulls
- * the fresh index.html + current chunk hashes. A sessionStorage guard
- * prevents an infinite reload loop if the chunk is genuinely broken.
+ * Mechanism (exactly once per session):
+ * 1. On chunk-load failure, set a sessionStorage guard and `location.reload()`
+ *    so the shell pulls fresh index.html + current hashes.
+ * 2. If the same session fails again, rethrow — no stacked retries, no Cap-specific
+ *    second path (Capacitor loads the same Vite assets).
  */
+const RELOAD_GUARD_KEY = "elix_chunk_reload_guard";
+
+function readGuard(): boolean {
+  try {
+    return window.sessionStorage.getItem(RELOAD_GUARD_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeGuard(): void {
+  try {
+    window.sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
+  } catch {
+    /* sessionStorage unavailable — reload still attempted once */
+  }
+}
+
+function clearGuard(): void {
+  try {
+    window.sessionStorage.removeItem(RELOAD_GUARD_KEY);
+  } catch {
+    /* non-fatal */
+  }
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
 ): LazyExoticComponent<T> {
   return reactLazy(async () => {
-    const RELOAD_GUARD_KEY = "elix_chunk_reload_guard";
     try {
       const mod = await factory();
-      try {
-        window.sessionStorage.removeItem(RELOAD_GUARD_KEY);
-      } catch {
-        /* sessionStorage unavailable — non-fatal */
-      }
+      clearGuard();
       return mod;
     } catch (err) {
-      let alreadyReloaded = false;
-      try {
-        alreadyReloaded =
-          window.sessionStorage.getItem(RELOAD_GUARD_KEY) === "1";
-      } catch {
-        /* sessionStorage unavailable — fall through and rethrow */
-      }
-
-      if (!alreadyReloaded) {
-        try {
-          window.sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
-        } catch {
-          /* ignore */
-        }
+      if (!readGuard()) {
+        writeGuard();
         window.location.reload();
-        // Keep Suspense pending while the reload happens.
+        // Keep Suspense pending while the reload runs.
         return new Promise<{ default: T }>(() => {});
       }
-
       throw err;
     }
   });

@@ -350,7 +350,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     if (!rateCheck.allowed) return res.status(429).json({ error: 'Too many purchase attempts' });
 
     const fraudIap = await assertIapVerifyVelocityOk(user.sub);
-    if (!fraudIap.ok) return res.status(429).json({ error: fraudIap.code });
+    if (fraudIap.ok === false) return res.status(429).json({ error: fraudIap.code });
 
     try {
     const { userId, packageId, provider, receipt, transactionId } = req.body ?? {};
@@ -364,7 +364,7 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     if (!safeProvider) return res.status(400).json({ error: `Unknown provider: ${provider}` });
 
     const productGate = gateProviderProduct(safeProvider, String(packageId));
-    if (!productGate.ok) {
+    if (productGate.ok === false) {
       logger.warn(
         { provider: safeProvider, packageId, code: productGate.code },
         'IAP rejected — product not allowed for declared provider',
@@ -719,10 +719,10 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     }
 
     const verified = await verifyAppleSubscription(appleTransactionId, expectedProductId);
-    if (!verified.ok || !verified.entitled) {
+    if (verified.ok === false || !verified.entitled) {
       return res.status(400).json({
         error: 'Invalid or unverified subscription',
-        detail: verified.error,
+        detail: verified.ok === false ? verified.error : undefined,
         subscriptionState: verified.subscriptionState ?? null,
       });
     }
@@ -753,7 +753,7 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
           environment: verified.environment ?? null,
         },
       });
-      if (!upserted.ok) {
+      if (upserted.ok === false) {
         if (upserted.error === 'ownership_conflict') {
           return res.status(409).json({ error: 'Purchase token already bound' });
         }
@@ -828,10 +828,10 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   }
 
   const verified = await verifyGoogleSubscription(googlePurchaseToken, expectedProductId);
-  if (!verified.ok || !verified.entitled) {
+  if (verified.ok === false || !verified.entitled) {
     return res.status(400).json({
       error: 'Invalid or unverified subscription',
-      detail: verified.error,
+      detail: verified.ok === false ? verified.error : undefined,
       subscriptionState: verified.subscriptionState ?? null,
     });
   }
@@ -865,7 +865,7 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
         latestOrderId: verified.latestOrderId,
       },
     });
-    if (!upserted.ok) {
+    if (upserted.ok === false) {
       if (upserted.error === 'ownership_conflict') {
         return res.status(409).json({ error: 'Purchase token already bound' });
       }

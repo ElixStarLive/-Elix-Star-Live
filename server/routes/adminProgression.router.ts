@@ -36,10 +36,17 @@ const router = Router();
 router.use(requireAuthWithRoles);
 router.use(requireAdmin);
 
+function dbUnavailable(err: unknown): boolean {
+  return err instanceof Error && err.message === "DATABASE_UNAVAILABLE";
+}
+
 router.get("/config", async (_req, res) => {
   try {
     return res.json({ config: await listXpConfig() });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin progression config load failed");
     return res.status(500).json({ error: "CONFIG_LOAD_FAILED" });
   }
@@ -75,6 +82,9 @@ router.get("/levels", async (_req, res) => {
   try {
     return res.json({ levels: await listLevelRequirements() });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin progression levels load failed");
     return res.status(500).json({ error: "LEVELS_LOAD_FAILED" });
   }
@@ -85,7 +95,7 @@ const levelSchema = z.object({
   total_xp_required: z.number().int().positive().max(9_000_000_000),
   title: z.string().max(100).optional().nullable(),
   badge_code: z.string().max(100).optional().nullable(),
-  cosmetic_payload: z.record(z.unknown()).optional(),
+  cosmetic_payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 router.put(
@@ -132,6 +142,9 @@ router.get("/users/:userId", async (req, res) => {
     }
     return res.json({ progression, xp_history, starter_history });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err, userId }, "admin progression user audit failed");
     return res.status(500).json({ error: "USER_AUDIT_FAILED" });
   }
@@ -201,6 +214,9 @@ router.get("/missions", async (_req, res) => {
   try {
     return res.json({ missions: await listMissionsAdmin() });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin missions list failed");
     return res.status(500).json({ error: "MISSIONS_LOAD_FAILED" });
   }
@@ -325,6 +341,9 @@ router.get("/daily-rewards", async (_req, res) => {
       policy: await getDailyRewardPolicyAdmin(),
     });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin daily rewards list failed");
     return res.status(500).json({ error: "DAILY_REWARDS_LOAD_FAILED" });
   }
@@ -501,6 +520,9 @@ router.get("/audit-history", async (req: Request, res: Response) => {
     const limit = Number(req.query.limit || 50);
     return res.json({ entries: await listAdminAuditHistory(limit) });
   } catch (err) {
+    if (dbUnavailable(err)) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     logger.error({ err }, "admin audit history failed");
     return res.status(500).json({ error: "AUDIT_LOAD_FAILED" });
   }

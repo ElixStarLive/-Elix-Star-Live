@@ -6,7 +6,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from '../components/AvatarRing';
-import { apiFetchFollowingIds, apiToggleFollow } from '../features/feed/feedApi';
+import { apiToggleFollow } from '../features/feed/feedApi';
+import { FOLLOW_LIST_EXIT_TO } from '../lib/settingsNav';
 
 type Person = {
   user_id: string;
@@ -40,36 +41,14 @@ export default function FollowList() {
         );
         setPeople(Array.isArray(data?.follower_profiles) ? data.follower_profiles : []);
       } else {
-        const { following: ids } = await apiFetchFollowingIds(userId);
-        const rows = (
-          await Promise.all(
-            ids.slice(0, 200).map(async (id) => {
-              try {
-                const { data: body } = await request<{ profile?: Record<string, unknown> }>(
-                  `/api/profiles/${encodeURIComponent(id)}`,
-                );
-                const p = body?.profile ?? body;
-                const rec = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>;
-                const username = String(rec.username ?? '').trim();
-                const display_name =
-                  (rec.displayName as string) ?? (rec.display_name as string) ?? null;
-                if (!username && !String(display_name || '').trim()) return null;
-                return {
-                  user_id: id,
-                  username: username || String(display_name || '').trim(),
-                  display_name,
-                  avatar_url: (rec.avatarUrl as string) ?? (rec.avatar_url as string) ?? null,
-                } as Person;
-              } catch {
-                return null;
-              }
-            }),
-          )
-        ).filter((row): row is Person => row != null);
-        setPeople(rows);
+        const { data } = await request<{ following_profiles?: Person[] }>(
+          `/api/profiles/${encodeURIComponent(userId)}/following`,
+        );
+        setPeople(Array.isArray(data?.following_profiles) ? data.following_profiles : []);
       }
     } catch {
-      setPeople([]);
+      showToast('Could not load list');
+      /* keep prior people — do not soft-empty on failure */
     } finally {
       setLoading(false);
     }
@@ -79,7 +58,7 @@ export default function FollowList() {
     void load();
   }, [load]);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(FOLLOW_LIST_EXIT_TO, { replace: true }), [navigate]);
   const goLogin = useCallback(() => navigate('/login'), [navigate]);
   const openProfile = useCallback(
     (targetId: string) => navigate(`/profile/${targetId}`),

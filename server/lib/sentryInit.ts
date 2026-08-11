@@ -57,9 +57,9 @@ export function initSentry(): void {
       maxBreadcrumbs: 50,
       // Never attach IP/cookies/user PII automatically.
       sendDefaultPii: false,
-      beforeSend: (event) => scrubEventPii(event as unknown as Record<string, unknown>) as typeof event,
+      beforeSend: (event) => scrubEventPii(event as unknown as Record<string, unknown>) as unknown as typeof event,
       beforeSendTransaction: (event) =>
-        scrubEventPii(event as unknown as Record<string, unknown>) as typeof event,
+        scrubEventPii(event as unknown as Record<string, unknown>) as unknown as typeof event,
     });
     inited = true;
     logger.info("Sentry error reporting enabled");

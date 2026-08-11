@@ -5,6 +5,64 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AvatarRing } from '../components/AvatarRing';
 import { isPasswordResetEnabled } from '../lib/authFeatures';
+import { SETTINGS_HOME } from '../lib/settingsNav';
+import { showToast } from '../lib/toast';
+
+/** Sole owner for saved creator login accounts (email/username/avatar only). */
+const CREATOR_SAVED_ACCOUNTS_KEY = 'creator_saved_accounts';
+const CREATOR_SAVE_PREF_KEY = 'creator_save_login_details';
+
+type SavedCreatorAccount = {
+  identifier: string;
+  username: string;
+  avatar?: string;
+};
+
+function readSavedAccounts(): SavedCreatorAccount[] {
+  const raw = window.localStorage.getItem(CREATOR_SAVED_ACCOUNTS_KEY);
+  if (!raw) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    window.localStorage.removeItem(CREATOR_SAVED_ACCOUNTS_KEY);
+    throw new Error('Creator saved accounts storage is corrupt');
+  }
+  if (!Array.isArray(parsed)) {
+    window.localStorage.removeItem(CREATOR_SAVED_ACCOUNTS_KEY);
+    throw new Error('Creator saved accounts storage is corrupt');
+  }
+  return parsed as SavedCreatorAccount[];
+}
+
+function writeSavedAccounts(accounts: SavedCreatorAccount[]): void {
+  window.localStorage.setItem(CREATOR_SAVED_ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+/** One-shot: fold old single-key fields into accounts list, then delete them forever. */
+function migrateLegacyCreatorLoginKeys(): SavedCreatorAccount[] {
+  let accounts: SavedCreatorAccount[] = [];
+  try {
+    accounts = readSavedAccounts();
+  } catch {
+    accounts = [];
+  }
+  const legacyId = window.localStorage.getItem('creator_saved_identifier');
+  const legacyUser = window.localStorage.getItem('creator_saved_username');
+  let next = accounts;
+  if (legacyId && !accounts.some((a) => a.identifier === legacyId)) {
+    next = [
+      { identifier: legacyId, username: legacyUser || legacyId.split('@')[0] || legacyId },
+      ...accounts,
+    ].slice(0, 5);
+    writeSavedAccounts(next);
+  }
+  window.localStorage.removeItem('creator_saved_identifier');
+  window.localStorage.removeItem('creator_saved_username');
+  window.localStorage.removeItem('creator_saved_password');
+  window.localStorage.removeItem('creator_save_password');
+  return next;
+}
 
 export default function CreatorLoginDetails() {
   const navigate = useNavigate();
@@ -12,7 +70,7 @@ export default function CreatorLoginDetails() {
   const [saveDetails, setSaveDetails] = useState(false);
   const showPasswordReset = isPasswordResetEnabled();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goProfile = useCallback(() => navigate('/profile', { replace: true }), [navigate]);
   const goForgotPassword = useCallback(() => navigate('/forgot-password'), [navigate]);
 
@@ -23,21 +81,24 @@ export default function CreatorLoginDetails() {
   }, []);
 
   const [email, setEmail] = useState(() => {
-    // If user is logged in, default to their email
-    return window.localStorage.getItem('creator_saved_identifier') || '';
+    const accounts = migrateLegacyCreatorLoginKeys();
+    return accounts[0]?.identifier || '';
   });
 
   // Sync email state with user email on mount if logged in and no local email set
   useEffect(() => {
     if (user && !email) {
-      // Don't auto-set it, let user type freely. Or set it once only.
-      // Actually if we want to allow typing "another" email, we shouldn't force reset it
-      // unless it is completely empty.
       setEmail(user.email ?? '');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // We removed 'email' dependency so it doesn't loop or reset when user clears it manually
-  const [username, setUsername] = useState(() => window.localStorage.getItem('creator_saved_username') || '');
+  const [username, setUsername] = useState(() => {
+    try {
+      return readSavedAccounts()[0]?.username || '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -50,72 +111,55 @@ export default function CreatorLoginDetails() {
   const [_isSwitching, setIsSwitching] = useState(false);
 
   const handleSignOut = useCallback(async () => {
-    try { await signOut(); } catch { /* best-effort */ }
+    try {
+      await signOut();
+    } catch {
+      showToast('Sign out failed');
+    }
     setPassword('');
     setConfirmPassword('');
     setMode('signin');
     navigate('/creator/login-details', { replace: true });
   }, [navigate, signOut]);
 
-  const [savedAccounts, setSavedAccounts] = useState<Array<{
-    identifier: string;
-    username: string;
-    avatar?: string;
-  }>>([]);
+  const [savedAccounts, setSavedAccounts] = useState<SavedCreatorAccount[]>(() => {
+    try {
+      return readSavedAccounts();
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem('creator_saved_accounts');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setSavedAccounts(parsed);
-      }
-      const savedPref = window.localStorage.getItem('creator_save_login_details');
-      if (savedPref === 'true') setSaveDetails(true);
-    } catch { /* ignore parse errors */ }
+    setSavedAccounts(migrateLegacyCreatorLoginKeys());
+    const savedPref = window.localStorage.getItem(CREATOR_SAVE_PREF_KEY);
+    if (savedPref === 'true') setSaveDetails(true);
   }, []);
 
   const saveCurrentAccount = (nextEmail: string, nextUsername: string, nextAvatar?: string) => {
-    // 1. Enable save preference
-    window.localStorage.setItem('creator_save_login_details', 'true');
+    window.localStorage.setItem(CREATOR_SAVE_PREF_KEY, 'true');
     setSaveDetails(true);
 
-    // 2. Add to saved accounts list (avoid duplicates)
-    setSavedAccounts(prev => {
-      // Remove existing entry for this email if present
-      const filtered = prev.filter(acc => acc.identifier !== nextEmail);
-      // Add new entry to the top
-      const newAccounts = [{ identifier: nextEmail, username: nextUsername, avatar: nextAvatar }, ...filtered];
-      // Limit to 5 accounts
-      const limited = newAccounts.slice(0, 5);
-      
-      window.localStorage.setItem('creator_saved_accounts', JSON.stringify(limited));
-      
-      // Also update legacy single fields for backward compat
-      window.localStorage.setItem('creator_saved_identifier', nextEmail);
-      window.localStorage.setItem('creator_saved_username', nextUsername);
-      
+    setSavedAccounts((prev) => {
+      const filtered = prev.filter((acc) => acc.identifier !== nextEmail);
+      const limited = [
+        { identifier: nextEmail, username: nextUsername, avatar: nextAvatar },
+        ...filtered,
+      ].slice(0, 5);
+      writeSavedAccounts(limited);
       return limited;
     });
   };
   const removeAccount = (identifierToRemove: string) => {
-    setSavedAccounts(prev => {
-      const newAccounts = prev.filter(acc => acc.identifier !== identifierToRemove);
-      window.localStorage.setItem('creator_saved_accounts', JSON.stringify(newAccounts));
-      
-      // If we removed the "legacy" one, clear legacy fields
-      if (window.localStorage.getItem('creator_saved_identifier') === identifierToRemove) {
-         window.localStorage.removeItem('creator_saved_identifier');
-         window.localStorage.removeItem('creator_saved_username');
-      }
+    setSavedAccounts((prev) => {
+      const newAccounts = prev.filter((acc) => acc.identifier !== identifierToRemove);
+      writeSavedAccounts(newAccounts);
       return newAccounts;
     });
   };
 
-
   const persistSavedPassword = (_nextPassword: string) => {
-    // SECURITY: Never persist passwords to localStorage
-    // Clean up any legacy stored password
+    // SECURITY: Never persist passwords. Drop any leftover password keys.
     window.localStorage.removeItem('creator_saved_password');
     window.localStorage.removeItem('creator_save_password');
   };
@@ -213,7 +257,11 @@ export default function CreatorLoginDetails() {
     setIsSwitching(true);
     try {
       if (user) {
-        try { await signOut(); } catch { /* signOut best-effort */ }
+        try {
+          await signOut();
+        } catch {
+          showToast('Sign out failed');
+        }
       }
       
       // 2. Auto sign in if password is known (or just prefill)
@@ -306,7 +354,13 @@ export default function CreatorLoginDetails() {
               {/* Add Account Button */}
               <div 
                 onClick={async () => {
-                   if (user) { try { await signOut(); } catch { /* best-effort */ } }
+                   if (user) {
+                     try {
+                       await signOut();
+                     } catch {
+                       showToast('Sign out failed');
+                     }
+                   }
                    setEmail('');
                    setPassword('');
                    // Focus email input or scroll to form
@@ -420,7 +474,7 @@ export default function CreatorLoginDetails() {
                   onChange={(e) => {
                     const next = e.target.checked;
                     setSaveDetails(next);
-                    window.localStorage.setItem('creator_save_login_details', next ? 'true' : 'false');
+                    window.localStorage.setItem(CREATOR_SAVE_PREF_KEY, next ? 'true' : 'false');
                   }}
                   className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#D8D9DD] checked:bg-[#FFFFFF] transition-all cursor-pointer"
                 />
@@ -521,21 +575,16 @@ export default function CreatorLoginDetails() {
                   onChange={(e) => {
                     const next = e.target.checked;
                     setSaveDetails(next);
-                    window.localStorage.setItem('creator_save_login_details', next ? 'true' : 'false');
+                    window.localStorage.setItem(CREATOR_SAVE_PREF_KEY, next ? 'true' : 'false');
                     if (next) {
                         const emailToSave = email;
-                        // Use default username if saving another email
                         const usernameToSave = emailToSave === user.email ? user.username : emailToSave.split('@')[0];
-                        
                         saveCurrentAccount(emailToSave, usernameToSave, emailToSave === user.email ? user.avatar : undefined);
-                        if (password) {
-                            window.localStorage.removeItem('creator_saved_password');
-                        }
+                        persistSavedPassword(password);
                     } else {
-                        // Clear
-                        window.localStorage.removeItem('creator_saved_identifier');
-                        window.localStorage.removeItem('creator_saved_username');
-                        window.localStorage.removeItem('creator_saved_password');
+                        writeSavedAccounts([]);
+                        setSavedAccounts([]);
+                        persistSavedPassword('');
                     }
                   }}
                   className="peer h-4 w-4 rounded-full border border-white/30 bg-transparent appearance-none checked:border-[#D8D9DD] checked:bg-[#FFFFFF] transition-all cursor-pointer"

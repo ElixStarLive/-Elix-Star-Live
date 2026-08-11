@@ -483,7 +483,7 @@ async function upsertProvisionRow(input: {
   activated?: boolean;
 }): Promise<void> {
   const pool = getPool();
-  if (!pool) return;
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
   await pool.query(
     `INSERT INTO elix_creator_membership_products
        (creator_id, product_id, base_plan_id, status, play_state, last_error, price_snapshot, activated_at, updated_at)
@@ -565,7 +565,7 @@ export async function ensureCreatorMembershipProduct(
       productId,
       status: "error",
       lastError: "google_not_configured",
-    }).catch(() => undefined);
+    });
     return {
       productId,
       basePlanId,
@@ -582,7 +582,7 @@ export async function ensureCreatorMembershipProduct(
       productId,
       status: "error",
       lastError: "google_auth_failed",
-    }).catch(() => undefined);
+    });
     return {
       productId,
       basePlanId,
@@ -608,7 +608,7 @@ export async function ensureCreatorMembershipProduct(
           playState: `create_${created.status}`,
           lastError: created.detail || `create_failed_${created.status}`,
           priceSnapshot: price,
-        }).catch(() => undefined);
+        });
         return {
           productId,
           basePlanId,
@@ -627,7 +627,7 @@ export async function ensureCreatorMembershipProduct(
         status: "error",
         playState: `get_${existing.status}`,
         lastError: existing.detail || `get_failed_${existing.status}`,
-      }).catch(() => undefined);
+      });
       return {
         productId,
         basePlanId,
@@ -647,7 +647,7 @@ export async function ensureCreatorMembershipProduct(
           playState: `activate_${activated.status}`,
           lastError: activated.detail || `activate_failed_${activated.status}`,
           priceSnapshot: price,
-        }).catch(() => undefined);
+        });
         return {
           productId,
           basePlanId,
@@ -671,7 +671,7 @@ export async function ensureCreatorMembershipProduct(
       lastError: ready ? null : "base_plan_not_active_yet",
       priceSnapshot: price,
       activated: ready,
-    }).catch(() => undefined);
+    });
 
     return {
       productId,
@@ -689,7 +689,7 @@ export async function ensureCreatorMembershipProduct(
       status: "error",
       lastError: msg.slice(0, 500),
       priceSnapshot: price,
-    }).catch(() => undefined);
+    });
     return {
       productId,
       basePlanId,

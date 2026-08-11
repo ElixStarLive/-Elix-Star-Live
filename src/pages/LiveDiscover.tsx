@@ -65,13 +65,13 @@ export default function LiveDiscover() {
   const observerRef = useRef<IntersectionObserver | null>(null);
   const visibleIdsRef = useRef<Set<string>>(new Set());
 
-  const fetchLiveStreams = useCallback(async () => {
-    setLoading(true);
+  const fetchLiveStreams = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const { streams, error } = await apiLiveStreams();
       if (error) {
         // Keep prior lobby data — do not wipe to empty on a failed refresh.
-        showToast(error || 'Could not load live streams');
+        if (!opts?.silent) showToast(error || 'Could not load live streams');
         return;
       }
 
@@ -116,12 +116,28 @@ export default function LiveDiscover() {
           };
         });
 
-      setCreators(mapped);
+      // Merge so stream_started cards are not wiped if REST lags LiveKit verification.
+      setCreators((prev) => {
+        const fromApi = new Set(mapped.map((c) => c.id));
+        if (mapped.length === 0 && prev.length > 0) {
+          return prev.filter((c) => !removed.has(c.id));
+        }
+        const keptFromPrev = prev.filter((c) => !fromApi.has(c.id) && !removed.has(c.id));
+        const merged = [...mapped, ...keptFromPrev];
+        const seen = new Set<string>();
+        return merged.filter((c) => {
+          if (!c.id || seen.has(c.id)) return false;
+          seen.add(c.id);
+          return true;
+        });
+      });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Could not load live streams';
-      showToast(msg);
+      if (!opts?.silent) {
+        const msg = e instanceof Error ? e.message : 'Could not load live streams';
+        showToast(msg);
+      }
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
@@ -161,10 +177,24 @@ export default function LiveDiscover() {
 
   const token = useAuthStore((s) => s.session?.access_token) ?? '';
 
+  /* Bootstrap REST + visibility/focus reconcile (realtime = feed presence). */
   useEffect(() => {
-    fetchLiveStreams();
-    const poll = setInterval(fetchLiveStreams, 3_000);
-    return () => clearInterval(poll);
+    void fetchLiveStreams();
+
+    const reconcile = () => {
+      void fetchLiveStreams({ silent: true });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') reconcile();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', reconcile);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', reconcile);
+    };
   }, [fetchLiveStreams]);
 
   // First visible card should preview immediately (same as For You active slide).
@@ -174,6 +204,7 @@ export default function LiveDiscover() {
   }, [creators]);
 
   // Activate live preview only for cards on screen (same pattern as For You active slide)
+  const creatorIdsKey = creators.map((c) => c.id).join(',');
   useEffect(() => {
     observerRef.current?.disconnect();
     visibleIdsRef.current = new Set();
@@ -206,7 +237,7 @@ export default function LiveDiscover() {
       observerRef.current.observe(el);
     }
     return () => observerRef.current?.disconnect();
-  }, [creators.map((c) => c.id).join(',')]);
+  }, [creatorIdsKey]);
 
   // When a creator starts live, show them on this page immediately (same as For You feed); reconnect on close
   useEffect(() => {
@@ -275,7 +306,9 @@ export default function LiveDiscover() {
       >
         <button
           type="button"
-          onClick={fetchLiveStreams}
+          onClick={() => {
+            void fetchLiveStreams();
+          }}
           className="p-1"
           title="Refresh"
           aria-label="Refresh"
@@ -342,7 +375,9 @@ export default function LiveDiscover() {
               </p>
               <button
                 type="button"
-                onClick={fetchLiveStreams}
+                onClick={() => {
+                  void fetchLiveStreams();
+                }}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/5 border border-white/10 active:scale-95 transition-all"
               >
                 <RefreshCw size={14} className="text-white/50" />

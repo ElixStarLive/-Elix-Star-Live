@@ -7,8 +7,6 @@ import { useSoundLibraryPlayerStore } from '../store/useSoundLibraryPlayerStore'
 type Props = {
   onClose: () => void;
   onPick: (track: SoundTrack) => void;
-  /** Kept for call-site compatibility — unused; always full Sound page. */
-  layout?: 'sheet' | 'embedded';
 };
 
 /**

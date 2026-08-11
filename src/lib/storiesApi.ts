@@ -19,7 +19,9 @@ export type StoryUserGroup = {
 
 export async function fetchActiveStories(): Promise<StoryUserGroup[]> {
   const { data, error } = await request<{ stories?: StoryUserGroup[] }>('/api/stories');
-  if (error) return [];
+  if (error) {
+    throw new Error(error.message || 'Failed to load stories');
+  }
   return Array.isArray(data?.stories) ? data.stories : [];
 }
 

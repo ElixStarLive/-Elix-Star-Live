@@ -148,7 +148,7 @@ async function sendEmailConfirmation(
     text: `Confirm your email by opening this link:\n\n${verifyLink}\n\nThis link expires in 24 hours. If you did not create an account, ignore this email.`,
     html: `<p>Confirm your email by clicking the link below:</p><p><a href="${verifyLink}">Confirm email</a></p><p>This link expires in 24 hours. If you did not create an account, you can ignore this email.</p>`,
   });
-  if (!result.ok) return { ok: false, error: result.error };
+  if (result.ok === false) return { ok: false, error: result.error };
   return { ok: true };
 }
 
@@ -403,42 +403,6 @@ interface StoredUser {
   /** ISO timestamp when email was confirmed; null/undefined = unverified. */
   email_confirmed_at: string | null;
 }
-let authTableEnsured = false;
-let sessionTableEnsured = false;
-
-async function ensureAuthUsersTable(): Promise<void> {
-  if (authTableEnsured) return;
-  const pool = getPool();
-  if (!pool) return;
-  try {
-    // Idempotent: migration 20260723140000 also adds this; keep runtime safe if
-    // a deploy races ahead of migrate.
-    await pool.query(
-      `ALTER TABLE elix_auth_users ADD COLUMN IF NOT EXISTS email_confirmed_at TIMESTAMPTZ`,
-    );
-    await pool.query(
-      `ALTER TABLE elix_auth_users ADD COLUMN IF NOT EXISTS display_name TEXT`,
-    );
-    // Grandfather only rows that still lack a value (existing production accounts).
-    await pool.query(
-      `UPDATE elix_auth_users
-          SET email_confirmed_at = COALESCE(created_at, NOW())
-        WHERE email_confirmed_at IS NULL
-          AND created_at < NOW() - INTERVAL '1 minute'`,
-    );
-  } catch (err) {
-    logger.warn({ err }, 'ensureAuthUsersTable: email_confirmed_at ensure skipped');
-  }
-  authTableEnsured = true;
-}
-
-async function ensureAuthSessionsTable(): Promise<void> {
-  if (sessionTableEnsured) return;
-  const pool = getPool();
-  if (!pool) return;
-  sessionTableEnsured = true;
-}
-
 function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
@@ -466,7 +430,6 @@ function rowToStoredUser(row: Record<string, unknown>): StoredUser {
 async function dbFindUserByEmail(email: string): Promise<StoredUser | null> {
   const pool = getPool();
   if (!pool) return null;
-  await ensureAuthUsersTable();
   const r = await pool.query(
     `SELECT id, email, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
@@ -481,7 +444,6 @@ async function dbFindUserByEmail(email: string): Promise<StoredUser | null> {
 async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUser | null> {
   const pool = getPool();
   if (!pool) return null;
-  await ensureAuthUsersTable();
   const lower = identifier.toLowerCase();
   const emailResult = await pool.query(
     `SELECT u.id, u.email, u.password_hash, u.username, u.display_name, u.avatar_url, u.created_at, u.email_confirmed_at
@@ -510,7 +472,6 @@ async function dbFindUserByEmailOrUsername(identifier: string): Promise<StoredUs
 async function dbFindUserById(id: string): Promise<StoredUser | null> {
   const pool = getPool();
   if (!pool) return null;
-  await ensureAuthUsersTable();
   const r = await pool.query(
     `SELECT id, email, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at
        FROM elix_auth_users
@@ -525,7 +486,6 @@ async function dbFindUserById(id: string): Promise<StoredUser | null> {
 async function dbInsertUser(user: StoredUser): Promise<void> {
   const pool = getPool();
   if (!pool) return;
-  await ensureAuthUsersTable();
   await pool.query(
     `INSERT INTO elix_auth_users (id, email, email_lower, password_hash, username, display_name, avatar_url, created_at, email_confirmed_at)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -548,7 +508,6 @@ async function dbRegisterUser(
 ): Promise<"ok" | "email_exists" | "username_exists"> {
   const pool = getPool();
   if (!pool) throw new Error("DATABASE_UNAVAILABLE");
-  await ensureAuthUsersTable();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -622,14 +581,12 @@ async function dbRegisterUser(
 async function _dbDeleteUserById(id: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;
-  await ensureAuthUsersTable();
   await pool.query(`DELETE FROM elix_auth_users WHERE id = $1`, [id]);
 }
 
 async function dbUpsertSession(userId: string, token: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;
-  await ensureAuthSessionsTable();
   const tokenHash = hashSessionToken(token);
   await pool.query(
     `INSERT INTO elix_auth_sessions (token_hash, user_id, expires_at)
@@ -643,7 +600,6 @@ async function dbUpsertSession(userId: string, token: string): Promise<void> {
 async function dbDeleteSessionByToken(token: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;
-  await ensureAuthSessionsTable();
   await pool.query(`DELETE FROM elix_auth_sessions WHERE token_hash = $1`, [hashSessionToken(token)]);
   await invalidateSessionCacheByToken(token);
 }
@@ -688,7 +644,9 @@ async function loadProfileMeta(userId: string): Promise<{
   level?: number;
 }> {
   const pool = getPool();
-  if (!pool) return {};
+  if (!pool) {
+    throw new Error('Postgres pool is not initialized');
+  }
   try {
     const pr = await pool.query(
       `SELECT COALESCE(is_admin, false) AS is_admin, COALESCE(is_verified, false) AS is_verified, banned_until FROM profiles WHERE user_id = $1`,
@@ -706,8 +664,8 @@ async function loadProfileMeta(userId: string): Promise<{
       level: progression?.current_level ?? 0,
     };
   } catch (err) {
-    logger.warn({ err, userId }, 'loadProfileMeta skipped');
-    return {};
+    logger.error({ err, userId }, 'loadProfileMeta failed');
+    throw err;
   }
 }
 
@@ -1280,7 +1238,7 @@ export async function handleForgotPassword(req: Request, res: Response) {
       html: `<p>Click the link below to reset your password:</p><p><a href="${resetLink}">Reset Password</a></p><p>This link expires in 1 hour. If you did not request this, you can ignore this email.</p>`,
     });
 
-    if (!result.ok) {
+    if (result.ok === false) {
       // Do not reveal whether the account exists by returning a distinct status.
       logger.error({ error: result.error }, 'handleForgotPassword email send failed');
     }
@@ -1317,7 +1275,6 @@ export async function handleResetPassword(req: Request, res: Response) {
     }
     const pool = getPool();
     if (!pool) return res.status(503).json({ error: 'Database not configured' });
-    await ensureAuthUsersTable();
     await pool.query(`UPDATE elix_auth_users SET password_hash = $2 WHERE id = $1`, [
       user.id,
       await hashPassword(password),

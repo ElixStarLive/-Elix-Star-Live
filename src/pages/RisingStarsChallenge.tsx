@@ -13,6 +13,7 @@ import {
   apiRisingStarsEnterChallenge,
   apiRisingStarsVoteEntry,
 } from "../features/risingStars/risingStarsApi";
+import { RISING_STARS_HOME } from "../lib/settingsNav";
 
 interface Challenge {
   id: string;
@@ -51,7 +52,7 @@ export default function RisingStarsChallenge() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(RISING_STARS_HOME, { replace: true }), [navigate]);
   const goLogin = useCallback(() => navigate("/login"), [navigate]);
   const goCreate = useCallback(() => navigate("/create"), [navigate]);
   const openCreatorProfile = useCallback(

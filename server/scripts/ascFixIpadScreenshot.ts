@@ -2,6 +2,25 @@ import "dotenv/config";
 import { SignJWT, importPKCS8 } from "jose";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { requireEnv } from "./_env.ts";
+
+type AscApiJson = {
+  raw?: string;
+  data?: {
+    id?: string;
+    attributes?: {
+      uploadOperations?: Array<{
+        requestHeaders?: Array<{ name: string; value: string }>;
+        offset: number;
+        length: number;
+        url: string;
+        method: string;
+      }>;
+      assetDeliveryState?: unknown;
+    };
+  };
+  errors?: Array<{ detail?: string }>;
+};
 
 async function normalizePem(raw: string): Promise<string> {
   const trimmed = raw.trim();
@@ -23,10 +42,10 @@ async function normalizePem(raw: string): Promise<string> {
 }
 
 async function main() {
-  const issuerId = process.env.APP_STORE_CONNECT_ISSUER_ID!.trim();
-  const keyId = process.env.APP_STORE_CONNECT_KEY_ID!.trim();
+  const issuerId = requireEnv("APP_STORE_CONNECT_ISSUER_ID").trim();
+  const keyId = requireEnv("APP_STORE_CONNECT_KEY_ID").trim();
   const privateKey = await importPKCS8(
-    await normalizePem(process.env.APP_STORE_CONNECT_PRIVATE_KEY!),
+    await normalizePem(requireEnv("APP_STORE_CONNECT_PRIVATE_KEY")),
     "ES256",
   );
   const now = Math.floor(Date.now() / 1000);
@@ -48,9 +67,9 @@ async function main() {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const t = await r.text();
-    let j: any;
+    let j: AscApiJson;
     try {
-      j = JSON.parse(t);
+      j = JSON.parse(t) as AscApiJson;
     } catch {
       j = { raw: t.slice(0, 300) };
     }

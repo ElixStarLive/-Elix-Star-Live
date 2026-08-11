@@ -1,6 +1,6 @@
 /**
- * Upload audio fingerprint gate — Pex / Audible Magic ready.
- * When no provider key is set, uploads pass through unchanged.
+ * Upload audio fingerprint gate — Pex when configured.
+ * When no Pex key is set / scan disabled, uploads pass through unchanged.
  */
 
 import { logger } from "../lib/logger";
@@ -37,10 +37,9 @@ export function isAudioScanEnabled(): boolean {
 }
 
 export function isAudioScanConfigured(): boolean {
-  return Boolean(
-    process.env.PEX_API_KEY?.trim() ||
-      process.env.AUDIBLE_MAGIC_API_KEY?.trim(),
-  );
+  // Only Pex is implemented. Audible Magic key alone must not mark scanning "configured"
+  // (that previously allowed uploads while pretending a fingerprint gate existed).
+  return Boolean(process.env.PEX_API_KEY?.trim());
 }
 
 /** Extract video UUID from paths like videos/{userId}/{videoId}/original.mp4 */
@@ -82,13 +81,13 @@ export async function scanVideoUpload(params: {
     return scanWithPex({ buffer, storagePath, userId }, pexKey);
   }
 
-  const amKey = process.env.AUDIBLE_MAGIC_API_KEY?.trim();
-  if (amKey) {
-    logger.info({ storagePath, userId }, "Audible Magic key set — integration pending");
-    return { scanned: false, action: "allow", provider: "audible_magic" };
-  }
-
-  return { scanned: false, action: "allow" };
+  // Scan enabled but no implemented provider — fail closed (do not fake allow).
+  logger.error({ storagePath, userId }, "Audio scan enabled but no Pex provider key");
+  return {
+    scanned: false,
+    action: "reject",
+    reason: "AUDIO_SCAN_PROVIDER_UNAVAILABLE",
+  };
 }
 
 async function scanWithPex(
@@ -106,8 +105,8 @@ async function scanWithPex(
 
     const res = await fetch(`${baseUrl}/identify`, {
       method: "POST",
-      // Bound the scan so a hung Pex request cannot pin the upload handler. On
-      // timeout the existing catch fails open (action: "allow") — unchanged.
+      // Bound the scan so a hung Pex request cannot pin the upload handler.
+      // On timeout/error the catch fails closed (action: "reject").
       signal: AbortSignal.timeout(20_000),
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -125,9 +124,14 @@ async function scanWithPex(
       const text = await res.text().catch(() => "");
       logger.warn(
         { status: res.status, body: text.slice(0, 200), path: params.storagePath },
-        "Pex scan non-OK — allowing upload",
+        "Pex scan non-OK — rejecting upload (fail closed)",
       );
-      return { scanned: true, action: "allow", provider: "pex", reason: "scan_inconclusive" };
+      return {
+        scanned: true,
+        action: "reject",
+        provider: "pex",
+        reason: "scan_provider_error",
+      };
     }
 
     const data = (await res.json()) as {
@@ -164,8 +168,13 @@ async function scanWithPex(
 
     return { scanned: true, action: "allow", provider: "pex" };
   } catch (err) {
-    logger.warn({ err, path: params.storagePath }, "Pex scan failed — allowing upload");
-    return { scanned: true, action: "allow", provider: "pex", reason: "scan_error" };
+    logger.warn({ err, path: params.storagePath }, "Pex scan failed — rejecting upload (fail closed)");
+    return {
+      scanned: true,
+      action: "reject",
+      provider: "pex",
+      reason: "scan_error",
+    };
   }
 }
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { addVideo, getVideoAsync, getAllVideosAsync, getVideosByUserAsync, deleteVideoFromCache, type Video } from "../lib/videoStore";
+import { getVideoAsync, getAllVideosAsync, getVideosByUserAsync, type Video } from "../lib/videoStore";
 import { saveVideoToDb, deleteVideoFromDb, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import {
@@ -146,7 +146,6 @@ router.post("/", async (req, res) => {
       privacy,
     };
 
-    addVideo(video);
     await saveVideoToDb(video);
 
     const videoMusic = music as { id?: string; provider?: string } | null;
@@ -165,19 +164,29 @@ router.post("/", async (req, res) => {
 });
 
 router.get("/", async (_req, res) => {
-  const videos = await getAllVideosAsync();
-  res.json({ videos, total: videos.length });
+  try {
+    const videos = await getAllVideosAsync();
+    res.json({ videos, total: videos.length });
+  } catch (err) {
+    logger.error({ err }, "GET /api/videos failed");
+    return res.status(503).json({ error: "Failed to load videos" });
+  }
 });
 
 router.get("/user/:userId", async (req, res) => {
-  const token = getTokenFromRequest(req);
-  const payload = token ? verifyAuthToken(token) : null;
-  const videos = await getVideosByUserAsync(
-    req.params.userId,
-    200,
-    payload?.sub === req.params.userId,
-  );
-  res.json({ videos, total: videos.length });
+  try {
+    const token = getTokenFromRequest(req);
+    const payload = token ? verifyAuthToken(token) : null;
+    const videos = await getVideosByUserAsync(
+      req.params.userId,
+      200,
+      payload?.sub === req.params.userId,
+    );
+    res.json({ videos, total: videos.length });
+  } catch (err) {
+    logger.error({ err }, "GET /api/videos/user failed");
+    return res.status(503).json({ error: "Failed to load user videos" });
+  }
 });
 
 router.get("/saved/list", async (req, res) => {
@@ -264,27 +273,50 @@ router.get("/:id/download", async (req, res) => {
     return res.status(200).send(buffer);
   } catch (err) {
     logger.error({ err, videoId: req.params.id }, "GET /api/videos/:id/download failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
     return res.status(502).json({ error: "DOWNLOAD_FAILED" });
   }
 });
 
 router.get("/:id", async (req, res) => {
-  const video = await getVideoAsync(req.params.id);
-  if (!video) return res.status(404).json({ error: "Video not found" });
-  if (video.privacy === "private") {
-    const token = getTokenFromRequest(req);
-    const payload = token ? verifyAuthToken(token) : null;
-    if (payload?.sub !== video.userId) {
-      return res.status(404).json({ error: "Video not found" });
+  try {
+    const video = await getVideoAsync(req.params.id);
+    if (!video) return res.status(404).json({ error: "Video not found" });
+    if (video.privacy === "private") {
+      const token = getTokenFromRequest(req);
+      const payload = token ? verifyAuthToken(token) : null;
+      if (payload?.sub !== video.userId) {
+        return res.status(404).json({ error: "Video not found" });
+      }
     }
+    return res.json(video);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "GET /api/videos/:id failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
+    return res.status(500).json({ error: "Failed to load video" });
   }
-  res.json(video);
 });
 
 router.get("/:id/likes", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", users: [] });
-  const gate = await getVideoAsync(req.params.id);
+  let gate;
+  try {
+    gate = await getVideoAsync(req.params.id);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "get likes gate failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE", users: null });
+    }
+    return res.status(500).json({ error: "Failed to load likes", users: null });
+  }
   if (gate?.privacy === "private") {
     const token = getTokenFromRequest(req);
     const payload = token ? verifyAuthToken(token) : null;
@@ -398,7 +430,17 @@ router.post("/:id/unsave", async (req, res) => {
 router.get("/:id/comments", async (req, res) => {
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured", comments: [] });
-  const gate = await getVideoAsync(req.params.id);
+  let gate;
+  try {
+    gate = await getVideoAsync(req.params.id);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "get comments gate failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE", comments: null });
+    }
+    return res.status(500).json({ error: "Failed to load comments", comments: null });
+  }
   if (gate?.privacy === "private") {
     const token = getTokenFromRequest(req);
     const payload = token ? verifyAuthToken(token) : null;
@@ -562,11 +604,20 @@ router.delete("/:id", async (req, res) => {
   const payload = verifyAuthToken(token);
   if (!payload) return res.status(401).json({ error: "Invalid or expired session." });
 
-  const video = await getVideoAsync(req.params.id);
+  let video;
+  try {
+    video = await getVideoAsync(req.params.id);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "DELETE /api/videos/:id failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
+    return res.status(500).json({ error: "Failed to load video" });
+  }
   if (!video) return res.status(404).json({ error: "Video not found" });
   if (video.userId !== payload.sub) return res.status(403).json({ error: "You can only delete your own videos." });
 
-  deleteVideoFromCache(req.params.id);
   await deleteVideoFromDb(req.params.id);
   res.json({ ok: true });
 });
@@ -580,7 +631,17 @@ router.post("/:id/fyp", async (req, res) => {
   if (!payload?.sub) return res.status(401).json({ error: "Not authenticated." });
   const db = getPool();
   if (!db) return res.status(503).json({ error: "Database not configured" });
-  const video = await getVideoAsync(req.params.id);
+  let video;
+  try {
+    video = await getVideoAsync(req.params.id);
+  } catch (err) {
+    logger.error({ err, videoId: req.params.id }, "fyp video lookup failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
+    return res.status(500).json({ error: "Failed to load video" });
+  }
   if (!video) return res.status(404).json({ error: "Video not found" });
   if (video.userId !== payload.sub) {
     return res.status(403).json({ error: "You can only boost your own videos." });

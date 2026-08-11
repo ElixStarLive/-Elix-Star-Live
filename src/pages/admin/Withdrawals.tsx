@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Wallet } from "lucide-react";
 import { showToast } from "../../lib/toast";
+import { reportFailure } from "../../lib/reportFailure";
 import { apiAdminListPayouts, apiAdminPayoutAction } from "../../features/admin/adminApi";
 
 type PayoutRow = {
@@ -49,8 +50,9 @@ export default function AdminWithdrawals() {
     setLoading(true);
     const { payouts, error } = await apiAdminListPayouts(status);
     if (error) {
+      reportFailure("admin_withdrawals_load", new Error(error || "Failed to load payouts"));
       showToast(error || "Failed to load payouts");
-      setRows([]);
+      /* keep prior rows — do not soft-empty on failure */
     } else {
       setRows(payouts as PayoutRow[]);
     }

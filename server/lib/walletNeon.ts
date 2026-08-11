@@ -17,7 +17,10 @@ import type { AppleTxPayload } from "./appleIap";
 
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();
-  if (!pool || !userId) return null;
+  if (!userId) return null;
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const r = await pool.query(
       `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
@@ -27,7 +30,7 @@ export async function neonGetCoinBalance(userId: string): Promise<number | null>
     return Math.max(0, Number(r.rows[0].b));
   } catch (e) {
     logger.warn({ err: e }, "neonGetCoinBalance failed");
-    return null;
+    throw e;
   }
 }
 
@@ -194,7 +197,9 @@ export async function neonListLedger(userId: string, limit: number): Promise<
   }>
 > {
   const pool = getPool();
-  if (!pool) return [];
+  if (!pool) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const r = await pool.query(
       `SELECT id, kind, coins_delta, provider, provider_transaction_id, product_id, gift_id, room_id, client_transaction_id, created_at
@@ -233,7 +238,7 @@ export async function neonListLedger(userId: string, limit: number): Promise<
     });
   } catch (e) {
     logger.warn({ err: e }, "neonListLedger failed");
-    return [];
+    throw e;
   }
 }
 

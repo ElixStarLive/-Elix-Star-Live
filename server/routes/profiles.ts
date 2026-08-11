@@ -6,7 +6,7 @@
 
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { dbIsBlockedEitherWay, ensureFollowsTable, getPool } from "../lib/postgres";
+import { dbIsBlockedEitherWay, getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { insertNotification } from "../lib/notifications";
 import { isSafeMediaUrl } from "../services/videoDownload";
@@ -37,8 +37,6 @@ export interface Profile {
   updatedAt: string;
 }
 
-let profilesTableReady = false;
-
 type StoredUserRow = { id: string; email?: string; username?: string; avatar_url?: string; display_name?: string };
 
 const PROFILE_CACHE_TTL = 30_000;
@@ -63,16 +61,10 @@ function toIsoTimestamp(value: unknown, fallbackNow = true): string {
   return fallbackNow ? new Date().toISOString() : "";
 }
 
-/** @deprecated No-op — bulk loading removed for horizontal scaling. */
-export async function loadFollowsFromDb(): Promise<void> {
-  // Intentionally empty — follows are queried per-user from DB.
-}
-
 /** DB-primary following IDs for a user. Throws on error (fail-closed). */
 export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  await ensureFollowsTable();
   const res = await db.query(`SELECT following_id FROM follows WHERE follower_id = $1`, [userId]);
   return (res.rows || []).map((r: Record<string, unknown>) => String(r.following_id));
 }
@@ -81,7 +73,6 @@ export async function getFollowingIdsAsync(userId: string): Promise<string[]> {
 export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  await ensureFollowsTable();
   const res = await db.query(`SELECT follower_id FROM follows WHERE following_id = $1`, [userId]);
   return (res.rows || []).map((r: Record<string, unknown>) => String(r.follower_id));
 }
@@ -90,7 +81,6 @@ export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
 export async function getMutualFollowIdsAsync(userId: string): Promise<string[]> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  await ensureFollowsTable();
   const res = await db.query(
     `SELECT f1.following_id
      FROM follows f1
@@ -105,7 +95,6 @@ export async function getMutualFollowIdsAsync(userId: string): Promise<string[]>
 export async function isFollowingAsync(followerId: string, targetId: string): Promise<boolean> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  await ensureFollowsTable();
   const res = await db.query(
     `SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 LIMIT 1`,
     [followerId, targetId],
@@ -114,14 +103,7 @@ export async function isFollowingAsync(followerId: string, targetId: string): Pr
 }
 
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
-
-/** Schema from migrations — marks ready when DB pool exists. */
-async function ensureProfilesTable(): Promise<void> {
-  if (profilesTableReady) return;
-  const db = getPool();
-  if (!db) return;
-  profilesTableReady = true;
-}
+// Schema comes from migrations — do not invent DDL / fake ensure here.
 
 /**
  * A pooled Neon connection can be dead after Neon suspends an idle compute, or
@@ -168,11 +150,6 @@ async function queryWithConnRetry(
 async function saveProfileToDb(p: Profile): Promise<boolean> {
   const db = getPool();
   if (!db) return false;
-  await ensureProfilesTable();
-  if (!profilesTableReady) {
-    logger.error({ userId: p.userId }, "saveProfileToDb: profiles table not ready");
-    throw new Error("profiles table not ready");
-  }
   const createdAt = toIsoTimestamp(p.createdAt);
   const updatedAt = toIsoTimestamp(p.updatedAt);
   const avatarUrl = typeof p.avatarUrl === "string" ? p.avatarUrl : "";
@@ -220,9 +197,7 @@ async function updateAuthUserAvatarUrl(userId: string, avatarUrl: string): Promi
 
 async function loadProfileFromDb(userId: string): Promise<Profile | null> {
   const db = getPool();
-  if (!db) return null;
-  await ensureProfilesTable();
-  if (!profilesTableReady) return null;
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const res = await db.query(`SELECT * FROM profiles WHERE user_id = $1`, [userId]);
     const r = res.rows?.[0];
@@ -245,8 +220,8 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
       updatedAt: toIsoTimestamp(r.updated_at),
     };
   } catch (err) {
-    logger.warn({ err, userId }, "loadProfileFromDb failed");
-    return null;
+    logger.error({ err, userId }, "loadProfileFromDb failed");
+    throw err;
   }
 }
 
@@ -272,7 +247,7 @@ async function setCachedProfile(profile: Profile): Promise<void> {
 
 async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
   const db = getPool();
-  if (!db) return null;
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const res = await db.query(
       `SELECT id, email, username, display_name, avatar_url FROM elix_auth_users WHERE id = $1`,
@@ -288,14 +263,14 @@ async function lookupAuthUser(userId: string): Promise<StoredUserRow | null> {
       avatar_url: String(r.avatar_url || ""),
     };
   } catch (err) {
-    logger.warn({ err, userId }, "lookupAuthUser failed");
-    return null;
+    logger.error({ err, userId }, "lookupAuthUser failed");
+    throw err;
   }
 }
 
 async function readUsersFromDb(): Promise<StoredUserRow[]> {
   const db = getPool();
-  if (!db) return [];
+  if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
     const res = await db.query(`
       SELECT u.id, u.email, u.username, u.display_name, u.avatar_url
@@ -311,8 +286,8 @@ async function readUsersFromDb(): Promise<StoredUserRow[]> {
       display_name: String(r.display_name || ""),
     }));
   } catch (err) {
-    logger.warn({ err }, "readUsersFromDb failed");
-    return [];
+    logger.error({ err }, "readUsersFromDb failed");
+    throw err;
   }
 }
 
@@ -413,11 +388,6 @@ export async function getOrCreateProfile(userId: string, seed?: Partial<Profile>
   return profile;
 }
 
-/** @deprecated Use getOrCreateProfile (now async). */
-export async function getOrCreateProfileFromDb(userId: string, seed?: Partial<Profile>): Promise<Profile> {
-  return getOrCreateProfile(userId, seed);
-}
-
 async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>): Promise<Profile> {
   let profile = await getCachedProfile(userId) ?? await loadProfileFromDb(userId) ?? null;
 
@@ -487,7 +457,6 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
   const db = getPool();
   if (db) {
     try {
-      await ensureFollowsTable();
       const [fersRes, fingRes] = await Promise.all([
         db.query(`SELECT COUNT(*)::int AS c FROM follows WHERE following_id = $1`, [userId]),
         db.query(`SELECT COUNT(*)::int AS c FROM follows WHERE follower_id = $1`, [userId]),
@@ -588,39 +557,35 @@ export async function handleListProfiles(req: Request, res: Response): Promise<v
   const merged = new Map<string, Record<string, unknown>>();
 
   const db = getPool();
+  if (!db) {
+    res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    return;
+  }
+
   let profileRows: Record<string, unknown>[] = [];
   let users: StoredUserRow[] = [];
 
-  if (db) {
-    try {
-      await ensureProfilesTable();
-      const [dbRes, usersRes] = await Promise.all([
-        db.query(
-          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
-           FROM profiles
-           WHERE banned_until IS NULL OR banned_until <= NOW()
-           LIMIT 500`,
-        ),
-        readUsersFromDb(),
-      ]);
-      profileRows = dbRes.rows || [];
-      users = usersRes;
-    } catch (err) {
-      logger.warn({ err }, "handleListProfiles: parallel load failed, falling back sequential");
-      try {
-        await ensureProfilesTable();
-        const dbRes = await db.query(
-          `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
-           FROM profiles
-           WHERE banned_until IS NULL OR banned_until <= NOW()
-           LIMIT 500`,
-        );
-        profileRows = dbRes.rows || [];
-      } catch (e2) {
-        logger.warn({ err: e2 }, "handleListProfiles: profiles query failed");
-      }
-      users = await readUsersFromDb();
+  try {
+    const [dbRes, usersRes] = await Promise.all([
+      db.query(
+        `SELECT user_id, username, display_name, avatar_url, level, is_verified, followers, following
+         FROM profiles
+         WHERE banned_until IS NULL OR banned_until <= NOW()
+         LIMIT 500`,
+      ),
+      readUsersFromDb(),
+    ]);
+    profileRows = dbRes.rows || [];
+    users = usersRes;
+  } catch (err) {
+    logger.error({ err }, "handleListProfiles: load failed");
+    const msg = err instanceof Error ? err.message : "";
+    if (msg === "DATABASE_UNAVAILABLE") {
+      res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+      return;
     }
+    res.status(500).json({ error: "PROFILES_LIST_FAILED" });
+    return;
   }
 
   const emailMap = new Map<string, string>();
@@ -642,8 +607,7 @@ export async function handleListProfiles(req: Request, res: Response): Promise<v
     });
   }
 
-  if (db) {
-    for (const u of users) {
+  for (const u of users) {
       if (!u?.id || merged.has(u.id)) continue;
       const username =
         (typeof u.username === "string" && u.username.trim()) ||
@@ -669,7 +633,6 @@ export async function handleListProfiles(req: Request, res: Response): Promise<v
         following_count: 0,
       });
     }
-  }
 
   const result = { profiles: Array.from(merged.values()) };
   bumpCacheLayer("profiles_list_builds");
@@ -702,7 +665,6 @@ export async function handleGetFollowers(req: Request, res: Response): Promise<v
   const db = getPool();
   if (db && followerIds.length > 0) {
     try {
-      await ensureProfilesTable();
       const r = await db.query(
         `SELECT user_id, username, display_name, avatar_url FROM profiles WHERE user_id = ANY($1::text[])`,
         [followerIds],
@@ -752,8 +714,55 @@ export async function handleGetFollowing(req: Request, res: Response): Promise<v
 
   const followingIds = await getFollowingIdsAsync(userId);
 
+  type Row = { user_id: string; username: string; display_name: string | null; avatar_url: string | null };
+  let following_profiles: Row[] = [];
+
+  const db = getPool();
+  if (db && followingIds.length > 0) {
+    try {
+      const r = await db.query(
+        `SELECT user_id, username, display_name, avatar_url FROM profiles WHERE user_id = ANY($1::text[])`,
+        [followingIds],
+      );
+      const byId = new Map<string, Row>();
+      for (const row of r.rows || []) {
+        const username = String(row.username || "").trim();
+        if (!username) continue;
+        byId.set(String(row.user_id), {
+          user_id: String(row.user_id),
+          username,
+          display_name: row.display_name != null ? String(row.display_name) : null,
+          avatar_url: row.avatar_url != null ? String(row.avatar_url) : null,
+        });
+      }
+      following_profiles = followingIds
+        .map((id) => byId.get(id))
+        .filter((row): row is Row => row != null);
+    } catch (err) {
+      logger.error({ err, userId }, "handleGetFollowing: profile query failed");
+    }
+  }
+
+  if (following_profiles.length === 0 && followingIds.length > 0) {
+    following_profiles = await Promise.all(
+      followingIds.map(async (id) => {
+        const p = await getOrCreateProfileAsync(id);
+        return {
+          user_id: p.userId,
+          username: p.username,
+          display_name: p.displayName || null,
+          avatar_url: p.avatarUrl || null,
+        };
+      }),
+    );
+  }
+
   res.setHeader("Cache-Control", "private, no-store");
-  res.json({ count: Math.max(followingIds.length, profile.following), following: followingIds });
+  res.json({
+    count: Math.max(followingIds.length, profile.following),
+    following: followingIds,
+    following_profiles,
+  });
 }
 
 /** PATCH /api/profiles/:userId — auth required, own profile only */
@@ -852,7 +861,7 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
   for (const key of allowed) {
     const val = body[key];
     if (val !== undefined) {
-      (profile as Record<string, unknown>)[key] = val;
+      (profile as unknown as Record<string, unknown>)[key] = val;
     }
   }
   profile.updatedAt = new Date().toISOString();
@@ -913,7 +922,6 @@ export async function handleFollow(req: Request, res: Response): Promise<void> {
     return;
   }
   try {
-    await ensureFollowsTable();
     await db.query(`INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)`, [jwtUser.sub, userId]);
   } catch (err: unknown) {
     const code = (err as { code?: string })?.code;
@@ -983,7 +991,6 @@ export async function handleUnfollow(req: Request, res: Response): Promise<void>
   let deleted = false;
   if (db) {
     try {
-      await ensureFollowsTable();
       const result = await db.query(`DELETE FROM follows WHERE follower_id = $1 AND following_id = $2`, [jwtUser.sub, userId]);
       deleted = (result.rowCount ?? 0) > 0;
     } catch (err) {

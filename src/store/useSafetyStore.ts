@@ -5,6 +5,7 @@ import {
   apiListBlockedUsers,
   apiUnblockUser,
 } from '../features/safety/safetyApi';
+import { reportFailure } from '../lib/reportFailure';
 
 type SafetyStore = {
   blockedUserIds: string[];
@@ -65,7 +66,10 @@ export const useSafetyStore = create<SafetyStore>()(
       hydrateBlockedFromServer: async () => {
         try {
           const { rows, error } = await apiListBlockedUsers();
-          if (error) return;
+          if (error) {
+            reportFailure('safety_hydrate_blocked', error);
+            return;
+          }
           const ids = rows
             .map((r) =>
               String(
@@ -78,7 +82,8 @@ export const useSafetyStore = create<SafetyStore>()(
           const unique = Array.from(new Set(ids));
           set({ blockedUserIds: unique });
           for (const id of unique) purgeCreatorFromFeeds(id);
-        } catch {
+        } catch (err) {
+          reportFailure('safety_hydrate_blocked', err);
           /* keep persisted local list */
         }
       },

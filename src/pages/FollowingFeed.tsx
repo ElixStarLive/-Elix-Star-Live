@@ -5,29 +5,30 @@ import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
+import { FEED_HOME } from '../lib/settingsNav';
 
 export default function FollowingFeed() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
+  const { followingVideos, fetchFollowingVideos, followingLoading: loading } = useVideoStore();
   const [activeIndex, setActiveIndex] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const friendVideoIds = friendVideos.map((v) => v.id);
+  const followingVideoIds = followingVideos.map((v) => v.id);
 
   useEffect(() => {
     trackScreenView('following_feed');
     if (user?.id) {
-      fetchFriendVideos();
+      fetchFollowingVideos();
     }
-  }, [user?.id, fetchFriendVideos]);
+  }, [user?.id, fetchFollowingVideos]);
 
   const goSearch = useCallback(() => {
     navigate('/search');
   }, [navigate]);
 
   const goBack = useCallback(() => {
-    navigate(-1);
+    navigate(FEED_HOME, { replace: true });
   }, [navigate]);
 
   const goDiscover = useCallback(() => {
@@ -39,18 +40,18 @@ export default function FollowingFeed() {
     const scrollPos = containerRef.current.scrollTop;
     const height = containerRef.current.clientHeight;
     const index = Math.round(scrollPos / height);
-    if (index >= 0 && index < friendVideoIds.length) setActiveIndex(index);
-  }, [friendVideoIds.length]);
+    if (index >= 0 && index < followingVideoIds.length) setActiveIndex(index);
+  }, [followingVideoIds.length]);
 
   useEffect(() => {
-    if (!containerRef.current || friendVideoIds.length === 0) return;
+    if (!containerRef.current || followingVideoIds.length === 0) return;
     const container = containerRef.current;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
           const idx = Number((entry.target as HTMLElement).dataset.slideIndex);
-          if (!Number.isNaN(idx) && idx >= 0 && idx < friendVideoIds.length) setActiveIndex(idx);
+          if (!Number.isNaN(idx) && idx >= 0 && idx < followingVideoIds.length) setActiveIndex(idx);
         });
       },
       { root: container, rootMargin: '0px', threshold: 0.51 }
@@ -59,15 +60,15 @@ export default function FollowingFeed() {
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [friendVideoIds.join(',')]);
+  }, [followingVideoIds.join(',')]);
 
   const handleVideoEnd = useCallback((index: number) => {
-    if (!containerRef.current || index >= friendVideoIds.length - 1) return;
+    if (!containerRef.current || index >= followingVideoIds.length - 1) return;
     containerRef.current.scrollTo({
       top: (index + 1) * containerRef.current.clientHeight,
       behavior: 'smooth',
     });
-  }, [friendVideoIds.length]);
+  }, [followingVideoIds.length]);
 
   return (
     <div ref={pageRef} className="app-live-column bg-transparent relative">
@@ -87,7 +88,7 @@ export default function FollowingFeed() {
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
-          {friendVideoIds.map((videoId, index) => (
+          {followingVideoIds.map((videoId, index) => (
             <div
               key={`following-${videoId}-${index}`}
               data-slide-index={index}
@@ -109,13 +110,13 @@ export default function FollowingFeed() {
             </div>
           ))}
 
-          {loading && friendVideoIds.length === 0 && (
+          {loading && followingVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-8 h-8 border-2 border-[#E6E9EE]/25 border-t-[#E6E9EE] rounded-full animate-spin elix-loader" />
             </div>
           )}
 
-          {!loading && friendVideoIds.length === 0 && (
+          {!loading && followingVideoIds.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/50 px-6 text-center">
               <p className="text-base font-semibold mb-1">No videos from people you follow</p>
               <p className="text-xs text-white/30 mb-4">Follow people to see their videos here</p>

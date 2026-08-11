@@ -10,6 +10,7 @@ import {
   apiToggleCommentLike,
 } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 import { LevelBadge } from './LevelBadge';
 import { profileRingOuterAddMm } from '../lib/profileFrame';
 
@@ -74,7 +75,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       }
       setComments(list);
     } catch (error) {
-      console.error('Failed to fetch comments:', error);
+      reportFailure('comments_fetch', error, { videoId });
     } finally {
       setLoading(false);
     }
@@ -102,7 +103,8 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           });
         }
       }
-    } catch {
+    } catch (error) {
+      reportFailure('comments_post', error, { videoId });
       showToast('Could not post comment');
     } finally {
       setPosting(false);
@@ -136,7 +138,9 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
           });
         }
       }
-    } catch { /* intentionally empty */ }
+    } catch (error) {
+      reportFailure('comments_delete', error, { videoId, commentId });
+    }
   };
 
   const handleEditComment = async (commentId: string) => {
@@ -167,7 +171,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
       setEditingComment(null);
       setEditText('');
     } catch (error) {
-      console.error('Failed to edit comment:', error);
+      reportFailure('comments_edit', error, { videoId, commentId });
       showToast('Could not edit comment');
     }
   };
@@ -214,7 +218,9 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
         }
         return comment;
       }));
-    } catch { /* intentionally empty */ }
+    } catch (error) {
+      reportFailure('comments_like', error, { videoId, commentId });
+    }
   };
 
   const toggleReplies = (commentId: string) => {

@@ -256,21 +256,43 @@ export const api = {
       const r = await request(
         `/api/profiles/${encodeURIComponent(userId)}/followers`,
       );
-      return {
-        data: null,
-        count: Number(r.data?.count ?? 0),
-        error: r.error,
-      };
+      if (r.error) {
+        return {
+          data: null,
+          count: null as number | null,
+          error: r.error,
+        };
+      }
+      const n = Number((r.data as { count?: unknown } | null)?.count);
+      if (!Number.isFinite(n)) {
+        return {
+          data: null,
+          count: null as number | null,
+          error: { message: "INVALID_FOLLOWER_COUNT" },
+        };
+      }
+      return { data: null, count: n, error: null };
     },
     async getFollowingCount(userId: string) {
       const r = await request(
         `/api/profiles/${encodeURIComponent(userId)}/following`,
       );
-      return {
-        data: null,
-        count: Number(r.data?.count ?? 0),
-        error: r.error,
-      };
+      if (r.error) {
+        return {
+          data: null,
+          count: null as number | null,
+          error: r.error,
+        };
+      }
+      const n = Number((r.data as { count?: unknown } | null)?.count);
+      if (!Number.isFinite(n)) {
+        return {
+          data: null,
+          count: null as number | null,
+          error: { message: "INVALID_FOLLOWING_COUNT" },
+        };
+      }
+      return { data: null, count: n, error: null };
     },
   },
 
@@ -356,13 +378,6 @@ export const api = {
   gifts: {
     async getCatalog() {
       return request("/api/gifts/catalog");
-    },
-    /** Paid/starter/promo gifts only — see `src/lib/giftSend.ts`. */
-    async send(body: Record<string, unknown>) {
-      return request("/api/gifts/send", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
     },
   },
 };

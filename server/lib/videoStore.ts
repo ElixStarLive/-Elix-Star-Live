@@ -54,34 +54,28 @@ function rowToVideo(row: Record<string, unknown>): Video {
   };
 }
 
-/** No-op for in-memory — caller also calls saveVideoToDb. */
-export function addVideo(_video: Video): void {
-  // DB write handled by saveVideoToDb in postgres.ts
-}
-
-/** No-op — cache removed. Caller also calls deleteVideoFromDb. */
-export function deleteVideoFromCache(_id: string): boolean {
-  return true;
-}
-
-/** Read by id from DB. */
+/** No in-memory video cache — Neon is the only store. */
 export async function getVideoAsync(id: string): Promise<Video | undefined> {
   const db = getPool();
-  if (!db) return undefined;
+  if (!db) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await db.query(`SELECT * FROM videos WHERE id = $1 LIMIT 1`, [id]);
     if (res.rows?.[0]) return rowToVideo(res.rows[0]);
     return undefined;
   } catch (err) {
     logger.error({ err, id }, "getVideoAsync DB read failed");
-    return undefined;
+    throw err;
   }
 }
 
 /** List public videos from DB with limit. */
 export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
   const db = getPool();
-  if (!db) return [];
+  if (!db) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await db.query(
       `SELECT * FROM videos
@@ -93,7 +87,7 @@ export async function getAllVideosAsync(limit = 500): Promise<Video[]> {
     return (res.rows || []).map(rowToVideo);
   } catch (err) {
     logger.error({ err }, "getAllVideosAsync DB read failed");
-    return [];
+    throw err;
   }
 }
 
@@ -104,7 +98,9 @@ export async function getVideosByUserAsync(
   includePrivate = false,
 ): Promise<Video[]> {
   const db = getPool();
-  if (!db) return [];
+  if (!db) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await db.query(
       `SELECT * FROM videos
@@ -117,20 +113,22 @@ export async function getVideosByUserAsync(
     return (res.rows || []).map(rowToVideo);
   } catch (err) {
     logger.error({ err, userId }, "getVideosByUserAsync DB read failed");
-    return [];
+    throw err;
   }
 }
 
 /** Count videos from DB. */
 export async function getVideoCountAsync(): Promise<number> {
   const db = getPool();
-  if (!db) return 0;
+  if (!db) {
+    throw new Error("Postgres pool is not initialized");
+  }
   try {
     const res = await db.query(`SELECT COUNT(*)::int AS cnt FROM videos`);
     return Number(res.rows[0]?.cnt ?? 0);
   } catch (err) {
     logger.error({ err }, 'getVideoCountAsync failed');
-    return 0;
+    throw err;
   }
 }
 

@@ -50,8 +50,9 @@ export async function handleEnsureChatThread(req: Request, res: Response) {
     const thread = await dbEnsureChatThread(auth.userId, otherUserId);
     if (!thread) return res.status(400).json({ error: "Could not create thread" });
     return res.status(200).json({ threadId: thread.id, thread });
-  } catch {
-    return res.status(400).json({ error: "Could not create thread" });
+  } catch (err) {
+    logger.error({ err }, "handleEnsureChatThread failed");
+    return res.status(503).json({ error: "Could not create thread" });
   }
 }
 
@@ -63,42 +64,47 @@ export async function handleListChatThreads(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
   res.setHeader("Cache-Control", "private, no-store");
-  const threads = await dbListChatThreadsForUser(auth.userId, 50);
-  if (threads.length === 0) return res.status(200).json({ threads: [] });
+  try {
+    const threads = await dbListChatThreadsForUser(auth.userId, 50);
+    if (threads.length === 0) return res.status(200).json({ threads: [] });
 
-  const otherIds = threads.map((t) =>
-    t.user1_id === auth.userId ? t.user2_id : t.user1_id,
-  );
-  const profileMap = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
-  const [profiles, unreadCounts] = await Promise.all([
-    Promise.all([...new Set(otherIds)].map(async (id) => {
-      const p = await getOrCreateProfile(id);
-      return [id, p] as const;
-    })),
-    Promise.all(threads.map((t) => dbUnreadCountForThread(t.id, auth.userId))),
-  ]);
-  for (const [id, p] of profiles) profileMap.set(id, p);
+    const otherIds = threads.map((t) =>
+      t.user1_id === auth.userId ? t.user2_id : t.user1_id,
+    );
+    const profileMap = new Map<string, Awaited<ReturnType<typeof getOrCreateProfile>>>();
+    const [profiles, unreadCounts] = await Promise.all([
+      Promise.all([...new Set(otherIds)].map(async (id) => {
+        const p = await getOrCreateProfile(id);
+        return [id, p] as const;
+      })),
+      Promise.all(threads.map((t) => dbUnreadCountForThread(t.id, auth.userId))),
+    ]);
+    for (const [id, p] of profiles) profileMap.set(id, p);
 
-  const enriched = threads.map((t, i) => {
-    const otherId = t.user1_id === auth.userId ? t.user2_id : t.user1_id;
-    const p = profileMap.get(otherId);
-    return {
-      id: t.id,
-      user1_id: t.user1_id,
-      user2_id: t.user2_id,
-      last_at: t.last_at,
-      last_message: t.last_message,
-      created_at: t.created_at,
-      otherUser: {
-        username: p?.username ?? "",
-        display_name: p?.displayName ?? "",
-        avatar_url: p?.avatarUrl ?? "",
-      },
-      hasUnread: (unreadCounts[i] ?? 0) > 0,
-    };
-  });
-  res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).json({ threads: enriched });
+    const enriched = threads.map((t, i) => {
+      const otherId = t.user1_id === auth.userId ? t.user2_id : t.user1_id;
+      const p = profileMap.get(otherId);
+      return {
+        id: t.id,
+        user1_id: t.user1_id,
+        user2_id: t.user2_id,
+        last_at: t.last_at,
+        last_message: t.last_message,
+        created_at: t.created_at,
+        otherUser: {
+          username: p?.username ?? "",
+          display_name: p?.displayName ?? "",
+          avatar_url: p?.avatarUrl ?? "",
+        },
+        hasUnread: (unreadCounts[i] ?? 0) > 0,
+      };
+    });
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({ threads: enriched });
+  } catch (err) {
+    logger.error({ err }, "handleListChatThreads failed");
+    return res.status(503).json({ error: "Failed to load chat threads" });
+  }
 }
 
 /** GET /api/chat/threads/:threadId */
@@ -135,9 +141,14 @@ export async function handleListChatMessages(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
   const threadId = req.params.threadId;
-  const messages = await dbListChatMessages(threadId, auth.userId, 300);
-  res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).json({ messages });
+  try {
+    const messages = await dbListChatMessages(threadId, auth.userId, 300);
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.status(200).json({ messages });
+  } catch (err) {
+    logger.error({ err, threadId }, "handleListChatMessages failed");
+    return res.status(503).json({ error: "Failed to load messages" });
+  }
 }
 
 /** POST /api/chat/threads/:threadId/messages { text } */

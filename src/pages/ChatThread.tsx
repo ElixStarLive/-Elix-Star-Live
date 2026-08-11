@@ -14,6 +14,7 @@ import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { apiFetchProfileById, apiFetchProfiles, apiFetchVideoById } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live';
+import { reportFailure } from '../lib/reportFailure';
 
 interface Message {
   id: string;
@@ -108,7 +109,7 @@ function useLinkPreviews(messages: Message[]) {
             ...prev,
             [item.key]: { type: 'profile', id: item.id, thumbnail: avatar, username: name },
           }));
-        }).catch(() => {});
+        }).catch((e) => reportFailure('chat_preview_profile', e));
       } else if (item.type === 'video') {
         apiFetchVideoById(item.id).then(({ video }) => {
           if (!video) return;
@@ -129,7 +130,7 @@ function useLinkPreviews(messages: Message[]) {
               description: (v.description as string | undefined) || '',
             },
           }));
-        }).catch(() => {});
+        }).catch((e) => reportFailure('chat_preview_video', e));
       } else {
         setPreviews(prev => ({
           ...prev,
@@ -201,9 +202,14 @@ export default function ChatThread() {
       try {
         const [profilesResult, liveResult] = await Promise.all([
           apiFetchProfiles(),
-          apiLiveStreams().catch(() => ({ streams: [], error: null })),
+          apiLiveStreams(),
         ]);
         if (cancelled) return;
+        if (liveResult.error) {
+          reportFailure('chat_live_streams', new Error(liveResult.error));
+          /* keep prior liveUsers — do not fake empty success */
+          return;
+        }
         const streams = liveResult.streams as Record<string, unknown>[];
         const profiles = profilesResult.profiles as Record<string, unknown>[];
         const byId = new Map(profiles.map((p) => [String(p.user_id || p.userId || ''), p]));
@@ -225,8 +231,9 @@ export default function ChatThread() {
           })
           .filter((x) => x.roomKey && x.userId !== user?.id && !seen.has(x.roomKey) && seen.add(x.roomKey));
         setLiveUsers(list);
-      } catch {
-        if (!cancelled) setLiveUsers([]);
+      } catch (e) {
+        if (!cancelled) reportFailure('chat_live_users', e);
+        /* keep prior liveUsers — do not fake empty success */
       }
     })();
     return () => { cancelled = true; };
@@ -288,7 +295,7 @@ export default function ChatThread() {
                     };
                   });
                 })
-                .catch(() => undefined);
+                .catch((e) => reportFailure('chat_other_user_enrich', e));
             }
           }
         }
@@ -304,34 +311,18 @@ export default function ChatThread() {
     const onDmMessage = (raw: unknown) => {
       const data = (raw ?? {}) as { threadId?: string; message?: Message };
       if (!data.threadId || data.threadId !== threadId || !data.message?.id) return;
+      const incoming = data.message;
       setMessages((prev) => {
-        if (prev.some((m) => m.id === data.message!.id)) return prev;
-        return [...prev, data.message!];
+        if (prev.some((m) => m.id === incoming.id)) return prev;
+        return [...prev, incoming];
       });
       scrollToBottom();
       void apiMarkThreadRead(threadId);
     };
     websocket.on('dm_message', onDmMessage);
 
-    // Slow fallback if WS presence is down (App keeps __feed__ connected when logged in).
-    let pollFailures = 0;
-    const interval = setInterval(async () => {
-      const { messages: next, error } = await fetchThreadMessages(threadId);
-      if (error) {
-        pollFailures += 1;
-        if (pollFailures >= 3) {
-          showToast('Chat connection issue — messages may be delayed');
-          pollFailures = 0;
-        }
-        return;
-      }
-      pollFailures = 0;
-      setMessages(next as Message[]);
-    }, 30000);
-
     return () => {
       websocket.off('dm_message', onDmMessage);
-      clearInterval(interval);
     };
   }, [threadId, user?.id, isSystemThread]);
 

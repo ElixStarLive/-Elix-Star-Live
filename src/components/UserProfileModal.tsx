@@ -14,6 +14,8 @@ import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } f
 import { apiSetBlockUserAction } from '../features/safety/safetyApi';
 import { apiFetchFollowingIds } from '../features/feed/feedApi';
 import { apiLiveStreams, findLiveWatchTarget } from '../lib/live';
+import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 
 interface User {
   id: string;
@@ -87,16 +89,46 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
 
   useEffect(() => {
     if (!isOpen || !user?.id) return;
-    setProfileUser(null);
+    setProfileUser((prev) => (prev && prev.id !== user.id ? null : prev));
     setLiveWatchKey(isLiveHint ? String(user.id) : null);
     let cancelled = false;
     (async () => {
       try {
-        const livePromise = apiLiveStreams().catch(() => ({ streams: [] as unknown[], error: null }));
-        const profilePromise = api.profiles.get(user.id).catch(() => ({ data: null }));
+        const livePromise = apiLiveStreams().catch((err) => {
+          reportFailure('user_profile_live_streams', err);
+          return null;
+        });
+        const profilePromise = api.profiles.get(user.id).catch((err) => {
+          reportFailure('user_profile_get', err);
+          return { data: null };
+        });
         const countsPromise = Promise.all([
-          api.profiles.getFollowerCount(user.id).catch(() => ({ count: 0 })),
-          api.profiles.getFollowingCount(user.id).catch(() => ({ count: 0 })),
+          api.profiles.getFollowerCount(user.id).then((r) => {
+            if (r.error || r.count == null) {
+              reportFailure(
+                'user_profile_follower_count',
+                r.error ?? { message: 'NULL_FOLLOWER_COUNT' },
+              );
+              return { count: null as number | null };
+            }
+            return { count: r.count };
+          }).catch((err) => {
+            reportFailure('user_profile_follower_count', err);
+            return { count: null as number | null };
+          }),
+          api.profiles.getFollowingCount(user.id).then((r) => {
+            if (r.error || r.count == null) {
+              reportFailure(
+                'user_profile_following_count',
+                r.error ?? { message: 'NULL_FOLLOWING_COUNT' },
+              );
+              return { count: null as number | null };
+            }
+            return { count: r.count };
+          }).catch((err) => {
+            reportFailure('user_profile_following_count', err);
+            return { count: null as number | null };
+          }),
         ]);
         const followPromise =
           currentUser?.id && currentUser.id !== user.id
@@ -107,8 +139,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
           await Promise.all([livePromise, profilePromise, countsPromise, followPromise]);
         if (cancelled) return;
 
-        const watchTarget = findLiveWatchTarget(liveResult.streams || [], user.id);
-        setLiveWatchKey(watchTarget || (isLiveHint ? String(user.id) : null));
+        if (liveResult) {
+          const watchTarget = findLiveWatchTarget(liveResult.streams || [], user.id);
+          setLiveWatchKey(watchTarget || (isLiveHint ? String(user.id) : null));
+        }
 
         if (currentUser?.id && currentUser.id !== user.id && !followResult.error) {
           const follows = followResult.following.some((id) => String(id) === String(user.id));
@@ -116,7 +150,10 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
         }
 
         const body = profileRes?.data;
-        if (!body) return;
+        if (!body) {
+          /* keep prior profileUser — do not wipe on profile fail */
+          return;
+        }
         // API returns { profile: { username, displayName, avatarUrl, isVerified, ... } } (camelCase).
         const profile = (body as { profile?: Record<string, unknown> })?.profile ?? body;
 
@@ -130,22 +167,33 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
           currentUser?.id === user.id && typeof currentUser?.email === 'string'
             ? currentUser.email
             : '';
-        setProfileUser({
-          id: user.id,
-          username: uname,
-          // Real account display name — never put this in the top header.
-          name: pDisplayName || user.name || uname,
-          email: (pEmail.includes('@') ? pEmail : '') || ownEmail || user.email || '',
-          avatar: pAvatarUrl || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
-          level: pLevel,
-          isVerified: !!profile.isVerified,
-          followers: followersCount ?? 0,
-          following: followingCount ?? 0,
+        setProfileUser((prev) => {
+          const sameUser = prev?.id === user.id ? prev : null;
+          const nextFollowers =
+            typeof followersCount === 'number' && Number.isFinite(followersCount)
+              ? followersCount
+              : (sameUser?.followers ?? user.followers);
+          const nextFollowing =
+            typeof followingCount === 'number' && Number.isFinite(followingCount)
+              ? followingCount
+              : (sameUser?.following ?? user.following);
+          return {
+            id: user.id,
+            username: uname,
+            // Real account display name — never put this in the top header.
+            name: pDisplayName || user.name || uname,
+            email: (pEmail.includes('@') ? pEmail : '') || ownEmail || user.email || '',
+            avatar: pAvatarUrl || user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uname)}`,
+            level: pLevel,
+            isVerified: !!profile.isVerified,
+            followers: nextFollowers,
+            following: nextFollowing,
+          };
         });
-      } catch {
+      } catch (e) {
         if (!cancelled) {
-          setProfileUser(null);
-          if (!isLiveHint) setLiveWatchKey(null);
+          reportFailure('user_profile_modal', e);
+          /* keep prior profileUser / liveWatchKey — do not fake empty */
         }
       }
     })();
@@ -198,7 +246,11 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
   };
 
   const handleBlockUser = async () => {
-    await apiSetBlockUserAction(user.id, 'block').catch(() => null);
+    const result = await apiSetBlockUserAction(user.id, 'block');
+    if (!result.ok) {
+      showToast(result.error || 'Could not block user. Try again.');
+      return;
+    }
     blockUser(user.id);
     onClose();
   };
@@ -268,7 +320,11 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
               <button
                 type="button"
                 onClick={async () => {
-                  await apiSetBlockUserAction(user.id, 'unblock').catch(() => null);
+                  const result = await apiSetBlockUserAction(user.id, 'unblock');
+                  if (!result.ok) {
+                    showToast(result.error || 'Could not unblock user. Try again.');
+                    return;
+                  }
                   unblockUser(user.id);
                 }}
                 className="px-4 py-2.5 rounded-lg bg-white/10 text-white font-bold text-sm border border-[#2A2D33] hover:bg-white/15 active:scale-95 transition"

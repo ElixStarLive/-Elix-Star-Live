@@ -116,9 +116,6 @@ export const PremiumSidebarButton = ({
   </div>
 );
 
-// Legacy wrapper for compatibility
-// const SidebarButton = PremiumSidebarButton;
-
 export default function EnhancedVideoPlayer({ 
   videoId, 
   isActive, 
@@ -1271,7 +1268,7 @@ export default function EnhancedVideoPlayer({
           {video.isLiked ? (
             <Heart size={24} strokeWidth={2.25} className="fill-red-500 text-red-500" />
           ) : (
-            <RoyceIcon icon={Heart} size={24} tile active />
+            <RoyceIcon icon={Heart} size={24} tile />
           )}
           <span className={GOLD_COUNT}>{formatNumber(Math.max(0, video.stats.likes))}</span>
         </button>
@@ -1282,7 +1279,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Comments"
         >
-          <RoyceIcon icon={MessageCircle} size={24} tile active />
+          <RoyceIcon icon={MessageCircle} size={24} tile />
           <span className={GOLD_COUNT}>{formatNumber(video.stats.comments)}</span>
         </button>
 
@@ -1308,7 +1305,7 @@ export default function EnhancedVideoPlayer({
           className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
           title="Share"
         >
-          <RoyceIcon icon={Share2} size={22} tile active />
+          <RoyceIcon icon={Share2} size={22} tile />
         </button>
 
         <button

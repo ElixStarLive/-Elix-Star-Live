@@ -223,7 +223,7 @@ export async function deliverVerifiedGift(
             giftEconomicValue,
           );
           const sideForFan: "host" | "opponent" =
-            target === "opponent" || target === "player4" ? "opponent" : "host";
+            target === "opponent" ? "opponent" : "host";
           const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
           const giftBattleScore = Math.max(
             1,
@@ -294,7 +294,7 @@ export async function deliverVerifiedGift(
         if (giftBattleBase > 0) {
           const target = normalizedTarget || "host";
           const sideForFan: "host" | "opponent" =
-            target === "opponent" || target === "player4" ? "opponent" : "host";
+            target === "opponent" ? "opponent" : "host";
           const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
           const giftBattleScore = Math.max(
             1,

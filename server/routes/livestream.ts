@@ -273,7 +273,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
       );
       return { streams: verified.filter((s): s is NonNullable<typeof s> => s !== null) };
     } catch (err) {
-      logger.warn({ err }, "LiveKit list streams failed, falling back to DB");
+      logger.error({ err }, "LiveKit list streams failed, falling back to DB registry");
     }
   }
 
@@ -339,21 +339,30 @@ export async function handleGetStreams(req: Request, res: Response) {
     }
   }
 
-  const result = await buildStreamsResult();
-  bumpCacheLayer("live_streams_builds");
-  const bodyStr = JSON.stringify(result);
-  const etag = `W/"${createHash("sha256").update(bodyStr).digest("hex").slice(0, 32)}"`;
-  setStreamsCacheHeaders(res);
-  res.setHeader("ETag", etag);
+  try {
+    const result = await buildStreamsResult();
+    bumpCacheLayer("live_streams_builds");
+    const bodyStr = JSON.stringify(result);
+    const etag = `W/"${createHash("sha256").update(bodyStr).digest("hex").slice(0, 32)}"`;
+    setStreamsCacheHeaders(res);
+    res.setHeader("ETag", etag);
 
-  if (isValkeyConfigured()) {
-    valkeySet(STREAMS_HTTP_CACHE_KEY, JSON.stringify({ etag, payload: result }), STREAMS_CACHE_TTL_MS).catch(() => {});
-  } else {
-    streamsMemFallback = { etag, payload: result, ts: now };
+    if (isValkeyConfigured()) {
+      valkeySet(STREAMS_HTTP_CACHE_KEY, JSON.stringify({ etag, payload: result }), STREAMS_CACHE_TTL_MS).catch(() => {});
+    } else {
+      streamsMemFallback = { etag, payload: result, ts: now };
+    }
+
+    if (inm && inm === etag) return res.status(304).end();
+    return res.status(200).json(result);
+  } catch (err) {
+    logger.error({ err }, "GET /api/live/streams failed");
+    const msg = err instanceof Error ? err.message : String(err);
+    if (msg.includes("Postgres pool is not initialized")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE", streams: null });
+    }
+    return res.status(500).json({ error: "Failed to load streams", streams: null });
   }
-
-  if (inm && inm === etag) return res.status(304).end();
-  return res.status(200).json(result);
 }
 
 /** POST /api/live/start — creator starts stream */
@@ -550,8 +559,13 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   if (!publish && !isCallRoom) {
     let streamExists = await isStreamActive(roomName);
     if (!streamExists) {
-      const dbRows = await dbGetLiveStreams();
-      streamExists = dbRows.some((row) => row.stream_key === roomName);
+      try {
+        const dbRows = await dbGetLiveStreams();
+        streamExists = dbRows.some((row) => row.stream_key === roomName);
+      } catch (err) {
+        logger.warn({ err, roomName }, "handleGetLiveToken: dbGetLiveStreams failed");
+        return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+      }
     }
     if (!streamExists) {
       try {

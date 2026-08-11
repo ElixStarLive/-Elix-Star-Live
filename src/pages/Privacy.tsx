@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function Privacy() {
   const navigate = useNavigate();
 
-  const goBack = useCallback(() => navigate(-1), [navigate]);
+  const goBack = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goSettings = useCallback(() => navigate('/settings'), [navigate]);
 
   return (

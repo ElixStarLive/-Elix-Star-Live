@@ -113,10 +113,6 @@ export function getStripeModeSafe(): { mode: StripeKeyMode; source: StripeKeySou
   return { mode: r.mode, source: r.source };
 }
 
-export async function ensurePayoutAccountTables(): Promise<void> {
-  /* tables come from migration; no-op for boot safety */
-}
-
 export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
   ok: boolean;
   accountId?: string;
@@ -513,20 +509,21 @@ export async function handleStripeConnectPayoutWebhook(
   const pool = getPool();
   if (!pool) return { ok: false };
 
+  const eventType = String(event.type);
   if (
-    event.type === "transfer.created" ||
-    event.type === "transfer.updated" ||
-    event.type === "transfer.reversed" ||
-    event.type === "transfer.failed"
+    eventType === "transfer.created" ||
+    eventType === "transfer.updated" ||
+    eventType === "transfer.reversed" ||
+    eventType === "transfer.failed"
   ) {
     const transfer = event.data.object as Stripe.Transfer;
     const withdrawalId = transfer.metadata?.elix_withdrawal_id;
     if (!withdrawalId) return { ok: true };
     // Stripe Transfer API emits created/updated/reversed (not transfer.paid).
-    // transfer.failed is handled defensively if Stripe ever emits it.
+    // transfer.failed is handled if Stripe emits it.
     if (
-      event.type === "transfer.reversed" ||
-      event.type === "transfer.failed" ||
+      eventType === "transfer.reversed" ||
+      eventType === "transfer.failed" ||
       transfer.reversed
     ) {
       await adminSetGbpWithdrawalStatus({
@@ -534,11 +531,11 @@ export async function handleStripeConnectPayoutWebhook(
         toStatus: "failed",
         adminUserId: "system:stripe_webhook",
         note:
-          event.type === "transfer.failed"
+          eventType === "transfer.failed"
             ? "Transfer failed"
             : "Transfer reversed",
         failureReason:
-          event.type === "transfer.failed" ? "transfer_failed" : "transfer_reversed",
+          eventType === "transfer.failed" ? "transfer_failed" : "transfer_reversed",
         payoutProviderRef: transfer.id,
       });
       return { ok: true };
@@ -547,13 +544,13 @@ export async function handleStripeConnectPayoutWebhook(
       withdrawalId,
       providerRef: transfer.id,
       providerEventId: event.id,
-      eventType: event.type,
+      eventType,
       payload: { id: transfer.id, amount: transfer.amount },
     });
     return { ok: true };
   }
 
-  if (event.type === "account.updated") {
+  if (eventType === "account.updated") {
     const account = event.data.object as Stripe.Account;
     const creatorId = account.metadata?.elix_creator_user_id;
     if (creatorId) await refreshPayoutAccountStatus(creatorId);

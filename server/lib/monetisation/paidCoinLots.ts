@@ -27,6 +27,7 @@ export async function createPaidCoinLot(
   if (coins <= 0) return null;
   const id = `lot:${input.provider}:${input.providerTransactionId}`;
   const settled = input.settled === true && input.netPence != null && input.netPence >= 0;
+  const netPenceSettled = settled && input.netPence != null ? Math.floor(input.netPence) : null;
   await client.query(
     `INSERT INTO elix_paid_coin_lots (
        id, user_id, provider, provider_transaction_id, product_id,
@@ -46,7 +47,7 @@ export async function createPaidCoinLot(
       input.appStoreDeductionPence ?? 0,
       input.taxDeductionPence ?? 0,
       input.processingDeductionPence ?? 0,
-      settled ? Math.floor(input.netPence!) : null,
+      netPenceSettled,
       settled ? "settled" : "pending_settlement",
       settled ? new Date() : null,
     ],
