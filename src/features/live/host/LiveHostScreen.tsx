@@ -95,7 +95,8 @@ import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { LIVE_HOST_COHOST_STAGE_BOTTOM } from '../cohost/cohostStageGeometry';
-import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
+import { apiLiveGetDailyHearts, apiLiveMembership } from '../engagement/liveEngagementApi';
+import { sendLiveDailyMembershipHeart } from '../engagement/sendLiveDailyMembershipHeart';
 import { liveChatSend } from '../chat/liveChatActions';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { EngagementDrawer } from '../../../components/engagement/EngagementDrawer';
@@ -1841,28 +1842,17 @@ export default function LiveHostScreen() {
                                   // Spectator must not send a heart to themselves as "creator".
                                   if (!isBroadcast && creatorId === user.id) return;
 
-                                  try {
-                                    const { data: before } = await apiLiveGetDailyHearts(creatorId);
-                                    if (before?.hasSent) {
-                                      setHasJoinedToday(true);
-                                      showToast("Already sent today's membership heart");
-                                      return;
-                                    }
-                                  } catch (err) {
-                                    reportFailure('live_daily_hearts', err, { creatorId });
+                                  const heart = await sendLiveDailyMembershipHeart(creatorId);
+                                  if (heart.status === 'already_sent') {
+                                    setHasJoinedToday(true);
+                                    showToast("Already sent today's membership heart");
+                                    return;
                                   }
-
-                                  try {
-                                    const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
-                                    if (error) {
-                                      showToast('Could not send membership heart. Try again.');
-                                      return;
-                                    }
-                                    const already = d?.already === true;
-                                    if (!(d?.ok === true || already)) {
-                                      showToast('Could not send membership heart. Try again.');
-                                      return;
-                                    }
+                                  if (heart.status === 'failed') {
+                                    showToast(heart.message);
+                                    return;
+                                  }
+                                  const already = heart.already;
 
                                     // Server owns the day flag (POST ok/already + GET hasSent).
                                     setHasJoinedToday(true);
@@ -1919,9 +1909,6 @@ export default function LiveHostScreen() {
                                     } else {
                                       showToast("Already sent today's membership heart");
                                     }
-                                  } catch {
-                                    showToast('Could not send membership heart. Try again.');
-                                  }
                                 }}
                               />
                             }

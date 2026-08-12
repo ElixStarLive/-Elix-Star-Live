@@ -9,8 +9,10 @@ import {
   isGenericLiveCreatorName,
   isUiAvatarsUrl,
   liveNameFromStreamFields,
+  parseRawLiveStreamCore,
   profileToLiveDisplay,
   sanitizeLiveAvatar,
+  type RawLiveStreamFields,
 } from '../lib/liveCreatorDisplay';
 import { apiFetchProfileById } from '../features/feed/feedApi';
 
@@ -79,40 +81,18 @@ export default function LiveDiscover() {
 
       const mapped: LiveCreator[] = streams
         .filter((raw) => {
-          const s = raw as { stream_key?: string; streamKey?: string; room_id?: string; roomId?: string; id?: string };
-          const key = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
+          const key = parseRawLiveStreamCore(raw as RawLiveStreamFields).streamKey;
           return !!key && !removed.has(key);
         })
         .map((raw) => {
-          const s = raw as {
-            stream_key?: string;
-            streamKey?: string;
-            room_id?: string;
-            roomId?: string;
-            id?: string;
-            user_id?: string;
-            userId?: string;
-            hostUserId?: string;
-            title?: string;
-            display_name?: string;
-            displayName?: string;
-            viewer_count?: number;
-            viewerCount?: number;
-          };
-          const id = s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? '';
-          const userId = s.user_id ?? s.userId ?? s.hostUserId ?? '';
-          const name = liveNameFromStreamFields(
-            s.title,
-            s.display_name ?? s.displayName,
-            userId,
-          );
+          const core = parseRawLiveStreamCore(raw as RawLiveStreamFields);
           return {
-            id,
-            userId: userId || undefined,
-            name,
+            id: core.streamKey,
+            userId: core.userId || undefined,
+            name: core.name,
             avatar: undefined,
-            viewers: Number(s.viewer_count ?? s.viewerCount ?? 0),
-            title: s.title ?? s.display_name ?? s.displayName ?? undefined,
+            viewers: core.viewers,
+            title: core.title,
           };
         });
 

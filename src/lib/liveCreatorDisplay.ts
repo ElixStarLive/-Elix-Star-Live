@@ -66,3 +66,41 @@ export function liveNameFromStreamFields(
     "";
   return t || "Creator";
 }
+
+/** Backend may return snake_case or camelCase; accept both. */
+export type RawLiveStreamFields = {
+  stream_key?: string;
+  streamKey?: string;
+  room_id?: string;
+  roomId?: string;
+  id?: string;
+  user_id?: string;
+  userId?: string;
+  hostUserId?: string;
+  title?: string;
+  display_name?: string;
+  displayName?: string;
+  viewer_count?: number;
+  viewerCount?: number;
+};
+
+export function rawLiveStreamKey(s: RawLiveStreamFields): string {
+  return String(s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? "");
+}
+
+/** Shared core fields for Live Discover + For You live cards. */
+export function parseRawLiveStreamCore(s: RawLiveStreamFields): {
+  streamKey: string;
+  userId: string;
+  name: string;
+  viewers: number;
+  title: string | undefined;
+} {
+  const streamKey = rawLiveStreamKey(s);
+  const userId = String(s.user_id ?? s.userId ?? s.hostUserId ?? "");
+  const titleRaw = s.title ?? s.display_name ?? s.displayName;
+  const title = typeof titleRaw === "string" ? titleRaw : undefined;
+  const viewers = Number(s.viewer_count ?? s.viewerCount ?? 0);
+  const name = liveNameFromStreamFields(s.title, s.display_name ?? s.displayName, userId);
+  return { streamKey, userId, name, viewers, title };
+}

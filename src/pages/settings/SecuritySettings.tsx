@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, KeyRound, Shield, ShieldCheck } from "lucide-react";
+import { KeyRound, Shield, ShieldCheck } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
+import { SettingsOptionRow as R } from "../../components/settings/SettingsOptionRow";
 import { isPasswordResetEnabled } from "../../lib/authFeatures";
 import { SETTINGS_HOME } from "../../lib/settingsNav";
 import { request } from "../../lib/apiClient";
@@ -131,37 +132,5 @@ export default function SecuritySettings() {
         </div>
       </div>
     </SettingsOptionSheet>
-  );
-}
-
-function R({
-  ic,
-  t,
-  d,
-  fn,
-}: {
-  ic: React.ReactNode;
-  t: string;
-  d: string;
-  fn: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={fn}
-      className="w-full flex items-center gap-3 px-2.5 py-2.5 active:bg-white/5 text-left rounded-md"
-    >
-      <span
-        className="royce-glow-disc shrink-0 [&_svg]:size-[18px]"
-        style={{ width: "36px", height: "36px" }}
-      >
-        <span className="royce-icon-gold">{ic}</span>
-      </span>
-      <span className="flex-1 min-w-0">
-        <span className="block text-[15px] leading-tight text-[#E6E9EE]">{t}</span>
-        <span className="block text-xs text-[#8B9099] mt-0.5">{d}</span>
-      </span>
-      <ChevronRight size={16} className="text-white/30 shrink-0" />
-    </button>
   );
 }

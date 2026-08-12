@@ -44,6 +44,22 @@ export type CohostLayoutThumbCell =
   | { kind: 'h'; area: string }
   | { kind: 's'; area: string };
 
+function seatGridCells(
+  rowStart: number,
+  rows: number,
+  cols: number,
+): CohostLayoutThumbCell[] {
+  const cells: CohostLayoutThumbCell[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const rs = rowStart + r;
+      const cs = c + 1;
+      cells.push({ kind: 's', area: `${rs} / ${cs} / ${rs + 1} / ${cs + 1}` });
+    }
+  }
+  return cells;
+}
+
 export const COHOST_LAYOUT_THUMBS: Record<
   CohostLayoutId,
   { grid: string; cells: CohostLayoutThumbCell[] }
@@ -71,28 +87,14 @@ export const COHOST_LAYOUT_THUMBS: Record<
     cells: [
       { kind: 'h', area: '1 / 1 / 2 / 3' },
       { kind: 's', area: '1 / 3 / 2 / 5' },
-      { kind: 's', area: '2 / 1 / 3 / 2' },
-      { kind: 's', area: '2 / 2 / 3 / 3' },
-      { kind: 's', area: '2 / 3 / 3 / 4' },
-      { kind: 's', area: '2 / 4 / 3 / 5' },
-      { kind: 's', area: '3 / 1 / 4 / 2' },
-      { kind: 's', area: '3 / 2 / 4 / 3' },
-      { kind: 's', area: '3 / 3 / 4 / 4' },
-      { kind: 's', area: '3 / 4 / 4 / 5' },
+      ...seatGridCells(2, 2, 4),
     ],
   },
   banner_eight: {
     grid: '1fr repeat(2, 0.75fr) / repeat(4, 1fr)',
     cells: [
       { kind: 'h', area: '1 / 1 / 2 / 5' },
-      { kind: 's', area: '2 / 1 / 3 / 2' },
-      { kind: 's', area: '2 / 2 / 3 / 3' },
-      { kind: 's', area: '2 / 3 / 3 / 4' },
-      { kind: 's', area: '2 / 4 / 3 / 5' },
-      { kind: 's', area: '3 / 1 / 4 / 2' },
-      { kind: 's', area: '3 / 2 / 4 / 3' },
-      { kind: 's', area: '3 / 3 / 4 / 4' },
-      { kind: 's', area: '3 / 4 / 4 / 5' },
+      ...seatGridCells(2, 2, 4),
     ],
   },
   grid_3x3: {

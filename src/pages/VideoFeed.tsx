@@ -10,8 +10,10 @@ import {
   isGenericLiveCreatorName,
   isUiAvatarsUrl,
   liveNameFromStreamFields,
+  parseRawLiveStreamCore,
   profileToLiveDisplay,
   sanitizeLiveAvatar,
+  type RawLiveStreamFields,
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
 import { apiLiveStreams, connectLiveFeedPresence } from "../lib/live";
@@ -30,23 +32,6 @@ type LiveStreamCard = {
   thumbnail?: string;
   userId?: string;
 };
-
-/** Backend may return snake_case or camelCase; we accept both. */
-interface RawStream {
-  stream_key?: string;
-  streamKey?: string;
-  room_id?: string;
-  roomId?: string;
-  id?: string;
-  user_id?: string;
-  userId?: string;
-  hostUserId?: string;
-  title?: string;
-  display_name?: string;
-  displayName?: string;
-  viewer_count?: number;
-  viewerCount?: number;
-}
 
 type FeedItem =
   | { kind: "live"; stream: LiveStreamCard }
@@ -145,36 +130,27 @@ export default function VideoFeed() {
         setLiveLoading(false);
         return;
       }
-      const streams: RawStream[] = rawStreams as RawStream[];
+      const streams = rawStreams as RawLiveStreamFields[];
 
       // When API returns [], still merge with prev so streams from stream_started stay visible
       const removed = removedKeysRef.current;
 
       const mapped: LiveStreamCard[] = streams
-        .filter((s: RawStream) => {
-          const key =
-            s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
+        .filter((s) => {
+          const key = parseRawLiveStreamCore(s).streamKey;
           if (!key || removed.has(key)) return false;
           return true;
         })
-        .map((s: RawStream) => {
-          const key =
-            s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id;
-          const userId =
-            s.user_id ?? s.userId ?? s.hostUserId ?? "";
-          const title =
-            s.title ?? s.display_name ?? s.displayName ?? undefined;
-          const viewers = Number(
-            s.viewer_count ?? s.viewerCount ?? 0
-          );
+        .map((s) => {
+          const core = parseRawLiveStreamCore(s);
           return {
-            streamKey: key,
-            name: liveNameFromStreamFields(title, s.display_name ?? s.displayName, userId),
+            streamKey: core.streamKey,
+            name: core.name,
             avatar: "",
-            viewers,
-            title: typeof title === "string" ? title : undefined,
+            viewers: core.viewers,
+            title: core.title,
             thumbnail: "",
-            userId,
+            userId: core.userId,
           } as LiveStreamCard;
         });
 

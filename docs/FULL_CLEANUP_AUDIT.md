@@ -886,6 +886,16 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **158** clones / **2.01%** lines |
 | Android | 1.0.634 |
 
+### Continue 35 — daily heart, live stream parse, settings row, cohost thumbs
+| Item | Change |
+|------|--------|
+| Daily membership heart send | `sendLiveDailyMembershipHeart.ts` |
+| Raw live stream core parse | `parseRawLiveStreamCore` in `liveCreatorDisplay.ts` |
+| Settings option row share | `SettingsOptionRow.tsx` |
+| Cohost thumb seat grid helper | `seatGridCells` in `cohostLayoutPresets.ts` |
+| jscpd | **153** clones / **1.95%** lines |
+| Android | 1.0.635 |
+
 
 
 

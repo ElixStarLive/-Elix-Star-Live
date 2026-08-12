@@ -98,9 +98,9 @@ import { applyRemoteVideoBudget } from '../../../lib/live/liveRemoteVideoBudget'
 import {
   apiLiveGetDailyHearts,
   apiLiveMembership,
-  apiLiveSendDailyHeart,
   apiLiveEngagementProgress,
 } from '../engagement/liveEngagementApi';
+import { sendLiveDailyMembershipHeart } from '../engagement/sendLiveDailyMembershipHeart';
 import { reportFailure } from '../../../lib/reportFailure';
 import {
   apiFetchFollowingIds,
@@ -2938,30 +2938,19 @@ export function useLiveSpectatorController() {
         return;
       }
 
+      try {
       // Prefer server truth so we never double-count a day.
-      try {
-        const { data: before } = await apiLiveGetDailyHearts(creatorId);
-        if (before?.hasSent) {
-          setHasJoinedToday(true);
-          showToast('Already sent today’s membership heart');
-          return;
-        }
-      } catch (err) {
-        reportFailure('live_daily_hearts', err, { creatorId });
+      const heart = await sendLiveDailyMembershipHeart(creatorId);
+      if (heart.status === 'already_sent') {
+        setHasJoinedToday(true);
+        showToast('Already sent today’s membership heart');
+        return;
       }
-
-      try {
-        const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
-        if (error) {
-          showToast('Could not send membership heart. Try again.');
-          return;
-        }
-        const already = d?.already === true;
-        const ok = d?.ok === true || already;
-        if (!ok) {
-          showToast('Could not send membership heart. Try again.');
-          return;
-        }
+      if (heart.status === 'failed') {
+        showToast(heart.message);
+        return;
+      }
+      const already = heart.already;
 
         // Orange Join immediately after a successful send (same day) — server owns the day flag.
         setHasJoinedToday(true);
