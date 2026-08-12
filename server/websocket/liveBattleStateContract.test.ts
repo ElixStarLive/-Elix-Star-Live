@@ -119,10 +119,12 @@ describe("LIVE + battle server state-machine contracts", () => {
 
   it("both live clients consume battle_tick to stay time-synced with the server", () => {
     const battleBind = read("../../src/features/live/ws/bindLiveBattleWs.ts");
+    const wsPairs = read("../../src/features/live/ws/bindLiveWsEventPairs.ts");
     // Bind owner registers battle_tick; host + spectator both pass handleBattleTick.
     expect(battleBind).toContain("LIVE_WS_IN.battle_tick");
-    expect(battleBind).toContain("websocket.on(type, fn)");
-    expect(battleBind).toContain("websocket.off(type, fn)");
+    expect(battleBind).toContain("bindLiveWsEventPairs");
+    expect(wsPairs).toContain("websocket.on(type, fn)");
+    expect(wsPairs).toContain("websocket.off(type, fn)");
     expect(liveStream).toContain("bindLiveBattleWs");
     expect(liveStream).toContain("onTick: handleBattleTick");
     expect(spectator).toContain("bindLiveBattleWs");

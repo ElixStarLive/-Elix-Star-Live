@@ -857,6 +857,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **168** clones / **2.12%** lines |
 | Android | 1.0.631 |
 
+### Continue 32 — shared Live WS bind + follow-count API
+| Item | Change |
+|------|--------|
+| Shared WS on/off lifecycle | `bindLiveWsEventPairs.ts` (room/battle/cohost/invite/moderation) |
+| Follower/following count API | `getFollowRelationCount` in `apiClient.ts` |
+| Contract test | battle_tick bind asserts shared helper owner |
+| jscpd | **164** clones / **2.08%** lines |
+| Android | 1.0.632 |
+
 
 
 

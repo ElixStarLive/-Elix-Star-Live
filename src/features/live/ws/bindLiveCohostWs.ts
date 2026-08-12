@@ -2,8 +2,8 @@
  * Cohost invite / request / layout WS bind site.
  */
 
-import { websocket } from '../../../lib/websocket';
 import { LIVE_WS_IN } from '../../../lib/live';
+import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
 export type LiveCohostWsHandlers = {
   onInvite?: (data: unknown) => void;
@@ -16,7 +16,7 @@ export type LiveCohostWsHandlers = {
 };
 
 export function bindLiveCohostWs(handlers: LiveCohostWsHandlers): () => void {
-  const pairs: Array<[string, (data: unknown) => void]> = [];
+  const pairs: LiveWsEventPair[] = [];
 
   if (handlers.onInvite) pairs.push([LIVE_WS_IN.cohost_invite, handlers.onInvite]);
   if (handlers.onInviteAck) {
@@ -36,13 +36,5 @@ export function bindLiveCohostWs(handlers: LiveCohostWsHandlers): () => void {
     pairs.push([LIVE_WS_IN.cohost_layout_sync, handlers.onLayoutSync]);
   }
 
-  for (const [type, fn] of pairs) {
-    websocket.on(type, fn);
-  }
-
-  return () => {
-    for (const [type, fn] of pairs) {
-      websocket.off(type, fn);
-    }
-  };
+  return bindLiveWsEventPairs(pairs);
 }

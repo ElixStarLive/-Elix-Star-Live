@@ -2,8 +2,8 @@
  * Single bind site for core Live room WS (chat, gifts, hearts, presence).
  */
 
-import { websocket } from '../../../lib/websocket';
 import { LIVE_WS_IN } from '../../../lib/live';
+import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
 export type LiveRoomWsHandlers = {
   onRoomState?: (data: unknown) => void;
@@ -19,7 +19,7 @@ export type LiveRoomWsHandlers = {
 };
 
 export function bindLiveRoomWs(handlers: LiveRoomWsHandlers): () => void {
-  const pairs: Array<[string, (data: unknown) => void]> = [];
+  const pairs: LiveWsEventPair[] = [];
 
   if (handlers.onRoomState) pairs.push([LIVE_WS_IN.room_state, handlers.onRoomState]);
   if (handlers.onUserJoined) pairs.push([LIVE_WS_IN.user_joined, handlers.onUserJoined]);
@@ -38,13 +38,5 @@ export function bindLiveRoomWs(handlers: LiveRoomWsHandlers): () => void {
   }
   if (handlers.onConnected) pairs.push([LIVE_WS_IN.connected, handlers.onConnected]);
 
-  for (const [type, fn] of pairs) {
-    websocket.on(type, fn);
-  }
-
-  return () => {
-    for (const [type, fn] of pairs) {
-      websocket.off(type, fn);
-    }
-  };
+  return bindLiveWsEventPairs(pairs);
 }

@@ -218,6 +218,36 @@ export async function request<T = any>(
   return result;
 }
 
+async function getFollowRelationCount(
+  userId: string,
+  relation: "followers" | "following",
+  invalidMessage: string,
+): Promise<{
+  data: null;
+  count: number | null;
+  error: { message: string } | null;
+}> {
+  const r = await request(
+    `/api/profiles/${encodeURIComponent(userId)}/${relation}`,
+  );
+  if (r.error) {
+    return {
+      data: null,
+      count: null,
+      error: r.error,
+    };
+  }
+  const n = Number((r.data as { count?: unknown } | null)?.count);
+  if (!Number.isFinite(n)) {
+    return {
+      data: null,
+      count: null,
+      error: { message: invalidMessage },
+    };
+  }
+  return { data: null, count: n, error: null };
+}
+
 export const api = {
   auth: {
     async getSession() {
@@ -253,46 +283,10 @@ export const api = {
       };
     },
     async getFollowerCount(userId: string) {
-      const r = await request(
-        `/api/profiles/${encodeURIComponent(userId)}/followers`,
-      );
-      if (r.error) {
-        return {
-          data: null,
-          count: null as number | null,
-          error: r.error,
-        };
-      }
-      const n = Number((r.data as { count?: unknown } | null)?.count);
-      if (!Number.isFinite(n)) {
-        return {
-          data: null,
-          count: null as number | null,
-          error: { message: "INVALID_FOLLOWER_COUNT" },
-        };
-      }
-      return { data: null, count: n, error: null };
+      return getFollowRelationCount(userId, 'followers', 'INVALID_FOLLOWER_COUNT');
     },
     async getFollowingCount(userId: string) {
-      const r = await request(
-        `/api/profiles/${encodeURIComponent(userId)}/following`,
-      );
-      if (r.error) {
-        return {
-          data: null,
-          count: null as number | null,
-          error: r.error,
-        };
-      }
-      const n = Number((r.data as { count?: unknown } | null)?.count);
-      if (!Number.isFinite(n)) {
-        return {
-          data: null,
-          count: null as number | null,
-          error: { message: "INVALID_FOLLOWING_COUNT" },
-        };
-      }
-      return { data: null, count: n, error: null };
+      return getFollowRelationCount(userId, 'following', 'INVALID_FOLLOWING_COUNT');
     },
   },
 

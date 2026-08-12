@@ -3,8 +3,8 @@
  * Controllers pass handlers; this owns on/off lifecycle against production names.
  */
 
-import { websocket } from '../../../lib/websocket';
 import { LIVE_WS_IN } from '../../../lib/live';
+import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
 export type LiveBattleWsHandlers = {
   onStateSync?: (data: unknown) => void;
@@ -17,7 +17,7 @@ export type LiveBattleWsHandlers = {
 };
 
 export function bindLiveBattleWs(handlers: LiveBattleWsHandlers): () => void {
-  const pairs: Array<[string, (data: unknown) => void]> = [];
+  const pairs: LiveWsEventPair[] = [];
 
   if (handlers.onStateSync) {
     pairs.push([LIVE_WS_IN.battle_state_sync, handlers.onStateSync]);
@@ -44,13 +44,5 @@ export function bindLiveBattleWs(handlers: LiveBattleWsHandlers): () => void {
     pairs.push([LIVE_WS_IN.mist_activated, handlers.onMistActivated]);
   }
 
-  for (const [type, fn] of pairs) {
-    websocket.on(type, fn);
-  }
-
-  return () => {
-    for (const [type, fn] of pairs) {
-      websocket.off(type, fn);
-    }
-  };
+  return bindLiveWsEventPairs(pairs);
 }

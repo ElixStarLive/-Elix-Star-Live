@@ -2,7 +2,7 @@
  * Bind site for battle invite signalling (in) — host/spectator controllers pass handlers.
  */
 
-import { websocket } from '../../../lib/websocket';
+import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
 export type LiveBattleInviteWsHandlers = {
   onInvite?: (data: unknown) => void;
@@ -16,7 +16,7 @@ export type LiveBattleInviteWsHandlers = {
 };
 
 export function bindLiveBattleInviteWs(handlers: LiveBattleInviteWsHandlers): () => void {
-  const pairs: Array<[string, (data: unknown) => void]> = [];
+  const pairs: LiveWsEventPair[] = [];
   if (handlers.onInvite) pairs.push(['battle_invite', handlers.onInvite]);
   if (handlers.onInviteAck) pairs.push(['battle_invite_ack', handlers.onInviteAck]);
   if (handlers.onInviteDeclined) pairs.push(['battle_invite_declined', handlers.onInviteDeclined]);
@@ -30,13 +30,5 @@ export function bindLiveBattleInviteWs(handlers: LiveBattleInviteWsHandlers): ()
     pairs.push(['battle_participant_removed', handlers.onParticipantRemoved]);
   }
 
-  for (const [type, fn] of pairs) {
-    websocket.on(type, fn);
-  }
-  return () => {
-    for (const [type, fn] of pairs) {
-      websocket.off(type, fn);
-    }
-  };
+  return bindLiveWsEventPairs(pairs);
 }
-
