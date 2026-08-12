@@ -25,7 +25,11 @@ import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedCha
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
 import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
+import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
+import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
+import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
 import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
+import { beginLiveGiftSentTxnGate } from '../gifts/beginLiveGiftSentTxnGate';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -78,7 +82,6 @@ import {
   apiLiveMembership,
   apiLiveSendDailyHeart,
   apiLiveEngagementProgress,
-  apiLiveListModerators,
 } from '../engagement/liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
 import {
@@ -92,7 +95,6 @@ import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
-import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -475,20 +477,7 @@ export function useLiveSpectatorController() {
   const isModerator = Boolean(user?.id && moderators.has(user.id));
 
   useEffect(() => {
-    const key = String(effectiveStreamId || '').trim();
-    if (!key) {
-      setModerators(new Set());
-      return;
-    }
-    let cancelled = false;
-    void apiLiveListModerators(key).then(({ moderators: ids, error }) => {
-      if (cancelled) return;
-      if (error) return;
-      setModerators(new Set(ids));
-    });
-    return () => {
-      cancelled = true;
-    };
+    return loadLiveModeratorsForRoom(effectiveStreamId, setModerators);
   }, [effectiveStreamId]);
 
   const [hasJoinedToday, setHasJoinedToday] = useState(false);
@@ -1475,16 +1464,11 @@ export function useLiveSpectatorController() {
       }).catch((err) => reportFailure('live_engagement_progress', err));
     }
     const roomId = effectiveStreamId;
-    const id = window.setInterval(() => {
-      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
-      earnBattleEnergyQuiet('watch', roomId);
-      void apiLiveEngagementProgress({
-        metric: 'watch_minutes',
-        delta: 1,
-        roomId,
-      }).catch((err) => reportFailure('live_engagement_watch_tick', err, { roomId }));
-    }, 60_000);
-    return () => window.clearInterval(id);
+    return startLiveEngagementWatchTick({
+      roomId,
+      missionWatchGoal,
+      setMissionWatchMin,
+    });
   }, [effectiveStreamId, hasStream, missionWatchGoal]);
 
   // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
@@ -2296,16 +2280,14 @@ export function useLiveSpectatorController() {
         battleTarget,
         isFlowerOrRose,
       } = parsed;
-      const alreadySeen = hasSeenGiftTxn(txnId);
-      const videoAlreadyPlayed = hasPlayedGiftVideoTxn(txnId);
-
-      // Skip only when this transaction's video already played — not when the first
-      // payload lacked a URL (room broadcast + owner/cohost global can deliver twice).
-      if (alreadySeen && videoAlreadyPlayed) return;
-
-      if (txnId && !alreadySeen) {
-        markGiftTxnSeen(txnId);
-      }
+      const alreadySeenGate = beginLiveGiftSentTxnGate({
+        txnId,
+        hasSeenGiftTxn,
+        hasPlayedGiftVideoTxn,
+        markGiftTxnSeen,
+      });
+      if (alreadySeenGate.shouldSkip) return;
+      const { alreadySeen } = alreadySeenGate;
 
       // Chat / MVP / co-host tile scores only on first delivery of this transaction.
       if (!alreadySeen) {

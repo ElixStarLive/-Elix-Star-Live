@@ -28,7 +28,11 @@ import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedCha
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
 import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
+import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
+import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
+import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
 import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
+import { beginLiveGiftSentTxnGate } from '../gifts/beginLiveGiftSentTxnGate';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -56,7 +60,6 @@ import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
-import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -117,7 +120,6 @@ import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
 import {
   apiLiveEngagementProgress,
   apiLiveBlockUser,
-  apiLiveListModerators,
   apiLiveAddModerator,
   apiLiveRemoveModerator,
   apiLiveGetDailyHearts,
@@ -322,20 +324,7 @@ export function useLiveHostController() {
   );
 
   useEffect(() => {
-    const key = String(effectiveStreamId || '').trim();
-    if (!key || key === 'broadcast') {
-      setModerators(new Set());
-      return;
-    }
-    let cancelled = false;
-    void apiLiveListModerators(key).then(({ moderators: ids, error }) => {
-      if (cancelled) return;
-      if (error) return;
-      setModerators(new Set(ids));
-    });
-    return () => {
-      cancelled = true;
-    };
+    return loadLiveModeratorsForRoom(effectiveStreamId, setModerators);
   }, [effectiveStreamId]);
 
   const liveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
@@ -3419,16 +3408,14 @@ export function useLiveHostController() {
         battleTarget,
         isFlowerOrRose,
       } = parsed;
-      const alreadySeen = hasSeenGiftTxn(txnId);
-      const videoAlreadyPlayed = hasPlayedGiftVideoTxn(txnId);
-
-      // Skip only when this transaction's video already played — not when the first
-      // payload lacked a URL (REST/WS can deliver metadata before the playable URL).
-      if (alreadySeen && videoAlreadyPlayed) return;
-
-      if (txnId && !alreadySeen) {
-        markGiftTxnSeen(txnId);
-      }
+      const alreadySeenGate = beginLiveGiftSentTxnGate({
+        txnId,
+        hasSeenGiftTxn,
+        hasPlayedGiftVideoTxn,
+        markGiftTxnSeen,
+      });
+      if (alreadySeenGate.shouldSkip) return;
+      const { alreadySeen } = alreadySeenGate;
 
       // Chat / MVP only on first delivery of this transaction.
       if (!alreadySeen) {
@@ -4232,17 +4219,11 @@ export function useLiveHostController() {
   // Product-required engagement watch tick: one interval POST watch_minutes + local progress.
   useEffect(() => {
     if (!isBroadcast || !effectiveStreamId) return;
-    const roomId = effectiveStreamId;
-    const id = window.setInterval(() => {
-      setMissionWatchMin((m) => Math.min(missionWatchGoal, m + 1));
-      earnBattleEnergyQuiet('watch', roomId);
-      void apiLiveEngagementProgress({
-        metric: 'watch_minutes',
-        delta: 1,
-        roomId,
-      }).catch((err) => reportFailure('live_engagement_watch_tick', err, { roomId }));
-    }, 60_000);
-    return () => window.clearInterval(id);
+    return startLiveEngagementWatchTick({
+      roomId: effectiveStreamId,
+      missionWatchGoal,
+      setMissionWatchMin,
+    });
   }, [isBroadcast, effectiveStreamId, missionWatchGoal]);
   useEffect(() => {
     if (!isBattleMode || !effectiveStreamId) return;

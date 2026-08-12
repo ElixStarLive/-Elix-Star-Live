@@ -663,5 +663,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **193** clones — down from 195 |
 | Android | 1.0.606 |
 
+### Continue 7 — moderators / watch tick / gift_sent txn gate
+| Item | Change |
+|------|--------|
+| Moderators load | `loadLiveModeratorsForRoom.ts` |
+| Engagement watch_minutes tick | `startLiveEngagementWatchTick.ts` |
+| gift_sent seen/video gate | `beginLiveGiftSentTxnGate.ts` |
+| jscpd | **191** clones — down from 193 |
+| Android | 1.0.607 |
+
+
 
 
