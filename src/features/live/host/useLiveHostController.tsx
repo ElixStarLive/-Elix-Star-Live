@@ -46,6 +46,8 @@ import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendab
 import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
+import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
+import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -1222,15 +1224,7 @@ export function useLiveHostController() {
         track.attach(featuredBigVideoRef.current);
         prepareLiveVideoEl(featuredBigVideoRef.current);
       }
-      let coHostEl = coHostVideoRefs.current.get(identity) || null;
-      if (!coHostEl) {
-        for (const [uid, el] of coHostVideoRefs.current) {
-          if (sameUserId(uid, identity)) {
-            coHostEl = el;
-            break;
-          }
-        }
-      }
+      let coHostEl = findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
       if (coHostEl) {
         track.attach(coHostEl);
         prepareLiveVideoEl(coHostEl);
@@ -1268,21 +1262,13 @@ export function useLiveHostController() {
       if (pub.kind !== 'video') return;
       const id = participant?.identity;
       if (!id) return;
-      setRemoteCamOff((prev) => {
-        const n = new Set(prev);
-        n.add(id);
-        return n;
-      });
+      markRemoteCamOff(setRemoteCamOff, id, true);
     },
     onTrackUnmuted: (pub, participant) => {
       if (pub.kind !== 'video') return;
       const id = participant?.identity;
       if (!id) return;
-      setRemoteCamOff((prev) => {
-        const n = new Set(prev);
-        n.delete(id);
-        return n;
-      });
+      markRemoteCamOff(setRemoteCamOff, id, false);
     },
   };
 
@@ -1292,12 +1278,7 @@ export function useLiveHostController() {
     : null;
 
   const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
-    const direct = coHostVideoRefs.current.get(identity);
-    if (direct) return direct;
-    for (const [uid, el] of coHostVideoRefs.current) {
-      if (sameUserId(uid, identity)) return el;
-    }
-    return null;
+    return findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
   }, []);
 
   const isSpeakingUser = useCallback(

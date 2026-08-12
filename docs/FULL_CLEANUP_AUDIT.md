@@ -712,6 +712,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **188** clones (helper land can oscillate ±1) |
 | Android | 1.0.612 |
 
+### Continue 13 — cohost video el + remote cam off
+| Item | Change |
+|------|--------|
+| Cohost video el by identity | `findCoHostVideoElByIdentity.ts` |
+| Remote cam off Set update | `markRemoteCamOff.ts` (sameUserId-aware) |
+| jscpd | **187** clones — down from 188 |
+| Android | 1.0.613 |
+
+
 
 
 

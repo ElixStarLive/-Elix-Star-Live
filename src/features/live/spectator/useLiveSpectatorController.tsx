@@ -43,6 +43,8 @@ import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendab
 import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
+import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
+import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -1032,12 +1034,7 @@ export function useLiveSpectatorController() {
   }, [featuredUserId]);
 
   const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
-    const direct = coHostVideoRefs.current.get(identity);
-    if (direct) return direct;
-    for (const [uid, el] of coHostVideoRefs.current) {
-      if (sameUserId(uid, identity)) return el;
-    }
-    return null;
+    return findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
   }, []);
 
   const isSpeakingUser = useCallback(
@@ -1050,23 +1047,7 @@ export function useLiveSpectatorController() {
   }, []);
 
   const markRemoteCam = useCallback((identity: string, off: boolean) => {
-    if (!identity) return;
-    setRemoteCamOff((prev) => {
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of prev) {
-        if (sameUserId(id, identity)) {
-          changed = true;
-          continue;
-        }
-        next.add(id);
-      }
-      if (off) {
-        next.add(identity);
-        changed = true;
-      }
-      return changed || off ? next : prev;
-    });
+    markRemoteCamOff(setRemoteCamOff, identity, off);
   }, []);
 
   const [isCoHosting, setIsCoHosting] = useState(false);
