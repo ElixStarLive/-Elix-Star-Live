@@ -51,10 +51,8 @@ import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
-import {
-  appendLiveViewerIfMissing,
-  buildLiveViewerFromJoin,
-} from '../chat/appendLiveViewerIfMissing';
+import { appendLiveViewerFromJoinPayload } from '../chat/appendLiveViewerFromJoinPayload';
+import { appendLiveLevelUpBanner } from '../chat/appendLiveLevelUpBanner';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -3172,37 +3170,31 @@ export function useLiveHostController() {
             : 1;
       // One join banner per user for the whole live session (reconnect / double emit / leave-rejoin).
       if (joinAnnouncedRef.current.has(uid)) {
-        appendLiveViewerIfMissing(
+        appendLiveViewerFromJoinPayload({
           setActiveViewers,
-          buildLiveViewerFromJoin({
-            uid,
-            joinName,
-            displayName:
-              cached?.displayName ||
-              (typeof data.display_name === 'string' ? data.display_name : joinName),
-            username: cached?.username || joinName,
-            avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
-            level: initialLevel,
-            country: data.country || '',
-          }),
-        );
+          uid,
+          joinName,
+          displayName: typeof data.display_name === 'string' ? data.display_name : joinName,
+          username: joinName,
+          avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
+          level: initialLevel,
+          country: data.country || '',
+          cached,
+        });
         return;
       }
       joinAnnouncedRef.current.add(uid);
-      appendLiveViewerIfMissing(
+      appendLiveViewerFromJoinPayload({
         setActiveViewers,
-        buildLiveViewerFromJoin({
-          uid,
-          joinName,
-          displayName:
-            cached?.displayName ||
-            (typeof data.display_name === 'string' ? data.display_name : joinName),
-          username: cached?.username || joinName,
-          avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
-          level: initialLevel,
-          country: data.country || '',
-        }),
-      );
+        uid,
+        joinName,
+        displayName: typeof data.display_name === 'string' ? data.display_name : joinName,
+        username: joinName,
+        avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
+        level: initialLevel,
+        country: data.country || '',
+        cached,
+      });
       const joinMsgId = `join-${uid}`;
       appendLiveJoinStreamBanner({
         setMessages,
@@ -4234,19 +4226,12 @@ export function useLiveHostController() {
             showToast,
             clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
             onLeveledUp: (level) => {
-              setMessages((prev) => appendCapped(prev, {
-                id: `levelup-${Date.now()}`,
+              appendLiveLevelUpBanner({
+                setMessages,
                 username: isBroadcast ? creatorName : viewerName,
-                text: `reached Level ${level}`,
-                level,
-                isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
-                isSystem: true,
-              }, LIVE_CHAT_MESSAGE_CAP));
-              liveChatSend({
-                text: `reached Level ${level}`,
                 level,
-                avatar: isBroadcast ? myAvatar : viewerAvatar,
+                liveChatSend,
               });
             },
           });
@@ -4431,19 +4416,12 @@ export function useLiveHostController() {
             showToast,
             clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
             onLeveledUp: (level) => {
-              setMessages((prev) => appendCapped(prev, {
-                id: `levelup-${Date.now()}`,
+              appendLiveLevelUpBanner({
+                setMessages,
                 username: isBroadcast ? creatorName : viewerName,
-                text: `reached Level ${level}`,
-                level,
-                isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
-                isSystem: true,
-              }, LIVE_CHAT_MESSAGE_CAP));
-              liveChatSend({
-                text: `reached Level ${level}`,
                 level,
-                avatar: isBroadcast ? myAvatar : viewerAvatar,
+                liveChatSend,
               });
             },
           });

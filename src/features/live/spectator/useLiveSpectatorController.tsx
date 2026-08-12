@@ -24,6 +24,7 @@ import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
+import { appendLiveLevelUpBanner } from '../chat/appendLiveLevelUpBanner';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
@@ -3121,15 +3122,12 @@ export function useLiveSpectatorController() {
         setUserLevel(sim.level);
         updateUser({ level: sim.level });
         newLevel = sim.level;
-        setMessages((prev) => appendCapped(prev, {
-            id: `levelup-${Date.now()}`,
-            username: viewerName,
-            text: `reached Level ${sim.level}`,
-            level: sim.level,
-            isGift: false,
-            avatar: viewerAvatar,
-            isSystem: true,
-          }, LIVE_CHAT_MESSAGE_CAP));
+        appendLiveLevelUpBanner({
+          setMessages,
+          username: viewerName,
+          avatar: viewerAvatar,
+          level: sim.level,
+        });
       }
     } else if (user?.id) {
       try {
@@ -3178,19 +3176,12 @@ export function useLiveSpectatorController() {
           showToast,
           missingTransactionToast: 'Gift failed — please try again',
           onLeveledUp: (level) => {
-            setMessages((prev) => appendCapped(prev, {
-              id: `levelup-${Date.now()}`,
+            appendLiveLevelUpBanner({
+              setMessages,
               username: viewerName,
-              text: `reached Level ${level}`,
-              level,
-              isGift: false,
               avatar: viewerAvatar,
-              isSystem: true,
-            }, LIVE_CHAT_MESSAGE_CAP));
-            liveChatSend({
-              text: `reached Level ${level}`,
               level,
-              avatar: viewerAvatar,
+              liveChatSend,
             });
           },
         });

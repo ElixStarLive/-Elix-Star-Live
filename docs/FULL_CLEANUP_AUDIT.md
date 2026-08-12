@@ -782,6 +782,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **177** clones — down from 178 |
 | Android | 1.0.621 |
 
+### Continue 22 — level-up banner + join viewer payload
+| Item | Change |
+|------|--------|
+| Level-up chat banner + optional liveChatSend | `appendLiveLevelUpBanner.ts` |
+| Host join viewer append payload | `appendLiveViewerFromJoinPayload.ts` |
+| jscpd | **178** clones / **2.23%** lines (clone count +1 from helpers; line % down) |
+| Android | 1.0.622 |
+
 
 
 
