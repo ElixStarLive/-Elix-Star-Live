@@ -23,7 +23,6 @@ import {
   apiEngagementDailyLoginClaim,
   apiEngagementFanLevel,
   apiEngagementHub,
-  apiEngagementMissionClaim,
   apiEngagementMissions,
   apiEngagementMvp,
   apiEngagementStickers,
@@ -32,6 +31,7 @@ import {
   apiLiveEngagementWallet,
 } from "../../features/live/engagement/liveEngagementApi";
 import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
+import { claimEngagementMissionRow } from "../../features/live/engagement/claimEngagementMissionRow";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
 
@@ -303,19 +303,12 @@ function MissionsBody() {
   }, [load]);
 
   const claim = async (id: string) => {
-    if (claiming) return;
-    setClaiming(id);
-    try {
-      const { error } = await apiEngagementMissionClaim(id);
-      if (error) {
-        showToast(error || "Claim failed");
-        return;
-      }
-      showToast("Reward claimed");
-      await load();
-    } finally {
-      setClaiming(null);
-    }
+    await claimEngagementMissionRow({
+      id,
+      claiming,
+      setClaiming,
+      reload: load,
+    });
   };
 
   const Section = ({ title, items }: { title: string; items: EngagementMissionRow[] }) => (

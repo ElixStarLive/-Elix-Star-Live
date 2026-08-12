@@ -38,6 +38,24 @@ function isAuthFailureMessage(msg: string): boolean {
   );
 }
 
+function sessionFromParsedAuthData(
+  data: unknown,
+  parsed: NonNullable<ReturnType<typeof parseAuthLoginRegisterResponse>>,
+  opts?: { includeProfileMeta?: boolean },
+): Extract<AuthLoginResult, { ok: true; kind: 'session' }> {
+  const includeProfileMeta = opts?.includeProfileMeta !== false;
+  return {
+    ok: true,
+    kind: 'session',
+    accessToken: parsed.accessToken,
+    user: parsed.user as Record<string, unknown>,
+    ...(includeProfileMeta
+      ? { profileMeta: (data as { profile_meta?: unknown })?.profile_meta }
+      : {}),
+    raw: data,
+  };
+}
+
 export async function authLoginWithPassword(
   email: string,
   password: string,
@@ -56,14 +74,7 @@ export async function authLoginWithPassword(
   if (!parsed) {
     return { ok: false, error: 'Cannot reach backend. Try again later.' };
   }
-  return {
-    ok: true,
-    kind: 'session',
-    accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
-    profileMeta: (data as { profile_meta?: unknown })?.profile_meta,
-    raw: data,
-  };
+  return sessionFromParsedAuthData(data, parsed);
 }
 
 export async function authRegister(body: {
@@ -86,14 +97,7 @@ export async function authRegister(body: {
   if (!parsed) {
     return { ok: false, error: 'Cannot reach backend. Try again later.' };
   }
-  return {
-    ok: true,
-    kind: 'session',
-    accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
-    profileMeta: (data as { profile_meta?: unknown })?.profile_meta,
-    raw: data,
-  };
+  return sessionFromParsedAuthData(data, parsed);
 }
 
 export async function authVerifyEmail(token: string): Promise<AuthLoginResult> {
@@ -108,13 +112,7 @@ export async function authVerifyEmail(token: string): Promise<AuthLoginResult> {
   if (!parsed) {
     return { ok: false, error: 'Invalid verification response.' };
   }
-  return {
-    ok: true,
-    kind: 'session',
-    accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
-    raw: data,
-  };
+  return sessionFromParsedAuthData(data, parsed, { includeProfileMeta: false });
 }
 
 export async function authLogout(): Promise<{ error: string | null }> {
@@ -172,14 +170,7 @@ export async function authAppleNative(body: {
   if (!parsed) {
     return { ok: false, error: 'Apple sign-in returned an invalid session.' };
   }
-  return {
-    ok: true,
-    kind: 'session',
-    accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
-    profileMeta: (data as { profile_meta?: unknown })?.profile_meta,
-    raw: data,
-  };
+  return sessionFromParsedAuthData(data, parsed);
 }
 
 export async function authForgotPassword(email: string): Promise<AuthSimpleResult> {

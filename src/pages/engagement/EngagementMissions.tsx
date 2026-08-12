@@ -2,11 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Target } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
 import { showToast } from "../../lib/toast";
-import {
-  apiEngagementMissionClaim,
-  apiEngagementMissions,
-} from "../../features/live/engagement/liveEngagementApi";
+import { apiEngagementMissions } from "../../features/live/engagement/liveEngagementApi";
 import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
+import { claimEngagementMissionRow } from "../../features/live/engagement/claimEngagementMissionRow";
 
 export default function EngagementMissions() {
   const [missions, setMissions] = useState<EngagementMissionRow[]>([]);
@@ -31,19 +29,12 @@ export default function EngagementMissions() {
   }, []);
 
   const claim = async (id: string) => {
-    if (claiming) return;
-    setClaiming(id);
-    try {
-      const { error } = await apiEngagementMissionClaim(id);
-      if (error) {
-        showToast(error || "Claim failed");
-        return;
-      }
-      showToast("Reward claimed");
-      await load();
-    } finally {
-      setClaiming(null);
-    }
+    await claimEngagementMissionRow({
+      id,
+      claiming,
+      setClaiming,
+      reload: load,
+    });
   };
 
   const daily = missions.filter((m) => m.scope === "daily");

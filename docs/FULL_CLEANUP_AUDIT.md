@@ -828,6 +828,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **173** clones / **2.18%** lines |
 | Android | 1.0.627 |
 
+### Continue 28 — auth session parse + mission claim
+| Item | Change |
+|------|--------|
+| Auth login/register/verify/apple session builder | `sessionFromParsedAuthData` in `authSession.ts` |
+| Shared mission claim | `claimEngagementMissionRow.ts` |
+| jscpd | **170** clones / **2.14%** lines |
+| Android | 1.0.628 |
+
 
 
 
