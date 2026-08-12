@@ -104,3 +104,11 @@ export function parseRawLiveStreamCore(s: RawLiveStreamFields): {
   const name = liveNameFromStreamFields(s.title, s.display_name ?? s.displayName, userId);
   return { streamKey, userId, name, viewers, title };
 }
+
+/** Key from stream_ended / presence payload (snake or short room id). */
+export function liveStreamEndedKey(data: {
+  stream_key?: unknown;
+  room_id?: unknown;
+}): string {
+  return String(data.stream_key ?? data.room_id ?? "");
+}

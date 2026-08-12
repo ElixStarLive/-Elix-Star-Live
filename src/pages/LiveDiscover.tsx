@@ -9,6 +9,7 @@ import {
   isGenericLiveCreatorName,
   isUiAvatarsUrl,
   liveNameFromStreamFields,
+  liveStreamEndedKey,
   parseRawLiveStreamCore,
   profileToLiveDisplay,
   sanitizeLiveAvatar,
@@ -256,7 +257,7 @@ export default function LiveDiscover() {
         });
       },
       onStreamEnded: (data) => {
-        const key = (data.stream_key ?? data.room_id) as string;
+        const key = liveStreamEndedKey(data);
         if (key) removeLiveStream(key);
       },
     });

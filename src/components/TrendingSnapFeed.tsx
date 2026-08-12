@@ -4,6 +4,7 @@ import { Play } from 'lucide-react';
 import type { Video } from '../store/useVideoStore';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
+import { pauseVideoAfterBriefPlay } from '../lib/pauseVideoAfterBriefPlay';
 
 /** True when the still looks like a black / empty first frame. */
 function isNearlyBlackImage(img: HTMLImageElement): boolean {
@@ -70,22 +71,7 @@ function VideoThumbnail({ video }: { video: Video }) {
     } catch {
       /* seek unsupported */
     }
-    const played = vid.play?.();
-    if (played && typeof played.then === 'function') {
-      played
-        .then(() => {
-          window.setTimeout(() => {
-            try {
-              vid.pause();
-            } catch {
-              /* ignore */
-            }
-          }, 80);
-        })
-        .catch(() => {
-          /* autoplay blocked — #t= fragment is the fallback */
-        });
-    }
+    pauseVideoAfterBriefPlay(vid, 80);
   }, []);
 
   React.useEffect(() => {

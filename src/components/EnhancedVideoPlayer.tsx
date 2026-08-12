@@ -21,6 +21,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
+import { silenceStaleFeedVideoEl } from '../lib/silenceStaleFeedVideoEl';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { trackEvent } from '../lib/analytics';
@@ -417,7 +418,7 @@ export default function EnhancedVideoPlayer({
       videoEl.play()
         .then(() => {
           if (!stillMine()) {
-            try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
+            silenceStaleFeedVideoEl(videoEl);
             return;
           }
           setIsPlaying(true);
@@ -441,7 +442,7 @@ export default function EnhancedVideoPlayer({
           videoEl.muted = true;
           videoEl.play().then(() => {
             if (!stillMine()) {
-              try { videoEl.pause(); videoEl.muted = true; videoEl.volume = 0; } catch { void 0; }
+              silenceStaleFeedVideoEl(videoEl);
               return;
             }
             setIsPlaying(true);

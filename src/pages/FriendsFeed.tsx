@@ -1,39 +1,26 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
-import { FEED_HOME } from '../lib/settingsNav';
 import { useVerticalSnapFeedIndex } from '../hooks/useVerticalSnapFeedIndex';
+import { useFeedChromeNav } from '../hooks/useFeedChromeNav';
 
 export default function FriendsFeed() {
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
   const pageRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
   const { activeIndex, containerRef, handleScroll, handleVideoEnd } =
     useVerticalSnapFeedIndex(friendVideoIds);
+  const { navigate, goSearch, goBack, goDiscover } = useFeedChromeNav();
 
   useEffect(() => {
     fetchFriendVideos();
   }, [user?.id, fetchFriendVideos]);
 
-  const goSearch = useCallback(() => {
-    navigate('/search');
-  }, [navigate]);
-
-  const goBack = useCallback(() => {
-    navigate(FEED_HOME, { replace: true });
-  }, [navigate]);
-
   const goUploadStory = useCallback(() => {
     navigate('/upload?type=story');
-  }, [navigate]);
-
-  const goDiscover = useCallback(() => {
-    navigate('/discover');
   }, [navigate]);
 
   return (

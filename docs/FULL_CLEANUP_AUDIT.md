@@ -896,6 +896,19 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **153** clones / **1.95%** lines |
 | Android | 1.0.635 |
 
+### Continue 36 — legal section, feed chrome, mount ref, thumb play, stream-ended key
+| Item | Change |
+|------|--------|
+| Legal doc section share | `LegalDocSection.tsx` (Affiliate/Audio/DMCA/…) |
+| Settings section label | `SettingsSectionLabel.tsx` |
+| Feed chrome nav hook | `useFeedChromeNav` |
+| Auth mounted ref | `useIsMountedRef` |
+| Brief play-then-pause | `pauseVideoAfterBriefPlay` |
+| Stale feed video silence | `silenceStaleFeedVideoEl` |
+| Stream-ended key helper | `liveStreamEndedKey` |
+| jscpd | **139** clones / **1.81%** lines |
+| Android | 1.0.636 |
+
 
 
 

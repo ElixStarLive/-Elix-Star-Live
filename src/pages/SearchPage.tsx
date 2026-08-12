@@ -10,6 +10,7 @@ import { apiFetchProfiles } from '../features/feed/feedApi';
 import { SEARCH_EXIT_TO } from '../lib/settingsNav';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
+import { pauseVideoAfterBriefPlay } from '../lib/pauseVideoAfterBriefPlay';
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -355,22 +356,7 @@ export default function SearchPage() {
                               // Some WebViews won't paint a seeked frame without playback.
                               const vid = e.currentTarget;
                               if (vid.currentTime > 0.05) return;
-                              const played = vid.play?.();
-                              if (played && typeof played.then === 'function') {
-                                played
-                                  .then(() => {
-                                    window.setTimeout(() => {
-                                      try {
-                                        vid.pause();
-                                      } catch {
-                                        /* ignore */
-                                      }
-                                    }, 60);
-                                  })
-                                  .catch(() => {
-                                    /* autoplay blocked — seek above is the fallback */
-                                  });
-                              }
+                              pauseVideoAfterBriefPlay(vid, 60);
                             }}
                           />
                           <div className="text-left flex-1">

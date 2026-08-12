@@ -4,6 +4,7 @@ import { Book, ChevronRight, HelpCircle, Mail, MessageCircle, Send, Shield } fro
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { SettingsSectionLabel as S } from '../components/settings/SettingsSectionLabel';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
 import { SETTINGS_HOME } from '../lib/settingsNav';
 
@@ -217,14 +218,6 @@ export default function Support() {
         </div>
       </div>
     </SettingsOptionSheet>
-  );
-}
-
-function S({ t }: { t: string }) {
-  return (
-    <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
-      {t}
-    </div>
   );
 }
 

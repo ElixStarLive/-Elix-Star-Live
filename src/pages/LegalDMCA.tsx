@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { LegalDocSection as Section } from '../components/LegalDocSection';
 import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function LegalDMCA() {
@@ -84,11 +85,3 @@ export default function LegalDMCA() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <h2 className="text-white font-semibold text-base mb-2">{title}</h2>
-      {children}
-    </div>
-  );
-}

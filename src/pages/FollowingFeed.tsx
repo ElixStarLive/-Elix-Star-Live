@@ -1,21 +1,20 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
-import { FEED_HOME } from '../lib/settingsNav';
 import { useVerticalSnapFeedIndex } from '../hooks/useVerticalSnapFeedIndex';
+import { useFeedChromeNav } from '../hooks/useFeedChromeNav';
 
 export default function FollowingFeed() {
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   const { followingVideos, fetchFollowingVideos, followingLoading: loading } = useVideoStore();
   const pageRef = useRef<HTMLDivElement>(null);
   const followingVideoIds = followingVideos.map((v) => v.id);
   const { activeIndex, containerRef, handleScroll, handleVideoEnd } =
     useVerticalSnapFeedIndex(followingVideoIds);
+  const { goSearch, goBack, goDiscover } = useFeedChromeNav();
 
   useEffect(() => {
     trackScreenView('following_feed');
@@ -23,18 +22,6 @@ export default function FollowingFeed() {
       fetchFollowingVideos();
     }
   }, [user?.id, fetchFollowingVideos]);
-
-  const goSearch = useCallback(() => {
-    navigate('/search');
-  }, [navigate]);
-
-  const goBack = useCallback(() => {
-    navigate(FEED_HOME, { replace: true });
-  }, [navigate]);
-
-  const goDiscover = useCallback(() => {
-    navigate('/discover');
-  }, [navigate]);
 
   return (
     <div ref={pageRef} className="app-live-column bg-transparent relative">

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, AlertTriangle, Ban, Flag, HelpCircle } from 'lucide-react';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
 import { SettingsOptionRow as R } from '../../components/settings/SettingsOptionRow';
+import { SettingsSectionLabel as S } from '../../components/settings/SettingsSectionLabel';
 import { SETTINGS_HOME } from '../../lib/settingsNav';
 
 export default function SafetyCenter() {
@@ -83,13 +84,5 @@ export default function SafetyCenter() {
         </div>
       </div>
     </SettingsOptionSheet>
-  );
-}
-
-function S({ t }: { t: string }) {
-  return (
-    <div className="mt-3.5 mb-1 px-1 text-[10px] uppercase tracking-[0.12em] text-[#8B9099] leading-none">
-      {t}
-    </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { isAppleSignInEnabled, isPasswordResetEnabled } from '../lib/authFeatures';
+import { useIsMountedRef } from '../hooks/useIsMountedRef';
 import { Eye, EyeOff, Mail, Check, User } from 'lucide-react';
 
 export default function Login() {
@@ -18,6 +19,7 @@ export default function Login() {
 
   const state = location.state as { from?: string } | null;
   const from = state?.from ?? '/';
+  const isMounted = useIsMountedRef();
   const showAppleSignIn = isAppleSignInEnabled();
   const showPasswordReset = isPasswordResetEnabled();
 
@@ -37,15 +39,6 @@ export default function Login() {
     }
     // Clean up any previously stored password for security
     try { window.localStorage.removeItem('login_saved_password'); } catch { /* ignore */ }
-  }, []);
-
-  const isMounted = React.useRef(true);
-
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
   }, []);
 
   const onSubmit = async (e: React.FormEvent) => {

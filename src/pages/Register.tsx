@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { Eye, EyeOff, Mail, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
+import { useIsMountedRef } from '../hooks/useIsMountedRef';
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -20,13 +21,7 @@ export default function Register() {
   const [info, setInfo] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isMounted = React.useRef(true);
-  React.useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  const isMounted = useIsMountedRef();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
