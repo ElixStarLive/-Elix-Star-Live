@@ -821,6 +821,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **174** clones / **2.19%** lines |
 | Android | 1.0.626 |
 
+### Continue 27 — Android feed play retries
+| Item | Change |
+|------|--------|
+| Android feed play retry schedule | `scheduleAndroidFeedPlayRetries.ts` |
+| jscpd | **173** clones / **2.18%** lines |
+| Android | 1.0.627 |
+
 
 
 

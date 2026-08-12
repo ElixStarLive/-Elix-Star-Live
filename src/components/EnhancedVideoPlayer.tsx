@@ -49,6 +49,7 @@ import {
   profileRingOuterAddMm,
 } from '../lib/profileFrame';
 import { platform } from '../lib/platform';
+import { scheduleAndroidFeedPlayRetries } from '../lib/scheduleAndroidFeedPlayRetries';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
 import { apiLiveStreams, isUserLive } from '../lib/live';
 
@@ -475,30 +476,13 @@ export default function EnhancedVideoPlayer({
     };
 
     const timer = setTimeout(tryPlay, 50);
-    const retryTimer = platform.isAndroid
-      ? setTimeout(() => {
-          if (!stillMine()) return;
-          const el = videoRef.current;
-          if (!el) return;
-          if (!el.paused && !el.ended) {
-            setIsPlaying(true);
-            return;
-          }
-          runPlay(el);
-        }, 400)
-      : null;
-    const retryTimer2 = platform.isAndroid
-      ? setTimeout(() => {
-          if (!stillMine()) return;
-          const el = videoRef.current;
-          if (!el) return;
-          if (!el.paused && !el.ended) {
-            setIsPlaying(true);
-            return;
-          }
-          runPlay(el);
-        }, 1200)
-      : null;
+    const androidRetryTimers = scheduleAndroidFeedPlayRetries({
+      delaysMs: [400, 1200],
+      stillMine,
+      getEl: () => videoRef.current,
+      onAlreadyPlaying: () => setIsPlaying(true),
+      runPlay,
+    });
 
     incrementViews(videoId);
     trackEvent('video_view', { videoId });
@@ -595,8 +579,7 @@ export default function EnhancedVideoPlayer({
     // being the active one — no external gate needed.
     return () => {
       clearTimeout(timer);
-      if (retryTimer) clearTimeout(retryTimer);
-      if (retryTimer2) clearTimeout(retryTimer2);
+      for (const t of androidRetryTimers) clearTimeout(t);
       if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
       stopThisSlide();
     };
