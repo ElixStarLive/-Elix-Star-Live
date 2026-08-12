@@ -23,7 +23,7 @@ import {
   hasCohostPublishGrant,
 } from "../websocket/index";
 import { getEngagementFlags } from "../lib/engagementFlags";
-import { getPromoBalance, spendPromoCoinsAndRecordGift } from "../lib/engagement";
+import { spendPromoCoinsAndRecordGift } from "../lib/engagement";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);

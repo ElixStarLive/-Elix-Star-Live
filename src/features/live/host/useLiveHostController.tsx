@@ -6,7 +6,6 @@ import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
 import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
-import { LIVE_FACE_EFFECT_OPTIONS } from '../../../lib/liveFaceEffectsProvider';
 import {
   announceMvpName,
   createTauntBurst,
@@ -410,7 +409,6 @@ export function useLiveHostController() {
     };
   }, [isBroadcast, effectiveStreamId, user?.id]);
 
-  // Face AR overlays attach via FaceARGift + videoRef
   const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
 
   // Handle keyboard/viewport resizing for Viewer List
@@ -1614,7 +1612,6 @@ export function useLiveHostController() {
     };
   }, [effectiveStreamId, isBroadcast, isBattleJoiner]);
   const [liveFilterCss, setLiveFilterCss] = useState('none');
-  const [activeLiveFaceEffect, setActiveLiveFaceEffect] = useState<{ type: string; color: string } | null>(null);
   const [battleTauntBursts, setBattleTauntBursts] = useState<TauntBurst[]>([]);
   const prevMvpHostIdRef = useRef<string | null>(null);
   const prevMvpOpponentIdRef = useRef<string | null>(null);
@@ -4505,37 +4502,6 @@ export function useLiveHostController() {
       return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
     });
   }, []);
-  const [activeFaceARGift, setActiveFaceARGift] = useState<
-    | { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string }
-    | null
-  >(null);
-  const liveFilterBeforeFaceGiftRef = useRef<string>('none');
-
-  const maybeTriggerFaceARGift = (gift: GiftUiItem) => {
-    const mapping: Record<string, { type: 'crown' | 'glasses' | 'mask' | 'ears' | 'hearts' | 'stars' | 'age' | 'youth'; color?: string } | undefined> = {
-      face_ar_crown: { type: 'crown', color: '#FFD700' },
-      face_ar_glasses: { type: 'glasses', color: '#00D4FF' },
-      face_ar_hearts: { type: 'hearts', color: '#FF3B7A' },
-      face_ar_mask: { type: 'mask', color: '#9B59B6' },
-      face_ar_ears: { type: 'ears', color: '#FFB6C1' },
-      face_ar_stars: { type: 'stars', color: '#F59E0B' },
-    };
-
-    const next = mapping[gift.id];
-    if (!next) return;
-    liveFilterBeforeFaceGiftRef.current = liveFilterCss;
-    if (next.type === 'age') {
-      setLiveFilterCss('sepia(0.38) saturate(0.72) contrast(1.1) brightness(0.9)');
-    } else if (next.type === 'youth') {
-      setLiveFilterCss('brightness(1.12) contrast(0.88) saturate(1.22) blur(0.35px)');
-    }
-    setActiveFaceARGift(next);
-  };
-
-  const clearActiveFaceARGift = useCallback(() => {
-    setActiveFaceARGift(null);
-    setLiveFilterCss(liveFilterBeforeFaceGiftRef.current);
-  }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
     // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
@@ -4695,10 +4661,6 @@ export function useLiveHostController() {
 
       // Flower/rose → Speed unlock is counted once in gift_sent WS handler.
 
-      if (isBroadcast && !isBattleMode) {
-        maybeTriggerFaceARGift(gift);
-      }
-      
       // Add to chat
       const giftMsg: LiveMessage = {
           id: Date.now().toString(),
@@ -4913,10 +4875,6 @@ export function useLiveHostController() {
 
       // Flower/rose → Speed unlock is counted once in gift_sent WS handler.
 
-      if (isBroadcast && !isBattleMode) {
-        maybeTriggerFaceARGift(lastSentGift);
-      }
-      
       if (lastSentGift.video && lastSentGift.video.trim()) {
         const videoUrl = resolveLocalGiftVideoUrl(lastSentGift.video);
         if (videoUrl) {
@@ -5412,20 +5370,6 @@ export function useLiveHostController() {
     setShowLiveEffectsPanel(false);
   }, []);
 
-  const applyLiveFaceEffectPreset = useCallback((fx: (typeof LIVE_FACE_EFFECT_OPTIONS)[number]) => {
-    if (fx.type === 'none') {
-      setActiveLiveFaceEffect(null);
-    } else {
-      setActiveLiveFaceEffect({ type: fx.type, color: fx.color });
-      if (fx.type === 'age') {
-        setLiveFilterCss('sepia(0.38) saturate(0.72) contrast(1.1) brightness(0.9)');
-      } else if (fx.type === 'youth') {
-        setLiveFilterCss('brightness(1.12) contrast(0.88) saturate(1.22) blur(0.35px)');
-      }
-    }
-    setShowLiveEffectsPanel(false);
-  }, []);
-
   const declineJoinRequestFromViewerList = useCallback(() => {
     void declineJoinRequest();
     setShowViewerList(false);
@@ -5905,14 +5849,11 @@ export function useLiveHostController() {
     acceptCohostInviteClick,
     acceptJoinRequest,
     acceptJoinRequestFromViewerList,
-    activeFaceARGift,
     activeLikes,
-    activeLiveFaceEffect,
     activeViewers,
     activeViewersRef,
     addLiveLikes,
     allFilledAccepted,
-    applyLiveFaceEffectPreset,
     applyLiveFilterPreset,
     attachRemoteAudio,
     battleCountdown,
@@ -5962,7 +5903,6 @@ export function useLiveHostController() {
     cameraStream,
     cameraStreamRef,
     chatHeartLayerRef,
-    clearActiveFaceARGift,
     clearBattleInviteTimer,
     clearGiftGoal,
     clearInvitedBattleSlot,
@@ -6101,7 +6041,6 @@ export function useLiveHostController() {
     leftPct,
     leftPctRaw,
     liveCoHosts,
-    liveFilterBeforeFaceGiftRef,
     liveFilterCss,
     liveKitCreds,
     liveKitRoomRef,
@@ -6111,7 +6050,6 @@ export function useLiveHostController() {
     location,
     maybeEnqueueUniverse,
     maybeResolveViewerIdentity,
-    maybeTriggerFaceARGift,
     membershipTimerRef,
     messages,
     miniProfile,
@@ -6214,8 +6152,6 @@ export function useLiveHostController() {
     sendShareToFollower,
     sendSpectatorCohostRequest,
     sessionContribution,
-    setActiveFaceARGift,
-    setActiveLiveFaceEffect,
     setActiveViewers,
     setBattleCountdown,
     setBattleGloves,

@@ -42,13 +42,10 @@ import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverl
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
 import { BattleCreatorTileScore } from '../battle/BattleCreatorTileScore';
 import { BattleTileGiftIcons } from '../battle/BattleTileGiftIcons';
-import { LiveFaceEffectsLayer } from '../../../components/LiveFaceEffectsLayer';
-import { LIVE_FACE_EFFECT_OPTIONS, getLiveFaceEngineLabel } from '../../../lib/liveFaceEffectsProvider';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
 import { ChatOverlay } from '../../../components/ChatOverlay';
-import { FaceARGift } from '../../../components/FaceARGift';
 import { AvatarRing } from '../../../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
@@ -191,11 +188,8 @@ export default function LiveHostScreen() {
     acceptBattleInviteClick,
     acceptCohostInviteClick,
     acceptJoinRequestFromViewerList,
-    activeFaceARGift,
     activeLikes,
-    activeLiveFaceEffect,
     activeViewers,
-    applyLiveFaceEffectPreset,
     applyLiveFilterPreset,
     battleCountdown,
     battleGloves,
@@ -221,7 +215,6 @@ export default function LiveHostScreen() {
     cameraError,
     cameraOffPlayers,
     chatHeartLayerRef,
-    clearActiveFaceARGift,
     clearGiftGoal,
     clearInvitedBattleSlot,
     closeFanClub,
@@ -462,7 +455,7 @@ export default function LiveHostScreen() {
     user,
     userLevel,
     userXP,
-    videoRef,
+    videoRef: _videoRef,
     viewerCount,
     viewerHasStream,
     viewerListMode,
@@ -716,23 +709,6 @@ export default function LiveHostScreen() {
                   </div>
                 )}
               </>
-            )}
-
-            {isBroadcast && activeFaceARGift && (
-              <FaceARGift
-                videoRef={videoRef}
-                giftType={activeFaceARGift.type}
-                color={activeFaceARGift.color || '#FFFFFF'}
-                onComplete={clearActiveFaceARGift}
-              />
-            )}
-            {isBroadcast && activeLiveFaceEffect && activeLiveFaceEffect.type !== 'none' && !activeFaceARGift && (
-              <LiveFaceEffectsLayer
-                videoRef={videoRef}
-                effectType={activeLiveFaceEffect.type}
-                color={activeLiveFaceEffect.color}
-                active
-              />
             )}
 
             {isBroadcast && cameraError && (
@@ -1232,22 +1208,6 @@ export default function LiveHostScreen() {
                         className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)] pointer-events-auto"
                       >
                       <video ref={bindHostCameraPreview} className={`w-full h-full object-cover transform scale-x-[-1] ${LIVE_WEBRTC_VIDEO_CLASS}`} autoPlay playsInline muted controls={false} poster={LIVE_VIDEO_TRANSPARENT_POSTER} style={isCamOff ? { opacity: 0 } : undefined} />
-                      {isBroadcast && activeFaceARGift && (
-                        <FaceARGift
-                          videoRef={videoRef}
-                          giftType={activeFaceARGift.type}
-                          color={activeFaceARGift.color || '#FFFFFF'}
-                          onComplete={clearActiveFaceARGift}
-                        />
-                      )}
-                      {isBroadcast && activeLiveFaceEffect && activeLiveFaceEffect.type !== 'none' && !activeFaceARGift && (
-                        <LiveFaceEffectsLayer
-                          videoRef={videoRef}
-                          effectType={activeLiveFaceEffect.type}
-                          color={activeLiveFaceEffect.color}
-                          active
-                        />
-                      )}
                       {isCamOff && (
                         <div className="absolute inset-0 z-[5] flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.35)]">
                           {(user?.avatar || myAvatar) ? (
@@ -3431,7 +3391,7 @@ export default function LiveHostScreen() {
                   <div className="w-10 h-1 rounded-full bg-white/25" />
                 </div>
                 <span className="text-[#F5F5F7] text-sm font-bold text-center w-full">
-                  Effects{getLiveFaceEngineLabel() ? ` (${getLiveFaceEngineLabel()})` : ''}
+                  Effects
                 </span>
               </div>
               <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1">
@@ -3450,23 +3410,6 @@ export default function LiveHostScreen() {
                   >
                     <span className="text-lg">{filter.preview}</span>
                     <span className="text-[8px] text-white/60 whitespace-nowrap">{filter.name}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 px-1 mt-1 border-t border-white/5 pt-2">
-                {LIVE_FACE_EFFECT_OPTIONS.map((fx) => (
-                  <button
-                    key={fx.id}
-                    type="button"
-                    onClick={() => applyLiveFaceEffectPreset(fx)}
-                    className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all active:scale-95 ${
-                      activeLiveFaceEffect?.type === fx.type || (fx.type === 'none' && !activeLiveFaceEffect)
-                        ? 'bg-white/10'
-                        : 'bg-white/5'
-                    }`}
-                  >
-                    <span className="text-lg">{fx.preview}</span>
-                    <span className="text-[8px] text-white/60 whitespace-nowrap">{fx.name}</span>
                   </button>
                 ))}
               </div>
