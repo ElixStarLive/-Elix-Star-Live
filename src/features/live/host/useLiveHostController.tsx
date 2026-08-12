@@ -25,6 +25,7 @@ import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
+import { applyBattleSpeedChallengeUnlock } from '../battle/applyBattleSpeedChallengeUnlock';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
@@ -2592,9 +2593,12 @@ export function useLiveHostController() {
       taps: battleScreenTapCountRef.current,
       reachedThresholds: reachedThresholdsRef.current,
       onUnlock: (mult) => {
-        setSpeedMultiplier(mult);
-        speedMultiplierRef.current = mult;
-        startSpeedChallenge();
+        applyBattleSpeedChallengeUnlock(
+          mult,
+          setSpeedMultiplier,
+          speedMultiplierRef,
+          startSpeedChallenge,
+        );
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

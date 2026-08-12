@@ -806,6 +806,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **176** clones / **2.21%** lines |
 | Android | 1.0.624 |
 
+### Continue 25 — battle speed unlock apply
+| Item | Change |
+|------|--------|
+| Speed-challenge unlock apply | `applyBattleSpeedChallengeUnlock.ts` |
+| jscpd | **176** clones (held; single owner for unlock apply) |
+| Android | 1.0.625 |
+
 
 
 
