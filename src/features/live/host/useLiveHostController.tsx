@@ -31,6 +31,12 @@ import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeague
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
 import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
+import {
+  appendLiveJoinStreamBanner,
+  maybeFixJoinBannerLevelFromProfile,
+  scheduleLiveJoinBannerClear,
+} from '../chat/liveJoinStreamBanner';
+import { useMistFogAutoExpire } from '../battle/useMistFogAutoExpire';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
@@ -1760,13 +1766,7 @@ export function useLiveHostController() {
   }, [isBattleMode, battleTime, battleWinner]);
 
   // Mist Fog window self-expires on the client from the server expires_at.
-  useEffect(() => {
-    if (!mistFog) return;
-    const ms = mistFog.expiresAt - Date.now();
-    if (ms <= 0) { setMistFog(null); return; }
-    const t = setTimeout(() => setMistFog(null), ms);
-    return () => clearTimeout(t);
-  }, [mistFog]);
+  useMistFogAutoExpire(mistFog, setMistFog);
 
   // Fog covers gift/battle points for everyone except the supported creator.
   // Opponent creator + spectators lose the digits; only that creator keeps them.
@@ -3262,36 +3262,30 @@ export function useLiveHostController() {
         }, LIVE_VIEWER_CAP);
       });
       const joinMsgId = `join-${uid}`;
-      setMessages(prev => {
-        if (prev.some((m) => m.id === joinMsgId || (m.isSystem === true && m.text === 'joined the stream' && m.username === joinName))) {
-          return prev;
-        }
-        return appendCapped(prev, {
-          id: joinMsgId,
-          username: joinName,
-          text: 'joined the stream',
-          isSystem: true,
-          level: initialLevel,
-          avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-        }, LIVE_CHAT_MESSAGE_CAP);
+      appendLiveJoinStreamBanner({
+        setMessages,
+        joinMsgId,
+        joinName,
+        initialLevel,
+        avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
       });
-      if (uid && initialLevel <= 1) {
-        void apiFetchProfileById(uid).then(({ body }) => {
-          if (!mounted) return;
-          const prof = (body?.profile || body?.data || {}) as Record<string, unknown>;
-          const lvl = Number(prof.level);
-          if (!Number.isFinite(lvl) || lvl <= 0) return;
-          const fixed = Math.floor(lvl);
-          setMessages((prev) => prev.map((m) => (m.id === joinMsgId ? { ...m, level: fixed } : m)));
-          setActiveViewers((prev) => prev.map((v) => (v.id === uid ? { ...v, level: fixed } : v)));
-        }).catch((err) => reportFailure('live_join_profile_level', err, { userId: uid }));
+      if (uid) {
+        maybeFixJoinBannerLevelFromProfile({
+          userId: uid,
+          joinMsgId,
+          initialLevel,
+          setMessages,
+          isMounted: () => mounted,
+          onLevelFixed: (fixed) => {
+            setActiveViewers((prev) =>
+              prev.map((v) => (v.id === uid ? { ...v, level: fixed } : v)),
+            );
+          },
+        });
       }
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
-      window.setTimeout(() => {
-        if (!mounted) return;
-        setMessages(prev => prev.filter(m => m.id !== joinMsgId));
-      }, 5000);
+      scheduleLiveJoinBannerClear(setMessages, joinMsgId, 5000, () => mounted);
       // Viewer count: server viewer_count event — not local +/-.
       const joinAvatar = typeof data.avatar_url === 'string' ? data.avatar_url.trim() : '';
       if (uid && !cached && (isGenericViewerName(joinName) || isGenericViewerName(data.display_name) || !joinAvatar)) {

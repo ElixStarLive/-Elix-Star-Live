@@ -696,6 +696,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **189** clones — down from 190 |
 | Android | 1.0.610 |
 
+### Continue 11 — join banner + mist fog expiry
+| Item | Change |
+|------|--------|
+| Join stream banner + level fix | `liveJoinStreamBanner.ts` |
+| Mist fog auto-expire | `useMistFogAutoExpire.ts` |
+| jscpd | **187** clones — down from 189 |
+| Android | 1.0.611 |
+
+
 
 
 
