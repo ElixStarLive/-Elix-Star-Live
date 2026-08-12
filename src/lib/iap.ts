@@ -12,7 +12,9 @@ import { request } from './apiClient';
 import {
   coinAmountForProviderProduct,
   isProductAllowedForProvider,
+  PROMOTE_IAP_PRODUCTS,
   storeCoinProductIdsForNativePlatform,
+  type PromoteIapProductId,
   type StoreCoinProductId,
   type StoreIapProvider,
 } from './storeProductCatalogs';
@@ -43,15 +45,10 @@ function isSkuForCurrentStore(productId: string): boolean {
   return isProductAllowedForProvider(provider, productId);
 }
 
-// Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
-const PROMOTE_PRODUCTS = {
-  'com.elixstarlive.promote_views':     { goal: 'views',     label: 'More video views',      amountGbp: 5  },
-  'com.elixstarlive.promote_likes':     { goal: 'likes',     label: 'More likes & comments', amountGbp: 10 },
-  'com.elixstarlive.promote_profile':   { goal: 'profile',   label: 'More profile views',    amountGbp: 20 },
-  'com.elixstarlive.promote_followers': { goal: 'followers', label: 'More followers',        amountGbp: 30 },
-} as const;
+// Promote boost product IDs — owner: storeProductCatalogs.PROMOTE_IAP_PRODUCTS
+const PROMOTE_PRODUCTS = PROMOTE_IAP_PRODUCTS;
 
-export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
+export type PromoteProductId = PromoteIapProductId;
 
 /** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
 const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';

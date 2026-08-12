@@ -153,3 +153,33 @@ export function gateProviderProduct(
   }
   return { ok: true };
 }
+
+/** Apple IAP promote boost SKUs — shared client + server (must match App Store Connect). */
+export const PROMOTE_IAP_PRODUCTS = {
+  "com.elixstarlive.promote_views": {
+    goal: "views",
+    label: "More video views",
+    amountGbp: 5,
+  },
+  "com.elixstarlive.promote_likes": {
+    goal: "likes",
+    label: "More likes & comments",
+    amountGbp: 10,
+  },
+  "com.elixstarlive.promote_profile": {
+    goal: "profile",
+    label: "More profile views",
+    amountGbp: 20,
+  },
+  "com.elixstarlive.promote_followers": {
+    goal: "followers",
+    label: "More followers",
+    amountGbp: 30,
+  },
+} as const;
+
+export type PromoteIapProductId = keyof typeof PROMOTE_IAP_PRODUCTS;
+
+export function isPromoteIapProductId(id: string): id is PromoteIapProductId {
+  return Object.prototype.hasOwnProperty.call(PROMOTE_IAP_PRODUCTS, id);
+}

@@ -34,6 +34,7 @@ import { insertNotification } from '../lib/notifications';
 import {
   coinAmountForProviderProduct,
   gateProviderProduct,
+  PROMOTE_IAP_PRODUCTS,
 } from '../lib/monetisation/storeProductCatalogs';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
@@ -497,14 +498,6 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
   }
 }
 
-// Promote IAP product IDs and server-side amounts (must match App Store Connect)
-const PROMOTE_IAP_PRODUCTS: Record<string, { goal: string; amountGbp: number }> = {
-  'com.elixstarlive.promote_views':     { goal: 'views', amountGbp: 5 },
-  'com.elixstarlive.promote_likes':     { goal: 'likes', amountGbp: 10 },
-  'com.elixstarlive.promote_profile':   { goal: 'profile', amountGbp: 20 },
-  'com.elixstarlive.promote_followers': { goal: 'followers', amountGbp: 30 },
-};
-
 // --- Promote IAP complete (Apple/Google) ---
 export async function handlePromoteIAPComplete(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -521,7 +514,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   if (!transactionId || !productId) return res.status(400).json({ error: 'Missing transactionId or productId' });
   if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
 
-  const meta = PROMOTE_IAP_PRODUCTS[String(productId)];
+  const meta = PROMOTE_IAP_PRODUCTS[String(productId) as keyof typeof PROMOTE_IAP_PRODUCTS];
   if (!meta) return res.status(400).json({ error: 'Invalid promote product' });
 
   const provider = body.provider === 'google' ? 'google' : 'apple';

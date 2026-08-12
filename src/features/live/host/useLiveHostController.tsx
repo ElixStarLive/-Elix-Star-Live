@@ -43,6 +43,7 @@ import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
+import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
 import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useHostLiveSession } from './session/useHostLiveSession';
@@ -83,7 +84,6 @@ import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveChatStore, EMPTY_LIVE_MESSAGES } from '../chat/useLiveChatStore';
 import { liveGiftGoalClear, liveGiftGoalSet } from '../gifts/liveGiftWsActions';
 import { liveStreamStart } from '../room/liveRoomActions';
-import { apiFetchWallet } from '../../wallet/walletApi';
 import {
   apiFetchFollowingIds,
   apiFetchProfileById,
@@ -104,7 +104,6 @@ import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
 import {
   apiLiveEngagementMissions,
   apiLiveEngagementProgress,
-  apiLiveEngagementWallet,
   apiLiveBlockUser,
   apiLiveListModerators,
   apiLiveAddModerator,
@@ -112,7 +111,6 @@ import {
   apiLiveGetDailyHearts,
   apiLiveMembership,
   apiLiveModerationCheck,
-  apiLiveProgressionMe,
   apiLiveRankingsWeekly,
   apiLiveShareCreate,
   apiLiveStickerDelete,
@@ -455,48 +453,24 @@ export function useLiveHostController() {
     setUserLevel(user.level ?? 0);
     setUserXP(0);
 
-    Promise.all([
-      apiFetchWallet(),
-      apiLiveProgressionMe(),
-      apiLiveEngagementWallet(),
-    ])
-      .then(([wallet, progression, engagementWallet]) => {
-        if (cancelled) return;
-        const walletBal =
-          !wallet.error && wallet.balances != null
-            ? Math.max(0, wallet.balances.paid)
-            : 0;
-        walletCoinBalanceRef.current = walletBal;
-        const p = (progression.data?.progression ?? null) as Record<string, unknown> | null;
-        const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
-        const ew = engagementWallet.data?.wallet as Record<string, number> | undefined;
-        const promo = Math.max(
-          0,
-          Number(ew?.promotionalCoins ?? ew?.promotional_coins ?? 0) || 0,
-        );
-        useWalletStore.getState().applyServerBalances({
-          paid: walletBal,
-          starter,
-          promotional: promo,
-        });
-        if (promo > 0 && engagementFlags.promoGiftSpendEnabled) {
-          setGiftSource('promotional_coins');
-        } else if (starter > 0) {
-          setGiftSource('starter_coins');
-        } else {
-          setGiftSource('paid_coins');
-        }
-        const serverLevel = Math.max(0, Number(p?.current_level) || 0);
-        const serverXp = Math.max(0, Number(p?.total_xp) || 0);
-        const resolvedLevel = Math.max(serverLevel, Number(user.level) || 0);
-        setUserLevel(resolvedLevel);
-        if (serverLevel > 0) updateUser({ level: serverLevel });
-        setUserXP(serverXp);
-      })
-      .catch(() => {
-        if (cancelled) return;
+    void loadLiveGiftWalletBootstrap(walletCoinBalanceRef).then((boot) => {
+      if (cancelled) return;
+      if (!boot) {
         showToast('Could not load wallet balance');
-      });
+        return;
+      }
+      if (boot.promo > 0 && engagementFlags.promoGiftSpendEnabled) {
+        setGiftSource('promotional_coins');
+      } else if (boot.starter > 0) {
+        setGiftSource('starter_coins');
+      } else {
+        setGiftSource('paid_coins');
+      }
+      const resolvedLevel = Math.max(boot.currentLevel, Number(user.level) || 0);
+      setUserLevel(resolvedLevel);
+      if (boot.currentLevel > 0) updateUser({ level: boot.currentLevel });
+      setUserXP(boot.totalXp);
+    });
     return () => { cancelled = true; };
   }, [user?.id, user?.level, updateUser]);
 
@@ -2234,51 +2208,7 @@ export function useLiveHostController() {
 
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;
-    void apiFetchWallet().then(({ balances, error: walletErr }) => {
-      if (!walletErr && balances) {
-        const walletBal = Math.max(0, balances.paid);
-        walletCoinBalanceRef.current = walletBal;
-        useWalletStore.getState().applyServerBalances({
-          paid: walletBal,
-          starter: balances.starter,
-          promotional: balances.promotional,
-        });
-      } else if (walletErr) {
-        reportFailure('live_gift_panel_wallet', walletErr);
-        showToast('Could not load wallet balance');
-      }
-    }).catch((err) => {
-      reportFailure('live_gift_panel_wallet', err);
-      showToast('Could not load wallet balance');
-    });
-    apiLiveProgressionMe().then(({ data, error }) => {
-      if (!error && data?.progression) {
-        const progression = data.progression as Record<string, unknown>;
-        const starter = Math.max(
-          0,
-          Number(progression.starter_coin_balance) || 0,
-        );
-        useWalletStore.getState().applyServerBalances({ starter });
-      } else if (error) {
-        showToast('Could not load starter coins');
-      }
-    }).catch(() => {
-      showToast('Could not load starter coins');
-    });
-    apiLiveEngagementWallet().then(({ data, error }) => {
-      if (!error && data?.wallet) {
-        const ew = data.wallet as Record<string, number>;
-        const promo = Math.max(
-          0,
-          Number(ew.promotionalCoins ?? ew.promotional_coins ?? 0) || 0,
-        );
-        useWalletStore.getState().applyServerBalances({ promotional: promo });
-      } else if (error) {
-        showToast('Could not load promo coins');
-      }
-    }).catch(() => {
-      showToast('Could not load promo coins');
-    });
+    refreshLiveGiftPanelBalances({ walletCoinBalanceRef });
   }, [showGiftPanel, user?.id]);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [shareQuery, setShareQuery] = useState('');

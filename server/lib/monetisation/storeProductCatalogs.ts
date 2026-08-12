@@ -6,7 +6,9 @@
 export {
   APPLE_IAP_PRODUCT_IDS,
   GOOGLE_PLAY_PRODUCT_IDS,
+  PROMOTE_IAP_PRODUCTS,
   isProductAllowedForProvider,
   coinAmountForProviderProduct,
   gateProviderProduct,
+  isPromoteIapProductId,
 } from "../../../src/lib/storeProductCatalogs";

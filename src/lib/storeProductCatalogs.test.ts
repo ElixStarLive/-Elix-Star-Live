@@ -4,11 +4,13 @@ import {
   APPLE_IAP_PRODUCTS,
   GOOGLE_PLAY_PRODUCT_IDS,
   GOOGLE_PLAY_PRODUCTS,
+  PROMOTE_IAP_PRODUCTS,
   assertNoCrossStoreProductIds,
   coinAmountForProviderProduct,
   isAppleIapProductId,
   isGooglePlayProductId,
   isProductAllowedForProvider,
+  isPromoteIapProductId,
   storeCoinProductIdsForNativePlatform,
 } from "./storeProductCatalogs";
 
@@ -64,5 +66,11 @@ describe("store product catalogues — platform separation", () => {
     const { appleOnly, googleOnly } = assertNoCrossStoreProductIds();
     expect(appleOnly).toContain("coins500");
     expect(googleOnly).toContain("coins500a");
+  });
+
+  it("owns promote IAP SKUs with stable GBP amounts", () => {
+    expect(isPromoteIapProductId("com.elixstarlive.promote_views")).toBe(true);
+    expect(PROMOTE_IAP_PRODUCTS["com.elixstarlive.promote_views"].amountGbp).toBe(5);
+    expect(PROMOTE_IAP_PRODUCTS["com.elixstarlive.promote_followers"].amountGbp).toBe(30);
   });
 });

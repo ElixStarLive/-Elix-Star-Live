@@ -321,88 +321,39 @@ export async function sendStarterCoinGift(input: {
     );
     const xpEnabled =
       xpConfig.rows.length === 0 || xpConfig.rows[0].enabled === true;
-    const xpGained = xpEnabled ? Math.max(0, Math.floor(coins)) : 0;
+    const configuredXp = xpEnabled ? Math.max(0, Math.floor(coins)) : 0;
 
-    await client.query(
-      `INSERT INTO user_progression (user_id, total_xp, current_level)
-       VALUES ($1, 0, 0)
-       ON CONFLICT (user_id) DO NOTHING`,
-      [input.userId],
+    const { oldLevel } = await ensureAndLockUserProgression(
+      client,
+      input.userId,
     );
-    const before = await client.query(
-      `SELECT total_xp::bigint AS total_xp, current_level::int AS current_level
-         FROM user_progression
-        WHERE user_id = $1
-        FOR UPDATE`,
-      [input.userId],
-    );
-    const oldLevel = Math.max(0, Number(before.rows[0]?.current_level) || 0);
-
-    let xpTransactionId: string | null = null;
-    if (xpGained > 0) {
-      const xpInsert = await client.query(
-        `INSERT INTO xp_transactions
-           (user_id, xp_amount, source, related_activity_type,
-            related_activity_id, idempotency_key)
-         VALUES ($1, $2, $3, 'gift', $4, $5)
-         ON CONFLICT (idempotency_key) DO NOTHING
-         RETURNING id`,
-        [
-          input.userId,
-          xpGained,
-          source,
-          input.clientTransactionId,
-          `xp:starter-gift:${input.clientTransactionId}`,
-        ],
-      );
-      xpTransactionId = xpInsert.rows[0]?.id
-        ? String(xpInsert.rows[0].id)
-        : null;
-      if (xpTransactionId) {
-        await client.query(
-          `UPDATE user_progression
-              SET total_xp = total_xp + $2,
-                  updated_at = NOW()
-            WHERE user_id = $1`,
-          [input.userId, xpGained],
-        );
-      }
-    }
-
-    const calculated = await client.query(
-      `SELECT up.total_xp::bigint AS total_xp,
-              COALESCE(MAX(l.level), 0)::int AS calculated_level
-         FROM user_progression up
-         LEFT JOIN xp_level_requirements l
-           ON l.total_xp_required <= up.total_xp
-        WHERE up.user_id = $1
-        GROUP BY up.total_xp`,
-      [input.userId],
-    );
-    const totalXp = Math.max(0, Number(calculated.rows[0]?.total_xp) || 0);
-    const newLevel = Math.max(
+    const xpInsert =
+      configuredXp > 0
+        ? await client.query(
+            `INSERT INTO xp_transactions
+               (user_id, xp_amount, source, related_activity_type,
+                related_activity_id, idempotency_key)
+             VALUES ($1, $2, $3, 'gift', $4, $5)
+             ON CONFLICT (idempotency_key) DO NOTHING
+             RETURNING id`,
+            [
+              input.userId,
+              configuredXp,
+              source,
+              input.clientTransactionId,
+              `xp:starter-gift:${input.clientTransactionId}`,
+            ],
+          )
+        : { rows: [] as Array<{ id: string }> };
+    const xpGained = xpInsert.rows[0] ? configuredXp : 0;
+    const xpResult = await applyXpGainAndSyncLevel(client, {
+      userId: input.userId,
       oldLevel,
-      Number(calculated.rows[0]?.calculated_level) || 0,
-    );
-    await client.query(
-      `UPDATE user_progression
-          SET current_level = $2, updated_at = NOW()
-        WHERE user_id = $1`,
-      [input.userId, newLevel],
-    );
-    // Keep the existing profile level display in sync; this is status only.
-    await client.query(
-      `UPDATE profiles SET level = $2, updated_at = NOW() WHERE user_id = $1`,
-      [input.userId, newLevel],
-    );
-    if (newLevel > oldLevel) {
-      await client.query(
-        `INSERT INTO level_history
-           (user_id, from_level, to_level, total_xp, source_xp_transaction_id)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [input.userId, oldLevel, newLevel, totalXp, xpTransactionId],
-      );
-    }
+      xpGained,
+      sourceTransactionId: xpInsert.rows[0]?.id
+        ? String(xpInsert.rows[0].id)
+        : null,
+    });
 
     await client.query("COMMIT");
     return {
@@ -411,10 +362,10 @@ export async function sendStarterCoinGift(input: {
       gift_source: "starter_coins",
       transaction_id: input.clientTransactionId,
       new_starter_balance: newStarterBalance,
-      xp_gained: xpGained,
-      total_xp: totalXp,
-      new_level: newLevel,
-      leveled_up: newLevel > oldLevel,
+      xp_gained: xpResult.xp_gained,
+      total_xp: xpResult.total_xp,
+      new_level: xpResult.new_level,
+      leveled_up: xpResult.leveled_up,
     };
   } catch (err) {
     try {
