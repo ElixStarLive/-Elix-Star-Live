@@ -619,4 +619,14 @@ jscpd clones: 199 (2.55%) — down from 204
 
 Still OPEN (honest): locked gift-overlay dual `gift_sent` listeners; host/spectator role-specific MVP/battle branches; Sonar token; Semgrep empty-catch inventory; engagement `awardEngagementXp` lighter path (no xp_transactions — intentional parallel contract, not mass-merged).
 
+### Continue 2 — auth + battle score feedback
+| Item | Change |
+|------|--------|
+| Auth login/register network + session apply | Shared helpers in `useAuthStore.ts` |
+| Battle score VFX/lead/win taunts | `applyBattleScoreFeedback.ts` |
+| Cohost gift tile from gift_sent | `applyCohostGiftTileScore` in applyLocalGiftSendSideEffects |
+| jscpd | **196** clones (2.51%) |
+| Android | 1.0.603 |
+
+
 

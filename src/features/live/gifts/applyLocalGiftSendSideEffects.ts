@@ -34,6 +34,27 @@ export type ApplyLocalGiftSendSideEffectsArgs = {
   };
 };
 
+/** Co-host tile score + icon from gift_sent / local send (host + spectator). */
+export function applyCohostGiftTileScore(args: {
+  targetUserId: string;
+  coins: number;
+  giftIcon: unknown;
+  resolveGiftAssetUrl: (path: string) => string;
+  setCohostGiftScores: Dispatch<SetStateAction<Record<string, number>>>;
+  setCohostLastGifts: Dispatch<SetStateAction<Record<string, string>>>;
+}): string | null {
+  if (!args.targetUserId || !(args.coins > 0)) return null;
+  args.setCohostGiftScores((prev) => ({
+    ...prev,
+    [args.targetUserId]: (prev[args.targetUserId] || 0) + args.coins,
+  }));
+  const iconUrl = resolveBattleGiftIconUrl(args.giftIcon, args.resolveGiftAssetUrl);
+  if (iconUrl) {
+    args.setCohostLastGifts((prev) => ({ ...prev, [args.targetUserId]: iconUrl }));
+  }
+  return iconUrl;
+}
+
 /** Returns resolved battle/cohost icon URL (or null) for callers that need extra stacks. */
 export function applyLocalGiftSendSideEffects(
   args: ApplyLocalGiftSendSideEffectsArgs,
@@ -59,13 +80,14 @@ export function applyLocalGiftSendSideEffects(
     if (giftTransactionId) {
       markGiftTxnSeen(giftTransactionId);
     }
-    setCohostGiftScores((prev) => ({
-      ...prev,
-      [targetUserId]: (prev[targetUserId] || 0) + coins,
-    }));
-    if (iconUrl) {
-      setCohostLastGifts((prev) => ({ ...prev, [targetUserId]: iconUrl }));
-    }
+    applyCohostGiftTileScore({
+      targetUserId,
+      coins,
+      giftIcon: args.giftIcon,
+      resolveGiftAssetUrl: args.resolveGiftAssetUrl,
+      setCohostGiftScores,
+      setCohostLastGifts,
+    });
   }
 
   return iconUrl;

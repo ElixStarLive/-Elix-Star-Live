@@ -229,6 +229,103 @@ async function enrichUserWithProfile(user: User): Promise<User> {
   };
 }
 
+type AuthProfileMeta =
+  | { is_admin?: boolean; is_creator?: boolean; level?: number }
+  | null
+  | undefined;
+
+/** Shared login/register mapping for fetch/network/not_json unreachable backend. */
+function mapAuthNetworkUnreachableError(message: string): string | null {
+  const m = message.toLowerCase();
+  if (
+    !(
+      m.includes("fetch") ||
+      m.includes("network") ||
+      m.includes("failed to fetch") ||
+      m.includes("request_failed") ||
+      m.includes("not_json")
+    )
+  ) {
+    return null;
+  }
+  const isLocal =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1");
+  return isLocal
+    ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
+    : "Cannot reach backend. Try again later.";
+}
+
+function mapAuthenticatedUser(
+  backendUser: AuthUser,
+  profileMeta: AuthProfileMeta,
+): User | null {
+  const mappedBase = mapUserToUser(backendUser);
+  return mappedBase ? applyProfileMeta(mappedBase, profileMeta) : null;
+}
+
+type AuthSessionSet = (
+  partial: Partial<{
+    backendUser: AuthUser | null;
+    session: AuthSession | null;
+    user: User | null;
+    isAuthenticated: boolean;
+    isLoading: boolean;
+    authMode: AuthMode;
+  }>,
+) => void;
+
+type AuthSessionGet = () => {
+  isAuthenticated: boolean;
+  user: User | null;
+};
+
+/**
+ * Commit mapped session state after successful password login/register.
+ * Optional profile enrich matches sign-in (register historically skipped enrich).
+ */
+async function applySuccessfulAuthSession(
+  set: AuthSessionSet,
+  get: AuthSessionGet,
+  args: {
+    backendUser: AuthUser;
+    accessToken: string | undefined;
+    user: User | null;
+    enrichProfile: boolean;
+  },
+): Promise<void> {
+  set({
+    backendUser: args.backendUser,
+    session: { user: args.backendUser, access_token: args.accessToken },
+    user: args.user,
+    isAuthenticated: true,
+    isLoading: false,
+    authMode: "client",
+  });
+
+  if (!args.enrichProfile || !args.user) return;
+
+  try {
+    const enriched = await enrichUserWithProfile(args.user);
+    if (get().isAuthenticated && get().user?.id === enriched.id) {
+      set({
+        user: {
+          ...enriched,
+          isAdmin: get().user?.isAdmin ?? enriched.isAdmin,
+        },
+      });
+    }
+  } catch {
+    try {
+      const { showToast } = await import("../lib/toast");
+      showToast("Signed in, but profile details could not load");
+    } catch {
+      /* toast best-effort */
+    }
+  }
+}
+
 // ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
@@ -255,21 +352,9 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
             error: "Please verify your email address before logging in.",
           };
         }
-        if (
-          m.includes("fetch") ||
-          m.includes("network") ||
-          m.includes("failed to fetch") ||
-          m.includes("request_failed") ||
-          m.includes("not_json")
-        ) {
-          const isLocal =
-            typeof window !== "undefined" &&
-            (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
-          return {
-            error: isLocal
-              ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
-              : "Cannot reach backend. Try again later.",
-          };
+        const networkError = mapAuthNetworkUnreachableError(message);
+        if (networkError) {
+          return { error: networkError };
         }
         if (m.includes("aborted")) {
           return { error: "aborted" };
@@ -282,39 +367,20 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
 
       const backendUser = result.user as unknown as AuthUser;
       const accessToken = result.accessToken;
-      const mappedBase = mapUserToUser(backendUser);
-      if (!mappedBase) {
+      const mapped = mapAuthenticatedUser(
+        backendUser,
+        result.profileMeta as AuthProfileMeta,
+      );
+      if (!mapped) {
         return { error: "Cannot reach backend. Try again later." };
       }
-      const mapped = applyProfileMeta(
-        mappedBase,
-        result.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
-      );
 
-      set({
+      await applySuccessfulAuthSession(set, get, {
         backendUser,
-        session: { user: backendUser, access_token: accessToken },
+        accessToken,
         user: mapped,
-        isAuthenticated: true,
-        isLoading: false,
-        authMode: "client",
+        enrichProfile: true,
       });
-
-      if (mapped) {
-        try {
-          const enriched = await enrichUserWithProfile(mapped);
-          if (get().isAuthenticated && get().user?.id === enriched.id) {
-            set({ user: { ...enriched, isAdmin: get().user?.isAdmin ?? enriched.isAdmin } });
-          }
-        } catch {
-          try {
-            const { showToast } = await import("../lib/toast");
-            showToast("Signed in, but profile details could not load");
-          } catch {
-            /* toast best-effort */
-          }
-        }
-      }
 
       return { error: null };
     } catch (err: unknown) {
@@ -336,20 +402,10 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       if (result.ok === false) {
         const message = result.error;
         const m = message.toLowerCase();
-        if (
-          m.includes("fetch") ||
-          m.includes("network") ||
-          m.includes("failed to fetch") ||
-          m.includes("request_failed") ||
-          m.includes("not_json")
-        ) {
-          const isLocal =
-            typeof window !== "undefined" &&
-            (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
+        const networkError = mapAuthNetworkUnreachableError(message);
+        if (networkError) {
           return {
-            error: isLocal
-              ? "Cannot reach backend. Start both frontend and backend: npm run dev:all"
-              : "Cannot reach backend. Try again later.",
+            error: networkError,
             needsEmailConfirmation: false,
           };
         }
@@ -366,13 +422,10 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       const data = result.raw as { welcome_message?: string } | null;
       const backendUser = result.user as unknown as AuthUser;
       const accessToken = result.accessToken;
-      const mappedBase = mapUserToUser(backendUser);
-      const mapped = mappedBase
-        ? applyProfileMeta(
-            mappedBase,
-            result.profileMeta as { is_admin?: boolean; is_creator?: boolean } | undefined,
-          )
-        : null;
+      const mapped = mapAuthenticatedUser(
+        backendUser,
+        result.profileMeta as AuthProfileMeta,
+      );
 
       if (mapped) {
         const { error: profileError } = await request("/api/profiles", {
@@ -407,13 +460,11 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         }
       }
 
-      set({
+      await applySuccessfulAuthSession(set, get, {
         backendUser,
-        session: { user: backendUser, access_token: accessToken },
+        accessToken,
         user: mapped,
-        isAuthenticated: true,
-        isLoading: false,
-        authMode: "client",
+        enrichProfile: false,
       });
       return {
         error: null,

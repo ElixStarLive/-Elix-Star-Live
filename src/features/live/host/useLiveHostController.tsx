@@ -9,12 +9,19 @@ import { type BattleMistSide, type GloveBurst } from '../../../components/Battle
 import {
   announceMvpName,
   createTauntBurst,
-  maybeTauntLeadChange,
   playBattleTauntSound,
   type TauntBurst,
 } from '../../../lib/battleTaunts';
 import { useLivePromoStore } from '../../../store/useLivePromoStore';
-import { applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
+import {
+  applyCohostGiftTileScore,
+  applyLocalGiftSendSideEffects,
+} from '../gifts/applyLocalGiftSendSideEffects';
+import {
+  applyBattleScoreLeadFeedback,
+  applyBattleWinTauntFeedback,
+  runBattleScoreVfx,
+} from '../battle/applyBattleScoreFeedback';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -1777,20 +1784,13 @@ export function useLiveHostController() {
   const gloveIdRef = useRef(0);
 
   const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
-    setBattleMistSide(side);
-    if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
-    battleMistTimerRef.current = window.setTimeout(() => setBattleMistSide(null), 2200);
-    if (strength < 15) return;
-    const bursts: GloveBurst[] = [0, 1, 2].map((i) => ({
-      id: ++gloveIdRef.current,
+    runBattleScoreVfx(
       side,
-      x: 4 + i * 12 + Math.random() * 10,
-      delay: i * 110,
-    }));
-    setBattleGloves((prev) => [...prev.slice(-5), ...bursts]);
-    window.setTimeout(() => {
-      setBattleGloves((prev) => prev.filter((g) => !bursts.some((b) => b.id === g.id)));
-    }, 1700);
+      strength,
+      { mistTimerRef: battleMistTimerRef, gloveIdRef },
+      setBattleMistSide,
+      setBattleGloves,
+    );
   }, []);
 
   useEffect(() => {
@@ -3542,14 +3542,14 @@ export function useLiveHostController() {
           }
         }
         if (cohostTarget && giftCoins > 0) {
-          setCohostGiftScores((prev) => ({
-            ...prev,
-            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
-          }));
-          const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
-          if (iconUrl) {
-            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
-          }
+          applyCohostGiftTileScore({
+            targetUserId: cohostTarget,
+            coins: giftCoins,
+            giftIcon: giftIconRaw,
+            resolveGiftAssetUrl,
+            setCohostGiftScores,
+            setCohostLastGifts,
+          });
         }
       }
 
@@ -3591,13 +3591,7 @@ export function useLiveHostController() {
       setPlayer3Score(result.totals.p3);
       setPlayer4Score(result.totals.p4);
 
-      if (result.vfx) triggerBattleVfx(result.vfx.side, result.vfx.delta);
-      if (result.leadTaunt) {
-        maybeTauntLeadChange(result.leadTaunt.side, result.leadTaunt.gain);
-        pushBattleTaunt(
-          createTauntBurst(result.leadTaunt.side === 'host' ? 'opponent' : 'host', 'lead'),
-        );
-      }
+      applyBattleScoreLeadFeedback(result, { triggerBattleVfx, pushBattleTaunt });
 
       const payload = data && typeof data === 'object' ? (data as Record<string, unknown>) : {};
       const selfId = user?.id || '';
@@ -3763,13 +3757,7 @@ export function useLiveHostController() {
         battleStreakCountedForEndRef.current = true;
         setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
       }
-      if (teamWinner === 'host') {
-        playBattleTauntSound('win');
-        pushBattleTaunt(createTauntBurst('host', 'win'));
-      } else if (teamWinner === 'opponent') {
-        playBattleTauntSound('win');
-        pushBattleTaunt(createTauntBurst('opponent', 'win'));
-      }
+      applyBattleWinTauntFeedback(teamWinner, pushBattleTaunt);
       battleEndedTimeoutRef.current = setTimeout(() => {
         battleEndedTimeoutRef.current = null;
         if (!mounted) return;

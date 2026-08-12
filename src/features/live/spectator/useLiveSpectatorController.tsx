@@ -12,10 +12,14 @@ import { type BattleMistSide, type GloveBurst } from '../../../components/Battle
 import {
   announceMvpName,
   createTauntBurst,
-  maybeTauntLeadChange,
   playBattleTauntSound,
   type TauntBurst,
 } from '../../../lib/battleTaunts';
+import {
+  applyBattleScoreLeadFeedback,
+  applyBattleWinTauntFeedback,
+  runBattleScoreVfx,
+} from '../battle/applyBattleScoreFeedback';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -25,7 +29,7 @@ import {
 } from '../../../lib/testCoins';
 import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
-import { applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
+import { applyCohostGiftTileScore, applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useVideoStore } from '../../../store/useVideoStore';
@@ -821,20 +825,13 @@ export function useLiveSpectatorController() {
   const gloveIdRef = useRef(0);
 
   const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
-    setBattleMistSide(side);
-    if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
-    battleMistTimerRef.current = window.setTimeout(() => setBattleMistSide(null), 2200);
-    if (strength < 15) return;
-    const bursts: GloveBurst[] = [0, 1, 2].map((i) => ({
-      id: ++gloveIdRef.current,
+    runBattleScoreVfx(
       side,
-      x: 4 + i * 12 + Math.random() * 10,
-      delay: i * 110,
-    }));
-    setBattleGloves((prev) => [...prev.slice(-5), ...bursts]);
-    window.setTimeout(() => {
-      setBattleGloves((prev) => prev.filter((g) => !bursts.some((b) => b.id === g.id)));
-    }, 1700);
+      strength,
+      { mistTimerRef: battleMistTimerRef, gloveIdRef },
+      setBattleMistSide,
+      setBattleGloves,
+    );
   }, []);
 
   useEffect(() => {
@@ -2353,14 +2350,14 @@ export function useLiveSpectatorController() {
       // Chat / MVP / co-host tile scores only on first delivery of this transaction.
       if (!alreadySeen) {
         if (cohostTarget && giftCoins > 0) {
-          setCohostGiftScores((prev) => ({
-            ...prev,
-            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
-          }));
-          const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
-          if (iconUrl) {
-            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
-          }
+          applyCohostGiftTileScore({
+            targetUserId: cohostTarget,
+            coins: giftCoins,
+            giftIcon: giftIconRaw,
+            resolveGiftAssetUrl,
+            setCohostGiftScores,
+            setCohostLastGifts,
+          });
         }
 
         // Skip echo chat/MVP for our own gift — sender already queued locally.
@@ -2593,13 +2590,7 @@ export function useLiveSpectatorController() {
       });
       const labels = battleTeamLabelsFromPayload(data);
       const result = applyScores(data);
-      if (result.vfx) triggerBattleVfx(result.vfx.side, result.vfx.delta);
-      if (result.leadTaunt) {
-        maybeTauntLeadChange(result.leadTaunt.side, result.leadTaunt.gain);
-        pushBattleTaunt(
-          createTauntBurst(result.leadTaunt.side === 'host' ? 'opponent' : 'host', 'lead'),
-        );
-      }
+      applyBattleScoreLeadFeedback(result, { triggerBattleVfx, pushBattleTaunt });
 
       setSpectatorBattle(prevState => {
         const newOppName = (typeof data.opponentName === 'string' && data.opponentName) || prevState?.opponentName;
@@ -2640,13 +2631,7 @@ export function useLiveSpectatorController() {
       setBattleStreamIds(null);
       const result = applyScores(data);
       const winner = resolveServerBattleWinner(data?.winner, battleServerTotalsRef.current);
-      if (winner === 'host') {
-        playBattleTauntSound('win');
-        pushBattleTaunt(createTauntBurst('host', 'win'));
-      } else if (winner === 'opponent') {
-        playBattleTauntSound('win');
-        pushBattleTaunt(createTauntBurst('opponent', 'win'));
-      }
+      applyBattleWinTauntFeedback(winner, pushBattleTaunt);
       if (!battleStreakCountedForEndRef.current) {
         battleStreakCountedForEndRef.current = true;
         setBattleWinStreak((prev) => applyBattleWinStreak(prev, winner));
