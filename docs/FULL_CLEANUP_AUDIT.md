@@ -628,5 +628,12 @@ Still OPEN (honest): locked gift-overlay dual `gift_sent` listeners; host/specta
 | jscpd | **196** clones (2.51%) |
 | Android | 1.0.603 |
 
+### Continue 3 — video feed map
+| Item | Change |
+|------|--------|
+| Friends/following feed video mapping | `mapApiFeedVideosWithEngagement` in `useVideoStore.ts` |
+| Android | 1.0.604 |
+
+
 
 

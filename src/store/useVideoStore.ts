@@ -175,6 +175,21 @@ function mapRawVideoRowToClientVideo(
   };
 }
 
+/** Map raw API feed rows → client videos with liked/saved/following + block filter. */
+function mapApiFeedVideosWithEngagement(
+  apiVideos: unknown[],
+  likedVideos: string[],
+  savedVideos: string[],
+  followingUsers: string[],
+): Video[] {
+  const likedSet = new Set(likedVideos);
+  const savedSet = new Set(savedVideos);
+  const followingSet = new Set(followingUsers);
+  return withoutBlockedCreators(
+    apiVideos.map((v) => mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet)),
+  );
+}
+
 interface User {
   id: string;
   username: string;
@@ -525,14 +540,11 @@ export const useVideoStore = create<VideoStore>()(
           }
 
           const { likedVideos, savedVideos } = get();
-          const likedSet = new Set(likedVideos);
-          const savedSet = new Set(savedVideos);
-          const followingSet = new Set(followingUsers);
-
-          const mappedVideos: Video[] = withoutBlockedCreators(
-            apiVideos.map((v: unknown) =>
-              mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
-            ),
+          const mappedVideos = mapApiFeedVideosWithEngagement(
+            apiVideos,
+            likedVideos,
+            savedVideos,
+            followingUsers,
           );
           set({ friendVideos: mappedVideos, friendsLoading: false });
         } catch {
@@ -567,14 +579,11 @@ export const useVideoStore = create<VideoStore>()(
           }
 
           const { likedVideos, savedVideos } = get();
-          const likedSet = new Set(likedVideos);
-          const savedSet = new Set(savedVideos);
-          const followingSet = new Set(followingUsers);
-
-          const mappedVideos: Video[] = withoutBlockedCreators(
-            apiVideos.map((v: unknown) =>
-              mapRawVideoRowToClientVideo(v, likedSet, savedSet, followingSet),
-            ),
+          const mappedVideos = mapApiFeedVideosWithEngagement(
+            apiVideos,
+            likedVideos,
+            savedVideos,
+            followingUsers,
           );
           set({ followingVideos: mappedVideos, followingLoading: false });
         } catch {

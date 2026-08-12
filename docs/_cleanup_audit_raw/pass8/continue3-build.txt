@@ -1,0 +1,259 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> elix-star-live@1.0.2 build:store
+> tsc -b && vite build --mode store
+
+NODE_ENV=production is not supported in the .env file. Only NODE_ENV=development is supported to create a development 
+build of your project. If you need to set process.env.NODE_ENV, you can set it in the Vite config instead.
+
+vite v6.4.3 building for store...
+transforming...
+Γ£ô 2343 modules transformed.
+rendering chunks...
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/crashReporting.ts is dynamically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/reportFailure.ts but also statically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/App.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/BattleEnergyBoostControls.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/ErrorBoundary.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/main.tsx, dynamic import 
+will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/toast.ts is dynamically imported by C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/lib/giftsCatalog.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/store/useAuthStore.ts, C:/Users/Absm Construction/Desktop/Elix Star Live/src/store/useAuthStore.ts, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/store/useAuthStore.ts but also statically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/components/AIToolsPanel.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/components/BuyCoinsModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/EnhancedCommentsModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/EnhancedLikesModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/EnhancedVideoPlayer.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/GiftGoalGallery.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/GiftPanel.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/LiveNotifyBanner.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/RankingPanel.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/ReportModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/components/ShareModal.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/components/SoundLibraryView.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/components/UserProfileModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/engagement/EngagementDrawer.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/gifts/refreshLiveGiftPanelBalances.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/LiveHostScreen.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/session/useHostLiveSession.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/useLiveHostController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/SpectatorLiveScreen.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/session/useSpectatorLiveSession.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/useLiveSpectatorController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/membership/useCreatorMembershipPurchase.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/lib/openDmThread.ts, C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/videoUpload.ts, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/ChatThread.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/CreatorLoginDetails.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/CreatorPayout.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Discover.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/EditProfile.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/FollowList.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Hashtag.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/Inbox.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/LiveDiscover.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/Profile.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/PurchaseCoins.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Register.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Report.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/RisingStars.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/RisingStarsChallenge.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/SavedVideos.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/SearchPage.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Settings.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Shop
+.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Support.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/VideoCall.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/admin/Dashboard.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/admin/Economy.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/admin/Monetisation.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/admin/Progression.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/admin/Purchases.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/admin/Reports.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/admin/RisingStars.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/admin/Users.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/admin/Withdrawals.tsx, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/engagement/EngagementAchievements.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/engagement/EngagementCollections.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/engagement/EngagementDailyLogin.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/engagement/EngagementFanLevel.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/engagement/EngagementHub.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/engagement/EngagementMissions.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/engagement/EngagementMvp.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/engagement/EngagementRewards.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/settings/BlockedAccounts.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/settings/SecuritySettings.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/store/useSoundLibraryPlayerStore.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/store/useVideoStore.ts, dynamic import will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/store/useWalletStore.ts is dynamically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/components/BuyCoinsModal.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/lib/iap.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/store/useAuthStore.ts but also statically imported by C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/gifts/applyLiveGiftWalletResult.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/gifts/refreshLiveGiftPanelBalances.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/gifts/useLiveWalletDisplay.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/LiveHostScreen.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/useLiveHostController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/SpectatorLiveScreen.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/useLiveSpectatorController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/lib/giftSend.ts, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/PurchaseCoins.tsx, dynamic 
+import will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/store/useVideoStore.ts is dynamically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/store/useSafetyStore.ts but also statically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/components/EnhancedCommentsModal.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/components/EnhancedLikesModal.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/components/EnhancedVideoPlayer.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/FeedStoryCirclesOverlay.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/UserProfileModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/host/useLiveHostController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/features/live/spectator/useLiveSpectatorController.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/Discover.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/FollowList.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/FollowingFeed.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/FriendsFeed.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Inbox.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/Profile.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/SearchPage.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/StemFeed.tsx, C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/pages/Upload.tsx, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/VideoFeed.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/VideoView.tsx, dynamic 
+import will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/features/chat/chatApi.ts is dynamically imported by 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Profile.tsx but also statically imported by C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/lib/chatMessages.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/pages/ChatThread.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Inbox.tsx, dynamic import 
+will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/chatMessages.ts is dynamically imported by C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/lib/apiClient.ts, C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/lib/apiClient.ts but also statically imported by C:/Users/Absm Construction/Desktop/Elix Star 
+Live/src/components/ShareModal.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/lib/openDmThread.ts, 
+C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/ChatThread.tsx, C:/Users/Absm Construction/Desktop/Elix 
+Star Live/src/pages/Profile.tsx, C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/VideoCall.tsx, dynamic 
+import will not move module into another chunk.
+
+
+[plugin vite:reporter] 
+(!) C:/Users/Absm Construction/Desktop/Elix Star Live/src/pages/Profile.tsx is dynamically imported by C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/App.tsx but also statically imported by C:/Users/Absm 
+Construction/Desktop/Elix Star Live/src/features/live/spectator/ProfileLiveOverlay.tsx, dynamic import will not move 
+module into another chunk.
+
+
+computing gzip size...
+dist/index.html                                    4.74 kB Γöé gzip:   1.65 kB
+dist/assets/index-CGoatS49.css                   148.16 kB Γöé gzip:  23.76 kB
+dist/assets/elixThermalPlugin.web-zxe730ZR.js      0.13 kB Γöé gzip:   0.13 kB
+dist/assets/authFeatures-DJx4coEi.js               0.23 kB Γöé gzip:   0.19 kB
+dist/assets/index-Dy93PjdU.js                      0.25 kB Γöé gzip:   0.18 kB
+dist/assets/liveFeedPresence-ClXDWi_u.js           0.36 kB Γöé gzip:   0.25 kB
+dist/assets/RequireAuth-Be2yffJ4.js                0.39 kB Γöé gzip:   0.28 kB
+dist/assets/RequireAdmin-BowIBugf.js               0.40 kB Γöé gzip:   0.27 kB
+dist/assets/web-Br1K4d3w.js                        0.52 kB Γöé gzip:   0.33 kB
+dist/assets/web-CrYGEI1y.js                        0.52 kB Γöé gzip:   0.32 kB
+dist/assets/index-CLF2APpS.js                      0.62 kB Γöé gzip:   0.33 kB
+dist/assets/index-B61Q1hva.js                      0.63 kB Γöé gzip:   0.33 kB
+dist/assets/vendor-state-Cd3BgN4q.js               0.65 kB Γöé gzip:   0.40 kB
+dist/assets/MusicFeed-_584V5FS.js                  0.88 kB Γöé gzip:   0.52 kB
+dist/assets/web-CehzXKX2.js                        0.90 kB Γöé gzip:   0.42 kB
+dist/assets/web-BA_n7FL5.js                        0.98 kB Γöé gzip:   0.49 kB
+dist/assets/EngagementShell-B1syS5l5.js            1.27 kB Γöé gzip:   0.61 kB
+dist/assets/web-Dq30Ak-O.js                        1.37 kB Γöé gzip:   0.63 kB
+dist/assets/NotificationSettings-CHYamPR2.js       1.84 kB Γöé gzip:   0.88 kB
+dist/assets/Legal-DQxDC-uU.js                      1.95 kB Γöé gzip:   0.92 kB
+dist/assets/EngagementAchievements-D_NESdtD.js     2.07 kB Γöé gzip:   0.91 kB
+dist/assets/AuthCallback-zcUu06Ne.js               2.12 kB Γöé gzip:   1.06 kB
+dist/assets/index-Cs4kjP1W.js                      2.15 kB Γöé gzip:   0.89 kB
+dist/assets/EngagementMvp-ChbgbWuG.js              2.36 kB Γöé gzip:   1.04 kB
+dist/assets/Copyright-CX-tYzmx.js                  2.38 kB Γöé gzip:   1.14 kB
+dist/assets/LegalAffiliate-7rGuxbix.js             2.44 kB Γöé gzip:   1.14 kB
+dist/assets/EngagementFanLevel-DSn_zrd-.js         2.49 kB Γöé gzip:   1.05 kB
+dist/assets/LegalAudio-n3lO0nYp.js                 2.53 kB Γöé gzip:   1.12 kB
+dist/assets/Hashtag-BaX3a1JQ.js                    2.75 kB Γöé gzip:   1.24 kB
+dist/assets/EngagementMissions-CvLN8-P8.js         2.82 kB Γöé gzip:   1.19 kB
+dist/assets/ForgotPassword-CoTJ8rUG.js             2.88 kB Γöé gzip:   1.16 kB
+dist/assets/SafetyCenter-D7LgDFQX.js               2.88 kB Γöé gzip:   1.24 kB
+dist/assets/EngagementDailyLogin-Dk2MfqLw.js       2.95 kB Γöé gzip:   1.23 kB
+dist/assets/BlockedAccounts-CDHwxiSi.js            3.01 kB Γöé gzip:   1.36 kB
+dist/assets/FollowingFeed-BmSq-nJf.js              3.07 kB Γöé gzip:   1.43 kB
+dist/assets/StemFeed-QbU2tnGk.js                   3.11 kB Γöé gzip:   1.42 kB
+dist/assets/Purchases-ave-QZM_.js                  3.12 kB Γöé gzip:   1.27 kB
+dist/assets/VideoView-yFFtMVRx.js                  3.12 kB Γöé gzip:   1.03 kB
+dist/assets/LegalUGC-Bqe2uuqe.js                   3.16 kB Γöé gzip:   1.42 kB
+dist/assets/SecuritySettings-BzQ2uYJN.js           3.19 kB Γöé gzip:   1.43 kB
+dist/assets/FriendsFeed-Dm_GEEWI.js                3.22 kB Γöé gzip:   1.45 kB
+dist/assets/EngagementRewards-DV82DJkt.js          3.28 kB Γöé gzip:   1.27 kB
+dist/assets/FollowList-DDbCIZ3e.js                 3.29 kB Γöé gzip:   1.44 kB
+dist/assets/LegalDMCA-BOYUQW-b.js                  3.31 kB Γöé gzip:   1.35 kB
+dist/assets/ResetPassword-x3YFc0IL.js              3.39 kB Γöé gzip:   1.24 kB
+dist/assets/LegalSafety-m1hDCwGU.js                3.45 kB Γöé gzip:   1.43 kB
+dist/assets/filters-Br5W930L.js                    3.56 kB Γöé gzip:   0.93 kB
+dist/assets/Reports-C2zfKYIH.js                    3.68 kB Γöé gzip:   1.30 kB
+dist/assets/SavedVideos-D5xP0-n4.js                3.71 kB Γöé gzip:   1.57 kB
+dist/assets/Dashboard-DHUbKxNz.js                  3.75 kB Γöé gzip:   1.34 kB
+dist/assets/Users-DZgpU3Fe.js                      3.78 kB Γöé gzip:   1.40 kB
+dist/assets/EngagementHub-BKl5irDM.js              4.15 kB Γöé gzip:   1.67 kB
+dist/assets/Report-D4eB81iO.js                     4.28 kB Γöé gzip:   1.73 kB
+dist/assets/EngagementCollections-CpU2ll6w.js      4.36 kB Γöé gzip:   1.28 kB
+dist/assets/Withdrawals-DzBxdFYy.js                4.36 kB Γöé gzip:   1.69 kB
+dist/assets/Guidelines-CZWEotHn.js                 4.49 kB Γöé gzip:   1.59 kB
+dist/assets/Economy-BFFUrn0f.js                    5.68 kB Γöé gzip:   1.47 kB
+dist/assets/EditProfile-DmDky5Zw.js                6.18 kB Γöé gzip:   2.22 kB
+dist/assets/LegalSupplier-LMc-FlgI.js              6.33 kB Γöé gzip:   2.34 kB
+dist/assets/index-D08gnx4g.js                      6.41 kB Γöé gzip:   2.22 kB
+dist/assets/RisingStarsChallenge-c9v5W_64.js       6.49 kB Γöé gzip:   2.39 kB
+dist/assets/AIStudio-Czu1U4wh.js                   6.57 kB Γöé gzip:   2.23 kB
+dist/assets/RisingStars-CndgidYr.js                6.57 kB Γöé gzip:   2.05 kB
+dist/assets/PurchaseCoins-BMJPGGtg.js              6.61 kB Γöé gzip:   2.46 kB
+dist/assets/LiveDiscover-ZXrxCfT4.js               6.81 kB Γöé gzip:   2.73 kB
+dist/assets/adminApi-DoScaMrC.js                   7.23 kB Γöé gzip:   1.88 kB
+dist/assets/SoundLibraryView-BhLbHMhA.js           7.25 kB Γöé gzip:   2.62 kB
+dist/assets/Login-D9inXAqK.js                      7.27 kB Γöé gzip:   2.69 kB
+dist/assets/Support-CSE5glp4.js                    7.68 kB Γöé gzip:   2.88 kB
+dist/assets/VideoFeed-Bx-_cX2Y.js                  7.72 kB Γöé gzip:   3.07 kB
+dist/assets/VideoCall-BJG0Gke_.js                  7.77 kB Γöé gzip:   2.62 kB
+dist/assets/RisingStars-aPdRPR6k.js                8.12 kB Γöé gzip:   2.21 kB
+dist/assets/Register-DM-jXZCj.js                   8.13 kB Γöé gzip:   2.77 kB
+dist/assets/Privacy-BJZ8PhRA.js                    9.56 kB Γöé gzip:   3.17 kB
+dist/assets/FeedStoryCirclesOverlay-DxVO3LQe.js    9.61 kB Γöé gzip:   3.43 kB
+dist/assets/SearchPage-COZckjs4.js                10.91 kB Γöé gzip:   4.08 kB
+dist/assets/CreatorPayout-d8PLuaGo.js             11.35 kB Γöé gzip:   3.53 kB
+dist/assets/ChatThread-ohkltTXd.js                12.71 kB Γöé gzip:   4.26 kB
+dist/assets/HowItWorks-DCTnU1dA.js                14.47 kB Γöé gzip:   4.41 kB
+dist/assets/CreatorLoginDetails-BkO9b0P3.js       14.67 kB Γöé gzip:   3.79 kB
+dist/assets/InlineLiveViewer-CZlSRMcV.js          15.17 kB Γöé gzip:   4.57 kB
+dist/assets/Discover-B9MEmmCe.js                  16.04 kB Γöé gzip:   4.91 kB
+dist/assets/Settings-2Tvo3W2A.js                  16.68 kB Γöé gzip:   4.63 kB
+dist/assets/Monetisation-piVfAq9V.js              17.52 kB Γöé gzip:   4.13 kB
+dist/assets/Progression-Cb4C2dt6.js               18.00 kB Γöé gzip:   4.49 kB
+dist/assets/Terms-CdABB8Dk.js                     18.18 kB Γöé gzip:   5.55 kB
+dist/assets/mediaBake-BAwWbbW6.js                 19.61 kB Γöé gzip:   5.61 kB
+dist/assets/Shop-D7Kb8juE.js                      25.01 kB Γöé gzip:   7.45 kB
+dist/assets/AIToolsPanel-CtvvuO3q.js              27.78 kB Γöé gzip:   8.66 kB
+dist/assets/Inbox-9NGlNG_8.js                     31.73 kB Γöé gzip:   7.47 kB
+dist/assets/web-DaQS4Gz0.js                       41.77 kB Γöé gzip:  10.42 kB
+dist/assets/Upload-DKetQlzW.js                    44.71 kB Γöé gzip:  12.63 kB
+dist/assets/Create-cDFf9Ywb.js                    47.31 kB Γöé gzip:  11.73 kB
+dist/assets/vendor-ui-BK-MkoGz.js                 60.47 kB Γöé gzip:  18.92 kB
+dist/assets/EnhancedVideoPlayer-D859j5Fs.js       62.92 kB Γöé gzip:  15.95 kB
+dist/assets/vendor-motion-Du6JAI6Q.js            124.63 kB Γöé gzip:  39.71 kB
+dist/assets/vendor-react-CItTtdvm.js             176.42 kB Γöé gzip:  57.90 kB
+dist/assets/LiveStream-0DV788UJ.js               204.60 kB Γöé gzip:  50.66 kB
+dist/assets/hls-BrCQ_LOV.js                      520.24 kB Γöé gzip: 158.64 kB
+dist/assets/index-B7ZMnltX.js                    939.44 kB Γöé gzip: 246.30 kB
+
+(!) Some chunks are larger than 600 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: 
+https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+
+Γ£ô built in 25.88s
