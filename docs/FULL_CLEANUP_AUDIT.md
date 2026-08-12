@@ -743,6 +743,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **184** clones — down from 185 |
 | Android | 1.0.616 |
 
+### Continue 17 — active viewer append helper
+| Item | Change |
+|------|--------|
+| Append capped live viewer if missing | `appendLiveViewerIfMissing.ts` |
+| jscpd | **184** clones (held; host-internal viewer dup removed) |
+| Android | 1.0.617 |
+
+
 
 
 

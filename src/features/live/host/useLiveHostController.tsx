@@ -4,7 +4,7 @@ import { showToast } from '../../../lib/toast';
 import { platform, openExternalLink, nativeShareUrl } from '../../../lib/platform';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../../../lib/giftsCatalog';
-import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
+import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
 import {
   announceMvpName,
@@ -51,6 +51,10 @@ import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
+import {
+  appendLiveViewerIfMissing,
+  buildLiveViewerFromJoin,
+} from '../chat/appendLiveViewerIfMissing';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -3208,41 +3212,37 @@ export function useLiveHostController() {
             : 1;
       // One join banner per user for the whole live session (reconnect / double emit / leave-rejoin).
       if (joinAnnouncedRef.current.has(uid)) {
-        setActiveViewers(prev => {
-          if (prev.some(v => String(v.id) === uid)) return prev;
-          return appendCapped(prev, {
-            id: uid,
+        appendLiveViewerIfMissing(
+          setActiveViewers,
+          buildLiveViewerFromJoin({
+            uid,
+            joinName,
+            displayName:
+              cached?.displayName ||
+              (typeof data.display_name === 'string' ? data.display_name : joinName),
             username: cached?.username || joinName,
-            displayName: cached?.displayName || (typeof data.display_name === 'string' ? data.display_name : joinName),
-            level: initialLevel,
             avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
+            level: initialLevel,
             country: data.country || '',
-            joinedAt: Date.now(),
-            isActive: true,
-            chatFrequency: 0,
-            supportDays: 0,
-            lastVisitDaysAgo: 0,
-          }, LIVE_VIEWER_CAP);
-        });
+          }),
+        );
         return;
       }
       joinAnnouncedRef.current.add(uid);
-      setActiveViewers(prev => {
-        if (prev.some(v => String(v.id) === uid)) return prev;
-        return appendCapped(prev, {
-          id: uid,
+      appendLiveViewerIfMissing(
+        setActiveViewers,
+        buildLiveViewerFromJoin({
+          uid,
+          joinName,
+          displayName:
+            cached?.displayName ||
+            (typeof data.display_name === 'string' ? data.display_name : joinName),
           username: cached?.username || joinName,
-          displayName: cached?.displayName || (typeof data.display_name === 'string' ? data.display_name : joinName),
-          level: initialLevel,
           avatar: cached?.avatar || (typeof data.avatar_url === 'string' ? data.avatar_url : ''),
+          level: initialLevel,
           country: data.country || '',
-          joinedAt: Date.now(),
-          isActive: true,
-          chatFrequency: 0,
-          supportDays: 0,
-          lastVisitDaysAgo: 0,
-        }, LIVE_VIEWER_CAP);
-      });
+        }),
+      );
       const joinMsgId = `join-${uid}`;
       appendLiveJoinStreamBanner({
         setMessages,
