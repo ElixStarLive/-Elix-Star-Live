@@ -720,6 +720,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **187** clones — down from 188 |
 | Android | 1.0.613 |
 
+### Continue 14 — heart spawn + remote video attach
+| Item | Change |
+|------|--------|
+| Heart spawn from client tap | `resolveHeartSpawnFromClient.ts` |
+| Attach remote LiveKit video by ids | `attachRemoteParticipantVideo.ts` |
+| jscpd | **186** clones — down from 187 |
+| Android | 1.0.614 |
+
+
 
 
 

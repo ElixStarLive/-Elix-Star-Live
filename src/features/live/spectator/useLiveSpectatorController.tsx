@@ -45,6 +45,8 @@ import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEnga
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
 import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
+import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
+import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -1257,21 +1259,14 @@ export function useLiveSpectatorController() {
   const spawnHeartFromClient = useCallback((clientX: number, clientY: number, colorOverride?: string, likerName?: string, likerAvatar?: string) => {
     const layer = spectatorChatHeartsRef.current;
     if (!layer) return;
-    const rect = layer.getBoundingClientRect();
-    const inside =
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom;
-    if (inside) {
-      spawnHeartAt(clientX - rect.left, clientY - rect.top, colorOverride, likerName, likerAvatar);
-      return;
-    }
-    const w = rect.width;
-    const h = rect.height;
-    const x = w * (0.58 + Math.random() * 0.35);
-    const y = h * (0.12 + Math.random() * 0.68);
-    spawnHeartAt(x, y, colorOverride ?? '#ffffff', likerName, likerAvatar);
+    const point = resolveHeartSpawnFromClient(layer, clientX, clientY, { clampInside: false });
+    spawnHeartAt(
+      point.x,
+      point.y,
+      point.inside ? colorOverride : (colorOverride ?? '#ffffff'),
+      likerName,
+      likerAvatar,
+    );
   }, [spawnHeartAt]);
 
   const spawnHeartAtSideSpectator = useCallback(() => {
@@ -1382,27 +1377,20 @@ export function useLiveSpectatorController() {
     const hostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
 
     if (featuredUserId && featuredBigVideoRef.current) {
-      for (const [, p] of room.remoteParticipants) {
-        if (!sameUserId(p.identity, featuredUserId)) continue;
-        for (const [, pub] of p.videoTrackPublications) {
-          if (pub.track && pub.isSubscribed) {
-            pub.track.attach(featuredBigVideoRef.current);
-            prepareLiveVideoEl(featuredBigVideoRef.current);
-          }
-        }
-      }
+      attachRemoteParticipantVideoByIds(
+        room,
+        featuredBigVideoRef.current,
+        featuredUserId,
+      );
     }
 
     if (featuredUserId && hostSmallVideoRef.current && hostId) {
-      for (const [, p] of room.remoteParticipants) {
-        if (!sameUserId(p.identity, hostId) && !sameUserId(p.identity, effectiveStreamId)) continue;
-        for (const [, pub] of p.videoTrackPublications) {
-          if (pub.track && pub.isSubscribed) {
-            pub.track.attach(hostSmallVideoRef.current);
-            prepareLiveVideoEl(hostSmallVideoRef.current);
-          }
-        }
-      }
+      attachRemoteParticipantVideoByIds(
+        room,
+        hostSmallVideoRef.current,
+        hostId,
+        effectiveStreamId,
+      );
     }
   }, [featuredUserId, hostUserId, effectiveStreamId, spectatorCoHosts, liveKitRoomRef]);
 

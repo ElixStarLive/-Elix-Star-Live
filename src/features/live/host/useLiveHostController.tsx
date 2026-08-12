@@ -48,6 +48,8 @@ import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEnga
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
 import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
+import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
+import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -1817,15 +1819,11 @@ export function useLiveHostController() {
     if (!room || !isBroadcast) return;
 
     if (featuredUserId && featuredBigVideoRef.current) {
-      for (const [, p] of room.remoteParticipants) {
-        if (!sameUserId(p.identity, featuredUserId)) continue;
-        for (const [, pub] of p.videoTrackPublications) {
-          if (pub.track && pub.isSubscribed) {
-            pub.track.attach(featuredBigVideoRef.current);
-            prepareLiveVideoEl(featuredBigVideoRef.current);
-          }
-        }
-      }
+      attachRemoteParticipantVideoByIds(
+        room,
+        featuredBigVideoRef.current,
+        featuredUserId,
+      );
     }
 
     if (featuredUserId && hostSmallVideoRef.current) {
@@ -2542,22 +2540,14 @@ export function useLiveHostController() {
     if (!layer) return;
     const rect = layer.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
-    const inside =
-      clientX >= rect.left &&
-      clientX <= rect.right &&
-      clientY >= rect.top &&
-      clientY <= rect.bottom;
-    if (inside) {
-      const x = Math.max(8, Math.min(rect.width - 8, clientX - rect.left));
-      const y = Math.max(8, Math.min(rect.height - 8, clientY - rect.top));
-      spawnHeartAt(x, y, colorOverride, likerName, likerAvatar);
-      return;
-    }
-    const w = rect.width;
-    const h = rect.height;
-    const x = w * (0.58 + Math.random() * 0.35);
-    const y = h * (0.12 + Math.random() * 0.68);
-    spawnHeartAt(x, y, colorOverride ?? '#ffffff', likerName, likerAvatar);
+    const point = resolveHeartSpawnFromClient(layer, clientX, clientY);
+    spawnHeartAt(
+      point.x,
+      point.y,
+      point.inside ? colorOverride : (colorOverride ?? '#ffffff'),
+      likerName,
+      likerAvatar,
+    );
   };
 
   const spawnHeartAtSide = useCallback((target: 'me' | 'opponent') => {
