@@ -24,8 +24,7 @@ import {
 import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
-import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
-import { applyBattleSpeedChallengeUnlock } from '../battle/applyBattleSpeedChallengeUnlock';
+import { attemptBattleSpeedChallengeUnlock } from '../battle/attemptBattleSpeedChallengeUnlock';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
@@ -42,7 +41,7 @@ import {
   computeBattleFinalSecondsHide,
   computeMistHidesScoresForViewer,
 } from '../battle/battleScoreVisibility';
-import { openMountedLiveGiftSent } from '../gifts/openMountedLiveGiftSent';
+import { openMountedLiveGiftSentParsed } from '../gifts/openMountedLiveGiftSent';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
@@ -2582,19 +2581,14 @@ export function useLiveHostController() {
     if (speedChallengeActive) return;
 
     const totalScore = myScore + opponentScore + player3Score + player4Score;
-    tryUnlockBattleSpeedChallenge({
+    attemptBattleSpeedChallengeUnlock({
       totalScore,
       flowers: roseCountRef.current,
       taps: battleScreenTapCountRef.current,
       reachedThresholds: reachedThresholdsRef.current,
-      onUnlock: (mult) => {
-        applyBattleSpeedChallengeUnlock(
-          mult,
-          setSpeedMultiplier,
-          speedMultiplierRef,
-          startSpeedChallenge,
-        );
-      },
+      setSpeedMultiplier,
+      speedMultiplierRef,
+      startSpeedChallenge,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, roseCount, battleScreenTapCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
@@ -3290,12 +3284,12 @@ export function useLiveHostController() {
     };
 
     const handleGiftSent = (data) => {
-      const opened = openMountedLiveGiftSent(mounted, data, giftsCatalogRef.current, {
+      const opened = openMountedLiveGiftSentParsed(mounted, data, giftsCatalogRef.current, {
         hasSeenGiftTxn,
         hasPlayedGiftVideoTxn,
         markGiftTxnSeen,
       });
-      if (!opened || opened.skip === true) return;
+      if (!opened) return;
       const { alreadySeen, parsed } = opened;
       const {
         txnId,

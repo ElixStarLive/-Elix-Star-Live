@@ -121,6 +121,21 @@ async function nativeCapacitorHttpRequest<T>(
   return toResult<T>(status, asJsonObject(response.data));
 }
 
+async function parseFetchJsonResult<T>(
+  res: Response,
+): Promise<{ data: T | null; error: { message: string } | null }> {
+  const ct = res.headers.get("content-type") || "";
+  const isJson = ct.includes("application/json") || ct.includes("+json");
+  if (!isJson) {
+    return {
+      data: null,
+      error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
+    };
+  }
+  const body = asJsonObject(await res.json().catch(() => null));
+  return toResult<T>(res.status, body);
+}
+
 /**
  * Fallback native path: plain fetch WITHOUT AbortSignal (AbortSignal breaks Cap patched fetch).
  */
@@ -141,16 +156,7 @@ async function nativeFetchRequest<T>(
       setTimeout(() => reject(new Error("request_timeout")), REQUEST_TIMEOUT_MS),
     ),
   ]);
-  const ct = res.headers.get("content-type") || "";
-  const isJson = ct.includes("application/json") || ct.includes("+json");
-  if (!isJson) {
-    return {
-      data: null,
-      error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
-    };
-  }
-  const body = asJsonObject(await res.json().catch(() => null));
-  return toResult<T>(res.status, body);
+  return parseFetchJsonResult<T>(res);
 }
 
 async function webRequest<T>(
@@ -171,16 +177,7 @@ async function webRequest<T>(
     });
     if (timeoutId !== null) clearTimeout(timeoutId);
 
-    const ct = res.headers.get("content-type") || "";
-    const isJson = ct.includes("application/json") || ct.includes("+json");
-    if (!isJson) {
-      return {
-        data: null,
-        error: { message: res.ok ? "RESPONSE_NOT_JSON" : `HTTP_${res.status}` },
-      };
-    }
-    const body = asJsonObject(await res.json().catch(() => null));
-    return toResult<T>(res.status, body);
+    return parseFetchJsonResult<T>(res);
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e || "request_failed");
     return { data: null, error: { message: msg || "request_failed" } };

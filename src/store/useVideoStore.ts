@@ -38,6 +38,59 @@ function withoutBlockedCreators(list: Video[]): Video[] {
   return list.filter((v) => !isCreatorBlocked(v.user?.id));
 }
 
+type RelationFeedLoadingKey = 'friendsLoading' | 'followingLoading';
+type RelationFeedVideosKey = 'friendVideos' | 'followingVideos';
+
+async function fetchRelationFeedVideos(opts: {
+  get: () => VideoStore;
+  set: (partial: Partial<VideoStore>) => void;
+  loadingKey: RelationFeedLoadingKey;
+  videosKey: RelationFeedVideosKey;
+  fetchFeed: () => Promise<{ videos: unknown[]; error: string | null }>;
+  /** Friends feed refreshes following ids before load; following feed does too. */
+  syncFollowingIds: boolean;
+}): Promise<void> {
+  const { get, set, loadingKey, videosKey, fetchFeed, syncFollowingIds } = opts;
+  set({ [loadingKey]: true } as Partial<VideoStore>);
+  try {
+    const authUser = useAuthStore.getState().user;
+    if (!authUser?.id) {
+      set({ [loadingKey]: false } as Partial<VideoStore>);
+      return;
+    }
+
+    if (syncFollowingIds) {
+      const { following: ids, error: followListErr } = await apiFetchFollowingIds(authUser.id);
+      if (!followListErr) {
+        set({ followingUsers: ids });
+      }
+    }
+
+    const { followingUsers } = get();
+    const { videos: apiVideos, error } = await fetchFeed();
+    if (error) {
+      set({ [loadingKey]: false } as Partial<VideoStore>);
+      return;
+    }
+    if (apiVideos.length === 0) {
+      set({ [videosKey]: [], [loadingKey]: false } as Partial<VideoStore>);
+      return;
+    }
+
+    const { likedVideos, savedVideos } = get();
+    const mappedVideos = mapApiFeedVideosWithEngagement(
+      apiVideos,
+      likedVideos,
+      savedVideos,
+      followingUsers,
+    );
+    set({ [videosKey]: mappedVideos, [loadingKey]: false } as Partial<VideoStore>);
+  } catch {
+    set({ [loadingKey]: false } as Partial<VideoStore>);
+    if (!navigator.onLine) showToast('No internet connection');
+  }
+}
+
 async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
   for (let i = 0; i <= retries; i++) {
     try { return await fn(); }
@@ -512,84 +565,25 @@ export const useVideoStore = create<VideoStore>()(
       },
 
       fetchFriendVideos: async () => {
-        set({ friendsLoading: true });
-        try {
-          const authUser = useAuthStore.getState().user;
-          if (!authUser?.id) {
-            set({ friendsLoading: false });
-            return;
-          }
-
-          // First load who we follow so followingUsers is up to date
-          const { following: ids, error: followListErr } = await apiFetchFollowingIds(authUser.id);
-          if (!followListErr) {
-            set({ followingUsers: ids });
-          }
-
-          /* Server unions following ∪ followers; do not skip when following list is empty */
-          const { followingUsers } = get();
-
-          const { videos: apiVideos, error } = await apiFetchFriendsFeed();
-          if (error) {
-            set({ friendsLoading: false });
-            return;
-          }
-          if (apiVideos.length === 0) {
-            set({ friendVideos: [], friendsLoading: false });
-            return;
-          }
-
-          const { likedVideos, savedVideos } = get();
-          const mappedVideos = mapApiFeedVideosWithEngagement(
-            apiVideos,
-            likedVideos,
-            savedVideos,
-            followingUsers,
-          );
-          set({ friendVideos: mappedVideos, friendsLoading: false });
-        } catch {
-          set({ friendsLoading: false });
-          if (!navigator.onLine) showToast('No internet connection');
-        }
+        await fetchRelationFeedVideos({
+          get,
+          set,
+          loadingKey: 'friendsLoading',
+          videosKey: 'friendVideos',
+          fetchFeed: apiFetchFriendsFeed,
+          syncFollowingIds: true,
+        });
       },
 
       fetchFollowingVideos: async () => {
-        set({ followingLoading: true });
-        try {
-          const authUser = useAuthStore.getState().user;
-          if (!authUser?.id) {
-            set({ followingLoading: false });
-            return;
-          }
-
-          const { following: ids, error: followListErr } = await apiFetchFollowingIds(authUser.id);
-          if (!followListErr) {
-            set({ followingUsers: ids });
-          }
-
-          const { followingUsers } = get();
-          const { videos: apiVideos, error } = await apiFetchFollowingFeed();
-          if (error) {
-            set({ followingLoading: false });
-            return;
-          }
-          if (apiVideos.length === 0) {
-            set({ followingVideos: [], followingLoading: false });
-            return;
-          }
-
-          const { likedVideos, savedVideos } = get();
-          const mappedVideos = mapApiFeedVideosWithEngagement(
-            apiVideos,
-            likedVideos,
-            savedVideos,
-            followingUsers,
-          );
-          set({ followingVideos: mappedVideos, followingLoading: false });
-        } catch {
-          set({ followingLoading: false });
-          if (!navigator.onLine) showToast('No internet connection');
-        }
+        await fetchRelationFeedVideos({
+          get,
+          set,
+          loadingKey: 'followingLoading',
+          videosKey: 'followingVideos',
+          fetchFeed: apiFetchFollowingFeed,
+          syncFollowingIds: true,
+        });
       },
 
       // Video actions

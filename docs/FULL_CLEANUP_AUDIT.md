@@ -874,6 +874,18 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **162** clones / **2.06%** lines |
 | Android | 1.0.633 |
 
+### Continue 34 — speed unlock, gift open, feeds, API JSON, profile ensure
+| Item | Change |
+|------|--------|
+| Battle speed unlock apply wrapper | `attemptBattleSpeedChallengeUnlock.ts` |
+| Mounted gift_sent open → parsed | `openMountedLiveGiftSentParsed` |
+| Vertical snap feed index hook | `useVerticalSnapFeedIndex` (Following/Friends) |
+| Relation feed fetch helper | `fetchRelationFeedVideos` in `useVideoStore` |
+| Signup profile POST+retry | `ensureUserProfileRow.ts` |
+| Fetch JSON content-type parse | `parseFetchJsonResult` in `apiClient.ts` |
+| jscpd | **158** clones / **2.01%** lines |
+| Android | 1.0.634 |
+
 
 
 

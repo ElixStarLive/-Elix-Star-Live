@@ -3,6 +3,7 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { request } from "../lib/apiClient";
+import { ensureUserProfileRow } from "../lib/ensureUserProfileRow";
 import { notificationService } from "../lib/notifications";
 import {
   authAppleNative,
@@ -428,35 +429,19 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       );
 
       if (mapped) {
-        const { error: profileError } = await request("/api/profiles", {
-          method: "POST",
-          body: JSON.stringify({
-            userId: mapped.id,
-            username: mapped.username,
-            displayName: mapped.name,
-            email: mapped.email,
-            avatarUrl: mapped.avatar,
-          }),
+        const profileEnsure = await ensureUserProfileRow({
+          userId: mapped.id,
+          username: mapped.username,
+          displayName: mapped.name,
+          email: mapped.email,
+          avatarUrl: mapped.avatar,
         });
-        if (profileError) {
-          // Retry once — still fail visibly if profile cannot be created.
-          const retry = await request("/api/profiles", {
-            method: "POST",
-            body: JSON.stringify({
-              userId: mapped.id,
-              username: mapped.username,
-              displayName: mapped.name,
-              email: mapped.email,
-              avatarUrl: mapped.avatar,
-            }),
-          });
-          if (retry.error) {
-            set({ isLoading: false });
-            return {
-              error: retry.error.message || "Account created but profile setup failed. Please sign in again.",
-              needsEmailConfirmation: false,
-            };
-          }
+        if (profileEnsure.error) {
+          set({ isLoading: false });
+          return {
+            error: profileEnsure.error,
+            needsEmailConfirmation: false,
+          };
         }
       }
 

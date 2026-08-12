@@ -1,19 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
 import { FEED_HOME } from '../lib/settingsNav';
+import { useVerticalSnapFeedIndex } from '../hooks/useVerticalSnapFeedIndex';
 
 export default function FriendsFeed() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { friendVideos, fetchFriendVideos, friendsLoading: loading } = useVideoStore();
-  const [activeIndex, setActiveIndex] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const friendVideoIds = friendVideos.map((v) => v.id);
+  const { activeIndex, containerRef, handleScroll, handleVideoEnd } =
+    useVerticalSnapFeedIndex(friendVideoIds);
 
   useEffect(() => {
     fetchFriendVideos();
@@ -34,44 +35,6 @@ export default function FriendsFeed() {
   const goDiscover = useCallback(() => {
     navigate('/discover');
   }, [navigate]);
-
-  const handleScroll = useCallback(() => {
-    if (!containerRef.current) return;
-    const scrollPos = containerRef.current.scrollTop;
-    const height = containerRef.current.clientHeight;
-    const index = Math.round(scrollPos / height);
-    if (index >= 0 && index < friendVideoIds.length) setActiveIndex(index);
-  }, [friendVideoIds.length]);
-
-  useEffect(() => {
-    if (!containerRef.current || friendVideoIds.length === 0) return;
-    const container = containerRef.current;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const idx = Number((entry.target as HTMLElement).dataset.slideIndex);
-          if (!Number.isNaN(idx) && idx >= 0 && idx < friendVideoIds.length) setActiveIndex(idx);
-        });
-      },
-      { root: container, rootMargin: '0px', threshold: 0.51 },
-    );
-    const slides = container.querySelectorAll('[data-slide-index]');
-    slides.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [friendVideoIds.join(',')]);
-
-  const handleVideoEnd = useCallback(
-    (index: number) => {
-      if (!containerRef.current || index >= friendVideoIds.length - 1) return;
-      containerRef.current.scrollTo({
-        top: (index + 1) * containerRef.current.clientHeight,
-        behavior: 'smooth',
-      });
-    },
-    [friendVideoIds.length],
-  );
 
   return (
     <div ref={pageRef} className="app-live-column bg-transparent relative">

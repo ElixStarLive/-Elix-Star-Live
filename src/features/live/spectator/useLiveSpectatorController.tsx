@@ -21,8 +21,7 @@ import {
 import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
-import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
-import { applyBattleSpeedChallengeUnlock } from '../battle/applyBattleSpeedChallengeUnlock';
+import { attemptBattleSpeedChallengeUnlock } from '../battle/attemptBattleSpeedChallengeUnlock';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { appendLiveLevelUpBanner } from '../chat/appendLiveLevelUpBanner';
@@ -40,7 +39,7 @@ import {
   computeBattleFinalSecondsHide,
   computeMistHidesScoresForViewer,
 } from '../battle/battleScoreVisibility';
-import { openMountedLiveGiftSent } from '../gifts/openMountedLiveGiftSent';
+import { openMountedLiveGiftSentParsed } from '../gifts/openMountedLiveGiftSent';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
@@ -658,19 +657,14 @@ export function useLiveSpectatorController() {
 
     const totalScore =
       (b.hostScore || 0) + (b.opponentScore || 0) + (b.player3Score ?? 0) + (b.player4Score ?? 0);
-    tryUnlockBattleSpeedChallenge({
+    attemptBattleSpeedChallengeUnlock({
       totalScore,
       flowers: roseCountRef.current,
       taps: battleScreenTapCountRef.current,
       reachedThresholds: reachedThresholdsRef.current,
-      onUnlock: (mult) => {
-        applyBattleSpeedChallengeUnlock(
-          mult,
-          setSpeedMultiplier,
-          speedMultiplierRef,
-          startSpeedChallenge,
-        );
-      },
+      setSpeedMultiplier,
+      speedMultiplierRef,
+      startSpeedChallenge,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on score/status fields only; full spectatorBattle would re-run on unrelated battle metadata changes
   }, [
@@ -2192,12 +2186,12 @@ export function useLiveSpectatorController() {
     };
 
     const handleGiftSent = (data) => {
-      const opened = openMountedLiveGiftSent(mounted, data, giftsCatalogRef.current, {
+      const opened = openMountedLiveGiftSentParsed(mounted, data, giftsCatalogRef.current, {
         hasSeenGiftTxn,
         hasPlayedGiftVideoTxn,
         markGiftTxnSeen,
       });
-      if (!opened || opened.skip === true) return;
+      if (!opened) return;
       const { alreadySeen, parsed } = opened;
       const {
         txnId,
