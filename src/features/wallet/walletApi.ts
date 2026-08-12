@@ -11,16 +11,23 @@ export interface WalletBalances {
   promotional: number;
 }
 
-function nonNeg(n: unknown): number {
+function nonNegOrNull(n: unknown): number | null {
+  if (n == null || n === '') return null;
   const v = Number(n);
-  return Number.isFinite(v) && v >= 0 ? v : 0;
+  return Number.isFinite(v) && v >= 0 ? v : null;
 }
 
-export function parseWalletBalances(data: Record<string, unknown> | null | undefined): WalletBalances {
+/** Parse wallet JSON. Returns null when paid balance fields are missing (never invent 0). */
+export function parseWalletBalances(
+  data: Record<string, unknown> | null | undefined,
+): WalletBalances | null {
+  if (!data || typeof data !== 'object') return null;
+  const paid = nonNegOrNull(data.coin_balance ?? data.balance ?? data.paid_balance);
+  if (paid == null) return null;
   return {
-    paid: nonNeg(data?.coin_balance ?? data?.balance ?? data?.paid_balance),
-    starter: nonNeg(data?.starter_balance ?? data?.starter_coins),
-    promotional: nonNeg(data?.promotional_balance ?? data?.promotional_coins),
+    paid,
+    starter: nonNegOrNull(data.starter_balance ?? data.starter_coins) ?? 0,
+    promotional: nonNegOrNull(data.promotional_balance ?? data.promotional_coins) ?? 0,
   };
 }
 
@@ -32,5 +39,9 @@ export async function apiFetchWallet(): Promise<{
   if (error) {
     return { balances: null, error: error.message || 'Wallet fetch failed' };
   }
-  return { balances: parseWalletBalances(data), error: null };
+  const balances = parseWalletBalances(data);
+  if (!balances) {
+    return { balances: null, error: 'Wallet response missing paid balance' };
+  }
+  return { balances, error: null };
 }

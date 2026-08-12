@@ -14,7 +14,9 @@ import {
   type IAPProduct,
 } from '../lib/iap';
 import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 import { apiGetCurrentUserId } from '../features/safety/safetyApi';
+import { useWalletStore } from '../store/useWalletStore';
 
 export default function PurchaseCoins() {
   const navigate = useNavigate();
@@ -79,11 +81,25 @@ export default function PurchaseCoins() {
       });
 
       if (typeof result.newBalance === 'number') {
+        useWalletStore.getState().applyServerBalances({ paid: result.newBalance });
         showToast(`Coins updated — balance ${result.newBalance.toLocaleString()}`);
       } else {
-        showToast('Purchase completed. Refresh if balance looks wrong.');
+        const refreshed = await useWalletStore.getState().fetchWallet();
+        if (refreshed.ok) {
+          showToast(
+            `Coins updated — balance ${useWalletStore.getState().paidBalance.toLocaleString()}`,
+          );
+        } else {
+          reportFailure(
+            'purchase_coins_balance_unresolved',
+            new Error(refreshed.error || 'Wallet refresh failed after purchase'),
+            { productId: product.id },
+          );
+          showToast('Purchase completed. Open wallet to confirm balance.');
+        }
       }
     } catch (error) {
+      reportFailure('purchase_coins', error, { productId: product.id });
       showToast(error instanceof Error ? error.message : 'Purchase failed');
     } finally {
       setLoading(false);

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { detectFacePose, releaseFaceLandmarker } from '../lib/faceLandmarks';
 import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
-import { initCommercialFaceEngine, shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
+import { shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
 import { getLiveMediaTierConfig } from '../lib/live/liveMediaProfile';
 
 type FaceARGiftProps = {
@@ -34,7 +34,11 @@ export function FaceARGift({
       return;
     }
 
-    void initCommercialFaceEngine(engine);
+    // Commercial DeepAR/Banuba is not wired in this build — MediaPipe tracks faces.
+    if (!shouldTrackWithMediaPipe(engine)) {
+      onCompleteRef.current?.();
+      return;
+    }
 
     const video = videoRef.current;
     const parent = video?.parentElement;

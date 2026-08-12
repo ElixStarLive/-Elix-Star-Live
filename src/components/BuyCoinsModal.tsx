@@ -11,6 +11,7 @@ import {
   type IAPProduct,
 } from '@/lib/iap';
 import { showToast } from '@/lib/toast';
+import { reportFailure } from '@/lib/reportFailure';
 
 /** Above live gift overlay (99999); below EngagementDrawer (1001000). */
 const BUY_COINS_Z_BACKDROP = 100050;
@@ -19,13 +20,13 @@ const BUY_COINS_Z_PANEL = 100051;
 interface BuyCoinsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Current wallet balance — used only if server verify omits newBalance. */
+  /** Call-site compatibility only — never used as a fake post-purchase balance. */
   currentBalance?: number;
-  /** Called with the absolute post-purchase wallet balance. */
+  /** Called only with an authoritative post-purchase wallet balance. */
   onSuccess?: (newBalance: number) => void;
 }
 
-export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, onSuccess, currentBalance }) => {
+export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [nativeProducts, setNativeProducts] = useState<IAPProduct[]>([]);
   const [nativeLoading, setNativeLoading] = useState<string | null>(null);
   const isNative = platform.isNative;
@@ -46,13 +47,28 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
           setNativeProducts([]);
           showToast('Coin store unavailable. Try again in a moment.');
         }
-      } catch {
-        if (!cancelled) showToast('Failed to load products');
+      } catch (err) {
+        if (!cancelled) {
+          reportFailure('buy_coins_load_products', err);
+          showToast('Failed to load products');
+        }
       }
     };
     loadNative();
     return () => { cancelled = true; };
   }, [isOpen, isNative]);
+
+  const resolveAuthoritativeBalance = async (
+    newBalance: number | undefined,
+  ): Promise<number | null> => {
+    if (typeof newBalance === 'number' && Number.isFinite(newBalance)) {
+      return Math.max(0, newBalance);
+    }
+    const { useWalletStore } = await import('@/store/useWalletStore');
+    const refreshed = await useWalletStore.getState().fetchWallet();
+    if (!refreshed.ok) return null;
+    return Math.max(0, useWalletStore.getState().paidBalance);
+  };
 
   const handleNativePurchase = async (product: IAPProduct) => {
     setNativeLoading(product.id);
@@ -61,48 +77,27 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
       if (result.success) {
         if (result.restoredOwned) {
           showToast('Previous purchase restored');
-          if (onSuccess && typeof result.newBalance === 'number') {
-            onSuccess(result.newBalance);
-          } else if (onSuccess) {
-            const { useWalletStore } = await import('@/store/useWalletStore');
-            const refreshed = await useWalletStore.getState().fetchWallet();
-            if (refreshed.ok) {
-              onSuccess(useWalletStore.getState().paidBalance);
-            } else if (typeof currentBalance === 'number') {
-              onSuccess(currentBalance);
-            }
-          }
-          onClose();
-          return;
         }
-        if (onSuccess) {
-          if (typeof result.newBalance === 'number') {
-            onSuccess(result.newBalance);
-          } else {
-            // Server did not return an authoritative balance. Refresh wallet —
-            // never invent balance by adding product.coins (dedupe/restore risk).
-            const { useWalletStore } = await import('@/store/useWalletStore');
-            const refreshed = await useWalletStore.getState().fetchWallet();
-            if (refreshed.ok) {
-              onSuccess(useWalletStore.getState().paidBalance);
-            } else if (typeof currentBalance === 'number') {
-              onSuccess(currentBalance);
-              showToast('Purchase completed. Refresh if balance looks wrong.');
-            } else {
-              showToast('Purchase completed. Refresh if balance looks wrong.');
-            }
+        const balance = await resolveAuthoritativeBalance(result.newBalance);
+        if (balance != null) {
+          onSuccess?.(balance);
+          if (!result.restoredOwned) {
+            showToast(`Coins updated — balance ${balance.toLocaleString()}`);
           }
-        }
-        if (typeof result.newBalance === 'number') {
-          showToast(`Coins updated — balance ${result.newBalance.toLocaleString()}`);
         } else {
-          showToast('Purchase completed. Refresh if balance looks wrong.');
+          reportFailure(
+            'buy_coins_balance_unresolved',
+            new Error('Purchase verified but wallet balance could not be confirmed'),
+            { productId: product.id },
+          );
+          showToast('Purchase completed. Open wallet to confirm balance.');
         }
         onClose();
       } else if (result.error !== 'Purchase cancelled') {
         showToast(result.error || 'Purchase failed');
       }
-    } catch {
+    } catch (err) {
+      reportFailure('buy_coins_purchase', err, { productId: product.id });
       showToast('Purchase failed');
     } finally {
       setNativeLoading(null);

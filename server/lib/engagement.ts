@@ -991,57 +991,54 @@ export async function listAchievementsForUser(userId: string) {
 }
 
 export async function getDailyLoginState(userId: string) {
-  const db = getPool();
-  const empty = {
+  const disabled = {
     can_claim: false,
     streak_day: 1,
     claimed_today: false,
     next_reward: null as null | Record<string, unknown>,
   };
-  if (!db || !getEngagementFlags().dailyLoginEnabled) return empty;
-  try {
-    const today = periodKey("daily");
-    const todayClaim = await db.query(
-      `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
-      [userId, today],
-    );
-    if (todayClaim.rows[0]) {
-      return {
-        can_claim: false,
-        streak_day: Number(todayClaim.rows[0].streak_day),
-        claimed_today: true,
-        next_reward: null,
-      };
-    }
-    const yesterday = new Date();
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const yKey = periodKey("daily", yesterday);
-    const yClaim = await db.query(
-      `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
-      [userId, yKey],
-    );
-    const prev = Number(yClaim.rows[0]?.streak_day ?? 0);
-    const nextDay = prev >= 1 && prev < 7 ? prev + 1 : 1;
-    const cfg = await db.query(
-      `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
-      [nextDay],
-    );
+  if (!getEngagementFlags().dailyLoginEnabled) return disabled;
+  const db = getPool();
+  if (!db) throw new Error("Postgres pool is not initialized");
+  const today = periodKey("daily");
+  const todayClaim = await db.query(
+    `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
+    [userId, today],
+  );
+  if (todayClaim.rows[0]) {
     return {
-      can_claim: canWriteEngagementWallets(),
-      streak_day: nextDay,
-      claimed_today: false,
-      next_reward: cfg.rows[0]
-        ? {
-            streak_day: Number(cfg.rows[0].streak_day),
-            reward_xp: Number(cfg.rows[0].reward_xp),
-            reward_promo_coins: Number(cfg.rows[0].reward_promo_coins),
-            reward_label: String(cfg.rows[0].reward_label),
-          }
-        : null,
+      can_claim: false,
+      streak_day: Number(todayClaim.rows[0].streak_day),
+      claimed_today: true,
+      next_reward: null,
     };
-  } catch {
-    return empty;
   }
+  const yesterday = new Date();
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  const yKey = periodKey("daily", yesterday);
+  const yClaim = await db.query(
+    `SELECT streak_day FROM daily_reward_claims WHERE user_id = $1 AND claim_date = $2::date`,
+    [userId, yKey],
+  );
+  const prev = Number(yClaim.rows[0]?.streak_day ?? 0);
+  const nextDay = prev >= 1 && prev < 7 ? prev + 1 : 1;
+  const cfg = await db.query(
+    `SELECT * FROM daily_reward_config WHERE streak_day = $1`,
+    [nextDay],
+  );
+  return {
+    can_claim: canWriteEngagementWallets(),
+    streak_day: nextDay,
+    claimed_today: false,
+    next_reward: cfg.rows[0]
+      ? {
+          streak_day: Number(cfg.rows[0].streak_day),
+          reward_xp: Number(cfg.rows[0].reward_xp),
+          reward_promo_coins: Number(cfg.rows[0].reward_promo_coins),
+          reward_label: String(cfg.rows[0].reward_label),
+        }
+      : null,
+  };
 }
 
 export async function claimDailyLogin(userId: string) {

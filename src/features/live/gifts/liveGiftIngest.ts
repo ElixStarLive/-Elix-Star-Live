@@ -11,6 +11,7 @@ import {
   type GiftUiItem,
 } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_GIFT_QUEUE_CAP } from '../../../lib/liveRuntimeCaps';
+import { reportFailure } from '../../../lib/reportFailure';
 
 export type GiftBattleSide = 'host' | 'opponent' | null;
 
@@ -169,7 +170,8 @@ export function enqueueGiftSentVideo(args: EnqueueGiftSentVideoArgs): void {
       const retryUrl = resolveGiftSentPlayUrl(data, catalogRef.current, wsGiftId);
       if (retryUrl) tryEnqueue(retryUrl);
     })
-    .catch(() => {
+    .catch((err) => {
+      reportFailure('live_gift_ingest_catalog', err);
       /* keep prior catalog — do not treat load failure as empty */
     });
 }
