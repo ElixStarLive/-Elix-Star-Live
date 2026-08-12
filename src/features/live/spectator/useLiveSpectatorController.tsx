@@ -46,7 +46,7 @@ import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnU
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
 import { useLiveCohostFeaturedControls } from '../cohost/useLiveCohostFeaturedControls';
-import { applyRemoteVideoTrackMuteState } from '../cohost/applyRemoteVideoTrackMuteState';
+import { createLiveKitSpeakerAndMuteHandlers } from '../cohost/createLiveKitSpeakerAndMuteHandlers';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
@@ -1638,15 +1638,10 @@ export function useLiveSpectatorController() {
           }
         }
       },
-      onActiveSpeakers: (identities) => {
-        setSpeakingIds(new Set(identities.filter(Boolean)));
-      },
-      onTrackMuted: (pub, participant) => {
-        applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, true);
-      },
-      onTrackUnmuted: (pub, participant) => {
-        applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, false);
-      },
+      ...createLiveKitSpeakerAndMuteHandlers({
+        setSpeakingIds,
+        setRemoteCamOff,
+      }),
       onDisconnected: () => {
         if (!streamIsLiveRef.current || !effectiveStreamIdRef.current) return;
         if (lkDisconnectRetryRef.current) clearTimeout(lkDisconnectRetryRef.current);

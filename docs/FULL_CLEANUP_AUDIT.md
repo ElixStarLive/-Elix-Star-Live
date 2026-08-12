@@ -843,6 +843,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **170** clones (held; single load owner) |
 | Android | 1.0.629 |
 
+### Continue 30 — LiveKit speaker + mute handlers
+| Item | Change |
+|------|--------|
+| Active speakers + remote video mute handlers | `createLiveKitSpeakerAndMuteHandlers.ts` |
+| jscpd | **169** clones / **2.13%** lines |
+| Android | 1.0.630 |
+
 
 
 
