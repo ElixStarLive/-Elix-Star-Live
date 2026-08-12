@@ -14,7 +14,7 @@ export { VOICE_EFFECTS } from './voice';
 export type { VoiceEffect } from './voice';
 
 export { SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES } from './subtitles';
-export type { SubtitleStyle } from './subtitles';
+export type { SubtitleStyle, SubtitleSegment } from './subtitles';
 
 export { BACKGROUND_OPTIONS } from './background';
 export type { BackgroundOption } from './background';

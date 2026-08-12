@@ -5,6 +5,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from '../lib/apiClient';
 import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 import { AvatarRing } from './AvatarRing';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
@@ -52,7 +53,8 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
           following: 0,
           bio: '',
         })));
-      } catch {
+      } catch (err) {
+        reportFailure('likes_modal_load', err, { videoId });
         showToast('Could not load likes');
       }
       setLoading(false);

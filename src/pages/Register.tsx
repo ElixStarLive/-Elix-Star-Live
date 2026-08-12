@@ -73,7 +73,7 @@ export default function Register() {
         return;
       }
 
-      // Consent recorded locally (cache) + server source of truth when session exists
+      // Consent — server is source of truth (no localStorage dual-write)
       const consentPayload = {
         consent_type: 'terms_privacy_and_age_13_plus',
         version: '2026-07-21',
@@ -81,11 +81,6 @@ export default function Register() {
         accepted_at: new Date().toISOString(),
         email: email.trim(),
       };
-      try {
-        localStorage.setItem('elix_consent_latest', JSON.stringify(consentPayload));
-      } catch {
-        // Non-blocking cache write
-      }
 
       if (res.needsEmailConfirmation) {
         if (isMounted.current) {

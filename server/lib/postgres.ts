@@ -909,15 +909,8 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
   topGifters: CreatorMembershipTopGifter[];
   heartMembers: CreatorMembershipHeartMember[];
 }> {
-  const empty = {
-    todayHearts: 0,
-    totalHearts: 0,
-    totalGiftCoins: 0,
-    topGifters: [] as CreatorMembershipTopGifter[],
-    heartMembers: [] as CreatorMembershipHeartMember[],
-  };
   const p = getPool();
-  if (!p) return empty;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const [todayRes, totalRes, coinsRes, giftersRes, heartsRes] = await Promise.all([
       p.query(
@@ -1000,7 +993,7 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
     };
   } catch (err) {
     logger.error({ err, creatorUserId }, "dbGetCreatorMembershipStats failed");
-    return empty;
+    throw err;
   }
 }
 
@@ -1366,7 +1359,7 @@ export async function dbCreateShopItem(input: {
   category: string;
 }): Promise<DbShopItemRow | null> {
   const p = getPool();
-  if (!p) return null;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const res = await p.query(
       `INSERT INTO shop_items (user_id, title, description, price, image_url, category, is_active, created_at)
@@ -1395,7 +1388,7 @@ export async function dbCreateShopItem(input: {
     };
   } catch (err) {
     logger.error({ err }, "dbCreateShopItem failed");
-    return null;
+    throw err;
   }
 }
 

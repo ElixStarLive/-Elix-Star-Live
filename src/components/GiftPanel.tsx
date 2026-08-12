@@ -9,6 +9,7 @@ import { Coins, CloudFog } from "lucide-react";
 import { BuyCoinsModal } from "./BuyCoinsModal";
 import { GiftItem, fetchGiftsFromDatabase, resolveGiftAssetUrl } from "../lib/giftsCatalog";
 import { showToast } from "../lib/toast";
+import { reportFailure } from "../lib/reportFailure";
 import { GloveIcon } from "./BattleVfxOverlays";
 
 interface GiftPanelBattleBoost {
@@ -164,6 +165,7 @@ export function GiftPanel({
       if (!cancelled) setGifts(items);
     }).catch((err) => {
       if (!cancelled) {
+        reportFailure('gift_panel_catalog', err);
         showToast(err instanceof Error ? err.message : 'Failed to load gifts');
       }
     });

@@ -8,6 +8,8 @@ import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnySt
 import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { SEARCH_EXIT_TO } from '../lib/settingsNav';
+import { showToast } from '../lib/toast';
+import { reportFailure } from '../lib/reportFailure';
 
 export default function SearchPage() {
   const navigate = useNavigate();
@@ -96,7 +98,9 @@ export default function SearchPage() {
         const merged = [next, ...prev.filter((s) => s.toLowerCase() !== next.toLowerCase())].slice(0, 10);
         localStorage.setItem(RECENT_KEY, JSON.stringify(merged));
         setRecentSearches(merged);
-      } catch { /* ignore */ }
+      } catch (err) {
+        reportFailure('search_recent_write', err);
+      }
     } else {
       params.delete('q');
     }
@@ -165,7 +169,14 @@ export default function SearchPage() {
         if (cancelled) return;
         setMatchedUsers(users);
         setMatchedVideos(vids);
-      } catch { /* ignore */ }
+      } catch (err) {
+        reportFailure('search_query', err, { q: normalizedQuery });
+        if (!cancelled) {
+          setMatchedUsers([]);
+          setMatchedVideos([]);
+          showToast('Search failed. Try again.');
+        }
+      }
       if (!cancelled) setSearching(false);
     })();
 

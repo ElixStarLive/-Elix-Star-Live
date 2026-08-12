@@ -6,7 +6,7 @@ import {
   generateCaptions, generateHashtags, CaptionSuggestion,
   extractThumbnails, ThumbnailCandidate,
   VOICE_EFFECTS,
-  SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES, SubtitleStyle,
+  SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES, SubtitleStyle, type SubtitleSegment,
   BACKGROUND_OPTIONS, BackgroundOption,
 } from '../lib/ai';
 import { showToast } from '../lib/toast';
@@ -74,6 +74,7 @@ export default function AIToolsPanel({
   const [isSubtitling, setIsSubtitling] = useState(false);
   const [selectedBg, setSelectedBg] = useState('none');
   const subtitleGenRef = useRef<SubtitleGenerator | null>(null);
+  const subtitleSegmentsRef = useRef<SubtitleSegment[]>([]);
 
   const handleFilterSelect = useCallback((filter: FilterPreset) => {
     setSelectedFilter(filter.id);
@@ -148,6 +149,14 @@ export default function AIToolsPanel({
     if (isSubtitling) {
       subtitleGenRef.current?.stop();
       setIsSubtitling(false);
+      const segments = subtitleSegmentsRef.current;
+      if (segments.length > 0) {
+        const text = segments.map((s) => s.text).join(' ').trim();
+        if (text) onCaptionSelect?.(text, []);
+        showToast(`Captured ${segments.length} subtitle segment${segments.length === 1 ? '' : 's'}`);
+      } else {
+        showToast('No speech detected');
+      }
     } else {
       if (!subtitleGenRef.current) {
         subtitleGenRef.current = new SubtitleGenerator();
@@ -156,14 +165,17 @@ export default function AIToolsPanel({
         showToast('Speech recognition not supported on this device');
         return;
       }
-      const started = subtitleGenRef.current.start(() => {}, subLang);
+      subtitleSegmentsRef.current = [];
+      const started = subtitleGenRef.current.start((segments) => {
+        subtitleSegmentsRef.current = segments;
+      }, subLang);
       if (!started) {
         showToast('Could not start auto-subtitles');
         return;
       }
       setIsSubtitling(true);
     }
-  }, [isSubtitling, subLang]);
+  }, [isSubtitling, subLang, onCaptionSelect]);
 
   if (!isOpen) return null;
 

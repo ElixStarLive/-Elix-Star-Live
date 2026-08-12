@@ -158,9 +158,13 @@ router.post("/hearts/daily", async (req, res) => {
 
 router.get("/membership/:creatorId", async (req, res) => {
   res.setHeader("Cache-Control", "private, no-store");
-  const { dbGetCreatorMembershipStats } = await import("../lib/postgres");
-  const stats = await dbGetCreatorMembershipStats(req.params.creatorId);
-  return res.json(stats);
+  try {
+    const { dbGetCreatorMembershipStats } = await import("../lib/postgres");
+    const stats = await dbGetCreatorMembershipStats(req.params.creatorId);
+    return res.json(stats);
+  } catch {
+    return res.status(500).json({ error: "DATABASE_ERROR" });
+  }
 });
 
 async function loadGiftRankings(intervalSql: "7 days" | "1 day") {

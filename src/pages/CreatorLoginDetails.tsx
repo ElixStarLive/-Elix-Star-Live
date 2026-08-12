@@ -280,8 +280,6 @@ export default function CreatorLoginDetails() {
       
       if (targetPassword) {
          setPassword(targetPassword);
-         // If we really want to auto-login:
-         // await signInWithPassword(targetEmail, targetPassword);
       } else {
          setPassword('');
       }
