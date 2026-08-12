@@ -27,10 +27,6 @@ export function giftGoalProgressPct(goal: LiveGiftGoal): number {
   return Math.min(100, Math.round((goal.currentCount / goal.targetCount) * 100));
 }
 
-export function giftGoalRemaining(goal: LiveGiftGoal): number {
-  return Math.max(0, goal.targetCount - goal.currentCount);
-}
-
 export function isGiftGoalComplete(goal: LiveGiftGoal): boolean {
   return goal.currentCount >= goal.targetCount;
 }

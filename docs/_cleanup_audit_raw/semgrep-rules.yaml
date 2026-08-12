@@ -1,0 +1,40 @@
+rules:
+  - id: silent-catch-empty
+    languages: [typescript, javascript]
+    message: Empty catch may hide real failures (workaround smell).
+    severity: WARNING
+    patterns:
+      - pattern: catch ($ERR) {}
+  - id: silent-catch-comment-only
+    languages: [typescript, javascript]
+    message: Catch with only a comment may hide real failures.
+    severity: WARNING
+    patterns:
+      - pattern: |
+          catch ($ERR) {
+            // ...
+          }
+  - id: todo-fix-workaround
+    languages: [typescript, javascript]
+    message: FIXME/HACK/WORKAROUND comment may mark unfinished patch.
+    severity: INFO
+    patterns:
+      - pattern-regex: (?i)(?://|/\*|\*)\s*(FIXME|HACK|WORKAROUND|TEMP FIX|temporary fix)\b
+  - id: history-back-nav
+    languages: [typescript, javascript]
+    message: history.back() navigation can be a stacking workaround.
+    severity: WARNING
+    patterns:
+      - pattern: history.back()
+  - id: window-history-back-nav
+    languages: [typescript, javascript]
+    message: window.history.back() navigation can be a stacking workaround.
+    severity: WARNING
+    patterns:
+      - pattern: window.history.back()
+  - id: any-as-escape
+    languages: [typescript]
+    message: as any may bypass type contract.
+    severity: INFO
+    patterns:
+      - pattern: $X as any

@@ -15,7 +15,7 @@ const KEYWORDS = [
   '2 piece',
 ];
 
-export function isSuggestiveCaption(description: string, hashtags: string[] = []): boolean {
+function isSuggestiveCaption(description: string, hashtags: string[] = []): boolean {
   const text = `${description || ''} ${(hashtags || []).join(' ')}`.toLowerCase();
   return KEYWORDS.some((k) => text.includes(k));
 }
@@ -37,7 +37,7 @@ const INDECENTISH = [
   'explicit',
 ];
 
-export function isStemIndecentishCaption(description: string, hashtags: string[] = []): boolean {
+function isStemIndecentishCaption(description: string, hashtags: string[] = []): boolean {
   const text = `${description || ''} ${(hashtags || []).join(' ')}`.toLowerCase();
   return INDECENTISH.some((k) => text.includes(k));
 }

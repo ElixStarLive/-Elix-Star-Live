@@ -270,8 +270,6 @@ export function useLiveSpectatorController() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  /** Recent combo gifts (icon + real xN), capped to last 3 — red-circle combo column. */
-  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(10);
@@ -315,16 +313,8 @@ export function useLiveSpectatorController() {
     comboTimerRef.current = setTimeout(() => {
       setShowComboButton(false);
       setComboCount(0);
-      setComboStack([]);
     }, 8000);
   };
-  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
-    const key = String(gift.id || gift.name || 'gift');
-    setComboStack((prev) => {
-      const without = prev.filter((i) => i.key !== key);
-      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
-    });
-  }, []);
 
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
@@ -3662,7 +3652,6 @@ export function useLiveSpectatorController() {
       setComboCount(1);
       nextCombo = 1;
     }
-    pushComboStack(gift, nextCombo);
     setShowComboButton(true);
     resetComboTimer();
     pushLocalGiftPill({
@@ -3786,7 +3775,6 @@ export function useLiveSpectatorController() {
     coinBalance,
     testCoinBalance,
     comboCount,
-    comboStack,
     comboTimerRef,
     currentGift,
     currentMainTrackRef,
@@ -3888,7 +3876,6 @@ export function useLiveSpectatorController() {
     prevSpectatorBattleActiveRef,
     promotionalCoinBalance,
     pushBattleTaunt,
-    pushComboStack,
     rankingInitialTab,
     reachedThresholdsRef,
     remoteCamOff,
@@ -3919,7 +3906,6 @@ export function useLiveSpectatorController() {
     setCohostLastGifts,
     setCoinBalance,
     setComboCount,
-    setComboStack,
     setCurrentGift,
     setDailyHeartCount,
     setDiamondLeagueRank,

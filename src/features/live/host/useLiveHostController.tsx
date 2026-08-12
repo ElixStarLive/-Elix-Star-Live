@@ -4412,7 +4412,6 @@ export function useLiveHostController() {
   const [userXP, setUserXP] = useState(0);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  const [comboStack, setComboStack] = useState<{ key: string; icon: string; count: number; gift: GiftUiItem }[]>([]);
   const [missionWatchMin, setMissionWatchMin] = useState(0);
   const [missionGiftsSent, setMissionGiftsSent] = useState(0);
   const [missionWatchGoal, setMissionWatchGoal] = useState(10);
@@ -4500,13 +4499,6 @@ export function useLiveHostController() {
     return fromMvp.length > 0 ? fromMvp : [];
   }, [topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pushComboStack = useCallback((gift: GiftUiItem, nextCount: number) => {
-    const key = String(gift.id || gift.name || 'gift');
-    setComboStack((prev) => {
-      const without = prev.filter((i) => i.key !== key);
-      return [...without, { key, icon: typeof gift.icon === 'string' ? gift.icon : '', count: nextCount, gift }].slice(-3);
-    });
-  }, []);
 
   const handleSendGift = async (gift: GiftUiItem) => {
     // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
@@ -4684,7 +4676,6 @@ export function useLiveHostController() {
       // Handle Combo Logic
       setLastSentGift(gift);
       setComboCount(1);
-      pushComboStack(gift, 1);
       setShowComboButton(true);
       resetComboTimer();
       pushLocalGiftPill({
@@ -4748,7 +4739,6 @@ export function useLiveHostController() {
       comboTimerRef.current = setTimeout(() => {
           setShowComboButton(false);
           setComboCount(0);
-          setComboStack([]);
           setLastSentGift(null);
       }, 8000); // keep combo on screen while gift video plays
   };
@@ -4928,7 +4918,6 @@ export function useLiveHostController() {
       // Handle Combo Logic
       setComboCount((prev) => {
         const next = Math.min(prev + 1, GIFT_COMBO_MAX);
-        if (lastSentGift) pushComboStack(lastSentGift, next);
         return next;
       });
       setShowComboButton(true);
@@ -5942,7 +5931,6 @@ export function useLiveHostController() {
     setCohostLayoutId,
     coinBalance,
     comboCount,
-    comboStack,
     comboTimerRef,
     creatorName,
     creatorNameRef,
@@ -6136,7 +6124,6 @@ export function useLiveHostController() {
     promotionalCoinBalance,
     publishHostLiveKitTracks,
     pushBattleTaunt,
-    pushComboStack,
     rankingInitialTab,
     reachedThresholdsRef,
     recordLiveShareProgress,
@@ -6188,7 +6175,6 @@ export function useLiveHostController() {
     setCohostLastGifts,
     setCoinBalance,
     setComboCount,
-    setComboStack,
     setCreatorQuery,
     setCreatorStickers,
     setCreators,

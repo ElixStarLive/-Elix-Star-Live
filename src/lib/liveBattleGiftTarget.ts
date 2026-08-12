@@ -135,7 +135,7 @@ export const EMPTY_BATTLE_TILE_GIFTS: BattleTileGifts = {
 
 export const BATTLE_TILE_GIFT_STACK_CAP = 8;
 
-export function appendBattleTileGift(
+function appendBattleTileGift(
   prev: BattleTileGifts,
   slot: keyof BattleTileGifts,
   iconUrl: string,

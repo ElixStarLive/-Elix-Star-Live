@@ -24,7 +24,7 @@ export function resolveSoundTrackPlaybackUrl(url: string): string {
 }
 
 /** Extract Epidemic track id from our preview proxy path (relative or absolute). */
-export function extractMusicPreviewTrackId(url: string): string | null {
+function extractMusicPreviewTrackId(url: string): string | null {
   if (!url) return null;
   const m = String(url).match(/\/api\/music\/tracks\/([^/?#]+)\/preview/i);
   return m?.[1] ? decodeURIComponent(m[1]) : null;
@@ -283,55 +283,12 @@ export async function playAudioClip(
   }
 }
 
-export type SoundCatalogResponse = {
-  tracks: SoundTrack[];
-  configured: boolean;
-  source: string | null;
-  error?: string | null;
-};
-
 function mapSoundTracks(tracks: SoundTrack[]): SoundTrack[] {
   return tracks.map((track) => ({
     ...track,
     url: resolveSoundTrackPlaybackUrl(track.url),
   }));
 }
-
-/** Licensed sound tracks from server (Epidemic Sound when configured, else Neon catalog). */
-export async function fetchSoundTracksFromDatabase(): Promise<SoundTrack[]> {
-  const catalog = await fetchSoundCatalog();
-  return catalog.tracks;
-}
-
-export async function fetchSoundCatalog(): Promise<SoundCatalogResponse> {
-  const { data, error } = await request<{
-    tracks?: SoundTrack[];
-    configured?: boolean;
-    source?: string | null;
-    error?: string;
-  }>("/api/sounds");
-  if (error) {
-    return { tracks: [], configured: false, source: null, error: error.message };
-  }
-  return {
-    tracks: mapSoundTracks(data?.tracks ?? []),
-    configured: Boolean(data?.configured),
-    source: data?.source ?? null,
-    error: data?.error ?? null,
-  };
-}
-
-export const EMPTY_TRACK: SoundTrack = {
-  id: "0",
-  title: "No Music",
-  artist: "-",
-  duration: "0:00",
-  url: "",
-  license: "-",
-  source: "Local",
-  clipStartSeconds: 0,
-  clipEndSeconds: 0,
-};
 
 /** Default camera / create picker — use mic audio from the clip. */
 export const ORIGINAL_SOUND_TRACK: SoundTrack = {
@@ -347,45 +304,12 @@ export const ORIGINAL_SOUND_TRACK: SoundTrack = {
   clipEndSeconds: 0,
 };
 
-export function getLocalSoundPickerTracks(): SoundTrack[] {
-  return [ORIGINAL_SOUND_TRACK];
-}
-
 export type MusicPlaylist = {
   id: string;
   name: string;
   coverUrl: string | null;
   tracks: SoundTrack[];
 };
-
-export async function fetchGlobalMusicPlaylist(): Promise<{
-  playlist: MusicPlaylist | null;
-  configured: boolean;
-  clipMaxSeconds?: number;
-  error?: string | null;
-}> {
-  const { data, error } = await request<{
-    playlist?: MusicPlaylist | null;
-    configured?: boolean;
-    clipMaxSeconds?: number;
-    error?: string;
-  }>("/api/music/global");
-  if (error) {
-    return { playlist: null, configured: false, error: error.message };
-  }
-  const playlist = data?.playlist
-    ? {
-        ...data.playlist,
-        tracks: mapSoundTracks(data.playlist.tracks ?? []),
-      }
-    : null;
-  return {
-    playlist,
-    configured: Boolean(data?.configured),
-    clipMaxSeconds: data?.clipMaxSeconds,
-    error: data?.error ?? null,
-  };
-}
 
 export async function fetchMusicPlaylists(): Promise<{
   playlists: MusicPlaylist[];

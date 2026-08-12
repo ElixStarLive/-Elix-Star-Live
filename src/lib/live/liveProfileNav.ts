@@ -11,11 +11,6 @@ export function watchLiveProfilePath(streamId: string, profileUserId: string): s
   return `/watch/${encodeURIComponent(sk)}/profile/${encodeURIComponent(uid)}`;
 }
 
-/** True when pathname is a live-nested profile overlay. */
-export function isWatchLiveProfilePath(pathname: string): boolean {
-  return /^\/watch\/[^/]+\/profile(?:\/|$)/.test(pathname.split('?')[0] || '');
-}
-
 /**
  * Return path to resume the same live watch session (preserves ?cohost= / ?battle= search).
  */

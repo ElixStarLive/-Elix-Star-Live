@@ -1,13 +1,11 @@
 import React from 'react';
 import { BadgeCheck, Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
-import type { GiftUiItem } from '../lib/giftsCatalog';
 import { resolveGiftAssetUrl } from '../lib/giftsCatalog';
-import { GIFT_COMBO_MAX } from '../lib/giftsCatalog';
 import type { LiveGiftGoal } from '../lib/liveGiftGoal';
 
 /** Real gift coins received (elix_creator_earnings kind=gift) required for LIVE Pro. */
-export const LIVE_PRO_GIFT_COIN_THRESHOLD = 1_000_000;
+const LIVE_PRO_GIFT_COIN_THRESHOLD = 1_000_000;
 
 export function isLiveProFromGiftReach(totalGiftCoins: number): boolean {
   const n = typeof totalGiftCoins === 'number' && Number.isFinite(totalGiftCoins) ? totalGiftCoins : 0;
@@ -55,7 +53,7 @@ const THIN_CAPSULE_CLASS =
   'elix-live-thin-capsule inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-2 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent shadow-none';
 
 /** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
-export function LiveFollowPill({
+function LiveFollowPill({
   onFollow,
   variant = 'capsule',
   isFollowing = false,
@@ -94,7 +92,7 @@ export function LiveFollowPill({
 }
 
 /** Follow — same thin capsule chrome as Membership (shared profile slot). */
-export function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent) => void }) {
+function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent) => void }) {
   return (
     <button
       type="button"
@@ -316,7 +314,7 @@ export function LiveJoinPill({
 }
 
 /** Diamond League — separate thin capsule. */
-export function LiveDiamondLeagueCapsule({
+function LiveDiamondLeagueCapsule({
   rank,
   onOpen,
 }: {
@@ -345,7 +343,7 @@ export function LiveDiamondLeagueCapsule({
 }
 
 /** Membership VIP — same border/fill as Diamond League (no yellow contour). */
-export function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
+function LiveMembershipVipCapsule({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"
@@ -416,7 +414,7 @@ function LivePhotoCrownIcon({ size = 14 }: { size?: number }) {
 }
 
 /** Weekly Ranking — identical chrome to Diamond League. */
-export function LiveWeeklyRankingPill({
+function LiveWeeklyRankingPill({
   rank,
   onOpen,
 }: {
@@ -447,7 +445,7 @@ export function LiveWeeklyRankingPill({
 }
 
 /** Explore — identical chrome to Diamond League. */
-export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
+function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"
@@ -479,7 +477,7 @@ export function LiveExplorePill({ onOpen }: { onOpen: () => void }) {
 }
 
 /** Gift Goal — small top-bar capsule (progress / set). */
-export function LiveGiftGoalCapsule({
+function LiveGiftGoalCapsule({
   goal,
   onOpen,
 }: {
@@ -564,119 +562,6 @@ export function LiveMarkedSubHeaderBar({
         {showFollow && onFollow ? <LiveFollowCapsule onFollow={onFollow} /> : null}
         {showMembership ? <LiveMembershipVipCapsule onOpen={onMembership} /> : null}
         <LiveExplorePill onOpen={onExplore} />
-      </div>
-    </div>
-  );
-}
-
-export type LiveComboStackItem = {
-  key: string;
-  icon: string;
-  count: number;
-  gift: GiftUiItem;
-};
-
-/**
- * Photo combo column (red contour): large gift icons + pink italic xN,
- * seated just right of live chat. Counts come from real combo sends.
- * Newest / active combo stays on TOP (flex-col-reverse). Do not move it to the bottom.
- * Does not replace GiftPanel / GiftAnimationOverlay / gift pay path.
- */
-export function LiveGiftComboColumn({
-  stack,
-  onCombo,
-  onOpen,
-  /** When true, render column only (parent dock owns fixed position). */
-  embedded = false,
-}: {
-  stack: LiveComboStackItem[];
-  onCombo: () => void;
-  /** Open gift panel (press the column) */
-  onOpen?: () => void;
-  embedded?: boolean;
-}) {
-  if (stack.length === 0) return null;
-
-  const column = (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpen?.();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onOpen?.();
-        }
-      }}
-      className="flex flex-col-reverse items-center gap-2 rounded-2xl px-2.5 py-2.5 border border-[#2A2D33] elix-panel backdrop-blur-md shadow-none active:scale-[0.98] transition-transform"
-    >
-      {stack.map((item, idx) => {
-        const isActive = idx === stack.length - 1;
-        const n = item.count;
-        const label = n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
-        return (
-          <button
-            key={item.key}
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (isActive) {
-                onCombo();
-              } else {
-                onOpen?.();
-              }
-            }}
-            disabled={isActive && n >= GIFT_COMBO_MAX}
-            className="flex items-center gap-2 bg-transparent border-0 p-0 active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {item.icon && (item.icon.startsWith('http') || item.icon.startsWith('/')) ? (
-              <img
-                src={item.icon}
-                alt=""
-                className="w-14 h-14 object-contain drop-shadow-[0_0_10px_rgba(255,45,133,0.45)]"
-                draggable={false}
-              />
-            ) : (
-              <span className="w-14 h-14 flex items-center justify-center text-3xl drop-shadow-[0_0_8px_rgba(255,45,133,0.4)]">
-                🎁
-              </span>
-            )}
-            <span
-              className="font-black italic text-[26px] leading-none tracking-tight"
-              style={{
-                backgroundImage: 'linear-gradient(180deg, #FFFFFF 0%, #FF5AA8 55%, #FF2D85 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                color: 'transparent',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.85))',
-              }}
-            >
-              x{label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-
-  if (embedded) return column;
-
-  return (
-    <div
-      className="fixed left-0 right-0 z-[50060] flex justify-center pointer-events-none"
-      style={{ bottom: 'calc(58px + max(2px, env(safe-area-inset-bottom, 0px)))' }}
-    >
-      <div className="w-full max-w-[480px] mx-auto relative h-0 pointer-events-none">
-        <div
-          className="absolute pointer-events-auto"
-          style={{ left: '48%', bottom: '8px', transform: 'translateX(-50%)' }}
-        >
-          {column}
-        </div>
       </div>
     </div>
   );

@@ -16,6 +16,8 @@ export default [
       "Elix Star Live/",
       "_aab_peek/",
       "assets/",
+      "tools/_audit/",
+      "docs/_cleanup_audit_raw/",
       "*.config.js",
       "*.config.ts",
     ],

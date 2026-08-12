@@ -4,9 +4,8 @@
  * under thermal pressure and multi-tile battle so four HIGH streams are never
  * requested when tiles are small or the device is hot.
  */
-import { VideoQuality, type Room, type RemoteParticipant } from 'livekit-client';
+import { VideoQuality, type Room } from 'livekit-client';
 import { getActiveThermalTier, type ThermalTier } from './liveMediaProfile';
-import { detachRemoteTrack } from './liveTrackCleanup';
 
 export function videoQualityForThermalTier(tier: ThermalTier): VideoQuality {
   switch (tier) {
@@ -42,25 +41,6 @@ export function applyRemoteVideoBudget(
       } catch {
         /* older SDK / unsupported */
       }
-    }
-  }
-}
-
-/** Stop decoding a departed participant's video without ending the room. */
-export function releaseParticipantRemoteVideo(
-  participant: RemoteParticipant | null | undefined,
-): void {
-  if (!participant) return;
-  for (const pub of participant.videoTrackPublications.values()) {
-    try {
-      if (pub.track) detachRemoteTrack(pub.track);
-    } catch {
-      /* already detached */
-    }
-    try {
-      if (pub.isSubscribed) pub.setSubscribed(false);
-    } catch {
-      /* participant may already be gone */
     }
   }
 }

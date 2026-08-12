@@ -40,7 +40,7 @@ const ALLOWED_FORMATS = ["video/mp4", "video/quicktime", "video/webm"];
 
 // ── Service class ─────────────────────────────────────────────────────────────
 
-export class VideoUploadService {
+class VideoUploadService {
   private onProgressCallback: ((progress: UploadProgress) => void) | null =
     null;
 

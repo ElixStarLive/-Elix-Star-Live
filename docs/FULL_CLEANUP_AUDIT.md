@@ -358,9 +358,90 @@ Remaining: mega-controller split (optional), locked gift listeners (needs unlock
 
 ---
 
-## Next actions (remaining)
+## Pass 4 progress (2026-08-12)
 
-1. Re-run full vitest + `build:store` / Android AAB for this pass.  
-2. Install Semgrep + Sonar for gate zeros.  
-3. Trace remaining Knip unused exports one-by-one (no mass delete).  
-4. Only then open app locally for smoke.
+| Action | Status |
+|--------|--------|
+| Knip re-run (`docs/_cleanup_audit_raw/knip-pass4.txt`) | DONE |
+| **Test coins module kept intact** (`src/lib/testCoins.ts` — never treat as dead) | DONE |
+| Dead unused sound wrappers removed (`fetchSoundCatalog` path, `EMPTY_TRACK`, `getLocalSoundPickerTracks`, `fetchGlobalMusicPlaylist`) | DONE |
+| Dead unused helpers removed (`formatWatchClock`, `mysteryRemainingMs`, `giftGoalRemaining`, `isWatchLiveProfilePath`, `releaseParticipantRemoteVideo`) | DONE |
+| LiveMarkedTopUi: unexport internal capsules; delete never-mounted `LiveGiftComboColumn` | DONE |
+| Dead `comboStack` state removed from host/spectator controllers (screens never read it; round combo button kept) | DONE |
+| Server store catalog re-exports slimmed to used symbols | DONE |
+| Unused `@testing-library/*` devDeps removed | SKIPPED (leave deps; not authorized this turn) |
+| Locked gift overlays / Inbox / etc. | NOT TOUCHED |
+
+---
+
+## Pass 5 — full required tool gate (2026-08-12)
+
+### Tools actually run (recorded)
+
+| Tool | Command / evidence | Result |
+|------|--------------------|--------|
+| **Knip** | `npx knip` → `docs/_cleanup_audit_raw/knip-pass5.txt` | exit 1 — findings present (6 unused files classified KEEP; 204 unused exports require per-export trace; **testCoins not deleted**) |
+| **jscpd** | `npx jscpd src server` → `jscpd-pass5/` + `.txt` | exit 0 — **206 clones**, 2.71% duplicated lines |
+| **TypeScript** | `npx tsc -b` → `tsc-pass5.txt` | **0 errors** (exit 0) |
+| **ESLint** | `npx eslint src server` → `eslint-pass5-final.txt` | **0 errors** (exit 0) after ignoring `tools/_audit` |
+| **Vitest** | `npm test` → `vitest-pass5-final.txt` | **228 passed / 31 skipped** (exit 0) |
+| **Semgrep** | local venv `tools/_audit/semgrep-venv` + `semgrep-rules.yaml` → `semgrep-pass5-final.json` | **RAN** — 386 findings (almost all empty/comment-only `catch`; 4× `as any` in locked Create camera file). **No history.back hits.** |
+| **SonarScanner** | `npx sonarqube-scanner -Dsonar.host.url=http://127.0.0.1:9000` → `sonar-pass5.txt` | **BLOCKED** — scanner installed/ran; `ECONNREFUSED 127.0.0.1:9000`; `SONAR_TOKEN` unset; Docker not installed (`docker` command missing — `sonar-docker-probe.txt`) |
+| **Production build** | `npm run build:store` → `build-store-pass5-final.txt` | **exit 0** |
+| **Android release** | `cap sync` + `gradlew bundleRelease` → `aab-pass5-final.txt` | **PASS** — BUILD SUCCESSFUL; version **1.0.597** / 644 |
+| **iOS release** | N/A on this host | **NOT APPLICABLE** — Windows 10, no Xcode |
+
+### Semgrep triage (not blind-delete)
+
+| Finding class | Count | Verdict |
+|---------------|-------|---------|
+| Empty / comment-only `catch` | ~191×2 (duplicate rules) | **OPEN inventory** — many are intentional defensive media/LiveKit/localStorage teardown; money/auth paths need **per-site** root-cause review under server-edit permission. Do **not** mass-rewrite. |
+| `as any` | 4 | **BLOCKED** — all in locked `ElixCameraLayout.tsx` (Create camera lock) |
+| HACK/FIXME comment rule | 0 after rule tightened to comment-prefix only | Prior hits were false positives (`hack` in Terms / caption marketing copy) |
+
+### jscpd high-priority groups (semantic)
+
+| Group | Status |
+|-------|--------|
+| IAP catalogs client↔server | **FIXED earlier** — server re-exports; remaining clone is **intra-file** Apple/Google product object shape (legitimate parallel catalogues) |
+| XP award SQL `awardLiveWatchXp` ↔ `starterCoinsXp` | **OPEN / BLOCKED** — server money-adjacent unify needs explicit server-permission pass |
+| Host↔spectator gift branches | **OPEN** — structural; UI freeze; shared helper extract only with behavior-identical diff |
+| Settings Safety/Security form clones | **ACCEPTABLE** — structural UI forms; UI freeze |
+
+### Knip unused files (reconfirmed)
+
+| File | Verdict |
+|------|---------|
+| `public/env.js`, `public/legal-doc.css` | **KEEP** — runtime/legal assets |
+| `server/scripts/*` migrate helpers | **KEEP** — ops |
+| `@testing-library/*`, `pino-pretty` | **KEEP for now** — pino-pretty used dynamically by logger; RTL reserved |
+
+### Clean gate — honest final (Pass 5)
+
+```text
+TypeScript errors:                  0
+ESLint errors (src+server):         0
+Failed tests:                       0
+Knip unexplained unused files:      6 reported — all classified KEEP / ops
+Knip unused exports:                204 — require continued per-export TRACE (testCoins KEEP)
+jscpd unwanted duplicate owners:    >0 (XP award SQL; host/spectator gift) — NOT 0
+Semgrep workaround findings:        RAN — empty-catch inventory OPEN; no history.back
+Sonar blocker/critical:             BLOCKED — no SonarQube server/token on this host
+Production build:                   PASS (build:store)
+Android release build:              see AAB evidence this pass
+iOS release build:                  NOT APPLICABLE (Windows)
+Known temporary patches:            none newly introduced this pass
+Test coins:                         PRESERVED (owner order)
+```
+
+**Verdict:** App is **not** “fully clean forever.” Required tools were **run** (Sonar blocked only after real scanner attempt). Locally actionable Pass 4 leftovers are in tree for commit with this evidence.
+
+---
+
+## Next actions (remaining after Pass 5)
+
+1. Owner: provide SonarQube/SonarCloud URL + token (or approve local SonarQube install) to unblock Sonar gate zeros.  
+2. Owner: unlock server-file edits for XP award SQL unify + prioritized silent-catch money paths.  
+3. Continue Knip unused-export traces (**never** `testCoins`).  
+4. Shared gift-send extract (behavior-identical) when ordered.  
+5. Local smoke after commit/push.
