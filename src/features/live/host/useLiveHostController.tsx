@@ -41,7 +41,7 @@ import {
   computeBattleFinalSecondsHide,
   computeMistHidesScoresForViewer,
 } from '../battle/battleScoreVisibility';
-import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
+import { openMountedLiveGiftSent } from '../gifts/openMountedLiveGiftSent';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
@@ -3300,13 +3300,12 @@ export function useLiveHostController() {
     };
 
     const handleGiftSent = (data) => {
-      if (!mounted) return;
-      const opened = openLiveGiftSentHandler(data, giftsCatalogRef.current, {
+      const opened = openMountedLiveGiftSent(mounted, data, giftsCatalogRef.current, {
         hasSeenGiftTxn,
         hasPlayedGiftVideoTxn,
         markGiftTxnSeen,
       });
-      if (opened.skip === true) return;
+      if (!opened || opened.skip === true) return;
       const { alreadySeen, parsed } = opened;
       const {
         txnId,

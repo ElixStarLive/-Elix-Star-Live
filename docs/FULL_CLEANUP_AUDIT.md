@@ -798,6 +798,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **177** clones / **2.22%** lines |
 | Android | 1.0.623 |
 
+### Continue 24 — GiftPanel grid + mounted gift_sent open
+| Item | Change |
+|------|--------|
+| GiftPanel exclusive/big/small grid render | `renderGiftGrid` (identical markup) |
+| Mounted gift_sent open | `openMountedLiveGiftSent.ts` |
+| jscpd | **176** clones / **2.21%** lines |
+| Android | 1.0.624 |
+
 
 
 

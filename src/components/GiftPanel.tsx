@@ -213,6 +213,21 @@ export function GiftPanel({
     [onSelectGift],
   );
 
+  const renderGiftGrid = (items: GiftItem[], pngUrlFor: (gift: GiftItem) => string) => (
+    <div className="grid grid-cols-4 gap-2 items-start">
+      {items.map((gift) => (
+        <GiftGridItem
+          key={gift.id}
+          gift={gift}
+          pngUrl={pngUrlFor(gift)}
+          isSelected={false}
+          onTap={() => handleGiftTap(gift)}
+          borderClass={goalBorder(gift.id)}
+        />
+      ))}
+    </div>
+  );
+
   return (
     <>
     {/* Hide gift sheet entirely while Top Up is open — do not change gift assets */}
@@ -405,18 +420,7 @@ export function GiftPanel({
         <div className="animate-fade-in">
           {universeGifts.length > 0 && (
             <div className="mb-4">
-              <div className="grid grid-cols-4 gap-2 items-start">
-                {universeGifts.map((gift) => (
-                <GiftGridItem
-                  key={gift.id}
-                  gift={gift}
-                  pngUrl={posterByGiftId.get(gift.id) || ""}
-                  isSelected={false}
-                  onTap={() => handleGiftTap(gift)}
-                  borderClass={goalBorder(gift.id)}
-                />
-                ))}
-              </div>
+              {renderGiftGrid(universeGifts, (gift) => posterByGiftId.get(gift.id) || "")}
             </div>
           )}
         </div>
@@ -425,36 +429,14 @@ export function GiftPanel({
       {/* ============ Big Gifts Tab ============ */}
       {activeTab === "big" && (
         <div className="animate-fade-in">
-          <div className="grid grid-cols-4 gap-2 items-start">
-            {bigGifts.map((gift) => (
-              <GiftGridItem
-                key={gift.id}
-                gift={gift}
-                pngUrl={posterByGiftId.get(gift.id) || ""}
-                isSelected={false}
-                onTap={() => handleGiftTap(gift)}
-                borderClass={goalBorder(gift.id)}
-              />
-            ))}
-          </div>
+          {renderGiftGrid(bigGifts, (gift) => posterByGiftId.get(gift.id) || "")}
         </div>
       )}
 
       {/* ============ Small Gifts Tab ============ */}
       {activeTab === "small" && smallGifts.length > 0 && (
         <div className="mt-2 animate-fade-in">
-          <div className="grid grid-cols-4 gap-2 items-start">
-            {smallGifts.map((gift) => (
-              <GiftGridItem
-                key={gift.id}
-                gift={gift}
-                pngUrl={gift.icon}
-                isSelected={false}
-                onTap={() => handleGiftTap(gift)}
-                borderClass={goalBorder(gift.id)}
-              />
-            ))}
-          </div>
+          {renderGiftGrid(smallGifts, (gift) => gift.icon)}
         </div>
       )}
     </div>
