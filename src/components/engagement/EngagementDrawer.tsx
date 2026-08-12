@@ -31,6 +31,7 @@ import {
   apiEngagementTreasureOpen,
   apiLiveEngagementWallet,
 } from "../../features/live/engagement/liveEngagementApi";
+import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
 
@@ -289,25 +290,12 @@ function HubBody({ onSelect }: { onSelect: (id: EngagementPanel) => void }) {
 }
 
 function MissionsBody() {
-  type Mission = {
-    id: string;
-    scope: string;
-    title: string;
-    description: string;
-    goal_count: number;
-    reward_xp: number;
-    reward_promo_coins: number;
-    reward_energy: number;
-    progress: number;
-    completed: boolean;
-    claimed: boolean;
-  };
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missions, setMissions] = useState<EngagementMissionRow[]>([]);
   const [claiming, setClaiming] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const { data } = await apiEngagementMissions();
-    setMissions((data?.missions as Mission[]) || []);
+    setMissions((data?.missions as EngagementMissionRow[]) || []);
   }, []);
 
   useEffect(() => {
@@ -330,7 +318,7 @@ function MissionsBody() {
     }
   };
 
-  const Section = ({ title, items }: { title: string; items: Mission[] }) => (
+  const Section = ({ title, items }: { title: string; items: EngagementMissionRow[] }) => (
     <div className="mb-3">
       <p className="text-[10px] text-white/30 uppercase tracking-[0.12em] mb-1.5">{title}</p>
       <div className="flex flex-col gap-2">

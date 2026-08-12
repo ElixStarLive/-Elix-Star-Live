@@ -3161,22 +3161,7 @@ export function useLiveHostController() {
             ? Math.floor(wsLevel)
             : 1;
       // One join banner per user for the whole live session (reconnect / double emit / leave-rejoin).
-      if (joinAnnouncedRef.current.has(uid)) {
-        appendLiveViewerFromJoinPayload({
-          setActiveViewers,
-          uid,
-          joinName,
-          displayName: typeof data.display_name === 'string' ? data.display_name : joinName,
-          username: joinName,
-          avatar: typeof data.avatar_url === 'string' ? data.avatar_url : '',
-          level: initialLevel,
-          country: data.country || '',
-          cached,
-        });
-        return;
-      }
-      joinAnnouncedRef.current.add(uid);
-      appendLiveViewerFromJoinPayload({
+      const joinViewerPayload = {
         setActiveViewers,
         uid,
         joinName,
@@ -3186,7 +3171,13 @@ export function useLiveHostController() {
         level: initialLevel,
         country: data.country || '',
         cached,
-      });
+      };
+      if (joinAnnouncedRef.current.has(uid)) {
+        appendLiveViewerFromJoinPayload(joinViewerPayload);
+        return;
+      }
+      joinAnnouncedRef.current.add(uid);
+      appendLiveViewerFromJoinPayload(joinViewerPayload);
       const joinMsgId = `join-${uid}`;
       appendLiveJoinStreamBanner({
         setMessages,
@@ -4164,6 +4155,25 @@ export function useLiveHostController() {
   }, [topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const hostPaidGiftSuccessHandlers = {
+    walletCoinBalanceRef,
+    setGiftSource,
+    setUserLevel,
+    setUserXP,
+    updateUserLevel: (level: number) => updateUser({ level }),
+    showToast,
+    clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
+    onLeveledUp: (level: number) => {
+      appendLiveLevelUpBanner({
+        setMessages,
+        username: isBroadcast ? creatorName : viewerName,
+        avatar: isBroadcast ? myAvatar : viewerAvatar,
+        level,
+        liveChatSend,
+      });
+    },
+  };
+
   const handleSendGift = async (gift: GiftUiItem) => {
     // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
     if (!gift) return;
@@ -4209,22 +4219,7 @@ export function useLiveHostController() {
             cohostTargetUserId: selectedCohostGiftUserId,
             isBattleMode,
             currentLevel: newLevel,
-            walletCoinBalanceRef,
-            setGiftSource,
-            setUserLevel,
-            setUserXP,
-            updateUserLevel: (level) => updateUser({ level }),
-            showToast,
-            clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
-            onLeveledUp: (level) => {
-              appendLiveLevelUpBanner({
-                setMessages,
-                username: isBroadcast ? creatorName : viewerName,
-                avatar: isBroadcast ? myAvatar : viewerAvatar,
-                level,
-                liveChatSend,
-              });
-            },
+            ...hostPaidGiftSuccessHandlers,
           });
           if (!success.ok) return;
           newLevel = success.newLevel;
@@ -4399,22 +4394,7 @@ export function useLiveHostController() {
             cohostTargetUserId: selectedCohostGiftUserId,
             isBattleMode,
             currentLevel: newLevel,
-            walletCoinBalanceRef,
-            setGiftSource,
-            setUserLevel,
-            setUserXP,
-            updateUserLevel: (level) => updateUser({ level }),
-            showToast,
-            clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
-            onLeveledUp: (level) => {
-              appendLiveLevelUpBanner({
-                setMessages,
-                username: isBroadcast ? creatorName : viewerName,
-                avatar: isBroadcast ? myAvatar : viewerAvatar,
-                level,
-                liveChatSend,
-              });
-            },
+            ...hostPaidGiftSuccessHandlers,
           });
           if (!success.ok) return;
           newLevel = success.newLevel;

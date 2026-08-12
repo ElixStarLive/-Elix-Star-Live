@@ -6,23 +6,10 @@ import {
   apiEngagementMissionClaim,
   apiEngagementMissions,
 } from "../../features/live/engagement/liveEngagementApi";
-
-type Mission = {
-  id: string;
-  scope: string;
-  title: string;
-  description: string;
-  goal_count: number;
-  reward_xp: number;
-  reward_promo_coins: number;
-  reward_energy: number;
-  progress: number;
-  completed: boolean;
-  claimed: boolean;
-};
+import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
 
 export default function EngagementMissions() {
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missions, setMissions] = useState<EngagementMissionRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [claiming, setClaiming] = useState<string | null>(null);
 
@@ -31,7 +18,7 @@ export default function EngagementMissions() {
     try {
       const { data, error } = await apiEngagementMissions();
       if (error) throw new Error(error);
-      setMissions((data?.missions as Mission[]) || []);
+      setMissions((data?.missions as EngagementMissionRow[]) || []);
     } catch {
       showToast("Could not load missions");
     } finally {
@@ -62,7 +49,7 @@ export default function EngagementMissions() {
   const daily = missions.filter((m) => m.scope === "daily");
   const weekly = missions.filter((m) => m.scope === "weekly");
 
-  const Section = ({ title, items }: { title: string; items: Mission[] }) => (
+  const Section = ({ title, items }: { title: string; items: EngagementMissionRow[] }) => (
     <div className="mb-4">
       <p className="text-[10px] uppercase tracking-[0.12em] mb-2">
         <span className="elix-silver-red-text opacity-55">{title}</span>

@@ -813,6 +813,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **176** clones (held; single owner for unlock apply) |
 | Android | 1.0.625 |
 
+### Continue 26 — host gift handlers + engagement mission type
+| Item | Change |
+|------|--------|
+| Host send/combo shared success handlers | `hostPaidGiftSuccessHandlers` + join payload once |
+| Shared `EngagementMissionRow` type | drawer + missions page |
+| jscpd | **174** clones / **2.19%** lines |
+| Android | 1.0.626 |
+
 
 
 
