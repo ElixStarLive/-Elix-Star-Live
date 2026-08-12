@@ -32,6 +32,8 @@ import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRo
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
 import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
+import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
+import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
@@ -4246,12 +4248,13 @@ export function useLiveHostController() {
 
     // Host never uses test coins — always real wallet / starter / promo.
     const walletNow = useWalletStore.getState();
-    const spendable =
-      giftSource === 'starter_coins'
-        ? walletNow.starterBalance
-        : giftSource === 'promotional_coins'
-          ? walletNow.promotionalBalance
-          : walletNow.paidBalance;
+    const spendable = resolveLiveGiftSpendableBalance({
+      usedTestCoins: false,
+      giftSource,
+      paidBalance: walletNow.paidBalance,
+      starterBalance: walletNow.starterBalance,
+      promotionalBalance: walletNow.promotionalBalance,
+    });
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -4468,12 +4471,13 @@ export function useLiveHostController() {
 
       // Host never uses test coins — always real wallet / starter / promo.
       const walletNow = useWalletStore.getState();
-      const spendable =
-        giftSource === 'starter_coins'
-          ? walletNow.starterBalance
-          : giftSource === 'promotional_coins'
-            ? walletNow.promotionalBalance
-            : walletNow.paidBalance;
+      const spendable = resolveLiveGiftSpendableBalance({
+        usedTestCoins: false,
+        giftSource,
+        paidBalance: walletNow.paidBalance,
+        starterBalance: walletNow.starterBalance,
+        promotionalBalance: walletNow.promotionalBalance,
+      });
       if (spendable < lastSentGift.coins) {
         showToast("Not enough coins!");
         return;
@@ -4691,12 +4695,7 @@ export function useLiveHostController() {
 
       setInputValue('');
       if (effectiveStreamId) {
-        earnBattleEnergyQuiet('comment', effectiveStreamId);
-        void apiLiveEngagementProgress({
-          metric: 'comments',
-          delta: 1,
-          roomId: effectiveStreamId,
-        }).catch((err) => reportFailure('live_engagement_progress', err));
+        reportLiveCommentEngagement(effectiveStreamId);
       }
   };
 

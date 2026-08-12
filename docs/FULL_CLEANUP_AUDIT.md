@@ -688,6 +688,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **190** clones — down from 191 |
 | Android | 1.0.609 |
 
+### Continue 10 — comment engagement + gift spendable
+| Item | Change |
+|------|--------|
+| Comment energy + comments metric | `reportLiveCommentEngagement.ts` |
+| Gift spendable (test vs wallet) | `resolveLiveGiftSpendableBalance.ts` |
+| jscpd | **189** clones — down from 190 |
+| Android | 1.0.610 |
+
+
 
 
 
