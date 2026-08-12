@@ -61,7 +61,6 @@ import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
 import { apiUrl, getLiveKitUrl } from '../../../lib/api';
 import { useLiveCamera } from '../hooks/useLiveCamera';
-import { giftSendErrorToast } from '../../../lib/giftSend';
 import {
   apiLiveEnd,
   apiLiveToken,
@@ -78,14 +77,11 @@ import type {
 } from '../types';
 import { sameUserId, isSelfUser } from '../utils/ids';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
-import { sendLivePaidGift } from '../gifts/sendLiveGift';
-import {
-  applyLivePaidGiftSuccessEffects,
-  formatInsufficientCoinsToast,
-} from '../gifts/applyLivePaidGiftSuccessEffects';
+import { sendHostPaidGiftWithSuccess } from '../gifts/sendHostPaidGiftWithSuccess';
+import { formatInsufficientCoinsToast } from '../gifts/applyLivePaidGiftSuccessEffects';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances } from '../gifts/refreshLiveGiftPanelBalances';
-import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { resolveLocalGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useHostLiveSession } from './session/useHostLiveSession';
@@ -113,11 +109,14 @@ import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBat
 import {
   cohostInviteAccept,
   cohostInviteSend,
-  cohostLayoutSync,
   cohostRequestAccept,
   cohostRequestDecline,
   cohostRequestSend,
 } from '../cohost/liveCohostActions';
+import {
+  mapCoHostsForLayoutSync,
+  syncBroadcastCohostLayout,
+} from '../cohost/syncBroadcastCohostLayout';
 import {
   DEFAULT_COHOST_LAYOUT_ID,
   type CohostLayoutId,
@@ -922,16 +921,14 @@ export function useLiveHostController() {
 
   // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
   useEffect(() => {
-    if (!isBroadcast || !effectiveStreamId || !user?.id) return;
-    const list = coHosts.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-    const payload = {
+    syncBroadcastCohostLayout({
+      isBroadcast,
       roomId: effectiveStreamId,
-      coHosts: list,
-      hostUserId: user.id,
+      hostUserId: user?.id,
+      coHosts: mapCoHostsForLayoutSync(coHosts),
       featuredUserId: featuredUserId || null,
       layoutId: cohostLayoutId,
-    };
-    cohostLayoutSync(payload);
+    });
   }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId, cohostLayoutId]);
 
   // Inviting seats while on Solo → switch to Normal (1 big + 8). Choosing Solo clears seats (see selectCohostLayout).
@@ -3139,16 +3136,14 @@ export function useLiveHostController() {
       needsIdentityLookup.forEach((uid) => maybeResolveViewerIdentity(uid));
 
       // Creator: push layout to server as soon as we connect so spectators who join later get creator layout
-      if (isBroadcastRef.current && effectiveStreamId && user?.id) {
-        const list = coHostsRef.current.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-        cohostLayoutSync({
-          roomId: effectiveStreamId,
-          coHosts: list,
-          hostUserId: user.id,
-          featuredUserId: featuredUserIdRef.current || null,
-          layoutId: cohostLayoutIdRef.current,
-        });
-      }
+      syncBroadcastCohostLayout({
+        isBroadcast: isBroadcastRef.current,
+        roomId: effectiveStreamId,
+        hostUserId: user?.id,
+        coHosts: mapCoHostsForLayoutSync(coHostsRef.current),
+        featuredUserId: featuredUserIdRef.current || null,
+        layoutId: cohostLayoutIdRef.current,
+      });
 
       // Opponent: once connected to the room, tell the server we're joining the battle
       if (isBattleJoiner) {
@@ -3239,16 +3234,14 @@ export function useLiveHostController() {
         maybeResolveViewerIdentity(uid);
       }
       // So new spectators get current co-host layout (must include featured — omitting it broadcasts null and wipes big-screen for everyone)
-      if (isBroadcastRef.current && effectiveStreamId && user?.id) {
-        const list = coHostsRef.current.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
-        cohostLayoutSync({
-          roomId: effectiveStreamId,
-          coHosts: list,
-          hostUserId: user.id,
-          featuredUserId: featuredUserIdRef.current || null,
-          layoutId: cohostLayoutIdRef.current,
-        });
-      }
+      syncBroadcastCohostLayout({
+        isBroadcast: isBroadcastRef.current,
+        roomId: effectiveStreamId,
+        hostUserId: user?.id,
+        coHosts: mapCoHostsForLayoutSync(coHostsRef.current),
+        featuredUserId: featuredUserIdRef.current || null,
+        layoutId: cohostLayoutIdRef.current,
+      });
     };
 
     const handleUserLeft = (data) => {
@@ -4224,28 +4217,14 @@ export function useLiveHostController() {
                   opponentRoomId: idsForBattleGiftRest?.opponentRoomId ?? '',
                 })
               : undefined;
-          const playableVideo = resolvePlayableGiftVideoUrl(gift.video);
-          const paid = await sendLivePaidGift({
+          const success = await sendHostPaidGiftWithSuccess({
             streamKey: effectiveStreamId,
             giftId: gift.id,
-            channel: 'host',
+            giftVideo: gift.video,
             giftSource,
-            video: playableVideo,
-            ...(restBattleTarget ? { battleTarget: restBattleTarget } : {}),
-            ...(!isBattleMode && selectedCohostGiftUserId
-              ? { cohostTargetUserId: selectedCohostGiftUserId }
-              : {}),
-          });
-          const result = paid.result;
-          if (!paid.ok || !result) {
-            const msg = paid.errorToast || giftSendErrorToast('');
-            if (msg.includes('co-host')) setSelectedCohostGiftUserId(null);
-            showToast(msg);
-            return;
-          }
-          const success = await applyLivePaidGiftSuccessEffects({
-            result,
-            giftSource,
+            battleTarget: restBattleTarget,
+            cohostTargetUserId: selectedCohostGiftUserId,
+            isBattleMode,
             currentLevel: newLevel,
             walletCoinBalanceRef,
             setGiftSource,
@@ -4253,6 +4232,7 @@ export function useLiveHostController() {
             setUserXP,
             updateUserLevel: (level) => updateUser({ level }),
             showToast,
+            clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
             onLeveledUp: (level) => {
               setMessages((prev) => appendCapped(prev, {
                 id: `levelup-${Date.now()}`,
@@ -4422,7 +4402,6 @@ export function useLiveHostController() {
       let giftTransactionId: string | null = null;
       if (user?.id) {
         try {
-          const comboPlayableVideo = resolvePlayableGiftVideoUrl(lastSentGift.video);
           const comboBattleTarget = isBattleMode
             ? (() => {
                 const ids = battleStreamIdsRef.current;
@@ -4435,27 +4414,14 @@ export function useLiveHostController() {
                 });
               })()
             : undefined;
-          const paid = await sendLivePaidGift({
+          const success = await sendHostPaidGiftWithSuccess({
             streamKey: effectiveStreamId,
             giftId: lastSentGift.id,
-            channel: 'host',
+            giftVideo: lastSentGift.video,
             giftSource,
-            video: comboPlayableVideo,
-            ...(comboBattleTarget ? { battleTarget: comboBattleTarget } : {}),
-            ...(!isBattleMode && selectedCohostGiftUserId
-              ? { cohostTargetUserId: selectedCohostGiftUserId }
-              : {}),
-          });
-          const result = paid.result;
-          if (!paid.ok || !result) {
-            const msg = paid.errorToast || giftSendErrorToast('');
-            if (msg.includes('co-host')) setSelectedCohostGiftUserId(null);
-            showToast(msg);
-            return;
-          }
-          const success = await applyLivePaidGiftSuccessEffects({
-            result,
-            giftSource,
+            battleTarget: comboBattleTarget,
+            cohostTargetUserId: selectedCohostGiftUserId,
+            isBattleMode,
             currentLevel: newLevel,
             walletCoinBalanceRef,
             setGiftSource,
@@ -4463,6 +4429,7 @@ export function useLiveHostController() {
             setUserXP,
             updateUserLevel: (level) => updateUser({ level }),
             showToast,
+            clearSelectedCohost: () => setSelectedCohostGiftUserId(null),
             onLeveledUp: (level) => {
               setMessages((prev) => appendCapped(prev, {
                 id: `levelup-${Date.now()}`,

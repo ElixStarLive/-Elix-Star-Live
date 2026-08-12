@@ -774,6 +774,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **178** clones — down from 179 |
 | Android | 1.0.620 |
 
+### Continue 21 — host paid-gift send + cohost layout sync
+| Item | Change |
+|------|--------|
+| Host send+combo paid gift path | `sendHostPaidGiftWithSuccess.ts` |
+| Broadcast cohost layout sync | `syncBroadcastCohostLayout.ts` |
+| jscpd | **177** clones — down from 178 |
+| Android | 1.0.621 |
+
 
 
 
