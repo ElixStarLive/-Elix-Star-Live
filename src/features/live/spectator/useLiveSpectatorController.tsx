@@ -24,7 +24,6 @@ import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
-import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
@@ -116,7 +115,8 @@ import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
-import { useLiveChatStore, EMPTY_LIVE_MESSAGES } from '../chat/useLiveChatStore';
+import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
+import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
 import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
 
 /** Co-host tile gift totals — 15K / 100K / 500K style. */
@@ -195,17 +195,8 @@ export function useLiveSpectatorController() {
   const [viewerCount, setViewerCount] = useState(0);
   const [activeLikes, setActiveLikes] = useState(0);
 
-  const messages = useLiveChatStore(
-    (s) => s.messagesByStream[effectiveStreamId] ?? EMPTY_LIVE_MESSAGES,
-  );
-  const updateMessagesForStream = useLiveChatStore((s) => s.updateMessagesForStream);
-  const clearMessagesForStream = useLiveChatStore((s) => s.clearMessagesForStream);
-  const setMessages = useCallback(
-    (updater: (prev: LiveMessage[]) => LiveMessage[]) => {
-      updateMessagesForStream(effectiveStreamId, updater);
-    },
-    [effectiveStreamId, updateMessagesForStream],
-  );
+  const { messages, setMessages, clearMessagesForStream } =
+    useLiveStreamChatMessages(effectiveStreamId);
   const [inputValue, setInputValue] = useState('');
   /** Local test coins (battle/animation QA only). Never merge into coinBalance. */
   const [testCoinBalance, setTestCoinBalance] = useState(0);
@@ -271,29 +262,18 @@ export function useLiveSpectatorController() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  const [missionWatchMin, setMissionWatchMin] = useState(0);
-  const [missionGiftsSent, setMissionGiftsSent] = useState(0);
-  const [missionWatchGoal, setMissionWatchGoal] = useState(10);
-  const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
+  const {
+    missionWatchMin,
+    setMissionWatchMin,
+    missionGiftsSent,
+    setMissionGiftsSent,
+    missionWatchGoal,
+    setMissionWatchGoal,
+    missionGiftsGoal,
+    setMissionGiftsGoal,
+    loadEngagementMissions,
+  } = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
   const [userXP, setUserXP] = useState(0);
-  const loadEngagementMissions = useCallback(() => {
-    loadLiveEngagementMissionsProgress(user?.id, {
-      setMissionWatchMin,
-      setMissionWatchGoal,
-      setMissionGiftsSent,
-      setMissionGiftsGoal,
-    });
-  }, [user?.id]);
-
-  useEffect(() => {
-    loadEngagementMissions();
-  }, [loadEngagementMissions]);
-
-  // Refresh missions when the missions panel is opened (explicit user action).
-  useEffect(() => {
-    if (!engagementOpen || engagementPanel !== 'missions') return;
-    loadEngagementMissions();
-  }, [engagementOpen, engagementPanel, loadEngagementMissions]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);

@@ -680,6 +680,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **191** clones (held; preamble collapsed into helper) |
 | Android | 1.0.608 |
 
+### Continue 9 — chat store bind + missions UI hook
+| Item | Change |
+|------|--------|
+| Stream chat messages bind | `useLiveStreamChatMessages.ts` |
+| Engagement missions state+effects | `useLiveEngagementMissionsUi.ts` |
+| jscpd | **190** clones — down from 191 |
+| Android | 1.0.609 |
+
+
 
 
 
