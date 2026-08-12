@@ -510,7 +510,7 @@ iOS:                             N/A
 
 ## Pass 8 — FULL repository cleanup + final verification (2026-08-12)
 
-**HEAD at verification:** will match commit after this pass ships.  
+**HEAD at verification:** `034b170`  
 **Face AR:** confirmed absent from `src/` / `server/` / `ios/` — **not restored**.  
 **testCoins:** preserved (owner KEEP).
 
@@ -544,7 +544,7 @@ iOS:                             N/A
 ### Tool results — final scan evidence (`docs/_cleanup_audit_raw/pass8/final/`)
 
 ```text
-FINAL HEAD: (see git after ship)
+FINAL HEAD: 034b170
 
 TypeScript errors:                 0
 ESLint errors:                     0
