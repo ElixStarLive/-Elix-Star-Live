@@ -14,8 +14,6 @@ import {
 } from '../../../lib/live/liveMediaProfile';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 
-export type LiveCameraApi = ReturnType<typeof useLiveCamera>;
-
 export function useLiveCamera(opts: {
   enabled: boolean;
   facing?: 'user' | 'environment';

@@ -8,7 +8,7 @@
 
 import { websocket } from '../websocket';
 
-export type FeedPresenceHandlers = {
+type FeedPresenceHandlers = {
   onStreamStarted?: (data: Record<string, unknown>) => void;
   onStreamEnded?: (data: Record<string, unknown>) => void;
 };

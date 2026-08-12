@@ -7,7 +7,7 @@ import { bunnyUpload, bunnyDelete } from "./bunnyStorage";
 import { request } from "./apiClient";
 import { useAuthStore } from "../store/useAuthStore";
 
-export interface AvatarUploadResult {
+interface AvatarUploadResult {
   success: boolean;
   publicUrl?: string;
   error?: string;

@@ -7,7 +7,7 @@ export type EngagementFeatures = {
   poll: boolean;
 };
 
-export type EngagementUser = {
+type EngagementUser = {
   userId: string;
   username: string;
   avatarUrl: string;
@@ -20,7 +20,7 @@ export type EngagementUser = {
   badge: string;
 };
 
-export type EngagementPoll = {
+type EngagementPoll = {
   id: string;
   question: string;
   options: string[];
@@ -30,14 +30,14 @@ export type EngagementPoll = {
   kind: "poll" | "trivia";
 };
 
-export type EngagementMystery = {
+type EngagementMystery = {
   endsAt: number;
   durationMin: number;
   kind: "poll" | "trivia";
   triggered: boolean;
 };
 
-export type EngagementLeaderRow = {
+type EngagementLeaderRow = {
   userId: string;
   username: string;
   avatarUrl: string;

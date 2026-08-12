@@ -11,7 +11,6 @@ export { extractThumbnails } from './thumbnails';
 export type { ThumbnailCandidate } from './thumbnails';
 
 export { VOICE_EFFECTS } from './voice';
-export type { VoiceEffect } from './voice';
 
 export { SubtitleGenerator, SUBTITLE_STYLES, SUBTITLE_LANGUAGES } from './subtitles';
 export type { SubtitleStyle, SubtitleSegment } from './subtitles';

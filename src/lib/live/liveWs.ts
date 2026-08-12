@@ -46,8 +46,6 @@ export const LIVE_WS_IN = {
   ws_error: 'ws_error',
 } as const;
 
-export type LiveWsInEvent = (typeof LIVE_WS_IN)[keyof typeof LIVE_WS_IN];
-
 /** Client → server Live actions. Paid gifts must NOT use gift_sent — use giftSend REST. */
 export const LIVE_WS_OUT = {
   ping: 'ping',

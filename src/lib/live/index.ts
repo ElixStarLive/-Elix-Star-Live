@@ -11,6 +11,6 @@ export {
   findLiveWatchTarget,
   type LiveKitCreds,
 } from './liveApi';
-export { LiveRoomLifecycle, type LiveRole } from './liveRoomLifecycle';
-export { LIVE_WS_IN, LIVE_WS_OUT, liveWsSend, type LiveWsInEvent } from './liveWs';
-export { connectLiveFeedPresence, type FeedPresenceHandlers } from './liveFeedPresence';
+export { LiveRoomLifecycle } from './liveRoomLifecycle';
+export { LIVE_WS_IN, LIVE_WS_OUT, liveWsSend } from './liveWs';
+export { connectLiveFeedPresence } from './liveFeedPresence';

@@ -41,16 +41,3 @@ export type BattleSlot = {
   status: 'empty' | 'invited' | 'accepted';
   avatar: string;
 };
-
-export type CoHost = {
-  id: string;
-  userId: string;
-  name: string;
-  avatar: string;
-  status: 'invited' | 'pending_accept' | 'accepted' | 'live' | 'empty';
-  isMuted?: boolean;
-};
-
-export type GiftSource = 'starter_coins' | 'paid_coins' | 'promotional_coins';
-
-export type LiveRoleKind = 'host' | 'battle_joiner' | 'spectator' | 'cohost';

@@ -6,7 +6,7 @@ import { getPaymentMethod, platform } from '../lib/platform';
 import { finalizeNativePurchase, purchasePromoteProduct, type PromoteProductId } from '../lib/iap';
 import { apiPromoteIapComplete } from '../features/promote/promoteApi';
 
-export type PromoteContentType = 'video' | 'profile' | 'live';
+type PromoteContentType = 'video' | 'profile' | 'live';
 
 interface PromotePanelProps {
   isOpen: boolean;

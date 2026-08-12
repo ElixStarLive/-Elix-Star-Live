@@ -9,13 +9,13 @@ import { trackEvent } from "./analytics";
 import { showToast } from "./toast";
 import { apiBoostVideoFyp, apiCreateVideo } from "../features/upload/uploadApi";
 
-export interface UploadProgress {
+interface UploadProgress {
   stage: "validating" | "compressing" | "uploading" | "processing" | "complete";
   progress: number; // 0-100
   message: string;
 }
 
-export interface VideoMetadata {
+interface VideoMetadata {
   duration: number;
   width: number;
   height: number;
@@ -23,7 +23,7 @@ export interface VideoMetadata {
   format: string;
 }
 
-export interface VideoUploadMetadata {
+interface VideoUploadMetadata {
   description: string;
   hashtags: string[];
   isPrivate: boolean;

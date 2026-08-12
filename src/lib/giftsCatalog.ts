@@ -1,6 +1,6 @@
 import { api } from './apiClient';
 
-export type GiftCatalogRow = {
+type GiftCatalogRow = {
   gift_id: string;
   name: string;
   gift_type: 'universe' | 'big' | 'small';
@@ -11,7 +11,7 @@ export type GiftCatalogRow = {
   is_active: boolean;
 };
 
-export type GiftType = 'universe' | 'big' | 'small';
+type GiftType = 'universe' | 'big' | 'small';
 
 export type GiftUiItem = {
   id: string;

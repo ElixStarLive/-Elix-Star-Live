@@ -594,3 +594,29 @@ iOS release validation:            Capacitor Doctor: Android OK; Xcode NOT insta
 
 **Honest verdict:** Money/catalog/XP dual-owner leftovers from the audit are **fixed**. Full jscpd zero and Sonar green are **not** claimed — structural host/spectator clones + Sonar credentials remain. Semgrep **ran**. This is not a partial “catalogs-only” stop.
 
+---
+
+## Pass 8 continue (same day — owner: do not stop)
+
+### Additional root-cause unifies
+| Item | Owner / change |
+|------|----------------|
+| Promote IAP dual maps | `PROMOTE_IAP_PRODUCTS` in `storeProductCatalogs.ts` (shipped `d81c511`) |
+| Starter-gift XP inline SQL | `ensureAndLockUserProgression` + `applyXpGainAndSyncLevel` |
+| Gift panel wallet triad | `refreshLiveGiftPanelBalances` / `loadLiveGiftWalletBootstrap` |
+| `gift_sent` parse/chat | `processLiveGiftSentEvent.ts` — host+spectator |
+| Local gift send pill/tile | `applyLocalGiftSendSideEffects.ts` — host send/combo + spectator |
+| Dead client exported types | Unexported/deleted after zero-importer TRACE (unused types **53 → 24**) |
+
+### Rescan snapshot
+```text
+tsc: 0
+tests: 229 passed / 31 skipped
+Knip unused exports: ~106 (mostly server KEEP + testCoins)
+Knip unused types: 24
+jscpd clones: 199 (2.55%) — down from 204
+```
+
+Still OPEN (honest): locked gift-overlay dual `gift_sent` listeners; host/spectator role-specific MVP/battle branches; Sonar token; Semgrep empty-catch inventory; engagement `awardEngagementXp` lighter path (no xp_transactions — intentional parallel contract, not mass-merged).
+
+

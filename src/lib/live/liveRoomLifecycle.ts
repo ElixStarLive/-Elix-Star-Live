@@ -9,8 +9,6 @@ import { LiveKitSession, type LiveKitSessionHandlers } from '../liveKitSession';
 import { websocket } from '../websocket';
 import { apiLiveEnd, type LiveKitCreds } from './liveApi';
 
-export type LiveRole = 'host' | 'spectator' | 'cohost' | 'battle_joiner' | 'preview';
-
 /**
  * Owns a single LiveKitSession for one live surface.
  */

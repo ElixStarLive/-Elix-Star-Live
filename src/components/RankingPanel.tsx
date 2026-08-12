@@ -34,7 +34,7 @@ export type RankingPerson = {
 };
 
 /** Host-only: pick a gift + target count from the gift catalog (gift-panel style). */
-export type HostGiftGoalEditor = {
+type HostGiftGoalEditor = {
   selectedGiftId: string | null;
   targetCount: number;
   onSelectGift: (gift: GiftUiItem) => void;

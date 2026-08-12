@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 const MAX_QTY = 99;
 
 /** A shop line in the basket — same listing can have quantity > 1. */
-export interface CartItem {
+interface CartItem {
   id: string;
   title: string;
   price: number;

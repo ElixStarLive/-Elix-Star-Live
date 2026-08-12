@@ -29,7 +29,7 @@ import { prepareLiveVideoEl } from './prepareLiveVideoEl';
  * never blacks out the local preview.
  */
 
-export interface RemoteTrackEvent {
+interface RemoteTrackEvent {
   track: RemoteTrack;
   participant: RemoteParticipant;
   publication?: RemoteTrackPublication;

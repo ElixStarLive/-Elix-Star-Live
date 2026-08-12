@@ -26,7 +26,7 @@ export const EMPTY_BATTLE_SERVER_TOTALS: BattleServerTotals = {
   p4: 0,
 };
 
-export type BattleScoreFields = {
+type BattleScoreFields = {
   hostScore?: number;
   opponentScore?: number;
   player3Score?: number;

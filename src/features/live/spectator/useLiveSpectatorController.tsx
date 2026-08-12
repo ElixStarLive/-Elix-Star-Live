@@ -6,7 +6,7 @@ import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
 import { engagementFlags } from '../../../config/engagementFlags';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
 import {
@@ -24,8 +24,8 @@ import {
   shouldUseTestCoinsForGifts,
 } from '../../../lib/testCoins';
 import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
-import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
+import { applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useVideoStore } from '../../../store/useVideoStore';
@@ -85,7 +85,8 @@ import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
-import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { useLiveCamera } from '../hooks/useLiveCamera';
@@ -2324,8 +2325,20 @@ export function useLiveSpectatorController() {
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
-      const txnId = extractGiftTxnId(data);
-      const wsGiftId = extractGiftId(data);
+      const parsed = parseLiveGiftSentEvent(data, giftsCatalogRef.current);
+      const {
+        txnId,
+        gifterId,
+        giftCoins,
+        giftName,
+        username,
+        avatar,
+        level,
+        cohostTarget,
+        giftIconRaw,
+        battleTarget,
+        isFlowerOrRose,
+      } = parsed;
       const alreadySeen = hasSeenGiftTxn(txnId);
       const videoAlreadyPlayed = hasPlayedGiftVideoTxn(txnId);
 
@@ -2337,30 +2350,14 @@ export function useLiveSpectatorController() {
         markGiftTxnSeen(txnId);
       }
 
-      const giftDef = wsGiftId
-        ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
-        : undefined;
-      const gifterId = typeof data.user_id === 'string' ? data.user_id : '';
-      const giftCoins =
-        giftDef?.coins ??
-        (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
-
       // Chat / MVP / co-host tile scores only on first delivery of this transaction.
       if (!alreadySeen) {
-        const cohostTarget =
-          (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
-          (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
-          '';
         if (cohostTarget && giftCoins > 0) {
           setCohostGiftScores((prev) => ({
             ...prev,
             [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
           }));
-          const iconUrl = resolveBattleGiftIconUrl(
-            (typeof data.gift_icon === 'string' && data.gift_icon) ||
-              (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
-            resolveGiftAssetUrl,
-          );
+          const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
           if (iconUrl) {
             setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
           }
@@ -2388,7 +2385,7 @@ export function useLiveSpectatorController() {
             });
             mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
             if (spectatorBattleRef.current?.active) {
-              const side = normalizeBattleGiftTarget(data.battleTarget);
+              const side = normalizeBattleGiftTarget(battleTarget);
               if (side === 'host') {
                 mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
               } else if (side === 'opponent') {
@@ -2397,44 +2394,25 @@ export function useLiveSpectatorController() {
             }
             syncMvpSlots();
           }
-          const giftName = formatGiftDisplayName(
-            giftDef?.name ||
-            (typeof data.giftName === 'string' && data.giftName.trim()) ||
-            (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
-            'Gift',
-          );
-          const msg: LiveMessage = {
-            id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
-            username: typeof data.username === 'string' ? data.username : 'User',
-            text: `sent ${giftName}`,
-            level: Number.isFinite(Number(data.level)) && Number(data.level) >= 0
-              ? Math.floor(Number(data.level))
-              : 1,
-            avatar: typeof data.avatar === 'string' ? data.avatar : '',
-            isGift: true,
-          };
+          const msg = buildLiveGiftChatMessage({
+            txnId,
+            giftName,
+            username,
+            avatar,
+            level,
+          });
           setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
-          {
-            const flowerKey = giftName.toLowerCase();
-            if (
-              spectatorBattleRef.current?.active &&
-              (flowerKey.includes('rose') || flowerKey.includes('flower'))
-            ) {
-              roseCountRef.current += 1;
-              setRoseCount(roseCountRef.current);
-            }
+          if (spectatorBattleRef.current?.active && isFlowerOrRose) {
+            roseCountRef.current += 1;
+            setRoseCount(roseCountRef.current);
           }
           if (spectatorBattleRef.current?.active) {
-            const iconUrl = resolveBattleGiftIconUrl(
-              (typeof data.gift_icon === 'string' && data.gift_icon) ||
-                (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
-              resolveGiftAssetUrl,
-            );
-            const giftSlot = resolveServerBattleGiftTarget(data.battleTarget);
+            const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
+            const giftSlot = resolveServerBattleGiftTarget(battleTarget);
             if (iconUrl && giftSlot) {
               setLastGifts((prev) => appendBattleTileGiftForTarget(prev, giftSlot, iconUrl));
             }
-            const side = normalizeBattleGiftTarget(data.battleTarget);
+            const side = normalizeBattleGiftTarget(battleTarget);
             if (iconUrl && side === 'opponent') {
               setLastOpponentGift((prev) => {
                 const next = [...prev, iconUrl];
@@ -2459,7 +2437,7 @@ export function useLiveSpectatorController() {
       if (gifterId && user?.id && gifterId === user.id) return;
 
       const giftSlot = spectatorBattleRef.current?.active
-        ? resolveServerBattleGiftTarget(data.battleTarget)
+        ? resolveServerBattleGiftTarget(battleTarget)
         : null;
       // Battle: full video only for the target creator's audience. Others keep
       // the same gift event as a small tile icon (lastGifts) — never fullscreen.
@@ -3528,22 +3506,42 @@ export function useLiveSpectatorController() {
     }
     setShowComboButton(true);
     resetComboTimer();
-    pushLocalGiftPill({
-      username: viewerName,
-      giftName: gift.name,
-      giftIcon: gift.icon || '🎁',
-      avatar: viewerAvatar,
-      quantity: 1,
-      creatorName: hostName || 'Creator',
-      streamId: effectiveStreamId,
+    const iconUrl = applyLocalGiftSendSideEffects({
+      pill: {
+        username: viewerName,
+        giftName: gift.name,
+        giftIcon: gift.icon || '🎁',
+        avatar: viewerAvatar,
+        quantity: 1,
+        creatorName: hostName || 'Creator',
+        streamId: effectiveStreamId,
+      },
+      giftIcon: gift.icon,
+      resolveGiftAssetUrl,
+      ...(spectatorBattle?.active
+        ? {
+            battle: {
+              target: spectatorGiftBattleTarget,
+              setLastGifts,
+            },
+          }
+        : {}),
+      // Co-host tile: score + real gift icon immediately (dedupe WS echo via txn).
+      ...(!spectatorBattle?.active && selectedCohostGiftUserId
+        ? {
+            cohost: {
+              targetUserId: selectedCohostGiftUserId,
+              coins: gift.coins,
+              giftTransactionId,
+              markGiftTxnSeen,
+              setCohostGiftScores,
+              setCohostLastGifts,
+            },
+          }
+        : {}),
     });
-    if (spectatorBattle?.active) {
-      const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
-      const giftSlot = resolveServerBattleGiftTarget(spectatorGiftBattleTarget);
-      if (iconUrl && giftSlot) {
-        setLastGifts((prev) => appendBattleTileGiftForTarget(prev, giftSlot, iconUrl));
-      }
-      if (iconUrl && spectatorGiftBattleTarget === 'opponent') {
+    if (spectatorBattle?.active && iconUrl) {
+      if (spectatorGiftBattleTarget === 'opponent') {
         setLastOpponentGift((prev) => {
           const next = [...prev, iconUrl];
           return next.length > BATTLE_TILE_GIFT_STACK_CAP
@@ -3551,28 +3549,13 @@ export function useLiveSpectatorController() {
             : next;
         });
       }
-      if (iconUrl && spectatorGiftBattleTarget === 'host') {
+      if (spectatorGiftBattleTarget === 'host') {
         setLastHostGift((prev) => {
           const next = [...prev, iconUrl];
           return next.length > BATTLE_TILE_GIFT_STACK_CAP
             ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
             : next;
         });
-      }
-    }
-    // Co-host tile: score + real gift icon immediately (dedupe WS echo via txn).
-    if (!spectatorBattle?.active && selectedCohostGiftUserId && gift.coins > 0) {
-      const targetId = selectedCohostGiftUserId;
-      if (giftTransactionId) {
-        markGiftTxnSeen(giftTransactionId);
-      }
-      setCohostGiftScores((prev) => ({
-        ...prev,
-        [targetId]: (prev[targetId] || 0) + gift.coins,
-      }));
-      const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
-      if (iconUrl) {
-        setCohostLastGifts((prev) => ({ ...prev, [targetId]: iconUrl }));
       }
     }
   };

@@ -3,7 +3,7 @@
 import { getWsUrl } from "./api";
 import { useAuthStore } from "../store/useAuthStore";
 
-export type WebSocketEvent =
+type WebSocketEvent =
   // Room events
   | "room_state"
   /** Server emits `viewer_count` (legacy alias kept for typed listeners). */
@@ -69,7 +69,7 @@ export type WebSocketEvent =
   | "dm_message"
   | "dm_thread_updated";
 
-export interface WebSocketMessage {
+interface WebSocketMessage {
   event: WebSocketEvent | string;
   data: unknown;
   timestamp: string;

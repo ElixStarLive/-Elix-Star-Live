@@ -1,4 +1,4 @@
-export interface VoiceEffect {
+interface VoiceEffect {
   id: string;
   name: string;
   icon: string;
