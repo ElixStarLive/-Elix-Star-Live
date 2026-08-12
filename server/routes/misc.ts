@@ -7,6 +7,7 @@ import {
   neonGetCoinBalance,
   neonInsertPromotePurchase,
   neonIsIapProcessed,
+  neonIsPromoteProcessed,
   neonUpsertMembershipEntitlement,
 } from '../lib/walletNeon';
 import { getPool, dbLoadCoinMap } from '../lib/postgres';
@@ -535,7 +536,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
   );
   if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
   try {
-    if (await neonIsIapProcessed(provider, providerTransactionId)) {
+    if (await neonIsPromoteProcessed(providerTransactionId)) {
       return res.json({ success: true, message: 'Already processed' });
     }
   } catch {
@@ -569,7 +570,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
       const apple = await verifyAppleReceipt(String(transactionId));
       applePayload = apple.payload ?? null;
     }
-    await autoPostPromoteRevenue({
+    const posted = await autoPostPromoteRevenue({
       providerTransactionId,
       userId: user.sub,
       productId: String(productId),
@@ -577,6 +578,14 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
       amountGbp: meta.amountGbp,
       applePayload,
     });
+    if (!posted.ok) {
+      logger.error({ providerTransactionId, posted }, 'Promote revenue post returned not ok');
+      return res.status(500).json({
+        error: 'PROMOTE_REVENUE_POST_FAILED',
+        message: 'Promote purchase saved but revenue post failed — retry is safe.',
+        retry: true,
+      });
+    }
     return res.json({ success: true, message: 'Promote purchase recorded' });
   } catch (err) {
     logger.error({ err }, 'Promote purchase recording error');
@@ -760,19 +769,32 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
         return res.status(500).json({ error: 'Failed to record membership' });
       }
       await markAppleCreatorMembershipActive(creatorId, expectedProductId);
-      if (upserted.created) {
-        try {
-          const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
-          await autoPostSubscriptionRevenue({
-            subscriptionId: upserted.id,
-            creatorUserId: creatorId,
-            payerUserId: user.sub,
-            externalTransactionId: verified.transactionId || verified.originalTransactionId,
-            applePayload: verified.rawTransaction as Record<string, unknown>,
+      try {
+        const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
+        const posted = await autoPostSubscriptionRevenue({
+          subscriptionId: upserted.id,
+          creatorUserId: creatorId,
+          payerUserId: user.sub,
+          externalTransactionId: verified.transactionId || verified.originalTransactionId,
+          applePayload: verified.rawTransaction as Record<string, unknown>,
+        });
+        if (!posted.ok) {
+          logger.error({ creatorId, posted }, 'Membership GBP ledger post returned not ok');
+          return res.status(500).json({
+            error: 'MEMBERSHIP_REVENUE_POST_FAILED',
+            message: 'Membership saved but revenue post failed — retry is safe.',
+            retry: true,
           });
-        } catch (earnErr) {
-          logger.error({ err: earnErr, creatorId }, 'Membership GBP ledger post failed');
         }
+      } catch (earnErr) {
+        logger.error({ err: earnErr, creatorId }, 'Membership GBP ledger post failed');
+        return res.status(500).json({
+          error: 'MEMBERSHIP_REVENUE_POST_FAILED',
+          message: 'Membership saved but revenue post failed — retry is safe.',
+          retry: true,
+        });
+      }
+      if (upserted.created) {
         logger.info(
           {
             creatorId,
@@ -885,18 +907,31 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
       }
     }
 
-    if (upserted.created) {
-      try {
-        const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
-        await autoPostSubscriptionRevenue({
-          subscriptionId: upserted.id,
-          creatorUserId: creatorId,
-          payerUserId: user.sub,
-          externalTransactionId: verified.latestOrderId || purchaseTokenHash,
+    try {
+      const { autoPostSubscriptionRevenue } = await import('../lib/monetisation/storeSettlement');
+      const posted = await autoPostSubscriptionRevenue({
+        subscriptionId: upserted.id,
+        creatorUserId: creatorId,
+        payerUserId: user.sub,
+        externalTransactionId: verified.latestOrderId || purchaseTokenHash,
+      });
+      if (!posted.ok) {
+        logger.error({ creatorId, posted }, 'Google membership GBP ledger post returned not ok');
+        return res.status(500).json({
+          error: 'MEMBERSHIP_REVENUE_POST_FAILED',
+          message: 'Membership saved but revenue post failed — retry is safe.',
+          retry: true,
         });
-      } catch (earnErr) {
-        logger.error({ err: earnErr, creatorId }, 'Google membership GBP ledger post failed');
       }
+    } catch (earnErr) {
+      logger.error({ err: earnErr, creatorId }, 'Google membership GBP ledger post failed');
+      return res.status(500).json({
+        error: 'MEMBERSHIP_REVENUE_POST_FAILED',
+        message: 'Membership saved but revenue post failed — retry is safe.',
+        retry: true,
+      });
+    }
+    if (upserted.created) {
       logger.info(
         {
           creatorId,

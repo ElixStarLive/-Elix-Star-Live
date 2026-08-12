@@ -50,6 +50,7 @@ describe("Starter Coin transactional contracts", () => {
   const auth = read("../routes/auth.ts");
   const gifts = read("../routes/gifts.ts");
   const progression = read("./starterCoinsXp.ts");
+  const engagement = read("./engagement.ts");
   const giftDelivery = read("../websocket/giftDelivery.ts");
   const adminRouter = read("../routes/adminProgression.router.ts");
 
@@ -80,13 +81,16 @@ describe("Starter Coin transactional contracts", () => {
     const promoStart = gifts.indexOf("if (isPromoGift)");
     const paidStart = gifts.indexOf("if (coinCost > 0)", promoStart);
     const promoBranch = gifts.slice(promoStart, paidStart);
-    expect(promoBranch).toContain("spendPromoCoins");
+    expect(promoBranch).toContain("spendPromoCoinsAndRecordGift");
     expect(promoBranch).toContain('gift_source: "promotional_coins"');
     expect(promoBranch).toContain("diamonds: 0");
     expect(promoBranch).toContain("creator_earnings: 0");
-    expect(promoBranch).toContain("elix_gift_transactions");
     expect(promoBranch).not.toContain("neonCreditCreatorEarning");
     expect(promoBranch).not.toContain("neonDebitGift");
+    // Gift row is written inside the atomic helper (single DB transaction).
+    expect(engagement).toContain("spendPromoCoinsAndRecordGift");
+    expect(engagement).toContain("INSERT INTO elix_gift_transactions");
+    expect(engagement).toContain("INSERT INTO promotional_coin_ledger");
   });
 
   it("atomically debits, records the gift, and awards XP", () => {

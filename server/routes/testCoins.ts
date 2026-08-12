@@ -233,6 +233,26 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   if (!auth) return;
   const ip = clientIp(req);
 
+  const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+  const mintAllow = String(process.env.ALLOW_TEST_COINS_MINT_IN_PROD || "")
+    .trim()
+    .toLowerCase();
+  if (isProd && !(mintAllow === "1" || mintAllow === "true" || mintAllow === "on")) {
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount: 0,
+      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      ip,
+      outcome: "denied",
+      reason: "mint_blocked_in_production",
+    });
+    res.status(403).json({
+      error: "TEST_COINS_MINT_DISABLED_IN_PRODUCTION",
+      message: "Test-coin mint is disabled in production.",
+    });
+    return;
+  }
+
   const userLimit = checkRateLimit(failByUser, auth.userId);
   const ipLimit = checkRateLimit(failByIp, ip);
   if (userLimit.ok === false || ipLimit.ok === false) {

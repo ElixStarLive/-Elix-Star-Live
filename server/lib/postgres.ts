@@ -1404,7 +1404,7 @@ export async function dbUpdateShopItemOwned(
   },
 ): Promise<DbShopItemRow | null> {
   const p = getPool();
-  if (!p) return null;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const res = await p.query(
       `UPDATE shop_items
@@ -1440,13 +1440,13 @@ export async function dbUpdateShopItemOwned(
     };
   } catch (err) {
     logger.error({ err }, "dbUpdateShopItemOwned failed");
-    return null;
+    throw err;
   }
 }
 
 export async function dbGetShopItemById(id: string): Promise<DbShopItemRow | null> {
   const p = getPool();
-  if (!p) return null;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const res = await p.query(
       `SELECT id, user_id, title, description, price, image_url, category, is_active, created_at
@@ -1470,7 +1470,7 @@ export async function dbGetShopItemById(id: string): Promise<DbShopItemRow | nul
     };
   } catch (err) {
     logger.error({ err }, "dbGetShopItemById failed");
-    return null;
+    throw err;
   }
 }
 
@@ -1480,7 +1480,7 @@ export async function dbGetShopItemById(id: string): Promise<DbShopItemRow | nul
  */
 export async function dbMarkShopItemSold(id: string): Promise<boolean> {
   const p = getPool();
-  if (!p) return false;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const r = await p.query(
       `UPDATE shop_items SET is_active = FALSE WHERE id = $1 AND is_active = TRUE`,
@@ -1489,7 +1489,7 @@ export async function dbMarkShopItemSold(id: string): Promise<boolean> {
     return (r.rowCount ?? 0) > 0;
   } catch (err) {
     logger.error({ err }, "dbMarkShopItemSold failed");
-    return false;
+    throw err;
   }
 }
 
@@ -1499,7 +1499,7 @@ export async function dbDeactivateShopItemOwned(
   ownerUserId: string,
 ): Promise<boolean> {
   const p = getPool();
-  if (!p) return false;
+  if (!p) throw new Error("Postgres pool is not initialized");
   try {
     const r = await p.query(
       `UPDATE shop_items SET is_active = FALSE
@@ -1509,7 +1509,7 @@ export async function dbDeactivateShopItemOwned(
     return (r.rowCount ?? 0) > 0;
   } catch (err) {
     logger.error({ err }, "dbDeactivateShopItemOwned failed");
-    return false;
+    throw err;
   }
 }
 

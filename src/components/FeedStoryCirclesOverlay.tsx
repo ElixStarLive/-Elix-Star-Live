@@ -165,7 +165,8 @@ export function FeedStoryCirclesOverlay({
   const reloadStories = useCallback(() => {
     void fetchActiveStories()
       .then(setStoryGroups)
-      .catch(() => {
+      .catch((err) => {
+        reportFailure('feed_story_reload', err);
         /* keep previous groups — do not fake empty success */
       });
   }, []);

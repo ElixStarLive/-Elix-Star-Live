@@ -20,7 +20,7 @@ describe("testCoinsPolicy", () => {
     expect(isTestCoinsGiftSource(null)).toBe(false);
   });
 
-  it("allows test-coin battle scoring in every env (money stays separate), with a kill switch", () => {
+  it("denies test-coin battle scoring in production by default; opt-in with ALLOW_TEST_COINS_BATTLE_SCORE=1", () => {
     // Production flag still reports correctly for any future money gating.
     expect(isProductionTestCoinsBlocked("production")).toBe(true);
     expect(isProductionTestCoinsBlocked("development")).toBe(false);
@@ -29,12 +29,15 @@ describe("testCoinsPolicy", () => {
     // TEST COINS = battle score + animation only, never money.
     const prev = process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
-    expect(canAcceptTestCoinsBattleScore("production")).toBe(true);
+    expect(canAcceptTestCoinsBattleScore("production")).toBe(false);
     expect(canAcceptTestCoinsBattleScore("development")).toBe(true);
 
-    // Operators keep a hard kill switch.
+    process.env.ALLOW_TEST_COINS_BATTLE_SCORE = "1";
+    expect(canAcceptTestCoinsBattleScore("production")).toBe(true);
+
     process.env.ALLOW_TEST_COINS_BATTLE_SCORE = "0";
     expect(canAcceptTestCoinsBattleScore("production")).toBe(false);
+    expect(canAcceptTestCoinsBattleScore("development")).toBe(false);
     if (prev === undefined) delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     else process.env.ALLOW_TEST_COINS_BATTLE_SCORE = prev;
   });

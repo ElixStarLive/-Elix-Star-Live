@@ -23,7 +23,7 @@ import {
   hasCohostPublishGrant,
 } from "../websocket/index";
 import { getEngagementFlags } from "../lib/engagementFlags";
-import { spendPromoCoins, getPromoBalance } from "../lib/engagement";
+import { getPromoBalance, spendPromoCoinsAndRecordGift } from "../lib/engagement";
 
 function requireAuth(req: Request, res: Response): { userId: string } | null {
   const token = getTokenFromRequest(req);
@@ -273,35 +273,31 @@ export async function handleSendGift(req: Request, res: Response) {
         return res.status(400).json({ error: "INVALID_GIFT_COST" });
       }
 
-      // Idempotent retry: same client_transaction_id must not double-debit promo.
-      const priorTx = await pool.query(
-        `SELECT gift_id, coins, gift_source
-           FROM elix_gift_transactions
-          WHERE client_transaction_id = $1
-          LIMIT 1`,
-        [clientTransactionId],
-      );
-      if (priorTx.rows[0]) {
-        const row = priorTx.rows[0] as {
-          gift_id?: string;
-          coins?: number;
-          gift_source?: string;
-        };
-        if (
-          row.gift_source !== "promotional_coins" ||
-          String(row.gift_id) !== giftId ||
-          Number(row.coins) !== coinCost
-        ) {
+      // Idempotent + atomic: debit promo + insert gift tx in one DB transaction.
+      const spent = await spendPromoCoinsAndRecordGift({
+        userId: auth.userId,
+        amount: coinCost,
+        roomId,
+        giftId,
+        clientTransactionId,
+      });
+      if (!spent.ok) {
+        if (spent.error === "transaction_conflict") {
           return res.status(409).json({ error: "transaction_conflict" });
         }
-        const balance = await getPromoBalance(auth.userId);
+        return res.status(400).json({
+          error: spent.error || "INSUFFICIENT_PROMO",
+          promotional_coins: spent.balance,
+        });
+      }
+      if (spent.already) {
         return res.status(200).json({
           ok: true,
           room_id: roomId,
           gift_id: giftId,
           gift_source: "promotional_coins",
           transaction_id: clientTransactionId,
-          new_promotional_balance: balance,
+          new_promotional_balance: spent.balance,
           creator_earnings: 0,
           diamonds: 0,
           wallet_update: false,
@@ -310,28 +306,6 @@ export async function handleSendGift(req: Request, res: Response) {
             "Promotional gift already processed. Zero Diamonds / creator earnings.",
         });
       }
-
-      const spent = await spendPromoCoins(
-        auth.userId,
-        coinCost,
-        "promo_gift",
-        clientTransactionId,
-      );
-      if (!spent.ok) {
-        return res.status(400).json({
-          error: spent.error || "INSUFFICIENT_PROMO",
-          promotional_coins: spent.balance,
-        });
-      }
-
-      // Persist gift tx so WS gift_sent can verify (same contract as paid/starter).
-      await pool.query(
-        `INSERT INTO elix_gift_transactions
-           (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'promotional_coins', NOW())
-         ON CONFLICT (client_transaction_id) DO NOTHING`,
-        [auth.userId, roomId, giftId, coinCost, clientTransactionId],
-      );
 
       if (recipientId && recipientId !== auth.userId) {
         try {

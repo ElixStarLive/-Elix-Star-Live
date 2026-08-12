@@ -153,7 +153,8 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
     try {
       await downloadVideoWithoutMusic(video.id);
       showToast('Download started');
-    } catch {
+    } catch (err) {
+      reportFailure('share_modal_download', err, { videoId: video.id });
       showToast('Download failed');
     }
   }, [video.id]);

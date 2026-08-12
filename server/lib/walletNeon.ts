@@ -69,6 +69,27 @@ export async function neonIsIapProcessed(
   }
 }
 
+/** Promote purchases are keyed on provider_transaction_id — not coin IAP ledger. */
+export async function neonIsPromoteProcessed(
+  providerTransactionId: string,
+): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  try {
+    const r = await pool.query(
+      `SELECT 1 FROM elix_promote_purchases WHERE provider_transaction_id = $1 LIMIT 1`,
+      [providerTransactionId],
+    );
+    return r.rows.length > 0;
+  } catch (e) {
+    logger.error(
+      { err: e, providerTransactionId },
+      "neonIsPromoteProcessed: database error — failing closed (throwing)",
+    );
+    throw e;
+  }
+}
+
 type CreditOk = { ok: true; newBalance: number; ledgerId: string };
 type CreditDup = { ok: false; alreadyProcessed: true; newBalance: number };
 type CreditErr = { ok: false; error: string };
@@ -121,45 +142,41 @@ export async function neonCreditIap(input: {
          updated_at = NOW()`,
       [input.userId, coins],
     );
-    // Paid coin lot — auto-settle from verified store/catalog price (no invented commission).
-    try {
-      const price = await resolveCoinPurchaseVerifiedPrice({
-        provider: input.provider === "google" ? "google" : "apple",
-        productId: input.productId,
-        applePayload: (input.applePayload as Record<string, unknown>) || null,
-      });
-      const net =
-        price.grossPence -
-        price.appStoreDeductionPence -
-        price.taxDeductionPence -
-        price.processingDeductionPence;
-      await createPaidCoinLot(client, {
-        userId: input.userId,
-        provider: input.provider,
-        providerTransactionId: input.providerTransactionId,
-        productId: input.productId,
-        coins,
-        grossPence: price.grossPence,
-        netPence: Math.max(0, net),
-        appStoreDeductionPence: price.appStoreDeductionPence,
-        taxDeductionPence: price.taxDeductionPence,
-        processingDeductionPence: price.processingDeductionPence,
-        settled: price.grossPence > 0,
-      });
-      await client.query(
-        `INSERT INTO elix_processed_purchases (external_purchase_id, provider, product_id, user_id)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (external_purchase_id) DO NOTHING`,
-        [
-          `${input.provider}:${input.providerTransactionId}`,
-          input.provider,
-          input.productId,
-          input.userId,
-        ],
-      );
-    } catch (lotErr) {
-      logger.warn({ err: lotErr }, "paid coin lot create skipped");
-    }
+    // Paid coin lot — required in the same transaction as coin credit (fail closed).
+    const price = await resolveCoinPurchaseVerifiedPrice({
+      provider: input.provider === "google" ? "google" : "apple",
+      productId: input.productId,
+      applePayload: (input.applePayload as Record<string, unknown>) || null,
+    });
+    const net =
+      price.grossPence -
+      price.appStoreDeductionPence -
+      price.taxDeductionPence -
+      price.processingDeductionPence;
+    await createPaidCoinLot(client, {
+      userId: input.userId,
+      provider: input.provider,
+      providerTransactionId: input.providerTransactionId,
+      productId: input.productId,
+      coins,
+      grossPence: price.grossPence,
+      netPence: Math.max(0, net),
+      appStoreDeductionPence: price.appStoreDeductionPence,
+      taxDeductionPence: price.taxDeductionPence,
+      processingDeductionPence: price.processingDeductionPence,
+      settled: price.grossPence > 0,
+    });
+    await client.query(
+      `INSERT INTO elix_processed_purchases (external_purchase_id, provider, product_id, user_id)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (external_purchase_id) DO NOTHING`,
+      [
+        `${input.provider}:${input.providerTransactionId}`,
+        input.provider,
+        input.productId,
+        input.userId,
+      ],
+    );
     const balR = await client.query(
       `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
       [input.userId],

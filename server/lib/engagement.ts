@@ -230,6 +230,152 @@ export async function spendPromoCoins(
   }
 }
 
+/**
+ * Debit Promotional Coins and record the gift transaction in ONE DB transaction.
+ * Never touches purchased wallet or Diamonds / creator earnings.
+ */
+export async function spendPromoCoinsAndRecordGift(input: {
+  userId: string;
+  amount: number;
+  roomId: string;
+  giftId: string;
+  clientTransactionId: string;
+}): Promise<{ ok: boolean; balance: number; error?: string; already?: boolean }> {
+  if (
+    !getEngagementFlags().promotionalCoinsEnabled ||
+    !getEngagementFlags().promoGiftSpendEnabled
+  ) {
+    return {
+      ok: false,
+      balance: await getPromoBalance(input.userId),
+      error: "PROMO_SPEND_DISABLED",
+    };
+  }
+  const db = getPool();
+  const spend = Math.max(0, Math.floor(input.amount));
+  if (!db || !input.userId || spend <= 0) {
+    return { ok: false, balance: await getPromoBalance(input.userId), error: "INVALID" };
+  }
+  const client = await db.connect();
+  try {
+    await client.query("BEGIN");
+
+    const priorTx = await client.query(
+      `SELECT gift_id, coins, gift_source
+         FROM elix_gift_transactions
+        WHERE client_transaction_id = $1
+        LIMIT 1
+        FOR UPDATE`,
+      [input.clientTransactionId],
+    );
+    if (priorTx.rows[0]) {
+      const row = priorTx.rows[0] as {
+        gift_id?: string;
+        coins?: number;
+        gift_source?: string;
+      };
+      if (
+        row.gift_source !== "promotional_coins" ||
+        String(row.gift_id) !== input.giftId ||
+        Number(row.coins) !== spend
+      ) {
+        await client.query("ROLLBACK");
+        return {
+          ok: false,
+          balance: await getPromoBalance(input.userId),
+          error: "transaction_conflict",
+        };
+      }
+      const bal = await client.query(
+        `SELECT balance::bigint AS b FROM promotional_coin_balances WHERE user_id = $1`,
+        [input.userId],
+      );
+      await client.query("COMMIT");
+      return {
+        ok: true,
+        already: true,
+        balance: Math.max(0, Number(bal.rows[0]?.b) || 0),
+      };
+    }
+
+    const priorDebit = await client.query(
+      `SELECT balance_after::bigint AS b
+         FROM promotional_coin_ledger
+        WHERE user_id = $1
+          AND reference_id = $2
+          AND direction = 'debit'
+        LIMIT 1`,
+      [input.userId, input.clientTransactionId],
+    );
+    if (priorDebit.rows[0]) {
+      // Ledger debit without gift row — repair gift row in same txn.
+      await client.query(
+        `INSERT INTO elix_gift_transactions
+           (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+         VALUES ($1, $2, $3, $4, $5, 'promotional_coins', NOW())
+         ON CONFLICT (client_transaction_id) DO NOTHING`,
+        [input.userId, input.roomId, input.giftId, spend, input.clientTransactionId],
+      );
+      await client.query("COMMIT");
+      return {
+        ok: true,
+        already: true,
+        balance: Math.max(0, Number(priorDebit.rows[0].b) || 0),
+      };
+    }
+
+    await client.query(
+      `INSERT INTO promotional_coin_balances (user_id) VALUES ($1)
+       ON CONFLICT (user_id) DO NOTHING`,
+      [input.userId],
+    );
+    const cur = await client.query(
+      `SELECT balance::bigint AS b FROM promotional_coin_balances WHERE user_id = $1 FOR UPDATE`,
+      [input.userId],
+    );
+    const before = Math.max(0, Number(cur.rows[0]?.b ?? 0));
+    if (before < spend) {
+      await client.query("ROLLBACK");
+      return { ok: false, balance: before, error: "INSUFFICIENT_PROMO" };
+    }
+    const after = before - spend;
+    await client.query(
+      `UPDATE promotional_coin_balances
+          SET balance = $2, lifetime_spent = lifetime_spent + $3, updated_at = NOW()
+        WHERE user_id = $1`,
+      [input.userId, after, spend],
+    );
+    await client.query(
+      `INSERT INTO promotional_coin_ledger
+         (user_id, amount_delta, balance_before, balance_after, direction, reason, reference_id)
+       VALUES ($1, $2, $3, $4, 'debit', 'promo_gift', $5)`,
+      [input.userId, -spend, before, after, input.clientTransactionId],
+    );
+    await client.query(
+      `INSERT INTO elix_gift_transactions
+         (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'promotional_coins', NOW())`,
+      [input.userId, input.roomId, input.giftId, spend, input.clientTransactionId],
+    );
+    await client.query("COMMIT");
+    return { ok: true, balance: after };
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch {
+      /* ignore */
+    }
+    logger.error({ err, userId: input.userId }, "spendPromoCoinsAndRecordGift failed");
+    return {
+      ok: false,
+      balance: await getPromoBalance(input.userId),
+      error: "DEBIT_FAILED",
+    };
+  } finally {
+    client.release();
+  }
+}
+
 export async function creditBattleEnergy(
   userId: string,
   amount: number,
