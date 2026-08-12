@@ -850,6 +850,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **169** clones / **2.13%** lines |
 | Android | 1.0.630 |
 
+### Continue 31 — host paid-gift send wrapper
+| Item | Change |
+|------|--------|
+| Host send+combo `runHostPaidGiftSend` | collapses remaining sendHostPaidGiftWithSuccess call clone |
+| jscpd | **168** clones / **2.12%** lines |
+| Android | 1.0.631 |
+
 
 
 

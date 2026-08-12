@@ -4169,6 +4169,23 @@ export function useLiveHostController() {
     },
   };
 
+  const runHostPaidGiftSend = (
+    giftItem: GiftUiItem,
+    battleTarget: 'host' | 'opponent' | 'player3' | 'player4' | undefined,
+    currentLevel: number,
+  ) =>
+    sendHostPaidGiftWithSuccess({
+      streamKey: effectiveStreamId,
+      giftId: giftItem.id,
+      giftVideo: giftItem.video,
+      giftSource,
+      battleTarget,
+      cohostTargetUserId: selectedCohostGiftUserId,
+      isBattleMode,
+      currentLevel,
+      ...hostPaidGiftSuccessHandlers,
+    });
+
   const handleSendGift = async (gift: GiftUiItem) => {
     // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
     if (!gift) return;
@@ -4205,17 +4222,7 @@ export function useLiveHostController() {
                   opponentRoomId: idsForBattleGiftRest?.opponentRoomId ?? '',
                 })
               : undefined;
-          const success = await sendHostPaidGiftWithSuccess({
-            streamKey: effectiveStreamId,
-            giftId: gift.id,
-            giftVideo: gift.video,
-            giftSource,
-            battleTarget: restBattleTarget,
-            cohostTargetUserId: selectedCohostGiftUserId,
-            isBattleMode,
-            currentLevel: newLevel,
-            ...hostPaidGiftSuccessHandlers,
-          });
+          const success = await runHostPaidGiftSend(gift, restBattleTarget, newLevel);
           if (!success.ok) return;
           newLevel = success.newLevel;
           giftTransactionId = success.transactionId;
@@ -4380,17 +4387,7 @@ export function useLiveHostController() {
                 });
               })()
             : undefined;
-          const success = await sendHostPaidGiftWithSuccess({
-            streamKey: effectiveStreamId,
-            giftId: lastSentGift.id,
-            giftVideo: lastSentGift.video,
-            giftSource,
-            battleTarget: comboBattleTarget,
-            cohostTargetUserId: selectedCohostGiftUserId,
-            isBattleMode,
-            currentLevel: newLevel,
-            ...hostPaidGiftSuccessHandlers,
-          });
+          const success = await runHostPaidGiftSend(lastSentGift, comboBattleTarget, newLevel);
           if (!success.ok) return;
           newLevel = success.newLevel;
           giftTransactionId = success.transactionId;
