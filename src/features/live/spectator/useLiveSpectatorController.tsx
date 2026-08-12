@@ -102,7 +102,7 @@ import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
-import { useLiveChatStore } from '../chat/useLiveChatStore';
+import { useLiveChatStore, EMPTY_LIVE_MESSAGES } from '../chat/useLiveChatStore';
 import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
 
@@ -182,7 +182,9 @@ export function useLiveSpectatorController() {
   const [viewerCount, setViewerCount] = useState(0);
   const [activeLikes, setActiveLikes] = useState(0);
 
-  const messages = useLiveChatStore((s) => s.messagesByStream[effectiveStreamId] ?? []);
+  const messages = useLiveChatStore(
+    (s) => s.messagesByStream[effectiveStreamId] ?? EMPTY_LIVE_MESSAGES,
+  );
   const updateMessagesForStream = useLiveChatStore((s) => s.updateMessagesForStream);
   const clearMessagesForStream = useLiveChatStore((s) => s.clearMessagesForStream);
   const setMessages = useCallback(
@@ -2213,9 +2215,18 @@ export function useLiveSpectatorController() {
     const connect = async () => {
       const token = useAuthStore.getState().session?.access_token || '';
       if (!token || !mounted) return;
+      const audienceCreatorId = String(
+        battleAudienceCreatorIdRef.current ||
+          hostUserIdRef.current ||
+          hostUserId ||
+          '',
+      ).trim();
       // Persistent reconnect: brief mobile blips must not synthesize stream_ended
       // ("The host has ended the stream") for this spectator only.
-      websocket.connect(effectiveStreamId, token, { persistent: true });
+      websocket.connect(effectiveStreamId, token, {
+        persistent: true,
+        ...(audienceCreatorId ? { audienceCreatorId } : {}),
+      });
     };
 
     let hostFoundInRoom = false;

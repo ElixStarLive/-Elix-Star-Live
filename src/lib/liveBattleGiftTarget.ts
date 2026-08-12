@@ -95,7 +95,8 @@ export function resolveBattleSlotForCreatorId(
 
 /**
  * Full gift video plays only for the target creator + that creator's audience.
- * Other creators / audiences still receive the same gift event (score + small icon).
+ * Server routes gift_sent by targetCreatorId — other creators and their
+ * spectators must not receive the gift event (score is a separate battle_score).
  */
 export function shouldPlayFullBattleGiftVideo(
   giftTarget: ServerBattleGiftTarget | null,

@@ -8,6 +8,7 @@
  * SHARED state (Valkey — consistent across all workers/instances):
  *   room:members:{roomId}         — SET of userIds in room (viewer count = SCARD)
  *   room:meta:{roomId}            — HASH live_likes (shared like total)
+ *   room:audience:{roomId}        — HASH userId → audienceCreatorId (battle gift ownership)
  *   txn:{transactionId}           — dedup key
  *   cohost:{roomId}               — JSON of cohost layout
  *   wsrl:{userId}:{event}         — rate limit sorted set
@@ -41,10 +42,15 @@ import {
   valkeyExpire,
   valkeyHincrby,
   valkeyHget,
+  valkeyHset,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
 import { getUserBattleRoom, endBattle, getBattleFromStore, removeBattleParticipant } from "./battle";
+import {
+  clientReceivesCreatorGiftAudience,
+  resolveJoinAudienceCreatorId,
+} from "./giftAudience";
 import { getGiftGoal } from "./giftGoal";
 import {
   clearEngagementActiveRoom,
@@ -62,6 +68,8 @@ export interface Client {
   level: number;
   country: string;
   connectedAt: Date;
+  /** Creator whose gift/chat audience this socket belongs to (battle: per-creator). */
+  audienceCreatorId: string;
 }
 
 const INSTANCE_ID = randomUUID();
@@ -263,6 +271,117 @@ export function broadcastToRoom(
       sourceInstanceId: INSTANCE_ID,
     });
   }
+}
+
+/**
+ * Gift / gift-chat visuals for ONE creator audience in a battle room.
+ * Sends to the target creator and spectators stamped to that creator only.
+ * Battle score events must keep using broadcastToRoom — teammates share score,
+ * not gifts.
+ */
+export function broadcastToCreatorAudience(
+  roomId: string,
+  targetCreatorId: string,
+  event: string,
+  data: unknown,
+): void {
+  const target = String(targetCreatorId || "").trim();
+  if (!roomId || !target) return;
+
+  const room = rooms.get(roomId);
+  const ts = new Date().toISOString();
+  let message: string;
+  try {
+    message = JSON.stringify({ event, data, timestamp: ts });
+  } catch (error) {
+    logger.error({ err: error }, "Failed to serialize creator-audience message");
+    return;
+  }
+
+  if (room) {
+    room.forEach((client) => {
+      if (
+        client.ws.readyState === WebSocket.OPEN &&
+        clientReceivesCreatorGiftAudience(client, target)
+      ) {
+        try {
+          client.ws.send(message);
+        } catch (error) {
+          logger.error({ err: error }, "Failed to send to creator audience");
+        }
+      }
+    });
+  }
+
+  if (isValkeyConfigured()) {
+    valkeyPublish(`room:${roomId}`, {
+      event,
+      data,
+      timestamp: ts,
+      sourceInstanceId: INSTANCE_ID,
+      targetCreatorId: target,
+    });
+  }
+}
+
+const AUDIENCE_KEY_PREFIX = "room:audience:";
+const AUDIENCE_TTL_SEC = 600;
+
+function audienceKey(roomId: string): string {
+  return AUDIENCE_KEY_PREFIX + roomId;
+}
+
+/** Stamp spectators of a creator onto the battle room before they are redirected. */
+export async function transferLiveAudienceToBattleRoom(
+  fromRoomId: string,
+  creatorUserId: string,
+  battleRoomId: string,
+): Promise<void> {
+  const from = String(fromRoomId || "").trim();
+  const creator = String(creatorUserId || "").trim();
+  const battle = String(battleRoomId || "").trim();
+  if (!from || !creator || !battle || from === battle) return;
+
+  const members = await listRoomMemberUserIds(from);
+  const spectators = members.filter((id) => id && id !== creator);
+  if (spectators.length === 0) return;
+
+  if (isValkeyConfigured()) {
+    const key = audienceKey(battle);
+    for (const userId of spectators) {
+      await valkeyHset(key, userId, creator);
+    }
+    await valkeyExpire(key, AUDIENCE_TTL_SEC);
+  }
+
+  const battleRoom = rooms.get(battle);
+  if (battleRoom) {
+    for (const client of battleRoom) {
+      if (spectators.includes(client.userId)) {
+        client.audienceCreatorId = creator;
+      }
+    }
+  }
+}
+
+async function persistAudienceOwner(
+  roomId: string,
+  userId: string,
+  creatorId: string,
+): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId || !creatorId) return;
+  const key = audienceKey(roomId);
+  await valkeyHset(key, userId, creatorId);
+  await valkeyExpire(key, AUDIENCE_TTL_SEC);
+}
+
+async function readStampedAudienceOwner(
+  roomId: string,
+  userId: string,
+): Promise<string | null> {
+  if (!isValkeyConfigured() || !roomId || !userId) return null;
+  const stamped = await valkeyHget(audienceKey(roomId), userId);
+  return stamped && stamped.trim() ? stamped.trim() : null;
 }
 
 // ── Transaction dedup (Valkey-only) ──────────────────────────────
@@ -483,6 +602,8 @@ interface WsPubSubPayload {
   data?: Record<string, unknown>;
   timestamp?: string;
   sourceInstanceId?: string;
+  /** When set, only the target creator + that creator's stamped spectators receive the event. */
+  targetCreatorId?: string;
 }
 
 /**
@@ -505,12 +626,19 @@ function forwardRoomMessage(roomId: string, payload: WsPubSubPayload): void {
     return;
   }
   room.forEach((client) => {
-    if (client.ws.readyState === WebSocket.OPEN) {
-      try {
-        client.ws.send(message);
-      } catch {
-        logger.debug("ws.send failed — client likely disconnected");
-      }
+    if (client.ws.readyState !== WebSocket.OPEN) return;
+    const targetCreatorId =
+      typeof payload.targetCreatorId === "string" ? payload.targetCreatorId.trim() : "";
+    if (
+      targetCreatorId &&
+      !clientReceivesCreatorGiftAudience(client, targetCreatorId)
+    ) {
+      return;
+    }
+    try {
+      client.ws.send(message);
+    } catch {
+      logger.debug("ws.send failed — client likely disconnected");
     }
   });
 }
@@ -775,11 +903,16 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
         await removeActiveStream(roomId, userId);
         await deleteCohostLayout(roomId);
         // Host left for a battle room — send their spectators into the battle.
+        // Stamp this creator's spectators onto the battle room BEFORE redirect
+        // so gift_sent stays on this creator's audience, not the merged room.
         let battleRedirect: string | null = null;
         try {
           const battleRoomId = await getUserBattleRoom(userId);
           if (battleRoomId && battleRoomId !== roomId) battleRedirect = battleRoomId;
         } catch { /* non-fatal */ }
+        if (battleRedirect) {
+          await transferLiveAudienceToBattleRoom(roomId, userId, battleRedirect);
+        }
         broadcastToRoom(roomId, "stream_ended", {
           stream_key: roomId,
           host_user_id: userId,
@@ -1133,6 +1266,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       );
       let roomId = url.searchParams.get("room");
       const token = url.searchParams.get("token");
+      const queryAudienceCreatorId = url.searchParams.get("audienceCreatorId");
 
       if (!roomId && url.pathname.startsWith("/live/")) {
         roomId = url.pathname.split("/")[2];
@@ -1173,6 +1307,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           level: 1,
           country: "",
           connectedAt: new Date(),
+          audienceCreatorId: "",
         };
         clients.set(ws, client);
         // Register on the user channel so global events (call_invite, force_disconnect,
@@ -1218,6 +1353,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         level: 1,
         country: "",
         connectedAt: new Date(),
+        audienceCreatorId: hostUserId || userId,
       };
 
       clients.set(ws, client);
@@ -1273,6 +1409,21 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       if (isValkeyConfigured()) {
         await valkeySadd(`room:members:${roomId}`, userId);
         await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
+      }
+
+      try {
+        const battleOnJoin = await getBattleFromStore(roomId);
+        const stamped = await readStampedAudienceOwner(roomId, userId);
+        client.audienceCreatorId = resolveJoinAudienceCreatorId({
+          userId,
+          queryAudienceCreatorId,
+          stampedAudienceCreatorId: stamped,
+          streamOwnerUserId: hostUserId,
+          battle: battleOnJoin,
+        });
+        await persistAudienceOwner(roomId, userId, client.audienceCreatorId);
+      } catch (err) {
+        logger.warn({ err, roomId, userId }, "ws: audience owner resolve failed");
       }
 
       // Host/battle participant reconnected within grace — keep live + battle up.

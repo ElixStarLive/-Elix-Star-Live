@@ -61,6 +61,7 @@ describe("testCoinsPolicy", () => {
     const end = handlersSrc.indexOf("const verified = await verifyGiftTransaction", start);
     const branch = handlersSrc.slice(start, end);
     expect(branch).toContain("addBattleScoreForTarget");
+    expect(branch).toContain("emitGiftSentToTargetAudience");
     expect(branch).toContain("financialValueGbp: 0");
     expect(branch).toContain('origin: "test_coins"');
     expect(branch).not.toContain("neonCreditCreatorEarning");

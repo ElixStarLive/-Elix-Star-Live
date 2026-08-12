@@ -89,8 +89,18 @@ class WebSocketService {
 
   /** Host/creator rooms keep reconnecting so brief mobile blips do not end the live. */
   private persistentReconnect = false;
+  /** Battle: which creator's gift/chat audience this socket belongs to. */
+  private audienceCreatorId: string | null = null;
 
-  connect(roomId: string, token: string, options?: { persistent?: boolean }) {
+  connect(
+    roomId: string,
+    token: string,
+    options?: { persistent?: boolean; audienceCreatorId?: string },
+  ) {
+    if (options?.audienceCreatorId !== undefined) {
+      const next = options.audienceCreatorId.trim();
+      this.audienceCreatorId = next || null;
+    }
     if (
       this.ws?.readyState === WebSocket.OPEN ||
       this.ws?.readyState === WebSocket.CONNECTING
@@ -104,10 +114,13 @@ class WebSocketService {
 
     this.roomId = roomId;
     this.token = token;
-    this.persistentReconnect = options?.persistent ?? false;
+    this.persistentReconnect = options?.persistent ?? this.persistentReconnect;
     const wsUrl = getWsUrl();
+    const audienceQs = this.audienceCreatorId
+      ? `&audienceCreatorId=${encodeURIComponent(this.audienceCreatorId)}`
+      : "";
     this.ws = new WebSocket(
-      `${wsUrl}/live/${roomId}?token=${encodeURIComponent(token)}`,
+      `${wsUrl}/live/${roomId}?token=${encodeURIComponent(token)}${audienceQs}`,
     );
 
     this.ws.onopen = () => {
@@ -174,6 +187,7 @@ class WebSocketService {
     this.roomId = null;
     this.token = null;
     this.persistentReconnect = false;
+    this.audienceCreatorId = null;
     this.reconnectAttempts = 0;
     this.pendingMessages = [];
   }

@@ -1,4 +1,4 @@
-import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes, isUserInRoomAudience } from "./index";
+import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes, transferLiveAudienceToBattleRoom } from "./index";
 import { logger } from "../lib/logger";
 import {
   createBattle,
@@ -54,7 +54,7 @@ import {
 import { awardLiveWatchXp } from "../lib/awardLiveWatchXp";
 import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres";
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
-import { deliverVerifiedGift } from "./giftDelivery";
+import { deliverVerifiedGift, emitGiftSentToTargetAudience } from "./giftDelivery";
 import {
   isTestCoinsGiftSource,
   canAcceptTestCoinsBattleScore,
@@ -394,25 +394,12 @@ export async function handleMessage(
             stream_id: client.roomId,
             timestamp: new Date().toISOString(),
           };
-          broadcastToRoom(client.roomId, "gift_sent", testPayload);
-          try {
-            const testOwnerId = await resolveStreamOwnerUserId(client.roomId);
-            if (
-              testOwnerId &&
-              testOwnerId !== client.userId &&
-              !(await isUserInRoomAudience(client.roomId, testOwnerId))
-            ) {
-              sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
-            }
-            if (
-              testCohostTarget &&
-              testCohostTarget !== client.userId &&
-              !(await isUserInRoomAudience(client.roomId, testCohostTarget))
-            ) {
-              sendToUserGlobal(testCohostTarget, "gift_sent", testPayload);
-            }
-          } catch { /* non-fatal */ }
-          // Battle scoreboard only — financialValueGbp is always 0 for test coins.
+          await emitGiftSentToTargetAudience({
+            roomId: client.roomId,
+            payload: testPayload,
+            battleTarget: testBattleTarget,
+            cohostTargetUserId: testCohostTarget,
+          });
           try {
             const testBattle = await getBattleFromStore(client.roomId);
             if (testBattle && testBattle.status === "ACTIVE" && testPoints > 0) {
@@ -483,8 +470,6 @@ export async function handleMessage(
         if (delivered.delivered === false && delivered.reason === "duplicate") {
           try {
             const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
-            const { sendToUserGlobal, broadcastToRoom } = await import("./index");
-            const { resolveStreamOwnerUserId } = await import("../routes/livestream");
             const video = await resolvePlayableGiftVideoUrl(
               verified.giftId,
               clientVideo,
@@ -518,15 +503,12 @@ export async function handleMessage(
               stream_id: client.roomId,
               timestamp: new Date().toISOString(),
             };
-            broadcastToRoom(client.roomId, "gift_sent", retryPayload);
-            const ownerId = await resolveStreamOwnerUserId(client.roomId);
-            if (
-              ownerId &&
-              ownerId !== client.userId &&
-              !(await isUserInRoomAudience(client.roomId, ownerId))
-            ) {
-              sendToUserGlobal(ownerId, "gift_sent", retryPayload);
-            }
+            await emitGiftSentToTargetAudience({
+              roomId: client.roomId,
+              payload: retryPayload,
+              battleTarget: data?.battleTarget,
+              cohostTargetUserId: cohostFromWs,
+            });
           } catch (err) {
             logger.warn({ err }, "gift_sent duplicate creator video retry failed");
           }
@@ -1125,6 +1107,13 @@ export async function handleMessage(
               battleRedirect = battleRoomId;
             }
           } catch { /* non-fatal */ }
+          if (battleRedirect) {
+            await transferLiveAudienceToBattleRoom(
+              client.roomId,
+              client.userId,
+              battleRedirect,
+            );
+          }
           broadcastToRoom(client.roomId, "stream_ended", {
             stream_key: client.roomId,
             host_user_id: client.userId,

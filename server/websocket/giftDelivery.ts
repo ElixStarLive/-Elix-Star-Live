@@ -2,13 +2,15 @@
  * Authoritative in-room gift delivery.
  *
  * After a gift is paid (REST), delivery must not depend on the client re-sending
- * a WebSocket event. This module claims the transaction once, broadcasts
- * gift_sent (WITH a playable video URL) to the live room so the creator plays
- * the gift animation, updates gift goals, and applies battle scores.
+ * a WebSocket event. This module claims the transaction once, routes gift_sent
+ * (WITH a playable video URL) to the target creator's audience only, updates
+ * gift goals, and applies battle scores separately (team aggregation, not gift
+ * broadcast).
  */
 
 import {
   broadcastToRoom,
+  broadcastToCreatorAudience,
   tryClaimTransaction,
   releaseTransactionClaim,
   sendToUserGlobal,
@@ -21,6 +23,10 @@ import {
   normalizeBattleTarget,
   resolvePlayableGiftVideoUrl,
 } from "./giftRegistry";
+import {
+  isActiveBattleSession,
+  resolveGiftTargetCreatorId,
+} from "./giftAudience";
 import { incrementGiftGoal } from "./giftGoal";
 import { addBattleScoreForTarget, getBattleFromStore } from "./battle";
 import { resolveBoosterCatch } from "../lib/booster";
@@ -130,6 +136,74 @@ async function applyActiveBattleGiftScore(opts: {
     boosterCaught.gift_battle_score = giftBattleScore;
   }
   return boosterCaught;
+}
+
+/**
+ * One gift visual event → one target creator + that creator's spectators.
+ * Battle score stays on broadcastToRoom (addBattleScoreForTarget). Solo live
+ * still uses the full room because that room is already one creator's audience.
+ */
+export async function emitGiftSentToTargetAudience(opts: {
+  roomId: string;
+  payload: Record<string, unknown>;
+  battleTarget?: unknown;
+  cohostTargetUserId?: string | null;
+  boosterCaught?: Record<string, unknown> | null;
+}): Promise<string | null> {
+  const roomId = String(opts.roomId || "").trim();
+  if (!roomId) return null;
+
+  let streamOwnerUserId: string | null = null;
+  try {
+    streamOwnerUserId = (await resolveStreamOwnerUserId(roomId)) || null;
+  } catch {
+    streamOwnerUserId = null;
+  }
+
+  const battle = await getBattleFromStore(roomId);
+  const targetCreatorId = resolveGiftTargetCreatorId({
+    battle,
+    battleTarget: normalizeBattleTarget(opts.battleTarget),
+    cohostTargetUserId: opts.cohostTargetUserId,
+    streamOwnerUserId,
+  });
+
+  const payload = {
+    ...opts.payload,
+    ...(targetCreatorId
+      ? {
+          targetCreatorId,
+          target_creator_id: targetCreatorId,
+        }
+      : {}),
+  };
+
+  const battleActive = isActiveBattleSession(battle);
+  if (battleActive && targetCreatorId) {
+    broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent", payload);
+    if (opts.boosterCaught) {
+      broadcastToCreatorAudience(
+        roomId,
+        targetCreatorId,
+        "booster_caught",
+        opts.boosterCaught,
+      );
+    }
+  } else if (!battleActive) {
+    broadcastToRoom(roomId, "gift_sent", payload);
+    if (opts.boosterCaught) {
+      broadcastToRoom(roomId, "booster_caught", opts.boosterCaught);
+    }
+  }
+
+  if (
+    targetCreatorId &&
+    !(await isUserInRoomAudience(roomId, targetCreatorId))
+  ) {
+    sendToUserGlobal(targetCreatorId, "gift_sent", payload);
+  }
+
+  return targetCreatorId;
 }
 
 async function resolveSenderProfile(
@@ -270,44 +344,19 @@ export async function deliverVerifiedGift(
     throw err;
   }
 
-  // One authoritative in-room broadcast — every spectator/host/co-host in this live
-  // receives the same gift_sent payload on the shared room channel.
-  broadcastToRoom(roomId, "gift_sent", payload);
-  if (boosterCaught) {
-    broadcastToRoom(roomId, "booster_caught", boosterCaught);
-  }
+  const targetCreatorId = await emitGiftSentToTargetAudience({
+    roomId,
+    payload,
+    battleTarget: normalizedTarget,
+    cohostTargetUserId,
+    boosterCaught,
+  });
 
-  // Global fallback only when the recipient is NOT already in the room audience
-  // (prevents duplicate gift_sent on the same socket: room broadcast + user global).
-  try {
-    const ownerId = await resolveStreamOwnerUserId(roomId);
-    if (
-      ownerId &&
-      ownerId !== userId &&
-      !(await isUserInRoomAudience(roomId, ownerId))
-    ) {
-      sendToUserGlobal(ownerId, "gift_sent", payload);
-    }
-    if (ownerId && ownerId !== userId) {
-      try {
-        await recordCreatorGiftProgress(userId, ownerId, 1);
-      } catch (err) {
-        logger.warn({ err, roomId }, "deliverVerifiedGift: creator card gift progress skipped");
-      }
-    }
-  } catch (err) {
-    logger.warn({ err, roomId }, "deliverVerifiedGift: owner notify skipped");
-  }
-
-  if (
-    cohostTargetUserId &&
-    cohostTargetUserId !== userId &&
-    !(await isUserInRoomAudience(roomId, cohostTargetUserId))
-  ) {
+  if (targetCreatorId && targetCreatorId !== userId) {
     try {
-      sendToUserGlobal(cohostTargetUserId, "gift_sent", payload);
+      await recordCreatorGiftProgress(userId, targetCreatorId, 1);
     } catch (err) {
-      logger.warn({ err, roomId, cohostTargetUserId }, "deliverVerifiedGift: cohost notify skipped");
+      logger.warn({ err, roomId }, "deliverVerifiedGift: creator card gift progress skipped");
     }
   }
 

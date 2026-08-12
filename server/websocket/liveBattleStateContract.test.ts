@@ -123,4 +123,24 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(spectator).toContain("bindLiveBattleWs");
     expect(spectator).toContain("onTick: handleBattleTick");
   });
+
+  it("battle gifts route by targetCreatorId, not team-wide room broadcast", () => {
+    const giftDelivery = read("./giftDelivery.ts");
+    const handlers = read("./handlers.ts");
+    const wsIndex = read("./index.ts");
+    expect(giftDelivery).toContain("emitGiftSentToTargetAudience");
+    expect(giftDelivery).toContain("broadcastToCreatorAudience");
+    expect(giftDelivery).toContain("resolveGiftTargetCreatorId");
+    expect(giftDelivery).toContain(
+      'broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent"',
+    );
+    expect(giftDelivery).toContain("if (battleActive && targetCreatorId)");
+    expect(handlers).toContain("emitGiftSentToTargetAudience");
+    expect(handlers).toContain("transferLiveAudienceToBattleRoom");
+    expect(wsIndex).toContain("export function broadcastToCreatorAudience");
+    expect(wsIndex).toContain("targetCreatorId");
+    expect(wsIndex).toContain("audienceCreatorId");
+    // Score stays room-wide; gifts do not.
+    expect(battle).toContain('broadcastToRoom(roomId, "battle_score"');
+  });
 });

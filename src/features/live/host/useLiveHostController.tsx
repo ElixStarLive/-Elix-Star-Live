@@ -79,7 +79,7 @@ import {
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
-import { useLiveChatStore } from '../chat/useLiveChatStore';
+import { useLiveChatStore, EMPTY_LIVE_MESSAGES } from '../chat/useLiveChatStore';
 import { liveGiftGoalClear, liveGiftGoalSet } from '../gifts/liveGiftWsActions';
 import { liveStreamStart } from '../room/liveRoomActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
@@ -311,7 +311,9 @@ export function useLiveHostController() {
   const effectiveStreamIdRef = useRef(effectiveStreamId);
   effectiveStreamIdRef.current = effectiveStreamId;
 
-  const messages = useLiveChatStore((s) => s.messagesByStream[effectiveStreamId] ?? []);
+  const messages = useLiveChatStore(
+    (s) => s.messagesByStream[effectiveStreamId] ?? EMPTY_LIVE_MESSAGES,
+  );
   const updateMessagesForStream = useLiveChatStore((s) => s.updateMessagesForStream);
   const clearMessagesForStream = useLiveChatStore((s) => s.clearMessagesForStream);
   const setMessages = useCallback(
@@ -1442,7 +1444,10 @@ export function useLiveHostController() {
       if (wsToken) {
         // Battle joiners are creators — keep reconnecting through mobile blips
         // instead of synthesizing stream_ended after a short attempt budget.
-        websocket.connect(effectiveStreamId, wsToken, { persistent: true });
+        websocket.connect(effectiveStreamId, wsToken, {
+          persistent: true,
+          ...(user?.id ? { audienceCreatorId: user.id } : {}),
+        });
         for (let i = 0; i < 24 && !cancelled; i += 1) {
           if (websocket.isConnected()) break;
           await new Promise((r) => window.setTimeout(r, 250));
@@ -3248,7 +3253,10 @@ export function useLiveHostController() {
     const connect = async () => {
       const token = await getToken();
       if (!token || !mounted) return;
-      websocket.connect(effectiveStreamId, token, { persistent: isBroadcast });
+      websocket.connect(effectiveStreamId, token, {
+        persistent: isBroadcast,
+        ...(user?.id ? { audienceCreatorId: user.id } : {}),
+      });
     };
 
     const handleRoomState = (data) => {

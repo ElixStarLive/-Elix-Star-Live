@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import type { LiveMessage } from '../types';
 
+/** Stable empty list — never `?? []` in a Zustand selector (new [] each time loops React). */
+export const EMPTY_LIVE_MESSAGES: LiveMessage[] = [];
+
 type LiveChatState = {
   messagesByStream: Record<string, LiveMessage[]>;
   updateMessagesForStream: (
@@ -16,7 +19,7 @@ export const useLiveChatStore = create<LiveChatState>((set) => ({
   updateMessagesForStream: (streamId, updater) => {
     if (!streamId) return;
     set((state) => {
-      const prev = state.messagesByStream[streamId] ?? [];
+      const prev = state.messagesByStream[streamId] ?? EMPTY_LIVE_MESSAGES;
       const next = updater(prev);
       // Keep the reference stable if the caller returns `prev` unchanged.
       if (next === prev) return state;
