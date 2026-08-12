@@ -283,17 +283,7 @@ export function useLiveSpectatorController() {
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  const {
-    missionWatchMin,
-    setMissionWatchMin,
-    missionGiftsSent,
-    setMissionGiftsSent,
-    missionWatchGoal,
-    setMissionWatchGoal,
-    missionGiftsGoal,
-    setMissionGiftsGoal,
-    loadEngagementMissions,
-  } = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
+  const missionsUi = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
   const [userXP, setUserXP] = useState(0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetComboTimer = () => {
@@ -1419,10 +1409,10 @@ export function useLiveSpectatorController() {
     const roomId = effectiveStreamId;
     return startLiveEngagementWatchTick({
       roomId,
-      missionWatchGoal,
-      setMissionWatchMin,
+      missionWatchGoal: missionsUi.missionWatchGoal,
+      setMissionWatchMin: missionsUi.setMissionWatchMin,
     });
-  }, [effectiveStreamId, hasStream, missionWatchGoal]);
+  }, [effectiveStreamId, hasStream, missionsUi.missionWatchGoal]);
 
   // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
   // that list is publishing-gated and can be stale, so other spectators would
@@ -2192,8 +2182,8 @@ export function useLiveSpectatorController() {
         markGiftTxnSeen,
       });
       if (!opened) return;
-      const { alreadySeen, parsed } = opened;
       const {
+        alreadySeen,
         txnId,
         gifterId,
         giftCoins,
@@ -2205,7 +2195,7 @@ export function useLiveSpectatorController() {
         giftIconRaw,
         battleTarget,
         isFlowerOrRose,
-      } = parsed;
+      } = opened;
 
       // Chat / MVP / co-host tile scores only on first delivery of this transaction.
       if (!alreadySeen) {
@@ -3171,7 +3161,7 @@ export function useLiveSpectatorController() {
 
     // Test coins are local-only — never inflate gifts mission bar.
     if (!usedTestCoins) {
-      setMissionGiftsSent((n) => n + 1);
+      missionsUi.setMissionGiftsSent((n) => n + 1);
     }
 
     if (gift.video && gift.video.trim()) {
@@ -3441,10 +3431,10 @@ export function useLiveSpectatorController() {
     markRemoteCam,
     messages,
     milestoneFlash,
-    missionGiftsGoal,
-    missionGiftsSent,
-    missionWatchGoal,
-    missionWatchMin,
+    missionGiftsGoal: missionsUi.missionGiftsGoal,
+    missionGiftsSent: missionsUi.missionGiftsSent,
+    missionWatchGoal: missionsUi.missionWatchGoal,
+    missionWatchMin: missionsUi.missionWatchMin,
     mistFog,
     mistHidesMyScore,
     moderators,
@@ -3532,10 +3522,10 @@ export function useLiveSpectatorController() {
     setLastSentGift,
     setLiveConnectRetryKey,
     setMessages,
-    setMissionGiftsGoal,
-    setMissionGiftsSent,
-    setMissionWatchGoal,
-    setMissionWatchMin,
+    setMissionGiftsGoal: missionsUi.setMissionGiftsGoal,
+    setMissionGiftsSent: missionsUi.setMissionGiftsSent,
+    setMissionWatchGoal: missionsUi.setMissionWatchGoal,
+    setMissionWatchMin: missionsUi.setMissionWatchMin,
     setMistFog,
     setMvpSlots,
     setMyHeartCount,

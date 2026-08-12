@@ -36,6 +36,7 @@ import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { PROFILE_EXIT_TO } from '../lib/settingsNav';
 import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
+import { mapProfileGridVideoRows } from '../lib/mapProfileGridVideoRows';
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
@@ -586,13 +587,7 @@ export default function Profile() {
           return;
         }
         setVideosHasMore(vids.length >= 50);
-        setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
-          id: v.id,
-          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
-          url: v.url || '',
-          views: v.views || 0,
-          is_public: true,
-        })));
+        setVideos(mapProfileGridVideoRows(vids as Parameters<typeof mapProfileGridVideoRows>[0]));
       } else if (activeTab === 'saved') {
         const { videos: vids, error } = await apiFetchSavedVideos(50, 0);
         if (error) {
@@ -602,13 +597,7 @@ export default function Profile() {
           return;
         }
         setVideosHasMore(vids.length >= 50);
-        setVideos(vids.map((v: { id: string; thumbnail?: string; thumbnail_url?: string; url?: string; views?: number }) => ({
-          id: v.id,
-          thumbnail_url: resolveGridThumbnailUrl(v.thumbnail || v.thumbnail_url, v.url),
-          url: v.url || '',
-          views: v.views || 0,
-          is_public: true,
-        })));
+        setVideos(mapProfileGridVideoRows(vids as Parameters<typeof mapProfileGridVideoRows>[0]));
       } else if (activeTab === 'reposts') {
         if (!effectiveUserId) {
           setVideosLoading(false);

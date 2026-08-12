@@ -25,14 +25,14 @@ export function openMountedLiveGiftSent(
   return openLiveGiftSentHandler(data, giftsCatalog, txn);
 }
 
-/** Mounted open that collapses skip → null for host/spectator handlers. */
+/** Mounted open that collapses skip → null and flattens parsed fields. */
 export function openMountedLiveGiftSentParsed(
   mounted: boolean,
   data: unknown,
   giftsCatalog: GiftUiItem[] | null | undefined,
   txn: GiftTxnGate,
-): { alreadySeen: boolean; parsed: ParsedLiveGiftSentEvent } | null {
+): (ParsedLiveGiftSentEvent & { alreadySeen: boolean }) | null {
   const opened = openMountedLiveGiftSent(mounted, data, giftsCatalog, txn);
   if (!opened || opened.skip === true) return null;
-  return { alreadySeen: opened.alreadySeen, parsed: opened.parsed };
+  return { alreadySeen: opened.alreadySeen, ...opened.parsed };
 }

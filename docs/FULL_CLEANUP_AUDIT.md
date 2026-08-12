@@ -909,6 +909,18 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **139** clones / **1.81%** lines |
 | Android | 1.0.636 |
 
+### Continue 37 — missions bag, gift flatten, feed slides, profile/VideoView/RisingStars share
+| Item | Change |
+|------|--------|
+| Missions UI bag (no twin destructure) | `missionsUi` in host/spectator controllers |
+| Gift open flatten | `openMountedLiveGiftSentParsed` spreads parsed |
+| Feed snap slides | `FeedSnapVideoSlides.tsx` |
+| Profile liked/saved map | `mapProfileGridVideoRows.ts` |
+| VideoView chrome shell | `VideoViewChromeShell.tsx` |
+| Rising Stars top bar | `RisingStarsTopBar.tsx` |
+| jscpd | **134** clones / **1.74%** lines |
+| Android | 1.0.637 |
+
 
 
 

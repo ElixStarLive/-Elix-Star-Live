@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Music, Trophy, Vote, Video, Radio } from "lucide-react";
-import { RoyceBackIcon } from "../components/royce";
+import { Music, Vote, Video, Radio } from "lucide-react";
+import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
 import { showToast } from "../lib/toast";
 import { useAuthStore } from "../store/useAuthStore";
 import { AvatarRing } from "../components/AvatarRing";
@@ -173,26 +173,15 @@ export default function RisingStarsChallenge() {
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">
       <div className="page-above-bottom-nav__inner">
-        <div
-          className="w-full shrink-0 bg-transparent z-10"
-          style={{ paddingTop: "var(--topnav-anchor-top)" }}
-        >
-          <div
-            className="w-full px-3 flex items-center justify-between"
-            style={{ minHeight: "var(--topnav-bar-height)" }}
-          >
-            <button type="button" onClick={goBack} className="p-1" aria-label="Back">
-              <RoyceBackIcon className="w-6 h-6 text-white" />
-            </button>
-            <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5 text-[#F5F5F7]" />
-              <h1 className="text-base font-semibold">Challenge</h1>
-            </div>
+        <RisingStarsTopBar
+          title="Challenge"
+          onBack={goBack}
+          right={
             <button type="button" onClick={() => void share()} className="text-xs text-[#F5F5F7]">
               Share
             </button>
-          </div>
-        </div>
+          }
+        />
 
         <div className="px-3 pb-8">
           {loading || !challenge ? (

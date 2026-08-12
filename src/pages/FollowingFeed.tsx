@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { trackScreenView } from '../lib/analytics';
-import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { FeedStoryCirclesOverlay } from '../components/FeedStoryCirclesOverlay';
+import { FeedSnapVideoSlides } from '../components/FeedSnapVideoSlides';
 import { useVerticalSnapFeedIndex } from '../hooks/useVerticalSnapFeedIndex';
 import { useFeedChromeNav } from '../hooks/useFeedChromeNav';
 
@@ -41,27 +41,12 @@ export default function FollowingFeed() {
           style={{ scrollSnapType: 'y mandatory', WebkitOverflowScrolling: 'touch' }}
           onScroll={handleScroll}
         >
-          {followingVideoIds.map((videoId, index) => (
-            <div
-              key={`following-${videoId}-${index}`}
-              data-slide-index={index}
-              className="h-full w-full shrink-0 snap-start bg-transparent"
-              style={{
-                height: '100%',
-                scrollSnapAlign: 'start',
-                scrollSnapStop: 'always',
-              }}
-            >
-              <div className="w-full h-full min-h-0 relative overflow-hidden bg-transparent">
-                <EnhancedVideoPlayer
-                  videoId={videoId}
-                  isActive={activeIndex === index}
-                  onVideoEnd={() => handleVideoEnd(index)}
-                  edgeToBottomNav
-                />
-              </div>
-            </div>
-          ))}
+          <FeedSnapVideoSlides
+            videoIds={followingVideoIds}
+            keyPrefix="following"
+            activeIndex={activeIndex}
+            onVideoEnd={handleVideoEnd}
+          />
 
           {loading && followingVideoIds.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -3290,8 +3290,8 @@ export function useLiveHostController() {
         markGiftTxnSeen,
       });
       if (!opened) return;
-      const { alreadySeen, parsed } = opened;
       const {
+        alreadySeen,
         txnId,
         gifterId,
         giftCoins,
@@ -3303,7 +3303,7 @@ export function useLiveHostController() {
         giftIconRaw,
         battleTarget,
         isFlowerOrRose,
-      } = parsed;
+      } = opened;
 
       // Chat / MVP only on first delivery of this transaction.
       if (!alreadySeen) {
@@ -4087,27 +4087,17 @@ export function useLiveHostController() {
   });
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
-  const {
-    missionWatchMin,
-    setMissionWatchMin,
-    missionGiftsSent,
-    setMissionGiftsSent,
-    missionWatchGoal,
-    setMissionWatchGoal,
-    missionGiftsGoal,
-    setMissionGiftsGoal,
-    loadEngagementMissions,
-  } = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
+  const missionsUi = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
 
   // Product-required engagement watch tick: one interval POST watch_minutes + local progress.
   useEffect(() => {
     if (!isBroadcast || !effectiveStreamId) return;
     return startLiveEngagementWatchTick({
       roomId: effectiveStreamId,
-      missionWatchGoal,
-      setMissionWatchMin,
+      missionWatchGoal: missionsUi.missionWatchGoal,
+      setMissionWatchMin: missionsUi.setMissionWatchMin,
     });
-  }, [isBroadcast, effectiveStreamId, missionWatchGoal]);
+  }, [isBroadcast, effectiveStreamId, missionsUi.missionWatchGoal]);
   useEffect(() => {
     if (!isBattleMode || !effectiveStreamId) return;
     void apiLiveEngagementProgress({
@@ -4117,10 +4107,10 @@ export function useLiveHostController() {
     }).catch((err) => reportFailure('live_engagement_progress', err));
   }, [isBattleMode, effectiveStreamId]);
   const sideMissions = {
-        watchMin: missionWatchMin,
-        watchGoal: missionWatchGoal,
-        giftsSent: missionGiftsSent,
-        giftsGoal: missionGiftsGoal,
+        watchMin: missionsUi.missionWatchMin,
+        watchGoal: missionsUi.missionWatchGoal,
+        giftsSent: missionsUi.missionGiftsSent,
+        giftsGoal: missionsUi.missionGiftsGoal,
         battleJoined: isBattleMode ? 1 : 0,
         battleGoal: 1,
         claimable: false as const,
@@ -4257,7 +4247,7 @@ export function useLiveHostController() {
         }
       }
       setShowGiftPanel(false);
-      setMissionGiftsSent((n) => n + 1);
+      missionsUi.setMissionGiftsSent((n) => n + 1);
       setSessionContribution(prev => prev + gift.coins);
 
       maybeEnqueueUniverse(gift.name, viewerName);
@@ -5577,10 +5567,10 @@ export function useLiveHostController() {
     miniProfileFollowClick,
     miniProfileFollowsThem,
     miniProfileShareClick,
-    missionGiftsGoal,
-    missionGiftsSent,
-    missionWatchGoal,
-    missionWatchMin,
+    missionGiftsGoal: missionsUi.missionGiftsGoal,
+    missionGiftsSent: missionsUi.missionGiftsSent,
+    missionWatchGoal: missionsUi.missionWatchGoal,
+    missionWatchMin: missionsUi.missionWatchMin,
     mistFog,
     mistHidesScores,
     moderationIntervalRef,
@@ -5744,10 +5734,10 @@ export function useLiveHostController() {
     setMessages,
     setMiniProfile,
     setMiniProfileFollowsThem,
-    setMissionGiftsGoal,
-    setMissionGiftsSent,
-    setMissionWatchGoal,
-    setMissionWatchMin,
+    setMissionGiftsGoal: missionsUi.setMissionGiftsGoal,
+    setMissionGiftsSent: missionsUi.setMissionGiftsSent,
+    setMissionWatchGoal: missionsUi.setMissionWatchGoal,
+    setMissionWatchMin: missionsUi.setMissionWatchMin,
     setMistFog,
     setModerationWarningMessage,
     setModerators,

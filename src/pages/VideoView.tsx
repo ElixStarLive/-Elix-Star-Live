@@ -3,6 +3,7 @@ import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 
 import { useNavigate, useParams } from 'react-router-dom';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
+import { VideoViewChromeShell } from '../components/VideoViewChromeShell';
 import { useVideoStore } from '../store/useVideoStore';
 import { VIDEO_EXIT_TO } from '../lib/settingsNav';
 
@@ -48,68 +49,28 @@ export default function VideoView() {
 
   if (loadPhase === 'loading' || (loadPhase === 'idle' && !video)) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-transparent flex justify-center">
-        <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-transparent h-viewport"
-          style={{ marginTop: 0 }}
-        >
-          <div
-            className="absolute z-[250] pointer-events-auto"
-            style={{
-              top: 'max(0.75rem, var(--safe-top))',
-              right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
-            }}
-          >
-            <button
-              onClick={goBack}
-              className="p-2 rounded-full bg-transparent border border-transparent text-white"
-              aria-label="Back"
-            >
-              <RoyceCloseIcon />
-            </button>
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-white/50 text-sm">Loading…</span>
-          </div>
+      <VideoViewChromeShell onBack={goBack}>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-white/50 text-sm">Loading…</span>
         </div>
-      </div>
+      </VideoViewChromeShell>
     );
   }
 
   if (showMissing || !video) {
     return (
-      <div className="fixed inset-0 z-[9990] bg-transparent flex justify-center">
-        <div
-          className="w-full max-w-[480px] relative overflow-hidden bg-transparent h-viewport"
-          style={{ marginTop: 0 }}
-        >
-          <div
-            className="absolute z-[250] pointer-events-auto"
-            style={{
-              top: 'max(0.75rem, var(--safe-top))',
-              right: 'max(0.75rem, env(safe-area-inset-right, 0px))',
-            }}
+      <VideoViewChromeShell onBack={goBack}>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
+          <span className="text-white/70 text-sm text-center">Video not found or unavailable.</span>
+          <button
+            type="button"
+            onClick={goBack}
+            className="text-[#F5F5F7] text-sm font-semibold"
           >
-            <button
-              onClick={goBack}
-              className="p-2 rounded-full bg-transparent border border-transparent text-white"
-              aria-label="Back"
-            >
-              <RoyceCloseIcon />
-            </button>
-          </div>
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6">
-            <span className="text-white/70 text-sm text-center">Video not found or unavailable.</span>
-            <button
-              type="button"
-              onClick={goBack}
-              className="text-[#F5F5F7] text-sm font-semibold"
-            >
-              Go back
-            </button>
-          </div>
+            Go back
+          </button>
         </div>
-      </div>
+      </VideoViewChromeShell>
     );
   }
 
