@@ -654,4 +654,14 @@ Still OPEN (honest): locked gift-overlay dual `gift_sent` listeners; host/specta
 
 Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔spectator role clones (join/MVP/LiveKit attach); Sonar token; Semgrep empty-catch money-path review; Settings form clones (UI freeze).
 
+### Continue 6 — diamond league / gift source / chat message
+| Item | Change |
+|------|--------|
+| Diamond League weekly rank | `loadDiamondLeagueRankForCreator.ts` |
+| Gift source from bootstrap balances | `resolveGiftSourceFromBalances` in `refreshLiveGiftPanelBalances.ts` |
+| Live chat WS → LiveMessage | `buildLiveWsChatMessage.ts` |
+| jscpd | **193** clones — down from 195 |
+| Android | 1.0.606 |
+
+
 

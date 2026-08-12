@@ -10,6 +10,7 @@ import {
 import { useWalletStore } from '../../../store/useWalletStore';
 import { reportFailure } from '../../../lib/reportFailure';
 import { showToast } from '../../../lib/toast';
+import { engagementFlags } from '../../../config/engagementFlags';
 
 export type RefreshLiveGiftPanelBalancesArgs = {
   /** Sync spend-check ref for paid coins (host/spectator controllers). */
@@ -23,6 +24,18 @@ export type LiveGiftWalletBootstrap = {
   currentLevel: number;
   totalXp: number;
 };
+
+/** Prefer promo → starter → paid for gift spend source after wallet bootstrap. */
+export function resolveGiftSourceFromBalances(boot: {
+  promo: number;
+  starter: number;
+}): 'promotional_coins' | 'starter_coins' | 'paid_coins' {
+  if (boot.promo > 0 && engagementFlags.promoGiftSpendEnabled) {
+    return 'promotional_coins';
+  }
+  if (boot.starter > 0) return 'starter_coins';
+  return 'paid_coins';
+}
 
 /**
  * One-shot load for live entry: wallet + starter progression + promo engagement.

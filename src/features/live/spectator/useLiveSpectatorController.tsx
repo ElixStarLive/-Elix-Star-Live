@@ -5,7 +5,6 @@ import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
-import { engagementFlags } from '../../../config/engagementFlags';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
@@ -26,6 +25,7 @@ import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedCha
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
 import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
+import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -78,7 +78,6 @@ import {
   apiLiveMembership,
   apiLiveSendDailyHeart,
   apiLiveEngagementProgress,
-  apiLiveRankingsWeekly,
   apiLiveListModerators,
 } from '../engagement/liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
@@ -92,7 +91,8 @@ import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
+import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -1973,13 +1973,7 @@ export function useLiveSpectatorController() {
         return;
       }
       setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
-      if (boot.promo > 0 && engagementFlags.promoGiftSpendEnabled) {
-        setGiftSource('promotional_coins');
-      } else if (boot.starter > 0) {
-        setGiftSource('starter_coins');
-      } else {
-        setGiftSource('paid_coins');
-      }
+      setGiftSource(resolveGiftSourceFromBalances(boot));
       {
         const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
         const resolvedLevel = Math.max(boot.currentLevel, testLvl, Number(user.level) || 0);
@@ -2251,8 +2245,6 @@ export function useLiveSpectatorController() {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       const text = typeof data.text === 'string' ? data.text : '';
-      const levelUpMatch = /^reached Level (\d+)/i.exec(text);
-      const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
       const uid = typeof data.user_id === 'string' ? data.user_id : '';
       const cached = uid ? mvpIdentityRef.current.get(uid) || actualViewersRef.current.get(uid) : undefined;
       const username =
@@ -2277,21 +2269,14 @@ export function useLiveSpectatorController() {
           level: existing?.level || level,
         });
       }
-      const isMembershipJoin = /joined the team/i.test(text);
-      const msg: LiveMessage = {
-        id: `ws-${Date.now()}-${Math.random()}`,
+      const msg = buildLiveWsChatMessage({
         username,
-        text: isMembershipJoin ? 'Joined the team!' : text,
-        level: Number.isFinite(parsedLevel)
-          ? parsedLevel
-          : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
-            ? Math.floor(Number(data.level))
-            : cached?.level || 1,
         avatar,
-        stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
-        isSystem: !!levelUpMatch || isMembershipJoin,
-        membershipIcon: isMembershipJoin ? 'heart' : undefined,
-      };
+        text,
+        dataLevel: data.level,
+        cachedLevel: cached?.level,
+        stickerUrl: data.stickerUrl,
+      });
       setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
     };
 
@@ -3157,24 +3142,7 @@ export function useLiveSpectatorController() {
   );
 
   useEffect(() => {
-    const creatorId = hostUserId;
-    if (!creatorId) {
-      setDiamondLeagueRank(null);
-      return;
-    }
-    let cancelled = false;
-    void apiLiveRankingsWeekly().then(({ data, error }) => {
-      if (cancelled || error) return;
-      const list = Array.isArray(data?.rankings) ? data.rankings : [];
-      const idx = list.findIndex((r: { user_id?: string; id?: string; creator_id?: string }) => {
-        const id = String(r?.user_id || r?.id || r?.creator_id || '');
-        return id === String(creatorId);
-      });
-      setDiamondLeagueRank(idx >= 0 ? idx + 1 : null);
-    });
-    return () => {
-      cancelled = true;
-    };
+    return loadDiamondLeagueRankForCreator(hostUserId, setDiamondLeagueRank);
   }, [hostUserId]);
 
   // Spectator keyboard → creator: send chat to creator's room (broadcast so creator and all viewers see it)

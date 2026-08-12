@@ -28,6 +28,7 @@ import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedCha
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
 import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
 import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
+import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -54,7 +55,8 @@ import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
+import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -121,7 +123,6 @@ import {
   apiLiveGetDailyHearts,
   apiLiveMembership,
   apiLiveModerationCheck,
-  apiLiveRankingsWeekly,
   apiLiveShareCreate,
   apiLiveStickerDelete,
   apiLiveStickers,
@@ -141,7 +142,6 @@ import {
   type BattleTileGifts,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
-import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
 import { useCreatorMembershipPurchase } from '../../membership/useCreatorMembershipPurchase';
@@ -389,23 +389,7 @@ export function useLiveHostController() {
 
   useEffect(() => {
     const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
-    if (!creatorId || creatorId === 'broadcast') {
-      setDiamondLeagueRank(null);
-      return;
-    }
-    let cancelled = false;
-    void apiLiveRankingsWeekly().then(({ data, error }) => {
-      if (cancelled || error) return;
-      const list = Array.isArray(data?.rankings) ? data.rankings : [];
-      const idx = list.findIndex((r: { user_id?: string; id?: string; creator_id?: string }) => {
-        const id = String(r?.user_id || r?.id || r?.creator_id || '');
-        return id === String(creatorId);
-      });
-      setDiamondLeagueRank(idx >= 0 ? idx + 1 : null);
-    });
-    return () => {
-      cancelled = true;
-    };
+    return loadDiamondLeagueRankForCreator(creatorId, setDiamondLeagueRank);
   }, [isBroadcast, effectiveStreamId, user?.id]);
 
   const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
@@ -469,13 +453,7 @@ export function useLiveHostController() {
         showToast('Could not load wallet balance');
         return;
       }
-      if (boot.promo > 0 && engagementFlags.promoGiftSpendEnabled) {
-        setGiftSource('promotional_coins');
-      } else if (boot.starter > 0) {
-        setGiftSource('starter_coins');
-      } else {
-        setGiftSource('paid_coins');
-      }
+      setGiftSource(resolveGiftSourceFromBalances(boot));
       const resolvedLevel = Math.max(boot.currentLevel, Number(user.level) || 0);
       setUserLevel(resolvedLevel);
       if (boot.currentLevel > 0) updateUser({ level: boot.currentLevel });
@@ -3385,8 +3363,6 @@ export function useLiveHostController() {
         }
       }
       const text = typeof data.text === 'string' ? data.text : '';
-      const levelUpMatch = /^reached Level (\d+)/i.exec(text);
-      const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
       const uid = typeof data.user_id === 'string' ? data.user_id : '';
       const cached = uid ? viewerIdentityCacheRef.current.get(uid) : undefined;
       const username =
@@ -3413,23 +3389,16 @@ export function useLiveHostController() {
           maybeResolveViewerIdentity(uid);
         }
       }
-      const isMembershipJoin = /joined the team/i.test(text);
-      const msg: LiveMessage = {
-        id: `ws-${Date.now()}-${Math.random()}`,
+      const msg = buildLiveWsChatMessage({
         username,
-        text: isMembershipJoin ? 'Joined the team!' : text,
-        level: Number.isFinite(parsedLevel)
-          ? parsedLevel
-          : Number.isFinite(Number(data.level)) && Number(data.level) >= 0
-            ? Math.floor(Number(data.level))
-            : cached?.level || 1,
         avatar,
-        stickerUrl: typeof data.stickerUrl === 'string' ? data.stickerUrl : undefined,
-        isSystem: !!levelUpMatch || isMembershipJoin,
-        membershipIcon: isMembershipJoin ? 'heart' : undefined,
-      };
+        text,
+        dataLevel: data.level,
+        cachedLevel: cached?.level,
+        stickerUrl: data.stickerUrl,
+      });
       setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
-      if (isMembershipJoin) {
+      if (msg.membershipIcon === 'heart') {
         refreshMembershipStatsRef.current();
       }
     };
