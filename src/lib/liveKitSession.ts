@@ -50,8 +50,6 @@ export interface LiveKitSessionHandlers {
   onParticipantDisconnected?: (participant: RemoteParticipant) => void;
 }
 
-export { detachRemoteTrack, detachParticipantTracks } from './live/liveTrackCleanup';
-
 export class LiveKitSession {
   private room: Room | null = null;
   private handlers: LiveKitSessionHandlers = {};

@@ -2,7 +2,7 @@
  * Co-host stage layout presets — square frame tiles, host-chosen, synced via cohost_layout_sync.
  */
 
-export const COHOST_LAYOUT_IDS = [
+const COHOST_LAYOUT_IDS = [
   'solo_big',
   'big_left_stack',
   'two_top_eight',
@@ -125,11 +125,3 @@ export const COHOST_LAYOUT_THUMBS: Record<
   },
 };
 
-/** Stage CSS grid for the live video area (same topology as thumbs). */
-export function cohostStageGridStyle(layoutId: CohostLayoutId): {
-  gridTemplate: string;
-  gap: string;
-} {
-  const thumb = COHOST_LAYOUT_THUMBS[layoutId];
-  return { gridTemplate: thumb.grid, gap: '2px' };
-}

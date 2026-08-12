@@ -101,7 +101,7 @@ export async function bunnyUpload(
  * Uses VITE_BUNNY_CDN_HOSTNAME when set; otherwise falls back to the
  * backend proxy URL so links still resolve during local development.
  */
-export function bunnyCdnUrl(storagePath: string): string {
+function bunnyCdnUrl(storagePath: string): string {
   const hostname = getCdnHostname();
   if (hostname) {
     return `https://${hostname}/${storagePath}`;

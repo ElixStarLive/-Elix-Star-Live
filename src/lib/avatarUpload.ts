@@ -13,7 +13,7 @@ export interface AvatarUploadResult {
   error?: string;
 }
 
-export class AvatarUploadService {
+class AvatarUploadService {
   async uploadAvatar(file: File, userId: string): Promise<AvatarUploadResult> {
     try {
       const currentUser = useAuthStore.getState().user;

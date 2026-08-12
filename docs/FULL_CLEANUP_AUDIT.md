@@ -465,3 +465,43 @@ Test coins:                         PRESERVED (owner order)
 | Host↔spectator gift mega-controllers | OPEN structural — UI freeze |
 
 **Locally actionable Pass 6 complete.** Remaining gate items are BLOCKED/OPEN with evidence, not abandoned silently.
+
+---
+
+## Pass 7 (2026-08-12) — finish locally actionable Knip src exports
+
+### What was safe to change
+- Unexported / removed confirmed-dead **client** exports after import TRACE (`docs/_cleanup_audit_raw/knip-pass7-trace.txt` + post-edit `knip-pass7-after.txt`).
+- Dead AI helper bodies, unused interactionTracker surface, unused payout/likes API helpers, unused battle/cohost helpers, unused profileFrame tokens, unused liveWsOn helper, unused liveKitSession re-exports, unused royce asset barrel re-exports, etc.
+- **testCoins** exports left exported (owner KEEP — Knip still reports them; do not delete).
+
+### What was not touched
+- Locked UI files (gift overlays, Inbox, ChatThread, VideoCall, Create camera, Comments).
+- Server public-API unused exports (TRACE/KEEP — route/module surface).
+- Sonar (still no host/token).
+- Mass empty-catch rewrites (Semgrep inventory OPEN).
+- Host↔spectator gift mega-controller unify (UI freeze).
+
+### Tool gate (Pass 7)
+
+| Tool | Result |
+|------|--------|
+| **tsc -b** | **0 errors** |
+| **eslint src server** | **0 errors** |
+| **vitest** | **228 passed / 31 skipped** |
+| **Knip** | Unused exports **105** (was ~192 after Pass 6 / 117 mid-Pass-7); remaining mostly **server** + **testCoins KEEP** + classified unused files KEEP |
+| **Sonar** | **BLOCKED** — no SonarQube/SonarCloud |
+| **iOS** | **NOT APPLICABLE** (Windows) |
+
+### Honest remaining (not “fully clean forever”)
+
+```text
+TypeScript / ESLint / tests:     PASS
+Knip unused exports:             105 — server API + testCoins KEEP; not mass-deleted
+Sonar:                           BLOCKED
+Semgrep empty-catch:             OPEN inventory
+Host/spectator gift structure:   OPEN (UI freeze)
+iOS:                             N/A
+```
+
+**Verdict:** Locally actionable Pass 7 finished. Remaining items are BLOCKED/OPEN with evidence, not abandoned.

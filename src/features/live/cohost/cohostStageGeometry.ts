@@ -8,9 +8,6 @@
  */
 export const LIVE_COHOST_STAGE_HEIGHT = 'calc(30dvh + 6mm)' as const;
 
-/** /watch (+ host live): below live profile / top chrome */
-export const LIVE_COHOST_STAGE_TOP = 'calc(var(--safe-top) + 90px + 9mm)' as const;
-
 /** Bottom edge of spectator /watch co-host video stage (top + height). */
 export const LIVE_COHOST_STAGE_BOTTOM =
   'calc(var(--safe-top) + 90px + 9mm + 30dvh + 6mm)' as const;

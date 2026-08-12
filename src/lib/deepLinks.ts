@@ -97,11 +97,6 @@ export const useDeepLinks = () => {
   }, [navigate]);
 };
 
-// Generate shareable deep link
-export const generateDeepLink = (type: 'video' | 'user' | 'live' | 'hashtag', id: string): string => {
-  return `elixstar://${type}/${id}`;
-};
-
 // Generate web fallback link
 export const generateWebLink = (type: 'video' | 'user' | 'live' | 'hashtag', id: string): string => {
   const baseUrl = 'https://www.elixstarlive.co.uk';
@@ -111,15 +106,4 @@ export const generateWebLink = (type: 'video' | 'user' | 'live' | 'hashtag', id:
     type === 'live' ? `live/${id}` :
     `video/${id}`;
   return `${baseUrl}/${path}`;
-};
-
-// Generate universal link (tries deep link, falls back to web)
-export const generateUniversalLink = (type: 'video' | 'user' | 'live' | 'hashtag', id: string): string => {
-  if (typeof window !== 'undefined') {
-    const isNative = /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
-    if (isNative) {
-      return generateDeepLink(type, id);
-    }
-  }
-  return generateWebLink(type, id);
 };

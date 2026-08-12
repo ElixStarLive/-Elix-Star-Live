@@ -1,0 +1,67 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm.
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...version of npm.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> elix-star-live@1.0.2 test
+> vitest run --run
+
+
+ RUN  v3.2.7 C:/Users/Absm Construction/Desktop/Elix Star Live
+
+ Γ£ô server/lib/coalescedWriter.test.ts (5 tests) 20ms
+ Γ£ô server/lib/moneySafetyContract.test.ts (17 tests) 13ms
+ Γ£ô server/lib/valkeyPubSub.test.ts (7 tests) 127ms
+ Γ£ô server/routes/testCoins.issue.test.ts (5 tests) 22ms
+ Γ£ô server/lib/monetisation/moneyMath.test.ts (25 tests) 21ms
+[19:42:19.245] WARN (7588): Job worker starting with in-process memory queue (Valkey not configured)
+[19:42:19.246] INFO (7588): Background job worker started
+    intervalMs: 40
+    valkey: false
+[19:42:19.289] ERROR (7588): job handler failed ΓÇö pushed to DLQ
+    job: "cleanup_retention"
+    err: "forced failure"
+ Γ£ô server/lib/jobQueue.memory.test.ts (2 tests) 875ms
+   Γ£ô jobQueue memory fallback + DLQ > enqueues to memory when Valkey is unavailable  530ms
+   Γ£ô jobQueue memory fallback + DLQ > pushes failed jobs to memory DLQ  341ms
+ Γ£ô server/middleware/sessionGuard.test.ts (6 tests) 15ms
+ Γ£ô server/websocket/liveBattleStateContract.test.ts (14 tests) 17ms
+ Γ£ô src/lib/storeProductCatalogs.test.ts (8 tests) 12ms
+ Γ£ô src/lib/live/liveRemoteVideoBudget.test.ts (3 tests) 11ms
+ Γ£ô server/lib/googlePlaySubscriptions.test.ts (13 tests) 15ms
+ Γ£ô server/lib/starterCoinsXpContract.test.ts (11 tests) 12ms
+ Γ£ô server/websocket/giftAudience.test.ts (7 tests) 11ms
+ Γ£ô src/lib/live/normalLiveHeatContract.test.ts (5 tests) 12ms
+ Γ£ô server/lib/serviceAccountEnv.test.ts (4 tests) 15ms
+ Γ£ô server/websocket/testCoinsPolicy.test.ts (4 tests) 9ms
+ Γ£ô server/lib/monetisation/storeProductCatalogs.test.ts (7 tests) 8ms
+ Γ£ô server/lib/blockedContracts.mount.test.ts (5 tests) 12ms
+ Γ£ô server/lib/profileViews.contract.test.ts (4 tests) 7ms
+ Γ£ô server/websocket/videoCallContract.test.ts (8 tests) 7ms
+ Γ£ô server/lib/engagementAdminContract.test.ts (6 tests) 10ms
+ Γ£ô server/validation/reportSchema.test.ts (2 tests) 11ms
+ Γ£ô server/lib/monetisation/monetisationExpand.test.ts (8 tests) 9ms
+ Γ£ô server/lib/engagementTrustContract.test.ts (7 tests) 9ms
+ Γ£ô server/lib/monitoringContract.test.ts (8 tests) 7ms
+ Γ£ô server/lib/risingStarsContract.test.ts (4 tests) 6ms
+ Γ£ô server/lib/emailVerificationContract.test.ts (7 tests) 7ms
+ Γ£ô src/lib/liveRuntimeCaps.test.ts (3 tests) 8ms
+ Γ£ô server/services/videoDownload.test.ts (2 tests) 8ms
+ Γ£ô server/lib/risingStarsNeon.test.ts (5 tests) 8ms
+ Γ£ô server/lib/fcmServiceAccountContract.test.ts (1 test) 6ms
+ Γ£ô server/lib/feed/foryouRanking.test.ts (3 tests) 6ms
+ Γåô server/lib/feed/foryou.db.test.ts (6 tests | 6 skipped)
+ Γåô server/lib/monetisation/monetisation.db.test.ts (6 tests | 6 skipped)
+ Γ£ô src/lib/live/liveTokenError.test.ts (3 tests) 6ms
+ Γ£ô server/lib/totp.contract.test.ts (1 test) 6ms
+ Γåô server/lib/monetisation/monetisationMatrix.db.test.ts (19 tests | 19 skipped)
+ Γ£ô src/lib/live/runtimeResourceAudit.test.ts (8 tests) 231ms
+
+ Test Files  35 passed | 3 skipped (38)
+      Tests  228 passed | 31 skipped (259)
+   Start at  19:42:17
+   Duration  7.19s (transform 4.78s, setup 0ms, collect 11.07s, tests 1.58s, environment 1.23s, prepare 9.56s)
+

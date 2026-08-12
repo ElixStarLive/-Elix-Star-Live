@@ -5,8 +5,6 @@ import { isGenuineAppUser } from './genuineUser';
 export const SHARE_PANEL_AVATAR_PX = 36;
 /** Column width for each Create / user chip. */
 export const SHARE_PANEL_ITEM_WIDTH_PX = 48;
-/** Plus overlay on the Create chip. */
-export const SHARE_PANEL_PLUS_PX = 10;
 /** Gold glow disc behind WhatsApp / Copy / etc. in share grids. +2mm vs prior 32px. */
 export const SHARE_PANEL_ACTION_DISC_PX = 40;
 /** Glyph size inside share action discs. */

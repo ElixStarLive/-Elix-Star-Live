@@ -1,7 +1,5 @@
 /** New ROYCE-style assets — gold on black, not legacy /Icons/ PNGs. */
 export const ROYCE_DEFAULT_AVATAR = '/royce/default-avatar.svg';
-export const ROYCE_ELIX_MARK = '/royce/elix-mark.svg';
-export const ROYCE_MEMBERSHIP = '/royce/membership.svg';
 /** Owner brand mark — use instead of yellow/random ui-avatars. */
 export const ELIX_LOGO = '/elix-logo.png';
 

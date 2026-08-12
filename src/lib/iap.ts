@@ -54,7 +54,7 @@ const PROMOTE_PRODUCTS = {
 export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
 
 /** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
-export const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
+const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
 
 export interface MembershipStatus {
   active: boolean;

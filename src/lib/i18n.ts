@@ -286,7 +286,7 @@ const ro: Dict = {
 
 const TRANSLATED: Partial<Record<Lang, Dict>> = { en, es, fr, pt, de, it, hi, ro };
 
-export function translate(lang: Lang, key: string): string {
+function translate(lang: Lang, key: string): string {
   return TRANSLATED[lang]?.[key] ?? en[key] ?? key;
 }
 

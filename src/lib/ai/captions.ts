@@ -97,9 +97,3 @@ export function generateHashtags(description: string, count: number = 8): string
 
   return Array.from(result).slice(0, count);
 }
-
-export function generateTitle(description: string): string {
-  if (!description || description.length < 3) return 'Untitled';
-  const words = description.split(/\s+/).slice(0, 8);
-  return words.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-}

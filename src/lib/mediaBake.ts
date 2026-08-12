@@ -34,7 +34,7 @@ export type StoryFxKind =
   | 'aura';
 
 /** Modern story FX layers (glow / wash / vignette) — baked after CSS grade. */
-export function drawStoryFx(
+function drawStoryFx(
   ctx: CanvasRenderingContext2D,
   fx: StoryFxKind | null | undefined,
   width: number,

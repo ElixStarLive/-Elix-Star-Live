@@ -108,7 +108,7 @@ export function buildCameraGetUserMediaVideoConstraints(
   };
 }
 
-export function toLiveKitCaptureOptions(
+function toLiveKitCaptureOptions(
   facing: 'user' | 'environment',
   tier: ThermalTier = activeTier,
 ): VideoCaptureOptions {

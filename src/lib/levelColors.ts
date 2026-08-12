@@ -1,5 +1,5 @@
 /** App max level (matches Neon level curve). */
-export const LEVEL_MAX = 300;
+const LEVEL_MAX = 300;
 
 /**
  * ELIX STAR LIVE diamond tiers (every 20 levels).
@@ -29,7 +29,7 @@ const LEVEL_TIER_COLORS: readonly {
 ];
 
 /** Rainbow chip background for level 281–300. */
-export const LEVEL_RAINBOW_BACKGROUND =
+const LEVEL_RAINBOW_BACKGROUND =
   'linear-gradient(90deg, #4A148C 0%, #0D47A1 16%, #006C84 28%, #1B5E20 42%, #D8D9DD 58%, #B71C1C 74%, #AD1457 88%, #6A1B9A 100%)';
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -53,29 +53,25 @@ export function clampUserLevel(level: number): number {
 }
 
 /** True for the final prestige tier (rainbow neon frame). */
-export function isDiamondPrestigeLevel(level: number): boolean {
+function isDiamondPrestigeLevel(level: number): boolean {
   return clampUserLevel(level) > 280;
 }
 
 /** 0-based tier index for the chart bands (every 20 levels). */
-export function getLevelColorBand(level: number): number {
+function getLevelColorBand(level: number): number {
   const safe = clampUserLevel(level);
   const idx = LEVEL_TIER_COLORS.findIndex((t) => safe <= t.max);
   return idx < 0 ? LEVEL_TIER_COLORS.length - 1 : idx;
 }
 
-export function getLevelTierName(level: number): string {
-  return LEVEL_TIER_COLORS[getLevelColorBand(level)]?.name ?? 'Purple';
-}
-
 /** Diamond / number neon glow colour for the level band. */
-export function getLevelAccentColor(level: number): string {
+function getLevelAccentColor(level: number): string {
   const tier = LEVEL_TIER_COLORS[getLevelColorBand(level)] ?? LEVEL_TIER_COLORS[0];
   return tier.glow === 'rainbow' ? '#FFD700' : tier.glow;
 }
 
 /** Solid (or rainbow) chip background for the level band. */
-export function getLevelBackgroundColor(level: number): string {
+function getLevelBackgroundColor(level: number): string {
   const tier = LEVEL_TIER_COLORS[getLevelColorBand(level)] ?? LEVEL_TIER_COLORS[0];
   return tier.background === 'rainbow' ? LEVEL_RAINBOW_BACKGROUND : tier.background;
 }

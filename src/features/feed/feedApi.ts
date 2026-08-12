@@ -253,17 +253,6 @@ export async function apiFetchVideoComments(
   return { comments, error: null };
 }
 
-export async function apiFetchVideoLikes(
-  videoId: string,
-): Promise<{ users: unknown[]; error: string | null }> {
-  const { data, error } = await request<Record<string, unknown>>(
-    `/api/videos/${encodeURIComponent(videoId)}/likes`,
-  );
-  if (error) return { users: [], error: error.message };
-  const users = Array.isArray(data?.users) ? data.users : [];
-  return { users, error: null };
-}
-
 export async function apiFetchUserVideos(
   userId: string,
 ): Promise<{ videos: unknown[]; error: string | null }> {

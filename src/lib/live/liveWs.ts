@@ -84,11 +84,3 @@ export function liveWsSend(
 ): void {
   websocket.send(type, payload ?? {});
 }
-
-export function liveWsOn(
-  type: LiveWsInEvent | string,
-  handler: (data: unknown) => void,
-): () => void {
-  websocket.on(type, handler);
-  return () => websocket.off(type, handler);
-}

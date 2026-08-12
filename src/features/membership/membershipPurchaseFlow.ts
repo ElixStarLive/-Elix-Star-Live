@@ -33,7 +33,7 @@ export function peekPendingMembershipCreator(): string | null {
   }
 }
 
-export function shouldOpenMembershipPanelAfterAuth(): boolean {
+function shouldOpenMembershipPanelAfterAuth(): boolean {
   if (typeof sessionStorage === 'undefined') return false;
   try {
     return sessionStorage.getItem(PENDING_OPEN_PANEL_KEY) === '1';
@@ -54,7 +54,7 @@ export function consumePendingMembershipOpenPanel(): boolean {
   return true;
 }
 
-export function clearPendingMembershipPurchase(): void {
+function clearPendingMembershipPurchase(): void {
   if (typeof sessionStorage === 'undefined') return;
   try {
     sessionStorage.removeItem(PENDING_CREATOR_KEY);

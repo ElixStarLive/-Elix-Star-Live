@@ -351,7 +351,7 @@ export async function searchLicensedTracks(term: string): Promise<SoundTrack[]> 
 
 const SAVED_SOUNDS_KEY = 'elix_saved_sounds_v1';
 
-export function listSavedSounds(): SoundTrack[] {
+function listSavedSounds(): SoundTrack[] {
   const raw = localStorage.getItem(SAVED_SOUNDS_KEY);
   if (!raw) return [];
   let parsed: unknown;

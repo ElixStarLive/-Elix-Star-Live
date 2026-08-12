@@ -19,7 +19,7 @@ type HideUntilPlayingEl = HTMLVideoElement & {
  * else media events (`loadeddata` / `playing` / `loadedmetadata`), else MediaStream
  * track `unmute` when the element has srcObject.
  */
-export function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): void {
+function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): void {
   if (!el) return;
   const flagged = el as HideUntilPlayingEl;
   if (flagged.__elixRevealOnPlaying) {

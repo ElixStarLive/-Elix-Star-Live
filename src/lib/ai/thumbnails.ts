@@ -105,9 +105,3 @@ function analyzeFrame(ctx: CanvasRenderingContext2D, w: number, h: number): numb
   return lumScore * 0.3 + contrastScore * 0.4 + satScore * 0.3;
 }
 
-export async function generateSmartThumbnail(
-  videoUrl: string
-): Promise<string | null> {
-  const candidates = await extractThumbnails(videoUrl, 8);
-  return candidates.length > 0 ? candidates[0].dataUrl : null;
-}

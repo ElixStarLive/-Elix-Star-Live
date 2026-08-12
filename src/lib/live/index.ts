@@ -12,5 +12,5 @@ export {
   type LiveKitCreds,
 } from './liveApi';
 export { LiveRoomLifecycle, type LiveRole } from './liveRoomLifecycle';
-export { LIVE_WS_IN, LIVE_WS_OUT, liveWsSend, liveWsOn, type LiveWsInEvent } from './liveWs';
+export { LIVE_WS_IN, LIVE_WS_OUT, liveWsSend, type LiveWsInEvent } from './liveWs';
 export { connectLiveFeedPresence, type FeedPresenceHandlers } from './liveFeedPresence';

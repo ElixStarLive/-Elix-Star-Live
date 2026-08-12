@@ -63,31 +63,8 @@ export async function fetchGiftsFromDatabase(): Promise<GiftUiItem[]> {
   }
 }
 
-export async function fetchGiftPriceMap(): Promise<Map<string, number>> {
-  try {
-    const { data, error } = await api.gifts.getCatalog();
-
-    if (error) {
-      throw new Error(error.message || 'Could not load gift prices');
-    }
-
-    const giftsData = Array.isArray(data) ? data : (data?.catalog ?? data?.gifts ?? []);
-    const map = new Map<string, number>();
-    for (const gift of giftsData) {
-      if (gift.gift_id && gift.coin_cost != null) {
-        map.set(gift.gift_id, gift.coin_cost);
-      }
-    }
-    return map;
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'Could not load gift prices';
-    await warnCatalogLoadFailed(msg);
-    throw e instanceof Error ? e : new Error(msg);
-  }
-}
-
 /** Public Bunny CDN for all gift icons/videos (never use storage.bunnycdn.com in browser). */
-export const GIFT_CDN_ORIGIN = 'https://elixstorage.b-cdn.net';
+const GIFT_CDN_ORIGIN = 'https://elixstorage.b-cdn.net';
 
 function giftPathFromUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -101,7 +78,7 @@ function giftPathFromUrl(path: string): string {
 }
 
 /** Normalize any gift media path/URL to a public Bunny CDN URL. */
-export function isGiftVideoPath(value: string): boolean {
+function isGiftVideoPath(value: string): boolean {
   const p = value.split('?')[0].toLowerCase();
   return p.endsWith('.mp4') || p.endsWith('.webm') || p.endsWith('.mov');
 }
@@ -177,7 +154,7 @@ function giftPosterPath(animationPath: string): string {
   return pathOnly;
 }
 
-export function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[] {
+function buildGiftUiItemsFromCatalog(rows: GiftCatalogRow[]): GiftUiItem[] {
   const sanitizeGiftUrl = (url: string | null): string | null => {
       if (!url) return null;
       

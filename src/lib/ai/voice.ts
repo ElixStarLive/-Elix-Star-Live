@@ -262,12 +262,3 @@ export class VoiceProcessor {
   }
 }
 
-export function createNoiseGate(ctx: AudioContext): DynamicsCompressorNode {
-  const gate = ctx.createDynamicsCompressor();
-  gate.threshold.value = -40;
-  gate.knee.value = 0;
-  gate.ratio.value = 20;
-  gate.attack.value = 0.001;
-  gate.release.value = 0.1;
-  return gate;
-}

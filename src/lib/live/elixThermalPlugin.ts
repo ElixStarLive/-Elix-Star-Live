@@ -1,4 +1,4 @@
-import { Capacitor, registerPlugin } from '@capacitor/core';
+import { registerPlugin } from '@capacitor/core';
 import type { ThermalTier } from './liveMediaProfile';
 
 export type ElixThermalState = {
@@ -20,7 +20,3 @@ export const ElixThermal = registerPlugin<ElixThermalPlugin>('ElixThermal', {
   web: () =>
     import('./elixThermalPlugin.web').then((m) => m.default),
 });
-
-export function isNativeThermalAvailable(): boolean {
-  return Capacitor.isNativePlatform();
-}

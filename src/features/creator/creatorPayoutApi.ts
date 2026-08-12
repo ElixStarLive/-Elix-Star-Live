@@ -21,18 +21,6 @@ export async function apiCreatorPayoutMethods(): Promise<{
   };
 }
 
-export async function apiCreatorPayoutRequests(): Promise<{
-  payouts: Record<string, unknown>[];
-  error: string | null;
-}> {
-  const { data, error } = await request<Record<string, unknown>>('/api/creator/payouts');
-  if (error) return { payouts: [], error: error.message };
-  return {
-    payouts: Array.isArray(data?.payouts) ? (data.payouts as Record<string, unknown>[]) : [],
-    error: null,
-  };
-}
-
 export async function apiCreatorSavePayoutMethod(payload: {
   type: 'bank' | 'paypal';
   details: Record<string, unknown>;

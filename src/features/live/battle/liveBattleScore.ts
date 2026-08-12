@@ -87,23 +87,6 @@ function readTotalsFromPayload(
   };
 }
 
-/** Normalize server battle_score / battle_ended score payloads (absolute; missing → 0). */
-export function normalizeBattleScores(data: unknown): {
-  host: number;
-  opponent: number;
-  player3: number;
-  player4: number;
-} | null {
-  if (!data || typeof data !== 'object') return null;
-  const totals = readTotalsFromPayload(data, EMPTY_BATTLE_SERVER_TOTALS);
-  return {
-    host: totals.h,
-    opponent: totals.o,
-    player3: totals.p3,
-    player4: totals.p4,
-  };
-}
-
 /**
  * Apply server score fields into totals.
  * Missing fields keep previous values (server is source of truth when present).
@@ -175,7 +158,7 @@ export function teamTotalsFromScores(totals: BattleServerTotals): {
 }
 
 /** Team winner from server totals: red=host+P3, blue=opponent+P4. */
-export function determineTeamWinnerFromTotals(
+function determineTeamWinnerFromTotals(
   totals: BattleServerTotals,
 ): 'host' | 'opponent' | 'draw' {
   const { red, blue } = teamTotalsFromScores(totals);

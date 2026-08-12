@@ -1,6 +1,6 @@
 /** Identity helpers for Live rooms (auth ids / stream keys). */
 
-export function normalizeUserId(id: string | null | undefined): string {
+function normalizeUserId(id: string | null | undefined): string {
   return typeof id === 'string' ? id.trim().toLowerCase() : '';
 }
 
@@ -8,7 +8,7 @@ export function normalizeUserId(id: string | null | undefined): string {
  * LiveKit subscribe-only identities are `${userId}__v_<12 hex>`.
  * Publishers (host/co-host) use stable `userId`. Strip before compare.
  */
-export function userIdFromLiveKitIdentity(identity: string | null | undefined): string {
+function userIdFromLiveKitIdentity(identity: string | null | undefined): string {
   const i = normalizeUserId(identity);
   const m = i.match(/^(.*)__v_[a-f0-9]{12}$/);
   return m?.[1] || i;

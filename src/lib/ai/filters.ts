@@ -44,43 +44,5 @@ export const FILTER_PRESETS: FilterPreset[] = [
   { id: 'art-chrome', name: 'Chrome', category: 'artistic', css: 'saturate(0.6) contrast(1.3) brightness(1.1) sepia(0.1)', intensity: 1, preview: '🪞' },
 ];
 
-export function applyFilterToCanvas(
-  canvas: HTMLCanvasElement,
-  source: HTMLVideoElement | HTMLImageElement,
-  filterId: string,
-  intensity: number = 1
-): void {
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-
-  const preset = FILTER_PRESETS.find(f => f.id === filterId);
-  canvas.width = source instanceof HTMLVideoElement ? source.videoWidth : source.naturalWidth;
-  canvas.height = source instanceof HTMLVideoElement ? source.videoHeight : source.naturalHeight;
-
-  if (!preset || preset.css === 'none') {
-    ctx.filter = 'none';
-  } else {
-    const parts = preset.css.split(' ');
-    const scaled = parts.map(part => {
-      const match = part.match(/^(\w[\w-]*)\(([^)]+)\)$/);
-      if (!match) return part;
-      const [, fn, val] = match;
-      const num = parseFloat(val);
-      if (isNaN(num)) return part;
-      const unit = val.replace(String(num), '');
-      const base = fn === 'brightness' || fn === 'contrast' || fn === 'saturate' ? 1 : 0;
-      const adjusted = base + (num - base) * intensity;
-      return `${fn}(${adjusted}${unit})`;
-    });
-    ctx.filter = scaled.join(' ');
-  }
-
-  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
-  ctx.filter = 'none';
-}
-
 export type FilterCategory = FilterPreset['category'];
 
-export function getFiltersByCategory(category: FilterCategory): FilterPreset[] {
-  return FILTER_PRESETS.filter(f => f.category === category);
-}

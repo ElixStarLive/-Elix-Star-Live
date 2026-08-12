@@ -21,8 +21,8 @@ export type GiftPlaybackItem = {
 };
 
 /** Soft cap before trimming the txn Set; keep newest N after trim. */
-export const GIFT_TXN_DEDUP_SOFT_CAP = 200;
-export const GIFT_TXN_DEDUP_KEEP = 100;
+const GIFT_TXN_DEDUP_SOFT_CAP = 200;
+const GIFT_TXN_DEDUP_KEEP = 100;
 
 export function extractGiftTxnId(data: Record<string, unknown>): string {
   return (
@@ -40,7 +40,7 @@ export function extractGiftId(data: Record<string, unknown>): string {
   );
 }
 
-export function trimBoundedTxnSet(
+function trimBoundedTxnSet(
   set: Set<string>,
   softCap = GIFT_TXN_DEDUP_SOFT_CAP,
   keep = GIFT_TXN_DEDUP_KEEP,
@@ -65,7 +65,7 @@ export function markBoundedTxn(
  * Resolve playable gift video URL from a gift_sent payload + catalog.
  * Same candidate order as host/spectator controllers historically used.
  */
-export function resolveGiftSentPlayUrl(
+function resolveGiftSentPlayUrl(
   data: Record<string, unknown>,
   catalog: GiftUiItem[],
   giftId?: string,

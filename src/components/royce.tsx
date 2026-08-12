@@ -2,8 +2,6 @@ import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { ChevronLeft, ShoppingBasket } from 'lucide-react';
 
-export { ROYCE_DEFAULT_AVATAR, ROYCE_ELIX_MARK, ROYCE_MEMBERSHIP } from '../lib/royceAssets';
-
 /** One disc size for RoyceIcon — matches right-side 32px discs. */
 const DISC = 'royce-glow-disc';
 const ICON_IN_DISC = 18;
