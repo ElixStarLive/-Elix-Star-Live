@@ -12,6 +12,29 @@ export type XpApplyResult = {
 };
 
 /**
+ * Ensure progression row exists and lock it for update. Shared by live-watch + paid-gift XP.
+ */
+export async function ensureAndLockUserProgression(
+  client: PoolClient,
+  userId: string,
+): Promise<{ totalXp: number; oldLevel: number }> {
+  await client.query(
+    `INSERT INTO user_progression (user_id, total_xp, current_level)
+     VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
+    [userId],
+  );
+  const before = await client.query(
+    `SELECT total_xp::bigint AS total_xp, current_level::int AS current_level
+       FROM user_progression WHERE user_id = $1 FOR UPDATE`,
+    [userId],
+  );
+  return {
+    totalXp: Math.max(0, Number(before.rows[0]?.total_xp) || 0),
+    oldLevel: Math.max(0, Number(before.rows[0]?.current_level) || 0),
+  };
+}
+
+/**
  * After XP has been inserted (or skipped via idempotency), bump total_xp if needed,
  * recompute level from xp_level_requirements, sync profiles, and write level_history.
  */

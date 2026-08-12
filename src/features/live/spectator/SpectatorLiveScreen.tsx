@@ -32,6 +32,7 @@ import {
   X,
 } from 'lucide-react';
 import { GiftPanel } from '../../../components/GiftPanel';
+import { useWalletStore } from '../../../store/useWalletStore';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -315,7 +316,6 @@ export default function SpectatorLiveScreen() {
     retryJoinRoom,
     sendCohostJoinRequest,
     setBattleScoreBarHidden,
-    setCoinBalance,
     setEngagementOpen,
     setEngagementPanel,
     setFeaturedUserId,
@@ -2667,8 +2667,9 @@ export default function SpectatorLiveScreen() {
                 giftSource={giftSource}
                 onGiftSourceChange={setGiftSource}
                 onRechargeSuccess={(newBalance) => {
-                  walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
-                  setCoinBalance(walletCoinBalanceRef.current);
+                  const paid = Math.max(0, Number(newBalance) || 0);
+                  walletCoinBalanceRef.current = paid;
+                  useWalletStore.getState().applyServerBalances({ paid });
                 }}
                 battleBoost={
                   spectatorBattle?.active

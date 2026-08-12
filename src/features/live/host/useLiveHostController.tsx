@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { showToast } from '../../../lib/toast';
 import { platform, openExternalLink, nativeShareUrl } from '../../../lib/platform';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
-import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, preferPlayableGiftVideoUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
+import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl, formatGiftDisplayName } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP, LIVE_VIEWER_CAP } from '../../../lib/liveRuntimeCaps';
 import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
 import {
@@ -41,7 +41,9 @@ import type {
 import { sameUserId, isSelfUser } from '../utils/ids';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
-import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl } from '../gifts/liveGiftIngest';
+import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
+import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
+import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useHostLiveSession } from './session/useHostLiveSession';
 import type { LiveKitSessionHandlers } from '../../../lib/liveKitSession';
@@ -194,29 +196,18 @@ export function useLiveHostController() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [coinBalance, setCoinBalance] = useState(0);
   /** Real wallet coins — never overwritten by test-coin display balance. */
-  const walletCoinBalanceRef = useRef(0);
-  const [starterCoinBalance, setStarterCoinBalance] = useState(0);
-  const [promotionalCoinBalance, setPromotionalCoinBalance] = useState(0);
-  const [giftSource, setGiftSource] = useState<
-    "starter_coins" | "paid_coins" | "promotional_coins"
-  >("paid_coins");
-  const storePaidBalance = useWalletStore((s) => s.paidBalance);
-  const storeStarterBalance = useWalletStore((s) => s.starterBalance);
-  const storePromoBalance = useWalletStore((s) => s.promotionalBalance);
-  // Keep GiftPanel paid/starter/promo display aligned with the wallet owner.
-  useEffect(() => {
-    if (!user?.id) return;
-    if (giftSource === 'paid_coins') {
-      walletCoinBalanceRef.current = storePaidBalance;
-      setCoinBalance(Math.max(0, storePaidBalance));
-    } else if (giftSource === 'starter_coins') {
-      setStarterCoinBalance(storeStarterBalance);
-    } else if (giftSource === 'promotional_coins') {
-      setPromotionalCoinBalance(storePromoBalance);
-    }
-  }, [storePaidBalance, storeStarterBalance, storePromoBalance, giftSource, user?.id]);
+  const {
+    coinBalance,
+    starterCoinBalance,
+    promotionalCoinBalance,
+    giftSource,
+    setGiftSource,
+    walletCoinBalanceRef,
+    storePaidBalance,
+    storeStarterBalance,
+    storePromoBalance,
+  } = useLiveWalletDisplay(user?.id);
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
@@ -476,16 +467,13 @@ export function useLiveHostController() {
             ? Math.max(0, wallet.balances.paid)
             : 0;
         walletCoinBalanceRef.current = walletBal;
-        setCoinBalance(Math.max(0, walletBal));
         const p = (progression.data?.progression ?? null) as Record<string, unknown> | null;
         const starter = Math.max(0, Number(p?.starter_coin_balance) || 0);
-        setStarterCoinBalance(starter);
         const ew = engagementWallet.data?.wallet as Record<string, number> | undefined;
         const promo = Math.max(
           0,
           Number(ew?.promotionalCoins ?? ew?.promotional_coins ?? 0) || 0,
         );
-        setPromotionalCoinBalance(promo);
         useWalletStore.getState().applyServerBalances({
           paid: walletBal,
           starter,
@@ -2250,7 +2238,6 @@ export function useLiveHostController() {
       if (!walletErr && balances) {
         const walletBal = Math.max(0, balances.paid);
         walletCoinBalanceRef.current = walletBal;
-        setCoinBalance(walletBal);
         useWalletStore.getState().applyServerBalances({
           paid: walletBal,
           starter: balances.starter,
@@ -2271,7 +2258,7 @@ export function useLiveHostController() {
           0,
           Number(progression.starter_coin_balance) || 0,
         );
-        setStarterCoinBalance(starter);
+        useWalletStore.getState().applyServerBalances({ starter });
       } else if (error) {
         showToast('Could not load starter coins');
       }
@@ -2285,7 +2272,7 @@ export function useLiveHostController() {
           0,
           Number(ew.promotionalCoins ?? ew.promotional_coins ?? 0) || 0,
         );
-        setPromotionalCoinBalance(promo);
+        useWalletStore.getState().applyServerBalances({ promotional: promo });
       } else if (error) {
         showToast('Could not load promo coins');
       }
@@ -4506,12 +4493,13 @@ export function useLiveHostController() {
     if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
 
     // Host never uses test coins — always real wallet / starter / promo.
+    const walletNow = useWalletStore.getState();
     const spendable =
       giftSource === 'starter_coins'
-        ? starterCoinBalance
+        ? walletNow.starterBalance
         : giftSource === 'promotional_coins'
-          ? promotionalCoinBalance
-          : walletCoinBalanceRef.current;
+          ? walletNow.promotionalBalance
+          : walletNow.paidBalance;
     if (spendable < gift.coins) {
       showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
       return;
@@ -4534,14 +4522,7 @@ export function useLiveHostController() {
                   opponentRoomId: idsForBattleGiftRest?.opponentRoomId ?? '',
                 })
               : undefined;
-          const playableVideo =
-            gift.video && gift.video.trim()
-              ? preferPlayableGiftVideoUrl(
-                  gift.video.startsWith('http://') || gift.video.startsWith('https://')
-                    ? gift.video.trim()
-                    : resolveGiftAssetUrl(gift.video.startsWith('/') ? gift.video : `/${gift.video}`),
-                )
-              : null;
+          const playableVideo = resolvePlayableGiftVideoUrl(gift.video);
           const paid = await sendLivePaidGift({
             streamKey: effectiveStreamId,
             giftId: gift.id,
@@ -4560,30 +4541,16 @@ export function useLiveHostController() {
             showToast(msg);
             return;
           }
-          if (result.giftSource === 'starter_coins') {
-            const nextStarter = Math.max(0, Number(result.newStarterBalance) || 0);
-            setStarterCoinBalance(nextStarter);
-            useWalletStore.getState().applyServerBalances({ starter: nextStarter });
-            if (nextStarter <= 0) {
-              setGiftSource('paid_coins');
-            }
-          } else if (result.giftSource === 'promotional_coins') {
-            const nextPromo = Math.max(
-              0,
-              Number(result.newPromotionalBalance) || 0,
-            );
-            setPromotionalCoinBalance(nextPromo);
-            useWalletStore.getState().applyServerBalances({ promotional: nextPromo });
-            if (nextPromo <= 0) {
-              setGiftSource(
-                starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
-              );
-            }
-          } else if (result.newBalance != null) {
-            const nextWallet = Math.max(0, Number(result.newBalance));
-            walletCoinBalanceRef.current = nextWallet;
-            setCoinBalance(nextWallet);
-            useWalletStore.getState().applyServerBalances({ paid: nextWallet });
+          const applied = await applyLiveGiftWalletResult({ result, giftSource });
+          if (applied.paid != null) {
+            walletCoinBalanceRef.current = applied.paid;
+          }
+          if (applied.nextGiftSource) {
+            setGiftSource(applied.nextGiftSource);
+          }
+          if (applied.walletRefreshFailed) {
+            reportFailure('live_gift_wallet_refresh', 'fetchWallet failed');
+            showToast('Could not refresh wallet balance');
           }
           if (result.newLevel != null) {
             const updatedLevel = Number(result.newLevel);
@@ -4749,12 +4716,13 @@ export function useLiveHostController() {
       if (comboCount >= GIFT_COMBO_MAX) return;
 
       // Host never uses test coins — always real wallet / starter / promo.
+      const walletNow = useWalletStore.getState();
       const spendable =
         giftSource === 'starter_coins'
-          ? starterCoinBalance
+          ? walletNow.starterBalance
           : giftSource === 'promotional_coins'
-            ? promotionalCoinBalance
-            : walletCoinBalanceRef.current;
+            ? walletNow.promotionalBalance
+            : walletNow.paidBalance;
       if (spendable < lastSentGift.coins) {
         showToast("Not enough coins!");
         return;
@@ -4764,16 +4732,7 @@ export function useLiveHostController() {
       let giftTransactionId: string | null = null;
       if (user?.id) {
         try {
-          const comboPlayableVideo =
-            lastSentGift.video && lastSentGift.video.trim()
-              ? lastSentGift.video.startsWith('http://') || lastSentGift.video.startsWith('https://')
-                ? lastSentGift.video.trim()
-                : resolveGiftAssetUrl(
-                    lastSentGift.video.startsWith('/')
-                      ? lastSentGift.video
-                      : `/${lastSentGift.video}`,
-                  )
-              : null;
+          const comboPlayableVideo = resolvePlayableGiftVideoUrl(lastSentGift.video);
           const comboBattleTarget = isBattleMode
             ? (() => {
                 const ids = battleStreamIdsRef.current;
@@ -4804,30 +4763,16 @@ export function useLiveHostController() {
             showToast(msg);
             return;
           }
-          if (result.giftSource === 'starter_coins') {
-            const nextStarter = Math.max(0, Number(result.newStarterBalance) || 0);
-            setStarterCoinBalance(nextStarter);
-            useWalletStore.getState().applyServerBalances({ starter: nextStarter });
-            if (nextStarter <= 0) {
-              setGiftSource('paid_coins');
-            }
-          } else if (result.giftSource === 'promotional_coins') {
-            const nextPromo = Math.max(
-              0,
-              Number(result.newPromotionalBalance) || 0,
-            );
-            setPromotionalCoinBalance(nextPromo);
-            useWalletStore.getState().applyServerBalances({ promotional: nextPromo });
-            if (nextPromo <= 0) {
-              setGiftSource(
-                starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
-              );
-            }
-          } else if (result.newBalance != null) {
-            const nextWallet = Math.max(0, Number(result.newBalance));
-            walletCoinBalanceRef.current = nextWallet;
-            setCoinBalance(nextWallet);
-            useWalletStore.getState().applyServerBalances({ paid: nextWallet });
+          const applied = await applyLiveGiftWalletResult({ result, giftSource });
+          if (applied.paid != null) {
+            walletCoinBalanceRef.current = applied.paid;
+          }
+          if (applied.nextGiftSource) {
+            setGiftSource(applied.nextGiftSource);
+          }
+          if (applied.walletRefreshFailed) {
+            reportFailure('live_gift_wallet_refresh', 'fetchWallet failed');
+            showToast('Could not refresh wallet balance');
           }
           if (result.newLevel != null) {
             newLevel = Number(result.newLevel);
@@ -6173,7 +6118,6 @@ export function useLiveHostController() {
     setCoHosts,
     setCohostGiftScores,
     setCohostLastGifts,
-    setCoinBalance,
     setComboCount,
     setCreatorQuery,
     setCreatorStickers,
@@ -6245,7 +6189,6 @@ export function useLiveHostController() {
     setPlayer3Score,
     setPlayer4Score,
     setPromo,
-    setPromotionalCoinBalance,
     setRankingInitialTab,
     setRemoteCamOff,
     setRoseCount,
@@ -6273,7 +6216,6 @@ export function useLiveHostController() {
     setSpeedChallengeTaps,
     setSpeedChallengeTime,
     setSpeedMultiplier,
-    setStarterCoinBalance,
     setStickerUploading,
     setTopGifters,
     setTopGiftersSide,

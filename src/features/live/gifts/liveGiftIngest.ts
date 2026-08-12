@@ -89,7 +89,23 @@ function resolveGiftSentPlayUrl(
   );
 }
 
-/** Local send / combo: turn a catalog video path into a playable URL. */
+/**
+ * Catalog / send path → playable gift video URL (CDN + prefer MP4).
+ * Shared by host + spectator handleSendGift (and local playback enqueue).
+ */
+export function resolvePlayableGiftVideoUrl(
+  giftVideo: string | null | undefined,
+): string | null {
+  if (!giftVideo || !giftVideo.trim()) return null;
+  const trimmed = giftVideo.trim();
+  return preferPlayableGiftVideoUrl(
+    trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? trimmed
+      : resolveGiftAssetUrl(trimmed.startsWith('/') ? trimmed : `/${trimmed}`),
+  );
+}
+
+/** Local send / combo: only enqueue when path looks like a video. */
 export function resolveLocalGiftVideoUrl(raw: string | null | undefined): string | null {
   if (!raw || !raw.trim()) return null;
   const trimmed = raw.trim();
@@ -97,11 +113,7 @@ export function resolveLocalGiftVideoUrl(raw: string | null | undefined): string
   const isVid =
     ext.endsWith('.mp4') || ext.endsWith('.webm') || ext.endsWith('.mov');
   if (!isVid) return null;
-  return preferPlayableGiftVideoUrl(
-    trimmed.startsWith('http://') || trimmed.startsWith('https://')
-      ? trimmed
-      : resolveGiftAssetUrl(trimmed.startsWith('/') ? trimmed : `/${trimmed}`),
-  );
+  return resolvePlayableGiftVideoUrl(trimmed);
 }
 
 export function appendGiftPlayback(

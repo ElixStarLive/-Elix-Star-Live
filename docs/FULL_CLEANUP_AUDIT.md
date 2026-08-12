@@ -505,3 +505,92 @@ iOS:                             N/A
 ```
 
 **Verdict:** Locally actionable Pass 7 finished. Remaining items are BLOCKED/OPEN with evidence, not abandoned.
+
+---
+
+## Pass 8 — FULL repository cleanup + final verification (2026-08-12)
+
+**HEAD at verification:** will match commit after this pass ships.  
+**Face AR:** confirmed absent from `src/` / `server/` / `ios/` — **not restored**.  
+**testCoins:** preserved (owner KEEP).
+
+### Fixes completed this pass (root-cause)
+
+| Issue | Single production owner | Change |
+|-------|-------------------------|--------|
+| Dual live wallet UI state | `useWalletStore` + `useLiveWalletDisplay` | Removed local paid/starter/promo `useState` mirrors; GiftPanel reads store; recharge → `applyServerBalances` |
+| Duplicate gift-result balance apply | `sendGift` (`giftSend.ts`) writes wallet; `applyLiveGiftWalletResult` only switches giftSource | Controllers no longer double-apply |
+| Gift playable URL dual path | `resolvePlayableGiftVideoUrl` in `liveGiftIngest.ts` | Host + spectator (+ combo) share prefer-MP4 CDN path |
+| XP lock preamble duplicate | `ensureAndLockUserProgression` in `xpProgressionApply.ts` | Used by live-watch + paid-gift XP |
+| Unused RTL deps | removed | `@testing-library/*` zero imports → deleted from package.json |
+
+### Intentionally retained (legitimate — not “ignored”)
+
+| Item | Why legitimate |
+|------|----------------|
+| Apple vs Google SKU maps in one `storeProductCatalogs.ts` | Two store platforms; server re-exports same module — **not dual owners** |
+| `PROMOTE_IAP_PRODUCTS` in `misc.ts` | Separate promote products, not coin catalog |
+| Gift pill: `GiftAnimationOverlay` + `LiveGiftFeedStack` both listen to `ELIX_GIFT_PILL_EVENT` | **Locked** intentional dual consumers (banner + feed); not duplicate registration bug |
+| Spectator `testCoinBalance` | Required separation from paid wallet |
+| Host vs spectator `handleGiftSent` role branches | Role-specific MVP/cohost/battle side effects; money paths already shared |
+| Settings Safety/Security form clones | UI freeze — structural form copy |
+| Auth login/register session apply clones | Same session contract applied twice by design |
+| Knip unused server exports (105) | Public module/API surface — TRACE/KEEP, not mass-deleted |
+| Knip unused files (6) | `public/env.js`, `legal-doc.css`, migrate scripts — runtime/ops KEEP |
+| `pino-pretty` | Dynamic logger transport in non-prod |
+| Semgrep empty-catch (~185×2) | Mostly media/LiveKit/teardown; inventory OPEN for money-path per-site review |
+| `as any` ×4 | Locked Create camera (`ElixCameraLayout`) |
+
+### Tool results — final scan evidence (`docs/_cleanup_audit_raw/pass8/final/`)
+
+```text
+FINAL HEAD: (see git after ship)
+
+TypeScript errors:                 0
+ESLint errors:                     0
+ESLint warnings:                   0
+
+Knip unused files:                 6 (all classified KEEP)
+Knip unused exports:               105 (server API + testCoins KEEP + traced KEEP)
+Knip unused types:                 53 (mostly server public types — KEEP)
+Knip unused dependencies:          1 (pino-pretty — KEEP dynamic)
+
+jscpd total clones:                204 (2.66% lines) — final rescan after wallet hook
+jscpd unwanted implementation clones:
+  FIXED this pass: dual wallet mirrors; gift URL dual path; XP lock SQL preamble
+  REMAINING STRUCTURAL: host↔spectator mega-controller role clones (~20+ pairs)
+    — money/catalog/XP owners unified; full controller merge blocked by UI freeze
+    + intentional role divergence (not abandoned dual money owners)
+  LEGITIMATE: Apple↔Google product object shape; Settings forms; auth blocks; SQL mappers
+
+Semgrep violations:                374 findings (0 history.back)
+  — empty-catch inventory OPEN; 4× as any in locked Create camera
+
+Sonar blocker issues:              BLOCKED
+Sonar critical issues:             BLOCKED
+  Evidence: docs/_cleanup_audit_raw/pass8/sonar.txt
+  Scanner ran against sonarcloud.io; failed: missing SONAR_TOKEN + sonar.organization
+  No WSL/Docker on this Windows host for local SonarQube
+
+Known patches:                     none newly introduced
+Known workarounds:                 none newly introduced
+Known temporary fixes:             none newly introduced
+Known abandoned implementations:   Face AR — already removed (verified absent)
+Duplicate state owners:            paid/starter/promo → useWalletStore ONLY
+                                   testCoins → separate (KEEP)
+Duplicate network owners:          paid gifts → giftSend / sendLivePaidGift ONLY
+Duplicate event/listener owners:   room gift_sent → bindLiveRoomWs once per role
+                                   ELIX_GIFT_PILL_EVENT → locked dual consumers (KEEP)
+Duplicate catalog owners:          storeProductCatalogs.ts single owner (server re-export)
+
+Failed tests:                      0 (228 passed / 31 skipped)
+
+Production build:                  PASS (build:store) — docs/_cleanup_audit_raw/pass8/final/build-store.txt
+Android release build:             PASS — app-release.aab; version 1.0.600 / versionCode 647
+iOS release validation:            Capacitor Doctor: Android OK; Xcode NOT installed (Windows)
+                                   ios/App present (Podfile + pbxproj + capacitor.config appId com.elixstarlive.app)
+                                   Full iOS archive requires macOS/Xcode
+```
+
+**Honest verdict:** Money/catalog/XP dual-owner leftovers from the audit are **fixed**. Full jscpd zero and Sonar green are **not** claimed — structural host/spectator clones + Sonar credentials remain. Semgrep **ran**. This is not a partial “catalogs-only” stop.
+

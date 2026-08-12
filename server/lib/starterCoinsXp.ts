@@ -7,7 +7,10 @@
 import type pg from "pg";
 import { getPool } from "./postgres";
 import { logger } from "./logger";
-import { applyXpGainAndSyncLevel } from "./xpProgressionApply";
+import {
+  applyXpGainAndSyncLevel,
+  ensureAndLockUserProgression,
+} from "./xpProgressionApply";
 
 export const NEW_USER_STARTER_COINS = 50_000;
 
@@ -449,17 +452,10 @@ export async function awardPaidGiftXp(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(
-      `INSERT INTO user_progression (user_id, total_xp, current_level)
-       VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
-      [input.userId],
+    const { oldLevel } = await ensureAndLockUserProgression(
+      client,
+      input.userId,
     );
-    const before = await client.query(
-      `SELECT total_xp::bigint AS total_xp, current_level::int AS current_level
-         FROM user_progression WHERE user_id = $1 FOR UPDATE`,
-      [input.userId],
-    );
-    const oldLevel = Math.max(0, Number(before.rows[0]?.current_level) || 0);
     const source = xpSourceForGiftType(input.giftType, "paid_gift");
     // XP now scales with the coins spent (1 coin = 1 XP) instead of a flat
     // per-gift-type amount. The config row's `enabled` flag is still honoured so

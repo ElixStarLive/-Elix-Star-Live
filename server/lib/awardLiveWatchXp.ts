@@ -4,7 +4,10 @@
  */
 import { getPool } from "./postgres";
 import { logger } from "./logger";
-import { applyXpGainAndSyncLevel } from "./xpProgressionApply";
+import {
+  applyXpGainAndSyncLevel,
+  ensureAndLockUserProgression,
+} from "./xpProgressionApply";
 
 export async function awardLiveWatchXp(input: {
   userId: string;
@@ -27,17 +30,10 @@ export async function awardLiveWatchXp(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    await client.query(
-      `INSERT INTO user_progression (user_id, total_xp, current_level)
-       VALUES ($1, 0, 0) ON CONFLICT (user_id) DO NOTHING`,
-      [input.userId],
+    const { totalXp, oldLevel } = await ensureAndLockUserProgression(
+      client,
+      input.userId,
     );
-    const before = await client.query(
-      `SELECT total_xp::bigint AS total_xp, current_level::int AS current_level
-         FROM user_progression WHERE user_id = $1 FOR UPDATE`,
-      [input.userId],
-    );
-    const oldLevel = Math.max(0, Number(before.rows[0]?.current_level) || 0);
 
     let enabled = true;
     try {
@@ -51,7 +47,7 @@ export async function awardLiveWatchXp(input: {
     }
     if (!enabled) {
       await client.query("COMMIT");
-      return { xp_gained: 0, total_xp: Number(before.rows[0]?.total_xp) || 0, new_level: oldLevel, leveled_up: false };
+      return { xp_gained: 0, total_xp: totalXp, new_level: oldLevel, leveled_up: false };
     }
 
     const tx = await client.query(

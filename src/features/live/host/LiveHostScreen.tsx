@@ -75,6 +75,7 @@ import {
 import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { GiftPanel } from '../../../components/GiftPanel';
+import { useWalletStore } from '../../../store/useWalletStore';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { RankingPanel } from '../../../components/RankingPanel';
@@ -379,7 +380,6 @@ export default function LiveHostScreen() {
     sendShareToFollower,
     sendSpectatorCohostRequest,
     setBattleScoreBarHidden,
-    setCoinBalance,
     setEngagementOpen,
     setEngagementPanel,
     setFeaturedUserId,
@@ -2356,8 +2356,9 @@ export default function LiveHostScreen() {
               giftSource={giftSource}
               onGiftSourceChange={setGiftSource}
               onRechargeSuccess={(newBalance) => {
-                walletCoinBalanceRef.current = Math.max(0, Number(newBalance) || 0);
-                setCoinBalance(walletCoinBalanceRef.current);
+                const paid = Math.max(0, Number(newBalance) || 0);
+                walletCoinBalanceRef.current = paid;
+                useWalletStore.getState().applyServerBalances({ paid });
               }}
               battleBoost={
                 isBattleMode

@@ -1,0 +1,2465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copy/Paste Detector Report</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f7fafc; color: #2d3748; }
+    a { color: #3182ce; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .header { background: #fff; box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px 0 rgba(0,0,0,.06); padding: 1rem 0; }
+    .header-inner { max-width: 80rem; margin: 0 auto; padding: 0 1rem; }
+    .header h1 { font-size: 1.875rem; font-weight: 600; color: #2d3748; margin: 0; }
+    .main { max-width: 80rem; margin: 2rem auto; padding: 0 1rem; }
+    .card { background: #fff; box-shadow: 0 1px 3px 0 rgba(0,0,0,.1), 0 1px 2px 0 rgba(0,0,0,.06); border-radius: 0.25rem; padding: 1.5rem; margin-bottom: 2rem; }
+    h2 { font-size: 1.5rem; font-weight: 600; color: #4a5568; margin: 0 0 1rem 0; }
+    .dashboard { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .stat-card { padding: 1rem; border-radius: 0.25rem; text-align: center; }
+    .stat-card h3 { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem 0; }
+    .stat-card .val { font-size: 2.25rem; font-weight: 700; }
+    .stat-blue { background: #bee3f8; color: #2a4365; }
+    .stat-green { background: #c6f6d5; color: #276749; }
+    .stat-yellow { background: #fefcbf; color: #975a16; }
+    .stat-red { background: #fed7d7; color: #9b2c2c; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: #edf2f7; color: #718096; text-transform: uppercase; font-size: 0.75rem; font-weight: 600; padding: 0.75rem 1.5rem; text-align: left; }
+    tbody td { padding: 0.75rem 1.5rem; border-bottom: 1px solid #edf2f7; font-size: 0.875rem; }
+    tbody tr:hover { background: #f7fafc; }
+    .clone-section { margin-bottom: 2rem; }
+    .clone-section h2 { border-bottom: 2px solid #edf2f7; padding-bottom: 0.5rem; }
+    .clone-item { padding: 1rem 0; border-bottom: 1px solid #edf2f7; }
+    .clone-item:last-child { border-bottom: none; }
+    .clone-info { color: #718096; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    .toggle-btn { background: #a0aec0; color: #fff; border: none; padding: 0.125rem 0.5rem; font-size: 0.75rem; border-radius: 0.25rem; cursor: pointer; margin-left: 0.5rem; }
+    .toggle-btn:focus { outline: none; }
+    .code-block { background: #f7fafc; border: 1px solid #edf2f7; border-radius: 0.25rem; padding: 1rem; margin-top: 0.5rem; font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.875rem; color: #2d3748; white-space: pre-wrap; overflow-x: auto; display: none; }
+    .code-block.visible { display: block; }
+    .no-dupes { color: #27ae60; font-weight: 700; font-size: 1.125rem; }
+    .footer { margin-top: 3rem; padding: 2rem 0; border-top: 1px solid #e0e0e0; text-align: center; font-family: -apple-system, sans-serif; color: #666; }
+    .footer p { margin: 0.5rem 0; font-size: 0.875rem; }
+    .footer a { color: #0066cc; }
+    .footer .small { font-size: 0.75rem; color: #999; }
+    @media (max-width: 768px) { .dashboard { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1>jscpd - copy/paste report</h1>
+    </div>
+  </header>
+
+  <div class="main">
+    <div class="card">
+      <section>
+        <h2>Dashboard</h2>
+        <div class="dashboard">
+          <div class="stat-card stat-blue">
+            <h3>Total Files</h3>
+            <div class="val">484</div>
+          </div>
+          <div class="stat-card stat-green">
+            <h3>Total Lines of Code</h3>
+            <div class="val">121979</div>
+          </div>
+          <div class="stat-card stat-yellow">
+            <h3>Number of Clones</h3>
+            <div class="val">205</div>
+          </div>
+          <div class="stat-card stat-red">
+            <h3>Duplicated Lines</h3>
+            <div class="val">3264 (2.68%)</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="card">
+      <section>
+        <h2>Formats with Duplications</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Format</th>
+              <th>Files</th>
+              <th>Lines</th>
+              <th>Clones</th>
+              <th>Duplicated Lines</th>
+              <th>Duplicated Tokens</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td><a href="#css-clones">css</a></td>
+              <td>2</td>
+              <td>2896</td>
+              <td>4</td>
+              <td>44 (1.52%)</td>
+              <td>426 (1.07%)</td>
+            </tr>
+            
+            <tr>
+              <td><a href="#markdown-clones">markdown</a></td>
+              <td>1</td>
+              <td>13</td>
+              <td>0</td>
+              <td>0 (0.00%)</td>
+              <td>0 (0.00%)</td>
+            </tr>
+            
+            <tr>
+              <td><a href="#sql-clones">sql</a></td>
+              <td>46</td>
+              <td>2957</td>
+              <td>1</td>
+              <td>21 (0.71%)</td>
+              <td>106 (0.58%)</td>
+            </tr>
+            
+            <tr>
+              <td><a href="#tsx-clones">tsx</a></td>
+              <td>127</td>
+              <td>54717</td>
+              <td>109</td>
+              <td>1870 (3.42%)</td>
+              <td>12124 (3.60%)</td>
+            </tr>
+            
+            <tr>
+              <td><a href="#typescript-clones">typescript</a></td>
+              <td>308</td>
+              <td>61396</td>
+              <td>91</td>
+              <td>1329 (2.16%)</td>
+              <td>8717 (2.34%)</td>
+            </tr>
+            
+            <tr style="font-weight: 700;">
+              <td>Total</td>
+              <td>484</td>
+              <td>121979</td>
+              <td>205</td>
+              <td>3264 (2.68%)</td>
+              <td>21373 (2.79%)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </div>
+
+    
+    
+    <div class="card">
+      <section class="clone-section">
+        <a name="css-clones"></a>
+        <h2>css</h2>
+        <div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              index.css (Line 570:45 - Line 581:2),
+              index.css (Line 585:43 - Line 596:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-css-1')">Show code</button>
+            </div>
+            <pre id="code-css-1" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              index.css (Line 1437:36 - Line 1448:22),
+              index.css (Line 1461:37 - Line 1472:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-css-2')">Show code</button>
+            </div>
+            <pre id="code-css-2" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              index.css (Line 1448:53 - Line 1459:2),
+              index.css (Line 1463:53 - Line 1474:3)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-css-3')">Show code</button>
+            </div>
+            <pre id="code-css-3" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              index.css (Line 1638:36 - Line 1649:2),
+              index.css (Line 1771:15 - Line 1782:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-css-4')">Show code</button>
+            </div>
+            <pre id="code-css-4" class="code-block"></pre>
+          </div>
+          
+        </div>
+      </section>
+    </div>
+    
+    <div class="card">
+      <section class="clone-section">
+        <a name="sql-clones"></a>
+        <h2>sql</h2>
+        <div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              migrations\20260719215000_level_curve_linear_200k_at_20.sql (Line 14:36 - Line 35:8),
+              migrations\20260720003000_level_curve_100m_at_300.sql (Line 16:83 - Line 37:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-sql-1')">Show code</button>
+            </div>
+            <pre id="code-sql-1" class="code-block"></pre>
+          </div>
+          
+        </div>
+      </section>
+    </div>
+    
+    <div class="card">
+      <section class="clone-section">
+        <a name="tsx-clones"></a>
+        <h2>tsx</h2>
+        <div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\EnhancedLikesModal.tsx (Line 113:29 - Line 123:8),
+              components\UserProfileModal.tsx (Line 254:22 - Line 265:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-1')">Show code</button>
+            </div>
+            <pre id="code-tsx-1" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\EnhancedVideoPlayer.tsx (Line 413:51 - Line 425:13),
+              components\EnhancedVideoPlayer.tsx (Line 438:35 - Line 446:23)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-2')">Show code</button>
+            </div>
+            <pre id="code-tsx-2" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\EnhancedVideoPlayer.tsx (Line 477:22 - Line 487:11),
+              components\EnhancedVideoPlayer.tsx (Line 489:23 - Line 499:11)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-3')">Show code</button>
+            </div>
+            <pre id="code-tsx-3" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\GiftAnimationOverlay.tsx (Line 59:19 - Line 71:10),
+              components\LiveGiftFeedStack.tsx (Line 84:17 - Line 96:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-4')">Show code</button>
+            </div>
+            <pre id="code-tsx-4" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\GiftAnimationOverlay.tsx (Line 103:8 - Line 121:11),
+              components\LiveGiftFeedStack.tsx (Line 132:26 - Line 148:11)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-5')">Show code</button>
+            </div>
+            <pre id="code-tsx-5" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\GiftPanel.tsx (Line 409:31 - Line 419:15),
+              components\GiftPanel.tsx (Line 429:22 - Line 439:11)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-6')">Show code</button>
+            </div>
+            <pre id="code-tsx-6" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\LiveMarkedTopUi.tsx (Line 16:73 - Line 29:9),
+              components\LiveSideMissionStack.tsx (Line 27:61 - Line 39:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-7')">Show code</button>
+            </div>
+            <pre id="code-tsx-7" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\LiveMarkedTopUi.tsx (Line 16:73 - Line 29:9),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 105:73 - Line 118:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-8')">Show code</button>
+            </div>
+            <pre id="code-tsx-8" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\LiveMarkedTopUi.tsx (Line 317:34 - Line 334:8),
+              components\LiveMarkedTopUi.tsx (Line 417:31 - Line 434:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-9')">Show code</button>
+            </div>
+            <pre id="code-tsx-9" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\LiveMarkedTopUi.tsx (Line 346:34 - Line 357:8),
+              components\LiveMarkedTopUi.tsx (Line 448:25 - Line 459:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-10')">Show code</button>
+            </div>
+            <pre id="code-tsx-10" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\TrendingSnapFeed.tsx (Line 78:5 - Line 88:13),
+              pages\SearchPage.tsx (Line 358:31 - Line 368:39)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-11')">Show code</button>
+            </div>
+            <pre id="code-tsx-11" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\engagement\EngagementDrawer.tsx (Line 292:3 - Line 304:5),
+              pages\engagement\EngagementMissions.tsx (Line 10:1 - Line 22:3)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-12')">Show code</button>
+            </div>
+            <pre id="code-tsx-12" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              components\engagement\EngagementDrawer.tsx (Line 315:11 - Line 333:8),
+              pages\engagement\EngagementMissions.tsx (Line 44:7 - Line 62:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-13')">Show code</button>
+            </div>
+            <pre id="code-tsx-13" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 44:68 - Line 66:9),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 48:61 - Line 70:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-14')">Show code</button>
+            </div>
+            <pre id="code-tsx-14" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 111:1 - Line 143:2),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 131:1 - Line 163:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-15')">Show code</button>
+            </div>
+            <pre id="code-tsx-15" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 150:17 - Line 189:29),
+              features\live\host\useLiveHostController.tsx (Line 5754:33 - Line 5793:29)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-16')">Show code</button>
+            </div>
+            <pre id="code-tsx-16" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 946:31 - Line 956:27),
+              features\live\host\LiveHostScreen.tsx (Line 975:41 - Line 985:27)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-17')">Show code</button>
+            </div>
+            <pre id="code-tsx-17" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1023:84 - Line 1064:9),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1761:82 - Line 1802:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-18')">Show code</button>
+            </div>
+            <pre id="code-tsx-18" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1026:20 - Line 1055:28),
+              features\live\host\LiveHostScreen.tsx (Line 1651:23 - Line 1680:28)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-19')">Show code</button>
+            </div>
+            <pre id="code-tsx-19" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1157:23 - Line 1171:24),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 595:21 - Line 609:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-20')">Show code</button>
+            </div>
+            <pre id="code-tsx-20" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1447:85 - Line 1460:38),
+              features\live\host\LiveHostScreen.tsx (Line 1544:85 - Line 1557:38)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-21')">Show code</button>
+            </div>
+            <pre id="code-tsx-21" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1641:35 - Line 1688:16),
+              features\live\host\LiveHostScreen.tsx (Line 1705:35 - Line 1752:16)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-22')">Show code</button>
+            </div>
+            <pre id="code-tsx-22" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 1848:88 - Line 1861:73),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3251:62 - Line 3264:45)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-23')">Show code</button>
+            </div>
+            <pre id="code-tsx-23" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 2052:19 - Line 2062:22),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1981:15 - Line 1991:18)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-24')">Show code</button>
+            </div>
+            <pre id="code-tsx-24" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 2139:44 - Line 2151:13),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 2097:42 - Line 2109:13)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-25')">Show code</button>
+            </div>
+            <pre id="code-tsx-25" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 2351:13 - Line 2363:28),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 2662:15 - Line 2674:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-26')">Show code</button>
+            </div>
+            <pre id="code-tsx-26" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 3436:11 - Line 3446:15),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 2241:13 - Line 2251:17)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-27')">Show code</button>
+            </div>
+            <pre id="code-tsx-27" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\LiveHostScreen.tsx (Line 3546:43 - Line 3557:131),
+              pages\Profile.tsx (Line 992:57 - Line 1003:131)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-28')">Show code</button>
+            </div>
+            <pre id="code-tsx-28" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 199:38 - Line 214:10),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 202:57 - Line 218:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-29')">Show code</button>
+            </div>
+            <pre id="code-tsx-29" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 305:51 - Line 317:5),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 185:52 - Line 197:5)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-30')">Show code</button>
+            </div>
+            <pre id="code-tsx-30" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 321:36 - Line 336:8),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 489:13 - Line 504:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-31')">Show code</button>
+            </div>
+            <pre id="code-tsx-31" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 387:48 - Line 404:7),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3341:19 - Line 3358:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-32')">Show code</button>
+            </div>
+            <pre id="code-tsx-32" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 452:37 - Line 472:50),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1991:30 - Line 2011:50)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-33')">Show code</button>
+            </div>
+            <pre id="code-tsx-33" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 472:49 - Line 491:10),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2012:66 - Line 2031:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-34')">Show code</button>
+            </div>
+            <pre id="code-tsx-34" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1266:9 - Line 1278:22),
+              features\live\host\useLiveHostController.tsx (Line 1945:17 - Line 1957:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-35')">Show code</button>
+            </div>
+            <pre id="code-tsx-35" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1304:66 - Line 1314:23),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1726:30 - Line 1736:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-36')">Show code</button>
+            </div>
+            <pre id="code-tsx-36" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1336:11 - Line 1357:8),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1082:23 - Line 1103:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-37')">Show code</button>
+            </div>
+            <pre id="code-tsx-37" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1803:66 - Line 1824:20),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 823:6 - Line 844:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-38')">Show code</button>
+            </div>
+            <pre id="code-tsx-38" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1826:45 - Line 1839:8),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3086:20 - Line 3097:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-39')">Show code</button>
+            </div>
+            <pre id="code-tsx-39" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 1893:38 - Line 1907:52),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1452:76 - Line 1466:52)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-40')">Show code</button>
+            </div>
+            <pre id="code-tsx-40" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 2239:44 - Line 2285:33),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2165:62 - Line 2211:33)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-41')">Show code</button>
+            </div>
+            <pre id="code-tsx-41" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 2637:47 - Line 2647:10),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1312:3 - Line 1321:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-42')">Show code</button>
+            </div>
+            <pre id="code-tsx-42" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 2769:77 - Line 2798:7),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 678:98 - Line 706:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-43')">Show code</button>
+            </div>
+            <pre id="code-tsx-43" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3322:7 - Line 3334:9),
+              features\live\host\useLiveHostController.tsx (Line 3432:7 - Line 3442:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-44')">Show code</button>
+            </div>
+            <pre id="code-tsx-44" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3360:9 - Line 3375:12),
+              features\live\host\useLiveHostController.tsx (Line 3379:7 - Line 3394:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-45')">Show code</button>
+            </div>
+            <pre id="code-tsx-45" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3394:9 - Line 3409:11),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2302:47 - Line 2317:11)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-46')">Show code</button>
+            </div>
+            <pre id="code-tsx-46" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3506:7 - Line 3522:75),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2378:7 - Line 2394:75)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-47')">Show code</button>
+            </div>
+            <pre id="code-tsx-47" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3526:5 - Line 3552:26),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2395:5 - Line 2421:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-48')">Show code</button>
+            </div>
+            <pre id="code-tsx-48" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3607:9 - Line 3617:21),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2478:11 - Line 2488:23)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-49')">Show code</button>
+            </div>
+            <pre id="code-tsx-49" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3629:9 - Line 3646:10),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2422:9 - Line 2439:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-50')">Show code</button>
+            </div>
+            <pre id="code-tsx-50" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3685:39 - Line 3695:12),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2689:38 - Line 2698:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-51')">Show code</button>
+            </div>
+            <pre id="code-tsx-51" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3892:5 - Line 3917:10),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2867:5 - Line 2892:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-52')">Show code</button>
+            </div>
+            <pre id="code-tsx-52" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 3935:101 - Line 3961:64),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 2920:79 - Line 2946:64)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-53')">Show code</button>
+            </div>
+            <pre id="code-tsx-53" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4408:62 - Line 4440:65),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 271:41 - Line 303:65)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-54')">Show code</button>
+            </div>
+            <pre id="code-tsx-54" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4445:5 - Line 4456:7),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 1509:5 - Line 1520:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-55')">Show code</button>
+            </div>
+            <pre id="code-tsx-55" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4501:7 - Line 4511:8),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3399:9 - Line 3408:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-56')">Show code</button>
+            </div>
+            <pre id="code-tsx-56" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4535:69 - Line 4558:41),
+              features\live\host\useLiveHostController.tsx (Line 4757:71 - Line 4780:41)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-57')">Show code</button>
+            </div>
+            <pre id="code-tsx-57" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4544:26 - Line 4559:31),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3474:41 - Line 3489:21)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-58')">Show code</button>
+            </div>
+            <pre id="code-tsx-58" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4562:36 - Line 4596:8),
+              features\live\host\useLiveHostController.tsx (Line 4783:44 - Line 4817:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-59')">Show code</button>
+            </div>
+            <pre id="code-tsx-59" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4667:25 - Line 4681:6),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3636:34 - Line 3650:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-60')">Show code</button>
+            </div>
+            <pre id="code-tsx-60" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 4938:30 - Line 4952:8),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 3378:26 - Line 3392:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-61')">Show code</button>
+            </div>
+            <pre id="code-tsx-61" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\host\useLiveHostController.tsx (Line 5152:39 - Line 5165:25),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 2873:108 - Line 2886:45)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-62')">Show code</button>
+            </div>
+            <pre id="code-tsx-62" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 104:32 - Line 118:9),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 118:31 - Line 131:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-63')">Show code</button>
+            </div>
+            <pre id="code-tsx-63" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 162:59 - Line 186:2),
+              features\live\spectator\useLiveSpectatorController.tsx (Line 120:52 - Line 144:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-64')">Show code</button>
+            </div>
+            <pre id="code-tsx-64" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 900:79 - Line 911:31),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 987:83 - Line 998:31)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-65')">Show code</button>
+            </div>
+            <pre id="code-tsx-65" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 900:135 - Line 910:20),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1733:75 - Line 1743:14)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-66')">Show code</button>
+            </div>
+            <pre id="code-tsx-66" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 913:88 - Line 933:32),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1000:92 - Line 1020:32)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-67')">Show code</button>
+            </div>
+            <pre id="code-tsx-67" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 933:41 - Line 980:20),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1020:41 - Line 1067:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-68')">Show code</button>
+            </div>
+            <pre id="code-tsx-68" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1637:31 - Line 1660:27),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1682:41 - Line 1705:27)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-69')">Show code</button>
+            </div>
+            <pre id="code-tsx-69" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1729:15 - Line 1744:22),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1845:21 - Line 1860:31)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-70')">Show code</button>
+            </div>
+            <pre id="code-tsx-70" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 1729:22 - Line 1742:17),
+              features\live\spectator\SpectatorLiveScreen.tsx (Line 2065:34 - Line 2078:17)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-71')">Show code</button>
+            </div>
+            <pre id="code-tsx-71" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 125:9 - Line 136:63),
+              pages\Upload.tsx (Line 372:9 - Line 390:28)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-72')">Show code</button>
+            </div>
+            <pre id="code-tsx-72" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 220:20 - Line 231:34),
+              pages\Upload.tsx (Line 584:22 - Line 596:36)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-73')">Show code</button>
+            </div>
+            <pre id="code-tsx-73" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 393:19 - Line 416:8),
+              pages\Upload.tsx (Line 140:24 - Line 159:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-74')">Show code</button>
+            </div>
+            <pre id="code-tsx-74" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 537:4 - Line 562:5),
+              pages\Upload.tsx (Line 246:25 - Line 270:5)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-75')">Show code</button>
+            </div>
+            <pre id="code-tsx-75" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 599:21 - Line 609:16),
+              pages\Create.tsx (Line 615:25 - Line 625:16)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-76')">Show code</button>
+            </div>
+            <pre id="code-tsx-76" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 749:13 - Line 771:18),
+              pages\Upload.tsx (Line 1030:20 - Line 1052:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-77')">Show code</button>
+            </div>
+            <pre id="code-tsx-77" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 845:73 - Line 857:18),
+              pages\Upload.tsx (Line 1139:84 - Line 1151:25)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-78')">Show code</button>
+            </div>
+            <pre id="code-tsx-78" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Create.tsx (Line 963:23 - Line 974:10),
+              pages\Upload.tsx (Line 1405:28 - Line 1416:16)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-79')">Show code</button>
+            </div>
+            <pre id="code-tsx-79" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\CreatorLoginDetails.tsx (Line 454:17 - Line 470:22),
+              pages\CreatorLoginDetails.tsx (Line 555:17 - Line 571:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-80')">Show code</button>
+            </div>
+            <pre id="code-tsx-80" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\CreatorLoginDetails.tsx (Line 483:43 - Line 505:13),
+              pages\CreatorLoginDetails.tsx (Line 594:48 - Line 616:13)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-81')">Show code</button>
+            </div>
+            <pre id="code-tsx-81" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\EditProfile.tsx (Line 293:20 - Line 309:8),
+              pages\EditProfile.tsx (Line 321:23 - Line 337:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-82')">Show code</button>
+            </div>
+            <pre id="code-tsx-82" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\FollowingFeed.tsx (Line 24:37 - Line 34:8),
+              pages\FriendsFeed.tsx (Line 20:34 - Line 30:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-83')">Show code</button>
+            </div>
+            <pre id="code-tsx-83" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\FollowingFeed.tsx (Line 24:37 - Line 34:8),
+              pages\StemFeed.tsx (Line 29:41 - Line 39:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-84')">Show code</button>
+            </div>
+            <pre id="code-tsx-84" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\FollowingFeed.tsx (Line 31:42 - Line 43:30),
+              pages\FriendsFeed.tsx (Line 31:34 - Line 43:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-85')">Show code</button>
+            </div>
+            <pre id="code-tsx-85" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\FollowingFeed.tsx (Line 80:9 - Line 91:12),
+              pages\FriendsFeed.tsx (Line 82:9 - Line 93:12)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-86')">Show code</button>
+            </div>
+            <pre id="code-tsx-86" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\FollowingFeed.tsx (Line 93:33 - Line 113:22),
+              pages\FriendsFeed.tsx (Line 95:31 - Line 115:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-87')">Show code</button>
+            </div>
+            <pre id="code-tsx-87" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\ForgotPassword.tsx (Line 85:15 - Line 100:28),
+              pages\ResetPassword.tsx (Line 114:15 - Line 129:28)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-88')">Show code</button>
+            </div>
+            <pre id="code-tsx-88" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Guidelines.tsx (Line 101:15 - Line 127:2),
+              pages\HowItWorks.tsx (Line 334:15 - Line 360:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-89')">Show code</button>
+            </div>
+            <pre id="code-tsx-89" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Inbox.tsx (Line 1005:128 - Line 1023:19),
+              pages\Inbox.tsx (Line 1049:37 - Line 1067:19)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-90')">Show code</button>
+            </div>
+            <pre id="code-tsx-90" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAffiliate.tsx (Line 48:13 - Line 63:2),
+              pages\LegalAudio.tsx (Line 56:13 - Line 71:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-91')">Show code</button>
+            </div>
+            <pre id="code-tsx-91" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAffiliate.tsx (Line 48:16 - Line 63:2),
+              pages\LegalDMCA.tsx (Line 79:18 - Line 94:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-92')">Show code</button>
+            </div>
+            <pre id="code-tsx-92" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAffiliate.tsx (Line 48:13 - Line 63:2),
+              pages\LegalSupplier.tsx (Line 123:13 - Line 138:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-93')">Show code</button>
+            </div>
+            <pre id="code-tsx-93" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAffiliate.tsx (Line 48:13 - Line 63:2),
+              pages\LegalUGC.tsx (Line 75:13 - Line 90:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-94')">Show code</button>
+            </div>
+            <pre id="code-tsx-94" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAffiliate.tsx (Line 50:9 - Line 63:2),
+              pages\Terms.tsx (Line 384:11 - Line 397:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-95')">Show code</button>
+            </div>
+            <pre id="code-tsx-95" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LegalAudio.tsx (Line 55:78 - Line 71:2),
+              pages\LegalSafety.tsx (Line 76:79 - Line 92:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-96')">Show code</button>
+            </div>
+            <pre id="code-tsx-96" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LiveDiscover.tsx (Line 87:28 - Line 101:12),
+              pages\VideoFeed.tsx (Line 35:21 - Line 49:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-97')">Show code</button>
+            </div>
+            <pre id="code-tsx-97" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\LiveDiscover.tsx (Line 275:79 - Line 285:8),
+              pages\VideoFeed.tsx (Line 278:11 - Line 289:12)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-98')">Show code</button>
+            </div>
+            <pre id="code-tsx-98" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Login.tsx (Line 44:3 - Line 57:20),
+              pages\Register.tsx (Line 24:9 - Line 35:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-99')">Show code</button>
+            </div>
+            <pre id="code-tsx-99" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Login.tsx (Line 135:17 - Line 150:30),
+              pages\Register.tsx (Line 171:17 - Line 186:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-100')">Show code</button>
+            </div>
+            <pre id="code-tsx-100" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Login.tsx (Line 151:17 - Line 163:12),
+              pages\Register.tsx (Line 187:17 - Line 199:12)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-101')">Show code</button>
+            </div>
+            <pre id="code-tsx-101" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Profile.tsx (Line 583:59 - Line 595:31),
+              pages\Profile.tsx (Line 599:59 - Line 611:31)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-102')">Show code</button>
+            </div>
+            <pre id="code-tsx-102" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Profile.tsx (Line 625:11 - Line 646:14),
+              pages\Profile.tsx (Line 679:14 - Line 700:14)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-103')">Show code</button>
+            </div>
+            <pre id="code-tsx-103" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\RisingStars.tsx (Line 137:4 - Line 155:55),
+              pages\RisingStarsChallenge.tsx (Line 171:38 - Line 189:55)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-104')">Show code</button>
+            </div>
+            <pre id="code-tsx-104" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\Support.tsx (Line 216:16 - Line 237:5),
+              pages\settings\SafetyCenter.tsx (Line 81:12 - Line 102:5)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-105')">Show code</button>
+            </div>
+            <pre id="code-tsx-105" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\VideoView.tsx (Line 49:66 - Line 71:26),
+              pages\VideoView.tsx (Line 79:28 - Line 101:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-106')">Show code</button>
+            </div>
+            <pre id="code-tsx-106" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\admin\Withdrawals.tsx (Line 178:24 - Line 196:32),
+              pages\admin\Withdrawals.tsx (Line 197:22 - Line 215:32)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-107')">Show code</button>
+            </div>
+            <pre id="code-tsx-107" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\settings\SafetyCenter.tsx (Line 92:10 - Line 115:24),
+              pages\settings\SecuritySettings.tsx (Line 133:26 - Line 156:24)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-108')">Show code</button>
+            </div>
+            <pre id="code-tsx-108" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              pages\settings\SafetyCenter.tsx (Line 115:48 - Line 126:2),
+              pages\settings\SecuritySettings.tsx (Line 156:48 - Line 167:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-tsx-109')">Show code</button>
+            </div>
+            <pre id="code-tsx-109" class="code-block"></pre>
+          </div>
+          
+        </div>
+      </section>
+    </div>
+    
+    <div class="card">
+      <section class="clone-section">
+        <a name="typescript-clones"></a>
+        <h2>typescript</h2>
+        <div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\awardLiveWatchXp.ts (Line 62:44 - Line 73:48),
+              lib\starterCoinsXp.ts (Line 486:48 - Line 498:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-1')">Show code</button>
+            </div>
+            <pre id="code-typescript-1" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\engagement.ts (Line 305:3 - Line 317:61),
+              lib\engagement.ts (Line 371:3 - Line 383:61)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-2')">Show code</button>
+            </div>
+            <pre id="code-typescript-2" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\engagement.ts (Line 307:31 - Line 318:27),
+              lib\engagement.ts (Line 513:5 - Line 524:27)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-3')">Show code</button>
+            </div>
+            <pre id="code-typescript-3" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\engagementPhase15.ts (Line 510:45 - Line 521:42),
+              lib\engagementPhase15.ts (Line 545:45 - Line 556:42)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-4')">Show code</button>
+            </div>
+            <pre id="code-typescript-4" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryou.db.test.ts (Line 12:53 - Line 40:23),
+              lib\monetisation\monetisationMatrix.db.test.ts (Line 21:60 - Line 49:23)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-5')">Show code</button>
+            </div>
+            <pre id="code-typescript-5" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryou.db.test.ts (Line 40:50 - Line 82:6),
+              lib\monetisation\monetisationMatrix.db.test.ts (Line 49:52 - Line 91:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-6')">Show code</button>
+            </div>
+            <pre id="code-typescript-6" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryou.db.test.ts (Line 47:13 - Line 82:6),
+              lib\monetisation\monetisation.db.test.ts (Line 37:13 - Line 73:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-7')">Show code</button>
+            </div>
+            <pre id="code-typescript-7" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryou.db.test.ts (Line 226:28 - Line 242:6),
+              lib\monetisation\monetisationMatrix.db.test.ts (Line 94:27 - Line 110:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-8')">Show code</button>
+            </div>
+            <pre id="code-typescript-8" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryou.db.test.ts (Line 231:84 - Line 242:6),
+              lib\monetisation\monetisation.db.test.ts (Line 82:84 - Line 93:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-9')">Show code</button>
+            </div>
+            <pre id="code-typescript-9" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\feed\foryouRanking.test.ts (Line 57:14 - Line 75:22),
+              lib\feed\foryouRanking.test.ts (Line 79:15 - Line 97:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-10')">Show code</button>
+            </div>
+            <pre id="code-typescript-10" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\monetisation\financialReports.ts (Line 83:57 - Line 93:10),
+              lib\monetisation\financialReports.ts (Line 126:59 - Line 136:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-11')">Show code</button>
+            </div>
+            <pre id="code-typescript-11" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\monetisation\paidCoinLots.ts (Line 80:21 - Line 90:11),
+              lib\monetisation\storeSettlement.ts (Line 209:61 - Line 219:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-12')">Show code</button>
+            </div>
+            <pre id="code-typescript-12" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\monetisation\paidCoinLots.ts (Line 188:46 - Line 198:10),
+              lib\monetisation\storeSettlement.ts (Line 74:46 - Line 84:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-13')">Show code</button>
+            </div>
+            <pre id="code-typescript-13" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\monetisation\storeSettlement.ts (Line 319:60 - Line 330:9),
+              lib\monetisation\storeSettlement.ts (Line 348:46 - Line 359:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-14')">Show code</button>
+            </div>
+            <pre id="code-typescript-14" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 201:68 - Line 220:6),
+              lib\postgres.ts (Line 238:12 - Line 257:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-15')">Show code</button>
+            </div>
+            <pre id="code-typescript-15" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 208:63 - Line 218:17),
+              lib\videoStore.ts (Line 38:61 - Line 48:15)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-16')">Show code</button>
+            </div>
+            <pre id="code-typescript-16" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 620:7 - Line 631:89),
+              lib\postgres.ts (Line 677:7 - Line 688:89)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-17')">Show code</button>
+            </div>
+            <pre id="code-typescript-17" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 633:81 - Line 649:22),
+              lib\postgres.ts (Line 690:82 - Line 705:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-18')">Show code</button>
+            </div>
+            <pre id="code-typescript-18" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 1057:35 - Line 1071:15),
+              lib\postgres.ts (Line 1130:26 - Line 1140:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-19')">Show code</button>
+            </div>
+            <pre id="code-typescript-19" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 1336:35 - Line 1346:6),
+              lib\postgres.ts (Line 1378:12 - Line 1388:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-20')">Show code</button>
+            </div>
+            <pre id="code-typescript-20" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 1377:28 - Line 1390:26),
+              lib\postgres.ts (Line 1429:26 - Line 1442:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-21')">Show code</button>
+            </div>
+            <pre id="code-typescript-21" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\postgres.ts (Line 1426:7 - Line 1442:26),
+              lib\postgres.ts (Line 1456:10 - Line 1472:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-22')">Show code</button>
+            </div>
+            <pre id="code-typescript-22" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\repostsNeon.ts (Line 8:48 - Line 25:3),
+              features\reposts\repostsApi.ts (Line 3:48 - Line 18:3)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-23')">Show code</button>
+            </div>
+            <pre id="code-typescript-23" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\risingStarsNeon.ts (Line 207:31 - Line 217:4),
+              lib\risingStarsNeon.ts (Line 619:10 - Line 629:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-24')">Show code</button>
+            </div>
+            <pre id="code-typescript-24" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\starterCoinsXp.ts (Line 666:10 - Line 676:24),
+              lib\starterCoinsXp.ts (Line 754:14 - Line 764:24)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-25')">Show code</button>
+            </div>
+            <pre id="code-typescript-25" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\totp.contract.test.ts (Line 12:25 - Line 24:46),
+              routes\auth2fa.ts (Line 60:32 - Line 72:46)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-26')">Show code</button>
+            </div>
+            <pre id="code-typescript-26" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\totp.contract.test.ts (Line 24:46 - Line 34:9),
+              routes\auth2fa.ts (Line 72:58 - Line 82:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-27')">Show code</button>
+            </div>
+            <pre id="code-typescript-27" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\walletNeon.ts (Line 269:63 - Line 321:7),
+              lib\walletNeon.ts (Line 478:81 - Line 528:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-28')">Show code</button>
+            </div>
+            <pre id="code-typescript-28" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\walletNeon.ts (Line 334:44 - Line 345:6),
+              lib\walletNeon.ts (Line 536:46 - Line 547:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-29')">Show code</button>
+            </div>
+            <pre id="code-typescript-29" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\walletNeon.ts (Line 360:145 - Line 385:7),
+              lib\walletNeon.ts (Line 654:66 - Line 669:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-30')">Show code</button>
+            </div>
+            <pre id="code-typescript-30" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\walletNeon.ts (Line 1018:27 - Line 1029:37),
+              lib\walletNeon.ts (Line 1049:32 - Line 1060:35)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-31')">Show code</button>
+            </div>
+            <pre id="code-typescript-31" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              middleware\auth.ts (Line 21:9 - Line 31:4),
+              routes\authConsent.ts (Line 16:85 - Line 26:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-32')">Show code</button>
+            </div>
+            <pre id="code-typescript-32" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              middleware\validate.ts (Line 7:40 - Line 23:2),
+              middleware\validate.ts (Line 28:62 - Line 44:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-33')">Show code</button>
+            </div>
+            <pre id="code-typescript-33" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\activity.ts (Line 29:42 - Line 39:4),
+              routes\liveShareInbox.ts (Line 38:42 - Line 48:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-34')">Show code</button>
+            </div>
+            <pre id="code-typescript-34" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\activity.ts (Line 29:42 - Line 39:4),
+              routes\liveShareInbox.ts (Line 82:49 - Line 92:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-35')">Show code</button>
+            </div>
+            <pre id="code-typescript-35" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\adminActions.ts (Line 189:82 - Line 210:31),
+              routes\adminActions.ts (Line 221:84 - Line 242:31)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-36')">Show code</button>
+            </div>
+            <pre id="code-typescript-36" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth.ts (Line 491:50 - Line 503:5),
+              routes\auth.ts (Line 535:52 - Line 547:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-37')">Show code</button>
+            </div>
+            <pre id="code-typescript-37" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth.ts (Line 943:47 - Line 955:10),
+              routes\auth.ts (Line 1197:43 - Line 1209:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-38')">Show code</button>
+            </div>
+            <pre id="code-typescript-38" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth2fa.ts (Line 22:61 - Line 33:9),
+              routes\gifts.ts (Line 28:71 - Line 39:9)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-39')">Show code</button>
+            </div>
+            <pre id="code-typescript-39" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth2fa.ts (Line 22:23 - Line 34:2),
+              routes\liveModerators.ts (Line 16:25 - Line 28:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-40')">Show code</button>
+            </div>
+            <pre id="code-typescript-40" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth2fa.ts (Line 25:20 - Line 36:9),
+              routes\liveModerators.ts (Line 19:20 - Line 30:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-41')">Show code</button>
+            </div>
+            <pre id="code-typescript-41" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\auth2fa.ts (Line 193:44 - Line 204:15),
+              routes\auth2fa.ts (Line 229:45 - Line 240:15)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-42')">Show code</button>
+            </div>
+            <pre id="code-typescript-42" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\chat.ts (Line 15:58 - Line 33:13),
+              routes\shopItems.ts (Line 10:48 - Line 27:15)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-43')">Show code</button>
+            </div>
+            <pre id="code-typescript-43" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\chat.ts (Line 16:39 - Line 33:22),
+              routes\wallet.ts (Line 5:63 - Line 21:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-44')">Show code</button>
+            </div>
+            <pre id="code-typescript-44" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\engagement.router.ts (Line 240:28 - Line 252:26),
+              routes\engagement.router.ts (Line 336:30 - Line 351:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-45')">Show code</button>
+            </div>
+            <pre id="code-typescript-45" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\feed.ts (Line 521:19 - Line 533:51),
+              routes\feed.ts (Line 558:21 - Line 570:51)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-46')">Show code</button>
+            </div>
+            <pre id="code-typescript-46" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\gifts.ts (Line 26:65 - Line 42:37),
+              routes\upload.ts (Line 15:62 - Line 37:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-47')">Show code</button>
+            </div>
+            <pre id="code-typescript-47" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\gifts.ts (Line 233:36 - Line 246:21),
+              routes\gifts.ts (Line 343:40 - Line 356:21)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-48')">Show code</button>
+            </div>
+            <pre id="code-typescript-48" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\gifts.ts (Line 233:36 - Line 246:21),
+              routes\gifts.ts (Line 435:33 - Line 448:21)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-49')">Show code</button>
+            </div>
+            <pre id="code-typescript-49" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\iapNotifications.ts (Line 136:41 - Line 149:41),
+              routes\iapNotifications.ts (Line 214:23 - Line 227:41)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-50')">Show code</button>
+            </div>
+            <pre id="code-typescript-50" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\iapNotifications.ts (Line 153:75 - Line 167:2),
+              routes\iapNotifications.ts (Line 230:76 - Line 245:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-51')">Show code</button>
+            </div>
+            <pre id="code-typescript-51" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\media.router.ts (Line 56:26 - Line 67:51),
+              routes\upload.ts (Line 75:26 - Line 86:51)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-52')">Show code</button>
+            </div>
+            <pre id="code-typescript-52" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\misc.ts (Line 790:86 - Line 802:45),
+              routes\misc.ts (Line 927:91 - Line 939:43)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-53')">Show code</button>
+            </div>
+            <pre id="code-typescript-53" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 383:47 - Line 396:37),
+              routes\payout.ts (Line 500:48 - Line 513:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-54')">Show code</button>
+            </div>
+            <pre id="code-typescript-54" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 383:47 - Line 409:20),
+              routes\payout.ts (Line 551:46 - Line 567:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-55')">Show code</button>
+            </div>
+            <pre id="code-typescript-55" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 383:47 - Line 396:37),
+              routes\payout.ts (Line 609:46 - Line 622:37)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-56')">Show code</button>
+            </div>
+            <pre id="code-typescript-56" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 421:19 - Line 433:26),
+              routes\payout.ts (Line 534:24 - Line 546:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-57')">Show code</button>
+            </div>
+            <pre id="code-typescript-57" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 421:19 - Line 433:26),
+              routes\payout.ts (Line 643:23 - Line 655:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-58')">Show code</button>
+            </div>
+            <pre id="code-typescript-58" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 422:27 - Line 433:26),
+              routes\payout.ts (Line 483:19 - Line 494:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-59')">Show code</button>
+            </div>
+            <pre id="code-typescript-59" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 442:19 - Line 462:22),
+              routes\payout.ts (Line 555:19 - Line 575:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-60')">Show code</button>
+            </div>
+            <pre id="code-typescript-60" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\payout.ts (Line 482:19 - Line 494:26),
+              routes\payout.ts (Line 592:20 - Line 604:26)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-61')">Show code</button>
+            </div>
+            <pre id="code-typescript-61" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\profiles.ts (Line 670:21 - Line 682:8),
+              routes\profiles.ts (Line 725:22 - Line 737:8)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-62')">Show code</button>
+            </div>
+            <pre id="code-typescript-62" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\profiles.ts (Line 693:18 - Line 703:4),
+              routes\profiles.ts (Line 748:19 - Line 758:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-63')">Show code</button>
+            </div>
+            <pre id="code-typescript-63" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\shopItems.ts (Line 76:3 - Line 103:22),
+              routes\shopItems.ts (Line 139:3 - Line 166:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-64')">Show code</button>
+            </div>
+            <pre id="code-typescript-64" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\shopItems.ts (Line 128:53 - Line 140:10),
+              routes\shopItems.ts (Line 194:30 - Line 206:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-65')">Show code</button>
+            </div>
+            <pre id="code-typescript-65" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\testCoins.ts (Line 177:3 - Line 190:14),
+              routes\testCoins.ts (Line 256:3 - Line 269:14)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-66')">Show code</button>
+            </div>
+            <pre id="code-typescript-66" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\testCoins.ts (Line 190:39 - Line 222:4),
+              routes\testCoins.ts (Line 269:34 - Line 301:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-67')">Show code</button>
+            </div>
+            <pre id="code-typescript-67" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\videos.router.ts (Line 192:25 - Line 202:30),
+              routes\videos.router.ts (Line 219:25 - Line 229:30)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-68')">Show code</button>
+            </div>
+            <pre id="code-typescript-68" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\videos.router.ts (Line 275:88 - Line 286:54),
+              routes\videos.router.ts (Line 638:76 - Line 646:36)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-69')">Show code</button>
+            </div>
+            <pre id="code-typescript-69" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              routes\webhook.ts (Line 80:7 - Line 94:11),
+              routes\webhook.ts (Line 96:9 - Line 110:13)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-70')">Show code</button>
+            </div>
+            <pre id="code-typescript-70" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              scripts\postMigrateVerify.ts (Line 1:1 - Line 11:4),
+              scripts\schemaColumns.ts (Line 6:1 - Line 16:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-71')">Show code</button>
+            </div>
+            <pre id="code-typescript-71" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              websocket\engagement.ts (Line 44:1 - Line 83:12),
+              lib\liveEngagement.ts (Line 1:1 - Line 40:12)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-72')">Show code</button>
+            </div>
+            <pre id="code-typescript-72" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              websocket\handlers.ts (Line 292:28 - Line 302:10),
+              websocket\handlers.ts (Line 322:23 - Line 332:14)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-73')">Show code</button>
+            </div>
+            <pre id="code-typescript-73" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              websocket\handlers.ts (Line 377:58 - Line 388:18),
+              websocket\handlers.ts (Line 487:56 - Line 498:20)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-74')">Show code</button>
+            </div>
+            <pre id="code-typescript-74" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              websocket\handlers.ts (Line 751:29 - Line 763:14),
+              websocket\handlers.ts (Line 798:46 - Line 810:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-75')">Show code</button>
+            </div>
+            <pre id="code-typescript-75" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              websocket\index.ts (Line 955:37 - Line 965:71),
+              websocket\index.ts (Line 1010:48 - Line 1020:71)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-76')">Show code</button>
+            </div>
+            <pre id="code-typescript-76" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\auth\authSession.ts (Line 53:88 - Line 69:22),
+              features\auth\authSession.ts (Line 83:57 - Line 99:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-77')">Show code</button>
+            </div>
+            <pre id="code-typescript-77" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\auth\authSession.ts (Line 57:73 - Line 69:22),
+              features\auth\authSession.ts (Line 173:77 - Line 185:22)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-78')">Show code</button>
+            </div>
+            <pre id="code-typescript-78" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\cohost\cohostLayoutPresets.ts (Line 73:42 - Line 83:5),
+              features\live\cohost\cohostLayoutPresets.ts (Line 87:42 - Line 97:5)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-79')">Show code</button>
+            </div>
+            <pre id="code-typescript-79" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\ws\bindLiveBattleInviteWs.ts (Line 30:76 - Line 41:2),
+              features\live\ws\bindLiveBattleWs.ts (Line 44:68 - Line 56:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-80')">Show code</button>
+            </div>
+            <pre id="code-typescript-80" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\ws\bindLiveBattleInviteWs.ts (Line 30:76 - Line 41:2),
+              features\live\ws\bindLiveCohostWs.ts (Line 36:69 - Line 48:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-81')">Show code</button>
+            </div>
+            <pre id="code-typescript-81" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\live\ws\bindLiveModerationWs.ts (Line 17:79 - Line 27:2),
+              features\live\ws\bindLiveRoomWs.ts (Line 39:83 - Line 50:2)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-82')">Show code</button>
+            </div>
+            <pre id="code-typescript-82" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              features\membership\useCreatorMembershipPurchase.ts (Line 85:30 - Line 98:4),
+              features\membership\useCreatorMembershipPurchase.ts (Line 113:54 - Line 126:6)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-83')">Show code</button>
+            </div>
+            <pre id="code-typescript-83" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\apiClient.ts (Line 143:4 - Line 154:2),
+              lib\apiClient.ts (Line 172:51 - Line 184:4)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-84')">Show code</button>
+            </div>
+            <pre id="code-typescript-84" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\apiClient.ts (Line 257:64 - Line 271:28),
+              lib\apiClient.ts (Line 278:64 - Line 292:28)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-85')">Show code</button>
+            </div>
+            <pre id="code-typescript-85" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\storeProductCatalogs.ts (Line 14:11 - Line 26:7),
+              lib\storeProductCatalogs.ts (Line 28:12 - Line 39:7)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-86')">Show code</button>
+            </div>
+            <pre id="code-typescript-86" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              lib\videoUpload.ts (Line 150:68 - Line 167:8),
+              lib\videoUpload.ts (Line 286:70 - Line 303:10)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-87')">Show code</button>
+            </div>
+            <pre id="code-typescript-87" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              store\useAuthStore.ts (Line 258:9 - Line 271:58),
+              store\useAuthStore.ts (Line 339:9 - Line 352:58)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-88')">Show code</button>
+            </div>
+            <pre id="code-typescript-88" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              store\useAuthStore.ts (Line 378:39 - Line 388:13),
+              store\useAuthStore.ts (Line 390:23 - Line 400:15)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-89')">Show code</button>
+            </div>
+            <pre id="code-typescript-89" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              store\useVideoStore.ts (Line 504:33 - Line 517:53),
+              store\useVideoStore.ts (Line 549:35 - Line 559:53)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-90')">Show code</button>
+            </div>
+            <pre id="code-typescript-90" class="code-block"></pre>
+          </div>
+          
+          <div class="clone-item">
+            <div class="clone-info">
+              store\useVideoStore.ts (Line 523:51 - Line 537:16),
+              store\useVideoStore.ts (Line 565:56 - Line 579:16)
+            </div>
+            <div>
+              <button class="toggle-btn" onclick="toggle('code-typescript-91')">Show code</button>
+            </div>
+            <pre id="code-typescript-91" class="code-block"></pre>
+          </div>
+          
+        </div>
+      </section>
+    </div>
+    
+    
+  </div>
+
+  <div class="footer">
+    <p>Generated by <a href="https://jscpd.dev" target="_blank">jscpd</a> v0.1.7 by <a href="https://github.com/kucherenko" target="_blank">Andrey Kucherenko</a></p>
+    <p><a href="https://www.npmjs.com/package/jscpd" target="_blank"><img src="https://img.shields.io/npm/dw/jscpd.svg?style=flat-square" alt="npm weekly downloads" style="vertical-align: middle;"></a></p>
+  </div>
+
+  <script>
+    function toggle(id) {
+      var el = document.getElementById(id);
+      if (el) { el.classList.toggle('visible'); }
+    }
+  </script>
+</body>
+</html>
