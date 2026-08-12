@@ -68,6 +68,34 @@ class VideoUploadService {
     showToast(message);
   }
 
+  /** Race thumbnail create/upload against a 10s timeout; warn + continue on failure. */
+  private async resolveThumbnailWithTimeout(
+    work: Promise<string>,
+  ): Promise<string> {
+    try {
+      const thumbnailUrl = await Promise.race([
+        work,
+        new Promise<string>((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Thumbnail timed out")),
+            10_000,
+          ),
+        ),
+      ]);
+      if (!thumbnailUrl) {
+        this.warnThumbnailFailure("Thumbnail could not be created");
+      }
+      return thumbnailUrl || "";
+    } catch (thumbErr: unknown) {
+      const msg =
+        thumbErr instanceof Error
+          ? thumbErr.message
+          : "Thumbnail upload failed";
+      this.warnThumbnailFailure(msg);
+      return "";
+    }
+  }
+
   // ── Public: validate ────────────────────────────────────────────────────────
 
   /**
@@ -139,32 +167,15 @@ class VideoUploadService {
       // ── Generate & upload thumbnail ──────────────────────────────────
       this.updateProgress("processing", 75, "Generating thumbnail…");
       let thumbnailUrl = "";
-      try {
-        thumbnailUrl = await Promise.race([
-          metadata.thumbnailDataUrl
-            ? this.uploadThumbnailDataUrl(
-                metadata.thumbnailDataUrl,
-                userId,
-                videoId,
-              )
-            : this.generateAndUploadThumbnail(file, userId, videoId),
-          new Promise<string>((_, reject) =>
-            setTimeout(
-              () => reject(new Error("Thumbnail timed out")),
-              10_000,
-            ),
-          ),
-        ]);
-        if (!thumbnailUrl) {
-          this.warnThumbnailFailure("Thumbnail could not be created");
-        }
-      } catch (thumbErr: unknown) {
-        const msg =
-          thumbErr instanceof Error
-            ? thumbErr.message
-            : "Thumbnail upload failed";
-        this.warnThumbnailFailure(msg);
-      }
+      thumbnailUrl = await this.resolveThumbnailWithTimeout(
+        metadata.thumbnailDataUrl
+          ? this.uploadThumbnailDataUrl(
+              metadata.thumbnailDataUrl,
+              userId,
+              videoId,
+            )
+          : this.generateAndUploadThumbnail(file, userId, videoId),
+      );
 
       this.updateProgress("processing", 82, "Creating video record on server…");
 
@@ -275,32 +286,15 @@ class VideoUploadService {
       if (isImage) {
         thumbnailUrl = mediaUrl;
       } else {
-        try {
-          thumbnailUrl = await Promise.race([
-            opts?.thumbnailDataUrl
-              ? this.uploadThumbnailDataUrl(
-                  opts.thumbnailDataUrl,
-                  userId,
-                  storyId,
-                )
-              : this.generateAndUploadThumbnail(file, userId, storyId),
-            new Promise<string>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Thumbnail timed out")),
-                10_000,
-              ),
-            ),
-          ]);
-          if (!thumbnailUrl) {
-            this.warnThumbnailFailure("Thumbnail could not be created");
-          }
-        } catch (thumbErr: unknown) {
-          const msg =
-            thumbErr instanceof Error
-              ? thumbErr.message
-              : "Thumbnail upload failed";
-          this.warnThumbnailFailure(msg);
-        }
+        thumbnailUrl = await this.resolveThumbnailWithTimeout(
+          opts?.thumbnailDataUrl
+            ? this.uploadThumbnailDataUrl(
+                opts.thumbnailDataUrl,
+                userId,
+                storyId,
+              )
+            : this.generateAndUploadThumbnail(file, userId, storyId),
+        );
       }
 
       this.updateProgress("processing", 88, "Saving story to Neon…");

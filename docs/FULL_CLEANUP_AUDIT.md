@@ -866,6 +866,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **164** clones / **2.08%** lines |
 | Android | 1.0.632 |
 
+### Continue 33 — thumbnail race + membership purchase apply
+| Item | Change |
+|------|--------|
+| Video/story thumbnail timeout race | `resolveThumbnailWithTimeout` in `videoUpload.ts` |
+| Membership purchase UI apply | `applyMembershipPurchaseResult` in membership hook |
+| jscpd | **162** clones / **2.06%** lines |
+| Android | 1.0.633 |
+
 
 
 

@@ -15,6 +15,33 @@ import {
   stashPendingMembershipPurchase,
 } from './membershipPurchaseFlow';
 
+type MembershipPurchaseResult = Awaited<ReturnType<typeof purchaseCreatorMembership>>;
+
+function applyMembershipPurchaseResult(
+  result: MembershipPurchaseResult,
+  opts: {
+    setIsMember: (v: boolean) => void;
+    onActivated?: () => void;
+    /** When true, route to login on needsLogin (manual subscribe path). */
+    onNeedsLogin?: () => void;
+  },
+): boolean {
+  if (!result.ok) {
+    if (result.needsLogin) {
+      opts.onNeedsLogin?.();
+      return false;
+    }
+    if (!result.cancelled) {
+      showToast(result.error || 'Membership purchase failed');
+    }
+    return false;
+  }
+  opts.setIsMember(true);
+  showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
+  opts.onActivated?.();
+  return true;
+}
+
 export function useCreatorMembershipPurchase(options: {
   creatorId: string;
   onActivated?: () => void;
@@ -77,19 +104,11 @@ export function useCreatorMembershipPurchase(options: {
     setIsSubscribing(true);
     try {
       const result = await purchaseCreatorMembership(id);
-      if (!result.ok) {
-        if (result.needsLogin) {
-          goLoginForMembership(id);
-          return;
-        }
-        if (!result.cancelled) {
-          showToast(result.error || 'Membership purchase failed');
-        }
-        return;
-      }
-      setIsMember(true);
-      showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-      onActivatedRef.current?.();
+      applyMembershipPurchaseResult(result, {
+        setIsMember,
+        onActivated: () => onActivatedRef.current?.(),
+        onNeedsLogin: () => goLoginForMembership(id),
+      });
     } catch {
       showToast('Membership purchase failed');
     } finally {
@@ -109,15 +128,10 @@ export function useCreatorMembershipPurchase(options: {
       setIsSubscribing(true);
       try {
         const result = await purchaseCreatorMembership(pending);
-        if (!result.ok) {
-          if (!result.cancelled && !result.needsLogin) {
-            showToast(result.error || 'Membership purchase failed');
-          }
-          return;
-        }
-        setIsMember(true);
-        showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-        onActivatedRef.current?.();
+        applyMembershipPurchaseResult(result, {
+          setIsMember,
+          onActivated: () => onActivatedRef.current?.(),
+        });
       } catch {
         showToast('Membership purchase failed');
       } finally {
