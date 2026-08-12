@@ -22,6 +22,12 @@ import {
   applyBattleWinTauntFeedback,
   runBattleScoreVfx,
 } from '../battle/applyBattleScoreFeedback';
+import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
+import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
+import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
+import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
+import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
+import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -32,8 +38,6 @@ import { giftSendErrorToast } from '../../../lib/giftSend';
 import {
   apiLiveEnd,
   apiLiveToken,
-  apiLiveStreams,
-  collectLiveUserIds,
   isLivePublishDenied,
   isLiveTokenTransient,
   LiveRoomLifecycle,
@@ -99,7 +103,6 @@ import {
   apiToggleFollow,
 } from '../../feed/feedApi';
 import { isGenericLiveCreatorName, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
-import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
@@ -110,7 +113,6 @@ import { applyServerViewerCount } from '../ws/applyServerViewerCount';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
 import {
-  apiLiveEngagementMissions,
   apiLiveEngagementProgress,
   apiLiveBlockUser,
   apiLiveListModerators,
@@ -127,7 +129,7 @@ import {
 import { reportFailure } from '../../../lib/reportFailure';
 import { apiToggleRepost } from '../../reposts/repostsApi';
 import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
-import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
+import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
   appendBattleTileGiftForTarget,
   EMPTY_BATTLE_TILE_GIFTS,
@@ -2225,18 +2227,13 @@ export function useLiveHostController() {
     let cancelled = false;
     (async () => {
       try {
-        const [rows, liveResult] = await Promise.all([
-          fetchAllSharePanelContacts(user?.id),
-          apiLiveStreams().catch((err) => {
-            reportFailure('live_share_live_streams', err);
-            return null;
-          }),
-        ]);
+        const { contacts, liveUserIds } = await loadSharePanelContactsWithLive(
+          user?.id,
+          'live_share_live_streams',
+        );
         if (cancelled) return;
-        setShareFollowers(rows);
-        if (liveResult) {
-          setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
-        }
+        setShareFollowers(contacts);
+        if (liveUserIds) setShareLiveUserIds(liveUserIds);
       } catch (e) {
         if (!cancelled) {
           reportFailure('live_share_contacts', e);
@@ -2695,33 +2692,17 @@ export function useLiveHostController() {
     if (speedChallengeActive) return;
 
     const totalScore = myScore + opponentScore + player3Score + player4Score;
-    const flowers = roseCountRef.current;
-    const taps = battleScreenTapCountRef.current;
-
-    const tryUnlock = (
-      threshold: number,
-      mult: number,
-      flowerNeed: number,
-      tapNeed: number,
-      markLower: number[],
-    ) => {
-      if (reachedThresholdsRef.current.has(threshold)) return false;
-      const byPoints = totalScore >= threshold;
-      const byFlower = flowers >= flowerNeed;
-      const byTaps = taps >= tapNeed;
-      if (!byPoints && !byFlower && !byTaps) return false;
-      reachedThresholdsRef.current.add(threshold);
-      for (const m of markLower) reachedThresholdsRef.current.add(m);
-      setSpeedMultiplier(mult);
-      speedMultiplierRef.current = mult;
-      startSpeedChallenge();
-      return true;
-    };
-
-    // Highest first — system chooses x5 / x3 / x2 automatically.
-    if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
-    if (tryUnlock(1000, 3, 3, 40, [200])) return;
-    tryUnlock(200, 2, 1, 15, []);
+    tryUnlockBattleSpeedChallenge({
+      totalScore,
+      flowers: roseCountRef.current,
+      taps: battleScreenTapCountRef.current,
+      reachedThresholds: reachedThresholdsRef.current,
+      onUnlock: (mult) => {
+        setSpeedMultiplier(mult);
+        speedMultiplierRef.current = mult;
+        startSpeedChallenge();
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, roseCount, battleScreenTapCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
@@ -3624,14 +3605,7 @@ export function useLiveHostController() {
         setSpectatorTapsUsed(0);
       }
       prevBattleSyncStatusRef.current = syncStatus || null;
-      battleStreamIdsRef.current = {
-        hostRoomId: typeof data.hostRoomId === 'string' ? data.hostRoomId : '',
-        hostUserId: typeof data.hostUserId === 'string' ? data.hostUserId : '',
-        opponentRoomId: typeof data.opponentRoomId === 'string' ? data.opponentRoomId : '',
-        opponentUserId: typeof data.opponentUserId === 'string' ? data.opponentUserId : '',
-        player3UserId: typeof data.player3UserId === 'string' ? data.player3UserId : '',
-        player4UserId: typeof data.player4UserId === 'string' ? data.player4UserId : '',
-      };
+      battleStreamIdsRef.current = battleStreamIdsFromPayload(data);
       const selfId = user?.id || '';
       if (selfId && typeof data.hostUserId === 'string' && data.hostUserId === selfId) battleRoleRef.current = 'host';
       else if (selfId && typeof data.opponentUserId === 'string' && data.opponentUserId === selfId) battleRoleRef.current = 'opponent';
@@ -3788,20 +3762,7 @@ export function useLiveHostController() {
 
     const handleGiftGoalSync = (data: unknown) => {
       if (!mounted) return;
-      if (data == null) {
-        setGiftGoal(null);
-        return;
-      }
-      const parsed = parseLiveGiftGoal(data);
-      if (parsed) {
-        setGiftGoal((prev) => {
-          const wasDone = prev ? isGiftGoalComplete(prev) : false;
-          if (!wasDone && isGiftGoalComplete(parsed)) {
-            playGiftGoalReachedSound();
-          }
-          return parsed;
-        });
-      }
+      applyLiveGiftGoalSync(data, setGiftGoal);
     };
 
     const handleViewerCount = (data: unknown) => {
@@ -3820,36 +3781,15 @@ export function useLiveHostController() {
       onViewerCount: handleViewerCount,
       onConnected: handleViewerCount,
     });
-    const handleBoosterActivated = (data: unknown) => {
-      const d = data as { multiplier?: number; username?: string; user_id?: string; expires_at?: number; duration_ms?: number };
-      const id = `${Date.now()}-${Math.random()}`;
-      const userId = String(d?.user_id || '');
-      // The glove stays on screen for the full server-authoritative active window
-      // (default 30s) so viewers can see it is live and catching gifts — not a 1.8s flash.
-      const expiresAt = Number(d?.expires_at) || (Date.now() + (Number(d?.duration_ms) || 30000));
-      setBoosterActivations((prev) => [...prev, { id, userId, multiplier: Number(d?.multiplier) || 0, username: String(d?.username || ''), expiresAt }]);
-      const ms = Math.max(1000, expiresAt - Date.now());
-      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), ms);
-    };
-    const handleBoosterCaught = (data: unknown) => {
-      const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
-      const id = String(d?.transaction_id || `${Date.now()}-${Math.random()}`);
-      setBoosterCatches((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, {
-        id,
-        multiplier: Number(d?.multiplier) || 0,
-        finalPoints: Number(d?.final_points) || 0,
-        username: String(d?.username || ''),
-      }]));
-      setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
-    };
-    const handleMistActivated = (data: unknown) => {
-      const d = data as { supported_user_id?: string; supported_side?: string; expires_at?: number };
-      const supportedUserId = String(d?.supported_user_id || '');
-      const expiresAt = Number(d?.expires_at) || 0;
-      if (!supportedUserId || expiresAt <= Date.now()) return;
-      const supportedSide = d?.supported_side === 'opponent' ? 'opponent' : 'host';
-      setMistFog({ supportedUserId, supportedSide, expiresAt });
-    };
+    const {
+      onBoosterActivated: handleBoosterActivated,
+      onBoosterCaught: handleBoosterCaught,
+      onMistActivated: handleMistActivated,
+    } = createBattleBoosterMistHandlers({
+      setBoosterActivations,
+      setBoosterCatches,
+      setMistFog,
+    });
 
     // Server is the sole authority on remaining battle time (processBattleTick → battle_tick).
     // No local setInterval owner — display follows WS timeLeft only.
@@ -4302,26 +4242,12 @@ export function useLiveHostController() {
   const [missionWatchGoal, setMissionWatchGoal] = useState(10);
   const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   const loadEngagementMissions = useCallback(() => {
-    if (!user?.id) return;
-    void apiLiveEngagementMissions()
-      .then(({ data }) => {
-        const missions = (data?.missions as Array<{
-          metric_key?: string;
-          progress?: number;
-          goal_count?: number;
-        }>) || [];
-        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-        if (watch) {
-          setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-          if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
-        }
-        if (gifts) {
-          setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-          if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
-        }
-      })
-      .catch((err) => reportFailure('live_engagement_missions', err, { userId: user.id }));
+    loadLiveEngagementMissionsProgress(user?.id, {
+      setMissionWatchMin,
+      setMissionWatchGoal,
+      setMissionGiftsSent,
+      setMissionGiftsGoal,
+    });
   }, [user?.id]);
 
   useEffect(() => {

@@ -20,6 +20,12 @@ import {
   applyBattleWinTauntFeedback,
   runBattleScoreVfx,
 } from '../battle/applyBattleScoreFeedback';
+import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
+import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
+import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
+import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
+import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
+import { loadLiveEngagementMissionsProgress } from '../engagement/loadLiveEngagementMissionsProgress';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -33,7 +39,6 @@ import { applyCohostGiftTileScore, applyLocalGiftSendSideEffects } from '../gift
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { useVideoStore } from '../../../store/useVideoStore';
-import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
@@ -59,7 +64,7 @@ import {
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
-import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
+import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
 import {
   loginReturnPath,
@@ -69,7 +74,6 @@ import { useCreatorMembershipPurchase } from '../../membership/useCreatorMembers
 import { useLiveThermalQuality } from '../hooks/useLiveThermalQuality';
 import { applyRemoteVideoBudget } from '../../../lib/live/liveRemoteVideoBudget';
 import {
-  apiLiveEngagementMissions,
   apiLiveGetDailyHearts,
   apiLiveMembership,
   apiLiveSendDailyHeart,
@@ -84,7 +88,7 @@ import {
   apiToggleFollow,
 } from '../../feed/feedApi';
 import { RoomEvent, ConnectionState } from 'livekit-client';
-import { apiLiveStreams, apiLiveToken, collectLiveUserIds } from '../../../lib/live';
+import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
@@ -270,26 +274,12 @@ export function useLiveSpectatorController() {
   const [missionGiftsGoal, setMissionGiftsGoal] = useState(10);
   const [userXP, setUserXP] = useState(0);
   const loadEngagementMissions = useCallback(() => {
-    if (!user?.id) return;
-    void apiLiveEngagementMissions()
-      .then(({ data }) => {
-        const missions = (data?.missions as Array<{
-          metric_key?: string;
-          progress?: number;
-          goal_count?: number;
-        }>) || [];
-        const watch = missions.find((m) => m.metric_key === 'watch_minutes');
-        const gifts = missions.find((m) => m.metric_key === 'gifts_sent');
-        if (watch) {
-          setMissionWatchMin(Math.max(0, Number(watch.progress) || 0));
-          if (watch.goal_count) setMissionWatchGoal(Math.max(1, Number(watch.goal_count)));
-        }
-        if (gifts) {
-          setMissionGiftsSent(Math.max(0, Number(gifts.progress) || 0));
-          if (gifts.goal_count) setMissionGiftsGoal(Math.max(1, Number(gifts.goal_count)));
-        }
-      })
-      .catch((err) => reportFailure('live_engagement_missions', err, { userId: user.id }));
+    loadLiveEngagementMissionsProgress(user?.id, {
+      setMissionWatchMin,
+      setMissionWatchGoal,
+      setMissionGiftsSent,
+      setMissionGiftsGoal,
+    });
   }, [user?.id]);
 
   useEffect(() => {
@@ -676,32 +666,17 @@ export function useLiveSpectatorController() {
 
     const totalScore =
       (b.hostScore || 0) + (b.opponentScore || 0) + (b.player3Score ?? 0) + (b.player4Score ?? 0);
-    const flowers = roseCountRef.current;
-    const taps = battleScreenTapCountRef.current;
-
-    const tryUnlock = (
-      threshold: number,
-      mult: number,
-      flowerNeed: number,
-      tapNeed: number,
-      markLower: number[],
-    ) => {
-      if (reachedThresholdsRef.current.has(threshold)) return false;
-      const byPoints = totalScore >= threshold;
-      const byFlower = flowers >= flowerNeed;
-      const byTaps = taps >= tapNeed;
-      if (!byPoints && !byFlower && !byTaps) return false;
-      reachedThresholdsRef.current.add(threshold);
-      for (const m of markLower) reachedThresholdsRef.current.add(m);
-      setSpeedMultiplier(mult);
-      speedMultiplierRef.current = mult;
-      startSpeedChallenge();
-      return true;
-    };
-
-    if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
-    if (tryUnlock(1000, 3, 3, 40, [200])) return;
-    tryUnlock(200, 2, 1, 15, []);
+    tryUnlockBattleSpeedChallenge({
+      totalScore,
+      flowers: roseCountRef.current,
+      taps: battleScreenTapCountRef.current,
+      reachedThresholds: reachedThresholdsRef.current,
+      onUnlock: (mult) => {
+        setSpeedMultiplier(mult);
+        speedMultiplierRef.current = mult;
+        startSpeedChallenge();
+      },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on score/status fields only; full spectatorBattle would re-run on unrelated battle metadata changes
   }, [
     spectatorBattle?.hostScore,
@@ -2526,14 +2501,7 @@ export function useLiveSpectatorController() {
       if (rawStatus === 'ENDED') {
         setBattleStreamIds(null);
       } else if (inBattleLayout) {
-        setBattleStreamIds({
-          hostRoomId: typeof data.hostRoomId === 'string' ? data.hostRoomId : '',
-          hostUserId: typeof data.hostUserId === 'string' ? data.hostUserId : '',
-          opponentRoomId: typeof data.opponentRoomId === 'string' ? data.opponentRoomId : '',
-          opponentUserId: typeof data.opponentUserId === 'string' ? data.opponentUserId : '',
-          player3UserId: typeof data.player3UserId === 'string' ? data.player3UserId : '',
-          player4UserId: typeof data.player4UserId === 'string' ? data.player4UserId : '',
-        });
+        setBattleStreamIds(battleStreamIdsFromPayload(data));
       }
       if (inBattleLayout) {
         const labels = battleTeamLabelsFromPayload(data);
@@ -2759,20 +2727,7 @@ export function useLiveSpectatorController() {
 
     const handleGiftGoalSync = (data: unknown) => {
       if (!mounted) return;
-      if (data == null) {
-        setGiftGoal(null);
-        return;
-      }
-      const parsed = parseLiveGiftGoal(data);
-      if (parsed) {
-        setGiftGoal((prev) => {
-          const wasDone = prev ? isGiftGoalComplete(prev) : false;
-          if (!wasDone && isGiftGoalComplete(parsed)) {
-            playGiftGoalReachedSound();
-          }
-          return parsed;
-        });
-      }
+      applyLiveGiftGoalSync(data, setGiftGoal);
     };
 
     const handleViewerCount = (data: unknown) => {
@@ -2797,40 +2752,19 @@ export function useLiveSpectatorController() {
       onViewerCount: handleViewerCount,
       onConnected,
     });
-    const handleBoosterActivated = (data: unknown) => {
-      const d = data as { user_id?: string; username?: string; multiplier?: number; expires_at?: number; duration_ms?: number };
-      const mult = Number(d?.multiplier) || 0;
-      const expiresAt = Number(d?.expires_at) || (Date.now() + (Number(d?.duration_ms) || 30000));
-      if (d?.user_id && user?.id && String(d.user_id) === String(user.id)) {
-        setActiveBooster({ multiplier: mult, expiresAt });
-      }
-      // The red boxing glove stays on the top-left for the full active window
-      // (server ~30s) while it catches gifts — not a 1.8s flash.
-      const id = `${Date.now()}-${Math.random()}`;
-      const userId = String(d?.user_id || '');
-      setBoosterActivations((prev) => [...prev, { id, userId, multiplier: mult, username: String(d?.username || ''), expiresAt }]);
-      const ms = Math.max(1000, expiresAt - Date.now());
-      setTimeout(() => setBoosterActivations((prev) => prev.filter((a) => a.id !== id)), ms);
-    };
-    const handleBoosterCaught = (data: unknown) => {
-      const d = data as { multiplier?: number; final_points?: number; username?: string; transaction_id?: string };
-      const id = String(d?.transaction_id || `${Date.now()}-${Math.random()}`);
-      setBoosterCatches((prev) => (prev.some((c) => c.id === id) ? prev : [...prev, {
-        id,
-        multiplier: Number(d?.multiplier) || 0,
-        finalPoints: Number(d?.final_points) || 0,
-        username: String(d?.username || ''),
-      }]));
-      setTimeout(() => setBoosterCatches((prev) => prev.filter((c) => c.id !== id)), 2200);
-    };
-    const handleMistActivated = (data: unknown) => {
-      const d = data as { supported_user_id?: string; supported_side?: string; expires_at?: number };
-      const supportedUserId = String(d?.supported_user_id || '');
-      const expiresAt = Number(d?.expires_at) || 0;
-      if (!supportedUserId || expiresAt <= Date.now()) return;
-      const supportedSide = d?.supported_side === 'opponent' ? 'opponent' : 'host';
-      setMistFog({ supportedUserId, supportedSide, expiresAt });
-    };
+    const {
+      onBoosterActivated: handleBoosterActivated,
+      onBoosterCaught: handleBoosterCaught,
+      onMistActivated: handleMistActivated,
+    } = createBattleBoosterMistHandlers({
+      setBoosterActivations,
+      setBoosterCatches,
+      setMistFog,
+      selfUserId: user?.id,
+      onSelfBoosterActivated: ({ multiplier, expiresAt }) => {
+        setActiveBooster({ multiplier, expiresAt });
+      },
+    });
 
     // Server-authoritative battle clock (processBattleTick → battle_tick, ~1 Hz).
     // Sole time owner — no local setInterval race. Scores still arrive via battle_score.
@@ -2993,23 +2927,18 @@ export function useLiveSpectatorController() {
     let cancelled = false;
     (async () => {
       try {
-        const [rows, liveResult] = await Promise.all([
-          fetchAllSharePanelContacts(user?.id),
-          apiLiveStreams().catch((err) => {
-            reportFailure('spectator_share_live_streams', err);
-            return null;
-          }),
-        ]);
-        const mapped = rows.map((r) => ({
+        const { contacts, liveUserIds } = await loadSharePanelContactsWithLive(
+          user?.id,
+          'spectator_share_live_streams',
+        );
+        const mapped = contacts.map((r) => ({
           id: r.user_id,
           name: r.username,
           avatar: r.avatar_url || '',
         }));
         if (cancelled) return;
         setShareContacts(mapped);
-        if (liveResult) {
-          setShareLiveUserIds(collectLiveUserIds(liveResult.streams || []));
-        }
+        if (liveUserIds) setShareLiveUserIds(liveUserIds);
       } catch (e) {
         if (!cancelled) {
           reportFailure('spectator_share_contacts', e);

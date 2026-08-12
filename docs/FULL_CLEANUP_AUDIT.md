@@ -634,6 +634,24 @@ Still OPEN (honest): locked gift-overlay dual `gift_sent` listeners; host/specta
 | Friends/following feed video mapping | `mapApiFeedVideosWithEngagement` in `useVideoStore.ts` |
 | Android | 1.0.604 |
 
+### Continue 4 — battle stream ids / booster-mist / share contacts
+| Item | Change |
+|------|--------|
+| Battle seat/room id parse | `battleStreamIdsFromPayload.ts` |
+| Booster + mist WS handlers | `battleBoosterMistEvents.ts` (`createBattleBoosterMistHandlers`) |
+| Share panel contacts + live ids | `loadSharePanelContactsWithLive.ts` |
+| jscpd | **194** clones (2.48%) — down from 196 |
+| Android | bundled with Continue 5 |
 
+### Continue 5 — missions / speed unlock / gift goal
+| Item | Change |
+|------|--------|
+| Engagement missions progress load | `loadLiveEngagementMissionsProgress.ts` |
+| Battle speed-challenge tier unlock | `tryUnlockBattleSpeedChallenge.ts` |
+| Gift goal sync + reach sound | `applyLiveGiftGoalSync.ts` |
+| jscpd | **195** clones (2.45% lines) — line % down; clone count can oscillate as helpers land |
+| Android | 1.0.605 |
+
+Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔spectator role clones (join/MVP/LiveKit attach); Sonar token; Semgrep empty-catch money-path review; Settings form clones (UI freeze).
 
 
