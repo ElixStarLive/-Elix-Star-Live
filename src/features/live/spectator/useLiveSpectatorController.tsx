@@ -29,7 +29,8 @@ import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeague
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
 import { buildLiveWsChatMessage } from '../chat/buildLiveWsChatMessage';
-import { beginLiveGiftSentTxnGate } from '../gifts/beginLiveGiftSentTxnGate';
+import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
+import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -96,7 +97,7 @@ import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
-import { buildLiveGiftChatMessage, parseLiveGiftSentEvent } from '../gifts/processLiveGiftSentEvent';
+import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { useLiveCamera } from '../hooks/useLiveCamera';
@@ -1048,13 +1049,12 @@ export function useLiveSpectatorController() {
   }, []);
 
   const isSpeakingUser = useCallback(
-    (userId?: string | null) =>
-      !!userId && [...speakingIds].some((id) => sameUserId(id, userId)),
+    (userId?: string | null) => isSpeakingUserId(speakingIds, userId),
     [speakingIds],
   );
 
   const toggleFeaturedUser = useCallback((userId: string) => {
-    setFeaturedUserId((prev) => (sameUserId(prev, userId) ? null : userId));
+    toggleFeaturedUserId(setFeaturedUserId, userId);
   }, []);
 
   const markRemoteCam = useCallback((identity: string, off: boolean) => {
@@ -2266,7 +2266,13 @@ export function useLiveSpectatorController() {
 
     const handleGiftSent = (data) => {
       if (!mounted) return;
-      const parsed = parseLiveGiftSentEvent(data, giftsCatalogRef.current);
+      const opened = openLiveGiftSentHandler(data, giftsCatalogRef.current, {
+        hasSeenGiftTxn,
+        hasPlayedGiftVideoTxn,
+        markGiftTxnSeen,
+      });
+      if (opened.skip === true) return;
+      const { alreadySeen, parsed } = opened;
       const {
         txnId,
         gifterId,
@@ -2280,14 +2286,6 @@ export function useLiveSpectatorController() {
         battleTarget,
         isFlowerOrRose,
       } = parsed;
-      const alreadySeenGate = beginLiveGiftSentTxnGate({
-        txnId,
-        hasSeenGiftTxn,
-        hasPlayedGiftVideoTxn,
-        markGiftTxnSeen,
-      });
-      if (alreadySeenGate.shouldSkip) return;
-      const { alreadySeen } = alreadySeenGate;
 
       // Chat / MVP / co-host tile scores only on first delivery of this transaction.
       if (!alreadySeen) {

@@ -672,6 +672,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **191** clones — down from 193 |
 | Android | 1.0.607 |
 
+### Continue 8 — gift_sent open + featured/speaking
+| Item | Change |
+|------|--------|
+| gift_sent parse+gate one-shot | `openLiveGiftSentHandler.ts` |
+| Featured toggle + speaking check | `liveFeaturedSpeaking.ts` |
+| jscpd | **191** clones (held; preamble collapsed into helper) |
+| Android | 1.0.608 |
+
+
 
 
 
