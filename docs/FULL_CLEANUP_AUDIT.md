@@ -704,6 +704,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **187** clones — down from 189 |
 | Android | 1.0.611 |
 
+### Continue 12 — score visibility + wallet bootstrap UI
+| Item | Change |
+|------|--------|
+| Battle/mist score visibility | `battleScoreVisibility.ts` |
+| Wallet bootstrap → giftSource/level/XP | `applyLiveWalletBootstrapUi.ts` |
+| jscpd | **188** clones (helper land can oscillate ±1) |
+| Android | 1.0.612 |
+
+
 
 
 

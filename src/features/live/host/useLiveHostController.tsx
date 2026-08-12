@@ -37,8 +37,13 @@ import {
   scheduleLiveJoinBannerClear,
 } from '../chat/liveJoinStreamBanner';
 import { useMistFogAutoExpire } from '../battle/useMistFogAutoExpire';
+import {
+  computeBattleFinalSecondsHide,
+  computeMistHidesScoresForViewer,
+} from '../battle/battleScoreVisibility';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
+import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
@@ -67,7 +72,7 @@ import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -442,11 +447,14 @@ export function useLiveHostController() {
         showToast('Could not load wallet balance');
         return;
       }
-      setGiftSource(resolveGiftSourceFromBalances(boot));
-      const resolvedLevel = Math.max(boot.currentLevel, Number(user.level) || 0);
-      setUserLevel(resolvedLevel);
-      if (boot.currentLevel > 0) updateUser({ level: boot.currentLevel });
-      setUserXP(boot.totalXp);
+      applyLiveWalletBootstrapUi({
+        boot,
+        userLevel: user.level,
+        setGiftSource,
+        setUserLevel,
+        setUserXP,
+        updateUserLevel: (level) => updateUser({ level }),
+      });
     });
     return () => { cancelled = true; };
   }, [user?.id, user?.level, updateUser]);
@@ -1762,7 +1770,9 @@ export function useLiveHostController() {
   }, []);
 
   useEffect(() => {
-    setBattleHideScores(isBattleMode && battleTime > 0 && battleTime <= 10 && !battleWinner);
+    setBattleHideScores(
+      computeBattleFinalSecondsHide(isBattleMode, battleTime, !!battleWinner),
+    );
   }, [isBattleMode, battleTime, battleWinner]);
 
   // Mist Fog window self-expires on the client from the server expires_at.
@@ -1770,8 +1780,7 @@ export function useLiveHostController() {
 
   // Fog covers gift/battle points for everyone except the supported creator.
   // Opponent creator + spectators lose the digits; only that creator keeps them.
-  const mistHidesScores = !!mistFog && mistFog.expiresAt > Date.now()
-    && String(mistFog.supportedUserId) !== String(user?.id || '');
+  const mistHidesScores = computeMistHidesScoresForViewer(mistFog, user?.id);
 
   useEffect(() => {
     return () => {

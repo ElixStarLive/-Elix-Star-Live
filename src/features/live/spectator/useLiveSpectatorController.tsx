@@ -34,8 +34,13 @@ import {
   scheduleLiveJoinBannerClear,
 } from '../chat/liveJoinStreamBanner';
 import { useMistFogAutoExpire } from '../battle/useMistFogAutoExpire';
+import {
+  computeBattleFinalSecondsHide,
+  computeMistHidesScoresForViewer,
+} from '../battle/battleScoreVisibility';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
+import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import {
@@ -102,7 +107,7 @@ import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap, resolveGiftSourceFromBalances } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -788,13 +793,12 @@ export function useLiveSpectatorController() {
   }, []);
 
   useEffect(() => {
-    const t = spectatorBattle?.timeLeft ?? 0;
     setBattleHideScores(
-      !!spectatorBattle?.active &&
-        spectatorBattle?.status === 'ACTIVE' &&
-        t > 0 &&
-        t <= 10 &&
-        !spectatorBattle?.winner,
+      computeBattleFinalSecondsHide(
+        !!spectatorBattle?.active && spectatorBattle?.status === 'ACTIVE',
+        spectatorBattle?.timeLeft ?? 0,
+        !!spectatorBattle?.winner,
+      ),
     );
   }, [spectatorBattle?.active, spectatorBattle?.status, spectatorBattle?.timeLeft, spectatorBattle?.winner]);
 
@@ -1945,14 +1949,15 @@ export function useLiveSpectatorController() {
         return;
       }
       setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
-      setGiftSource(resolveGiftSourceFromBalances(boot));
-      {
-        const testLvl = shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0;
-        const resolvedLevel = Math.max(boot.currentLevel, testLvl, Number(user.level) || 0);
-        setUserLevel(resolvedLevel);
-        if (boot.currentLevel > 0) updateUser({ level: boot.currentLevel });
-      }
-      setUserXP(boot.totalXp);
+      applyLiveWalletBootstrapUi({
+        boot,
+        userLevel: user.level,
+        extraLevelFloor: shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0,
+        setGiftSource,
+        setUserLevel,
+        setUserXP,
+        updateUserLevel: (level) => updateUser({ level }),
+      });
     });
     return () => { cancelled = true; };
   }, [user?.id, user?.level, updateUser]);
@@ -2857,8 +2862,7 @@ export function useLiveSpectatorController() {
   useMistFogAutoExpire(mistFog, setMistFog);
 
   // Fog hides the battle score for everyone except the creator being supported.
-  const mistHidesMyScore = !!mistFog && mistFog.expiresAt > Date.now()
-    && String(mistFog.supportedUserId) !== String(user?.id || '');
+  const mistHidesMyScore = computeMistHidesScoresForViewer(mistFog, user?.id);
 
   // Share panel contacts: all platform users (same list as live share / ShareModal).
   useEffect(() => {
