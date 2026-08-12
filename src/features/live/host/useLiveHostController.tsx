@@ -2251,6 +2251,11 @@ export function useLiveHostController() {
         const walletBal = Math.max(0, balances.paid);
         walletCoinBalanceRef.current = walletBal;
         setCoinBalance(walletBal);
+        useWalletStore.getState().applyServerBalances({
+          paid: walletBal,
+          starter: balances.starter,
+          promotional: balances.promotional,
+        });
       } else if (walletErr) {
         reportFailure('live_gift_panel_wallet', walletErr);
         showToast('Could not load wallet balance');
@@ -4564,10 +4569,10 @@ export function useLiveHostController() {
             return;
           }
           if (result.giftSource === 'starter_coins') {
-            setStarterCoinBalance(
-              Math.max(0, Number(result.newStarterBalance) || 0),
-            );
-            if (Number(result.newStarterBalance) <= 0) {
+            const nextStarter = Math.max(0, Number(result.newStarterBalance) || 0);
+            setStarterCoinBalance(nextStarter);
+            useWalletStore.getState().applyServerBalances({ starter: nextStarter });
+            if (nextStarter <= 0) {
               setGiftSource('paid_coins');
             }
           } else if (result.giftSource === 'promotional_coins') {
@@ -4576,6 +4581,7 @@ export function useLiveHostController() {
               Number(result.newPromotionalBalance) || 0,
             );
             setPromotionalCoinBalance(nextPromo);
+            useWalletStore.getState().applyServerBalances({ promotional: nextPromo });
             if (nextPromo <= 0) {
               setGiftSource(
                 starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
@@ -4585,6 +4591,7 @@ export function useLiveHostController() {
             const nextWallet = Math.max(0, Number(result.newBalance));
             walletCoinBalanceRef.current = nextWallet;
             setCoinBalance(nextWallet);
+            useWalletStore.getState().applyServerBalances({ paid: nextWallet });
           }
           if (result.newLevel != null) {
             const updatedLevel = Number(result.newLevel);
@@ -4808,10 +4815,10 @@ export function useLiveHostController() {
             return;
           }
           if (result.giftSource === 'starter_coins') {
-            setStarterCoinBalance(
-              Math.max(0, Number(result.newStarterBalance) || 0),
-            );
-            if (Number(result.newStarterBalance) <= 0) {
+            const nextStarter = Math.max(0, Number(result.newStarterBalance) || 0);
+            setStarterCoinBalance(nextStarter);
+            useWalletStore.getState().applyServerBalances({ starter: nextStarter });
+            if (nextStarter <= 0) {
               setGiftSource('paid_coins');
             }
           } else if (result.giftSource === 'promotional_coins') {
@@ -4820,6 +4827,7 @@ export function useLiveHostController() {
               Number(result.newPromotionalBalance) || 0,
             );
             setPromotionalCoinBalance(nextPromo);
+            useWalletStore.getState().applyServerBalances({ promotional: nextPromo });
             if (nextPromo <= 0) {
               setGiftSource(
                 starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
@@ -4829,6 +4837,7 @@ export function useLiveHostController() {
             const nextWallet = Math.max(0, Number(result.newBalance));
             walletCoinBalanceRef.current = nextWallet;
             setCoinBalance(nextWallet);
+            useWalletStore.getState().applyServerBalances({ paid: nextWallet });
           }
           if (result.newLevel != null) {
             newLevel = Number(result.newLevel);

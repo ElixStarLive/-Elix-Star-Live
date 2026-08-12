@@ -27,6 +27,7 @@ import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/tes
 import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { useAuthStore } from '../../../store/useAuthStore';
+import { useWalletStore } from '../../../store/useWalletStore';
 import { useVideoStore } from '../../../store/useVideoStore';
 import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
@@ -204,6 +205,21 @@ export function useLiveSpectatorController() {
   const [giftSource, setGiftSource] = useState<
     "starter_coins" | "paid_coins" | "promotional_coins"
   >("paid_coins");
+  const storePaidBalance = useWalletStore((s) => s.paidBalance);
+  const storeStarterBalance = useWalletStore((s) => s.starterBalance);
+  const storePromoBalance = useWalletStore((s) => s.promotionalBalance);
+  // Keep GiftPanel paid/starter/promo display aligned with the wallet owner.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (giftSource === 'paid_coins') {
+      walletCoinBalanceRef.current = storePaidBalance;
+      setCoinBalance(Math.max(0, storePaidBalance));
+    } else if (giftSource === 'starter_coins') {
+      setStarterCoinBalance(storeStarterBalance);
+    } else if (giftSource === 'promotional_coins') {
+      setPromotionalCoinBalance(storePromoBalance);
+    }
+  }, [storePaidBalance, storeStarterBalance, storePromoBalance, giftSource, user?.id]);
 
   const [showGiftPanel, setShowGiftPanel] = useState(false);
   const [giftGoal, setGiftGoal] = useState<LiveGiftGoal | null>(null);
@@ -2020,6 +2036,11 @@ export function useLiveSpectatorController() {
           Number(ew?.promotionalCoins ?? ew?.promotional_coins ?? 0) || 0,
         );
         setPromotionalCoinBalance(promo);
+        useWalletStore.getState().applyServerBalances({
+          paid: walletBal,
+          starter,
+          promotional: promo,
+        });
         if (promo > 0 && engagementFlags.promoGiftSpendEnabled) {
           setGiftSource('promotional_coins');
         } else if (starter > 0) {
@@ -2166,6 +2187,11 @@ export function useLiveSpectatorController() {
         const walletBal = Math.max(0, balances.paid);
         walletCoinBalanceRef.current = walletBal;
         setCoinBalance(walletBal);
+        useWalletStore.getState().applyServerBalances({
+          paid: walletBal,
+          starter: balances.starter,
+          promotional: balances.promotional,
+        });
       } else if (walletErr) {
         reportFailure('live_gift_panel_wallet', walletErr);
         showToast('Could not load wallet balance');
@@ -3473,10 +3499,10 @@ export function useLiveSpectatorController() {
           return;
         }
         if (result.giftSource === 'starter_coins') {
-          setStarterCoinBalance(
-            Math.max(0, Number(result.newStarterBalance) || 0),
-          );
-          if (Number(result.newStarterBalance) <= 0) {
+          const nextStarter = Math.max(0, Number(result.newStarterBalance) || 0);
+          setStarterCoinBalance(nextStarter);
+          useWalletStore.getState().applyServerBalances({ starter: nextStarter });
+          if (nextStarter <= 0) {
             setGiftSource('paid_coins');
           }
         } else if (result.giftSource === 'promotional_coins') {
@@ -3485,6 +3511,7 @@ export function useLiveSpectatorController() {
             Number(result.newPromotionalBalance) || 0,
           );
           setPromotionalCoinBalance(nextPromo);
+          useWalletStore.getState().applyServerBalances({ promotional: nextPromo });
           if (nextPromo <= 0) {
             setGiftSource(
               starterCoinBalance > 0 ? 'starter_coins' : 'paid_coins',
@@ -3494,12 +3521,18 @@ export function useLiveSpectatorController() {
           const nextWallet = Math.max(0, Number(result.newBalance));
           walletCoinBalanceRef.current = nextWallet;
           setCoinBalance(nextWallet);
+          useWalletStore.getState().applyServerBalances({ paid: nextWallet });
         } else {
           void apiFetchWallet().then(({ balances, error: walletErr }) => {
             if (!walletErr && balances) {
               const nextWallet = Math.max(0, balances.paid);
               walletCoinBalanceRef.current = nextWallet;
               setCoinBalance(nextWallet);
+              useWalletStore.getState().applyServerBalances({
+                paid: nextWallet,
+                starter: balances.starter,
+                promotional: balances.promotional,
+              });
             } else if (walletErr) {
               reportFailure('live_gift_wallet_refresh', walletErr);
               showToast('Could not refresh wallet balance');

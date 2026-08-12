@@ -262,10 +262,10 @@ Format: `FILE | LINES | CURRENT PURPOSE | WHY PATCH/WORKAROUND | ROOT CAUSE | PR
 
 ## Architecture violations
 
-1. **Dual IAP catalogs** (client `src/lib/storeProductCatalogs.ts` vs server monetisation catalog)  
-2. **Dual live wallet UI state** (local refs vs `useWalletStore`)  
+1. **Dual IAP catalogs** — **resolved in pass 3** (single owner `src/lib/storeProductCatalogs.ts`; server re-exports)  
+2. **Dual live wallet UI state** — **partially resolved in pass 3** (live gift paths sync via `useWalletStore`; local display state retained for GiftPanel)  
 3. **Mega controllers** (`useLiveHostController` / `useLiveSpectatorController`) owning too many domains  
-4. **Face AR commercial stub** still in tree despite never activating  
+4. **Face AR commercial stub** — **removed in pass 2**  
 5. **Locked gift dual listeners** (owner lock — not touched in cleanup without unlock)
 
 ---
@@ -336,13 +336,31 @@ Executed after `docs/FULL_CLEANUP_AUDIT.md` existed:
 | tsc | 0 errors (re-check after final lint fix) |
 | Semgrep / Sonar | Still unavailable on this host |
 
-Still open for later passes: dual IAP catalogs, dual wallet UI sources, locked gift dual listeners, remaining Knip unused exports, jscpd host/spectator duplication, Semgrep/Sonar install.
+Still open after pass 2 (see pass 3 for catalog/wallet progress): locked gift dual listeners, remaining Knip unused exports, jscpd host/spectator duplication, Semgrep/Sonar install.
+
+---
+
+## Pass 3 progress (2026-08-12)
+
+| Action | Status |
+|--------|--------|
+| Single IAP catalog owner: `src/lib/storeProductCatalogs.ts` (+ `gateProviderProduct`); server re-exports only | DONE |
+| Deleted unused barrel `src/features/live/index.ts` | DONE |
+| Deleted unused `scripts/check-env-readiness.mjs` | DONE |
+| Spectator + host gift balance paths write `useWalletStore.applyServerBalances` | DONE |
+| Spectator mirrors store → GiftPanel local balances (same pattern as host) | DONE |
+| Catalog vitest (client + server) | 15 passed |
+| tsc / eslint on touched live + catalog files | 0 errors |
+| Locked gift dual listeners | NOT TOUCHED (owner lock) |
+| Semgrep / Sonar | Still unavailable on this host |
+
+Remaining: mega-controller split (optional), locked gift listeners (needs unlock), Knip unused-export traces, Semgrep/Sonar install, full re-gate + smoke.
 
 ---
 
 ## Next actions (remaining)
 
-1. Re-run tsc / eslint / knip / tests / `build:store` / Android AAB after pass 2.  
+1. Re-run full vitest + `build:store` / Android AAB for this pass.  
 2. Install Semgrep + Sonar for gate zeros.  
-3. Unify IAP catalogs / wallet UI owner without UI change.  
+3. Trace remaining Knip unused exports one-by-one (no mass delete).  
 4. Only then open app locally for smoke.

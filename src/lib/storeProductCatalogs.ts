@@ -1,7 +1,7 @@
 /**
  * Store product catalogues — Apple App Store vs Google Play.
  *
- * These lists are separate by design. Never merge them into one request array.
+ * Single owner for client + server. Never merge catalogues into one request array.
  * Internal coin amounts may match across stores; product IDs never do for
  * platform-exclusive SKUs (e.g. Apple coins500 vs Google coins500a).
  */
@@ -103,4 +103,53 @@ export function assertNoCrossStoreProductIds(): {
   const appleOnly = APPLE_IAP_PRODUCT_IDS.filter((id) => !GOOGLE_SET.has(id));
   const googleOnly = GOOGLE_PLAY_PRODUCT_IDS.filter((id) => !APPLE_SET.has(id));
   return { appleOnly, googleOnly };
+}
+
+export type ProviderProductGate =
+  | { ok: true }
+  | { ok: false; code: string; error: string };
+
+/** Reject Apple SKU as Google, Google SKU as Apple, or unknown SKU for provider. */
+export function gateProviderProduct(
+  provider: StoreIapProvider,
+  productId: string,
+): ProviderProductGate {
+  if (provider !== "apple" && provider !== "google") {
+    return { ok: false, code: "unknown_provider", error: "Unknown store provider" };
+  }
+  if (!productId) {
+    return { ok: false, code: "missing_product", error: "Missing product id" };
+  }
+  if (provider === "apple") {
+    if (isGooglePlayProductId(productId) && !isAppleIapProductId(productId)) {
+      return {
+        ok: false,
+        code: "google_product_as_apple",
+        error: "Google Play product submitted as Apple",
+      };
+    }
+    if (!isAppleIapProductId(productId)) {
+      return {
+        ok: false,
+        code: "product_not_allowed_for_apple",
+        error: "Product ID not allowed for Apple",
+      };
+    }
+    return { ok: true };
+  }
+  if (isAppleIapProductId(productId) && !isGooglePlayProductId(productId)) {
+    return {
+      ok: false,
+      code: "apple_product_as_google",
+      error: "Apple product submitted as Google",
+    };
+  }
+  if (!isGooglePlayProductId(productId)) {
+    return {
+      ok: false,
+      code: "product_not_allowed_for_google",
+      error: "Product ID not allowed for Google Play",
+    };
+  }
+  return { ok: true };
 }
