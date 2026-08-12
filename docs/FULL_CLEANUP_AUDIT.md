@@ -767,6 +767,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **179** clones — down from 182 |
 | Android | 1.0.619 |
 
+### Continue 20 — battle score VFX trigger hook
+| Item | Change |
+|------|--------|
+| Shared gloves/mist timer VFX hook | `useBattleScoreVfxTrigger.ts` |
+| jscpd | **178** clones — down from 179 |
+| Android | 1.0.620 |
+
 
 
 

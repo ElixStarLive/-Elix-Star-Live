@@ -5,7 +5,7 @@ import { platform, openExternalLink, nativeShareUrl } from '../../../lib/platfor
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
-import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
+import { type BattleMistSide } from '../../../components/BattleVfxOverlays';
 import {
   announceMvpName,
   createTauntBurst,
@@ -20,8 +20,8 @@ import {
 import {
   applyBattleScoreLeadFeedback,
   applyBattleWinTauntFeedback,
-  runBattleScoreVfx,
 } from '../battle/applyBattleScoreFeedback';
+import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
@@ -1720,19 +1720,13 @@ export function useLiveHostController() {
   // everyone EXCEPT the supported creator. The host keeps seeing the score when
   // their own side is boosted; the opposing side's mist fogs it for them.
   const [mistFog, setMistFog] = useState<{ supportedUserId: string; supportedSide: 'host' | 'opponent'; expiresAt: number } | null>(null);
-  const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
-  const battleMistTimerRef = useRef<number | null>(null);
-  const gloveIdRef = useRef(0);
-
-  const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
-    runBattleScoreVfx(
-      side,
-      strength,
-      { mistTimerRef: battleMistTimerRef, gloveIdRef },
-      setBattleMistSide,
-      setBattleGloves,
-    );
-  }, []);
+  const {
+    battleGloves,
+    setBattleGloves,
+    battleMistTimerRef,
+    gloveIdRef,
+    triggerBattleVfx,
+  } = useBattleScoreVfxTrigger(setBattleMistSide);
 
   useEffect(() => {
     setBattleHideScores(
@@ -1746,12 +1740,6 @@ export function useLiveHostController() {
   // Fog covers gift/battle points for everyone except the supported creator.
   // Opponent creator + spectators lose the digits; only that creator keeps them.
   const mistHidesScores = computeMistHidesScoresForViewer(mistFog, user?.id);
-
-  useEffect(() => {
-    return () => {
-      if (battleMistTimerRef.current != null) window.clearTimeout(battleMistTimerRef.current);
-    };
-  }, []);
 
   const [_iAmReady, setIAmReady] = useState(false);
   const [_hostIsReady, setHostIsReady] = useState(false);

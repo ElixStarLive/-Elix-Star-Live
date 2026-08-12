@@ -7,7 +7,7 @@ import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostCont
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
 import { GiftUiItem, GIFT_COMBO_MAX, resolveGiftAssetUrl } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
-import { type BattleMistSide, type GloveBurst } from '../../../components/BattleVfxOverlays';
+import { type BattleMistSide } from '../../../components/BattleVfxOverlays';
 import {
   announceMvpName,
   createTauntBurst,
@@ -17,8 +17,8 @@ import {
 import {
   applyBattleScoreLeadFeedback,
   applyBattleWinTauntFeedback,
-  runBattleScoreVfx,
 } from '../battle/applyBattleScoreFeedback';
+import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
@@ -779,24 +779,18 @@ export function useLiveSpectatorController() {
   const [battleHideScores, setBattleHideScores] = useState(false);
   /** Tap PK score bar to hide it so battle video + chat stay visible. */
   const [battleScoreBarHidden, setBattleScoreBarHidden] = useState(false);
-  const [battleGloves, setBattleGloves] = useState<GloveBurst[]>([]);
+  const {
+    battleGloves,
+    setBattleGloves,
+    battleMistTimerRef,
+    gloveIdRef,
+    triggerBattleVfx,
+  } = useBattleScoreVfxTrigger(setBattleMistSide);
   const [battleTauntBursts, setBattleTauntBursts] = useState<TauntBurst[]>([]);
   const prevMvpHostSpectatorRef = useRef<string | null>(null);
   const prevMvpOpponentSpectatorRef = useRef<string | null>(null);
   const pushBattleTaunt = useCallback((burst: TauntBurst) => {
     setBattleTauntBursts((prev) => [...prev.slice(-10), burst]);
-  }, []);
-  const battleMistTimerRef = useRef<number | null>(null);
-  const gloveIdRef = useRef(0);
-
-  const triggerBattleVfx = useCallback((side: 'red' | 'blue', strength: number) => {
-    runBattleScoreVfx(
-      side,
-      strength,
-      { mistTimerRef: battleMistTimerRef, gloveIdRef },
-      setBattleMistSide,
-      setBattleGloves,
-    );
   }, []);
 
   useEffect(() => {
