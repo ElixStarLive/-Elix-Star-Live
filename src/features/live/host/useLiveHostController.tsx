@@ -43,7 +43,7 @@ import {
 } from '../battle/battleScoreVisibility';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
-import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
+import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
@@ -81,7 +81,7 @@ import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -442,31 +442,6 @@ export function useLiveHostController() {
     setHostName(`Creator ${hostLabel}`);
     setHostAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=FFFFFF`);
   }, [isBroadcast, effectiveStreamId]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-
-    setUserLevel(user.level ?? 0);
-    setUserXP(0);
-
-    void loadLiveGiftWalletBootstrap(walletCoinBalanceRef).then((boot) => {
-      if (cancelled) return;
-      if (!boot) {
-        showToast('Could not load wallet balance');
-        return;
-      }
-      applyLiveWalletBootstrapUi({
-        boot,
-        userLevel: user.level,
-        setGiftSource,
-        setUserLevel,
-        setUserXP,
-        updateUserLevel: (level) => updateUser({ level }),
-      });
-    });
-    return () => { cancelled = true; };
-  }, [user?.id, user?.level, updateUser]);
 
   const [isMyStreamLive, setIsMyStreamLive] = useState(false);
   const creatorNameRef = useRef(creatorName);
@@ -4158,6 +4133,15 @@ export function useLiveHostController() {
 
 
   const [userXP, setUserXP] = useState(0);
+  useLiveWalletBootstrapOnUser({
+    userId: user?.id,
+    userLevel: user?.level,
+    walletCoinBalanceRef,
+    setGiftSource,
+    setUserLevel,
+    setUserXP,
+    updateUserLevel: (level) => updateUser({ level }),
+  });
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
   const {

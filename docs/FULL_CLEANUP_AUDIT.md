@@ -750,6 +750,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **184** clones (held; host-internal viewer dup removed) |
 | Android | 1.0.617 |
 
+### Continue 18 — wallet bootstrap on-user hook
+| Item | Change |
+|------|--------|
+| Shared wallet bootstrap effect | `useLiveWalletBootstrapOnUser.ts` |
+| jscpd | **182** clones — down from 184 |
+| Android | 1.0.618 |
+
+
 
 
 

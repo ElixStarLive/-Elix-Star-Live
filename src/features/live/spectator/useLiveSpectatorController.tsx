@@ -40,7 +40,7 @@ import {
 } from '../battle/battleScoreVisibility';
 import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
-import { applyLiveWalletBootstrapUi } from '../gifts/applyLiveWalletBootstrapUi';
+import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
 import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
@@ -112,7 +112,7 @@ import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
-import { refreshLiveGiftPanelBalances, loadLiveGiftWalletBootstrap } from '../gifts/refreshLiveGiftPanelBalances';
+import { refreshLiveGiftPanelBalances } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { buildLiveGiftChatMessage } from '../gifts/processLiveGiftSentEvent';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -1905,33 +1905,20 @@ export function useLiveSpectatorController() {
     return () => clearTimeout(t);
   }, [streamIsLive, hasStream]);
 
-  useEffect(() => {
-    if (!user?.id) return;
-    let cancelled = false;
-
-    setUserLevel(user.level ?? 0);
-    setUserXP(0);
-
-    void loadLiveGiftWalletBootstrap(walletCoinBalanceRef).then((boot) => {
-      if (cancelled) return;
-      if (!boot) {
-        setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
-        showToast('Could not load wallet balance');
-        return;
-      }
-      setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
-      applyLiveWalletBootstrapUi({
-        boot,
-        userLevel: user.level,
-        extraLevelFloor: shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0,
-        setGiftSource,
-        setUserLevel,
-        setUserXP,
-        updateUserLevel: (level) => updateUser({ level }),
-      });
-    });
-    return () => { cancelled = true; };
-  }, [user?.id, user?.level, updateUser]);
+  useLiveWalletBootstrapOnUser({
+    userId: user?.id,
+    userLevel: user?.level,
+    walletCoinBalanceRef,
+    setGiftSource,
+    setUserLevel,
+    setUserXP,
+    updateUserLevel: (level) => updateUser({ level }),
+    getExtraLevelFloor: () =>
+      user?.id && shouldUseTestCoinsForGifts(user.id) ? getTestLevel(user.id) : 0,
+    onBeforeApply: () => {
+      if (user?.id) setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
+    },
+  });
 
   useEffect(() => {
     if (showTestCoinsModal && testCoinsStep === 'password') {
