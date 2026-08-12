@@ -23,7 +23,6 @@ import {
   apiEngagementDailyLoginClaim,
   apiEngagementFanLevel,
   apiEngagementHub,
-  apiEngagementMissions,
   apiEngagementMvp,
   apiEngagementStickers,
   apiEngagementTreasure,
@@ -32,6 +31,7 @@ import {
 } from "../../features/live/engagement/liveEngagementApi";
 import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
 import { claimEngagementMissionRow } from "../../features/live/engagement/claimEngagementMissionRow";
+import { loadEngagementMissionRows } from "../../features/live/engagement/loadEngagementMissionRows";
 import { showToast } from "../../lib/toast";
 import { engagementFlags } from "../../config/engagementFlags";
 
@@ -294,8 +294,8 @@ function MissionsBody() {
   const [claiming, setClaiming] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const { data } = await apiEngagementMissions();
-    setMissions((data?.missions as EngagementMissionRow[]) || []);
+    const result = await loadEngagementMissionRows();
+    if (result.ok) setMissions(result.missions);
   }, []);
 
   useEffect(() => {

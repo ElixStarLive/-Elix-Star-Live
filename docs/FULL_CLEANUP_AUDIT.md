@@ -836,6 +836,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **170** clones / **2.14%** lines |
 | Android | 1.0.628 |
 
+### Continue 29 — engagement mission load helper
+| Item | Change |
+|------|--------|
+| Shared mission list load | `loadEngagementMissionRows.ts` |
+| jscpd | **170** clones (held; single load owner) |
+| Android | 1.0.629 |
+
 
 
 

@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Target } from "lucide-react";
 import { EngagementShell } from "./EngagementShell";
 import { showToast } from "../../lib/toast";
-import { apiEngagementMissions } from "../../features/live/engagement/liveEngagementApi";
 import type { EngagementMissionRow } from "../../features/live/engagement/engagementMissionTypes";
 import { claimEngagementMissionRow } from "../../features/live/engagement/claimEngagementMissionRow";
+import { loadEngagementMissionRows } from "../../features/live/engagement/loadEngagementMissionRows";
 
 export default function EngagementMissions() {
   const [missions, setMissions] = useState<EngagementMissionRow[]>([]);
@@ -14,9 +14,9 @@ export default function EngagementMissions() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await apiEngagementMissions();
-      if (error) throw new Error(error);
-      setMissions((data?.missions as EngagementMissionRow[]) || []);
+      const result = await loadEngagementMissionRows();
+      if (result.ok === false) throw new Error(result.error);
+      setMissions(result.missions);
     } catch {
       showToast("Could not load missions");
     } finally {
