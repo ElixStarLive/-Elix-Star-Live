@@ -26,7 +26,7 @@ import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEven
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
-import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
+import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
@@ -79,7 +79,10 @@ import type {
 import { sameUserId, isSelfUser } from '../utils/ids';
 import { useLiveGiftsCatalog } from '../hooks/useLiveGiftsCatalog';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
-import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
+import {
+  applyLivePaidGiftSuccessEffects,
+  formatInsufficientCoinsToast,
+} from '../gifts/applyLivePaidGiftSuccessEffects';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
@@ -137,7 +140,6 @@ import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
-import { applyServerViewerCount } from '../ws/applyServerViewerCount';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
 import {
@@ -3658,15 +3660,12 @@ export function useLiveHostController() {
       }
     };
 
-    const handleGiftGoalSync = (data: unknown) => {
-      if (!mounted) return;
-      applyLiveGiftGoalSync(data, setGiftGoal);
-    };
-
-    const handleViewerCount = (data: unknown) => {
-      if (!mounted) return;
-      applyServerViewerCount(data, setViewerCount);
-    };
+    const { handleGiftGoalSync, handleViewerCount } =
+      createLiveGiftGoalAndViewerCountHandlers({
+        isMounted: () => mounted,
+        setGiftGoal,
+        setViewerCount,
+      });
 
     const unbindRoomWs = bindLiveRoomWs({
       onRoomState: handleRoomState,
@@ -4216,7 +4215,7 @@ export function useLiveHostController() {
       promotionalBalance: walletNow.promotionalBalance,
     });
     if (spendable < gift.coins) {
-      showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+      showToast(formatInsufficientCoinsToast(spendable, gift.coins));
       return;
     }
 
@@ -4256,48 +4255,36 @@ export function useLiveHostController() {
             showToast(msg);
             return;
           }
-          const applied = await applyLiveGiftWalletResult({ result, giftSource });
-          if (applied.paid != null) {
-            walletCoinBalanceRef.current = applied.paid;
-          }
-          if (applied.nextGiftSource) {
-            setGiftSource(applied.nextGiftSource);
-          }
-          if (applied.walletRefreshFailed) {
-            reportFailure('live_gift_wallet_refresh', 'fetchWallet failed');
-            showToast('Could not refresh wallet balance');
-          }
-          if (result.newLevel != null) {
-            const updatedLevel = Number(result.newLevel);
-            setUserLevel(updatedLevel);
-            updateUser({ level: updatedLevel });
-            newLevel = updatedLevel;
-          }
-          if (result.totalXp != null) {
-            setUserXP(Math.max(0, Number(result.totalXp) || 0));
-          }
-          if (result.leveledUp) {
-            const levelBannerId = `levelup-${Date.now()}`;
-            setMessages((prev) => appendCapped(prev, {
-                id: levelBannerId,
+          const success = await applyLivePaidGiftSuccessEffects({
+            result,
+            giftSource,
+            currentLevel: newLevel,
+            walletCoinBalanceRef,
+            setGiftSource,
+            setUserLevel,
+            setUserXP,
+            updateUserLevel: (level) => updateUser({ level }),
+            showToast,
+            onLeveledUp: (level) => {
+              setMessages((prev) => appendCapped(prev, {
+                id: `levelup-${Date.now()}`,
                 username: isBroadcast ? creatorName : viewerName,
-                text: `reached Level ${newLevel}`,
-                level: newLevel,
+                text: `reached Level ${level}`,
+                level,
                 isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
                 isSystem: true,
               }, LIVE_CHAT_MESSAGE_CAP));
-            liveChatSend( {
-              text: `reached Level ${newLevel}`,
-              level: newLevel,
-              avatar: isBroadcast ? myAvatar : viewerAvatar,
-            });
-          }
-          giftTransactionId = result.transactionId;
-          if (!giftTransactionId) {
-            showToast('Gift failed');
-            return;
-          }
+              liveChatSend({
+                text: `reached Level ${level}`,
+                level,
+                avatar: isBroadcast ? myAvatar : viewerAvatar,
+              });
+            },
+          });
+          if (!success.ok) return;
+          newLevel = success.newLevel;
+          giftTransactionId = success.transactionId;
         } catch {
           showToast('Gift failed');
           return;
@@ -4478,47 +4465,36 @@ export function useLiveHostController() {
             showToast(msg);
             return;
           }
-          const applied = await applyLiveGiftWalletResult({ result, giftSource });
-          if (applied.paid != null) {
-            walletCoinBalanceRef.current = applied.paid;
-          }
-          if (applied.nextGiftSource) {
-            setGiftSource(applied.nextGiftSource);
-          }
-          if (applied.walletRefreshFailed) {
-            reportFailure('live_gift_wallet_refresh', 'fetchWallet failed');
-            showToast('Could not refresh wallet balance');
-          }
-          if (result.newLevel != null) {
-            newLevel = Number(result.newLevel);
-            setUserLevel(newLevel);
-            updateUser({ level: newLevel });
-          }
-          if (result.totalXp != null) {
-            setUserXP(Math.max(0, Number(result.totalXp) || 0));
-          }
-          if (result.leveledUp) {
-            const levelBannerId = `levelup-${Date.now()}`;
-            setMessages((prev) => appendCapped(prev, {
-                id: levelBannerId,
+          const success = await applyLivePaidGiftSuccessEffects({
+            result,
+            giftSource,
+            currentLevel: newLevel,
+            walletCoinBalanceRef,
+            setGiftSource,
+            setUserLevel,
+            setUserXP,
+            updateUserLevel: (level) => updateUser({ level }),
+            showToast,
+            onLeveledUp: (level) => {
+              setMessages((prev) => appendCapped(prev, {
+                id: `levelup-${Date.now()}`,
                 username: isBroadcast ? creatorName : viewerName,
-                text: `reached Level ${newLevel}`,
-                level: newLevel,
+                text: `reached Level ${level}`,
+                level,
                 isGift: false,
                 avatar: isBroadcast ? myAvatar : viewerAvatar,
                 isSystem: true,
               }, LIVE_CHAT_MESSAGE_CAP));
-            liveChatSend( {
-              text: `reached Level ${newLevel}`,
-              level: newLevel,
-              avatar: isBroadcast ? myAvatar : viewerAvatar,
-            });
-          }
-          giftTransactionId = result.transactionId;
-          if (!giftTransactionId) {
-            showToast('Gift failed');
-            return;
-          }
+              liveChatSend({
+                text: `reached Level ${level}`,
+                level,
+                avatar: isBroadcast ? myAvatar : viewerAvatar,
+              });
+            },
+          });
+          if (!success.ok) return;
+          newLevel = success.newLevel;
+          giftTransactionId = success.transactionId;
         } catch {
           showToast('Gift failed');
           return;

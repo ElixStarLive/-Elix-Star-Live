@@ -30,8 +30,13 @@ describe("LIVE + battle server state-machine contracts", () => {
   it("live clients consume authoritative viewer_count from the server", () => {
     expect(liveStream).toContain("onViewerCount");
     expect(spectator).toContain("onViewerCount");
-    expect(liveStream).toContain("applyServerViewerCount");
-    expect(spectator).toContain("applyServerViewerCount");
+    // Controllers bind via shared helper; apply lives in one owner module.
+    expect(liveStream).toContain("createLiveGiftGoalAndViewerCountHandlers");
+    expect(spectator).toContain("createLiveGiftGoalAndViewerCountHandlers");
+    const viewerCountHelper = read(
+      "../../src/features/live/chat/createLiveGiftGoalAndViewerCountHandlers.ts",
+    );
+    expect(viewerCountHelper).toContain("applyServerViewerCount");
   });
 
   it("a normal viewer leaving only ends the stream when they are the host", () => {

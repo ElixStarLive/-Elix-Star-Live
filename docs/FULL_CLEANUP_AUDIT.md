@@ -757,9 +757,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **182** clones — down from 184 |
 | Android | 1.0.618 |
 
-
-
-
+### Continue 19 — paid-gift success UI + gift-goal/viewer handlers
+| Item | Change |
+|------|--------|
+| Post–paid-gift wallet/level/XP apply | `applyLivePaidGiftSuccessEffects.ts` (host send + combo + spectator) |
+| Insufficient-coins toast helper | `formatInsufficientCoinsToast` |
+| Gift goal + viewer_count WS handlers | `createLiveGiftGoalAndViewerCountHandlers.ts` |
+| Contract test | viewer_count asserts shared helper + `applyServerViewerCount` owner |
+| jscpd | **179** clones — down from 182 |
+| Android | 1.0.619 |
 
 
 

@@ -23,7 +23,7 @@ import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEven
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { tryUnlockBattleSpeedChallenge } from '../battle/tryUnlockBattleSpeedChallenge';
 import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
-import { applyLiveGiftGoalSync } from '../gifts/applyLiveGiftGoalSync';
+import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
 import { startLiveEngagementWatchTick } from '../engagement/startLiveEngagementWatchTick';
@@ -66,7 +66,6 @@ import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
-import { applyServerViewerCount } from '../ws/applyServerViewerCount';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import {
   DEFAULT_COHOST_LAYOUT_ID,
@@ -110,7 +109,10 @@ import {
 import { RoomEvent, ConnectionState } from 'livekit-client';
 import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
-import { applyLiveGiftWalletResult } from '../gifts/applyLiveGiftWalletResult';
+import {
+  applyLivePaidGiftSuccessEffects,
+  formatInsufficientCoinsToast,
+} from '../gifts/applyLivePaidGiftSuccessEffects';
 import { useLiveWalletDisplay } from '../gifts/useLiveWalletDisplay';
 import { refreshLiveGiftPanelBalances } from '../gifts/refreshLiveGiftPanelBalances';
 import { resolveLocalGiftVideoUrl, resolvePlayableGiftVideoUrl } from '../gifts/liveGiftIngest';
@@ -2632,15 +2634,12 @@ export function useLiveSpectatorController() {
       showToast(`@${data.hostName || 'Creator'} invited you to battle — tap Join`);
     };
 
-    const handleGiftGoalSync = (data: unknown) => {
-      if (!mounted) return;
-      applyLiveGiftGoalSync(data, setGiftGoal);
-    };
-
-    const handleViewerCount = (data: unknown) => {
-      if (!mounted) return;
-      applyServerViewerCount(data, setViewerCount);
-    };
+    const { handleGiftGoalSync, handleViewerCount } =
+      createLiveGiftGoalAndViewerCountHandlers({
+        isMounted: () => mounted,
+        setGiftGoal,
+        setViewerCount,
+      });
 
     const onConnected = (data?: unknown) => {
       handleViewerCount(data);
@@ -3101,7 +3100,7 @@ export function useLiveSpectatorController() {
       promotionalBalance: walletNow.promotionalBalance,
     });
     if (spendable < gift.coins) {
-      showToast(`Not enough coins (have ${spendable.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+      showToast(formatInsufficientCoinsToast(spendable, gift.coins));
       return;
     }
     if (!websocket.isConnected()) {
@@ -3117,7 +3116,7 @@ export function useLiveSpectatorController() {
     if (usedTestCoins) {
       const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, gift.coins);
       if (debit.ok === false) {
-        showToast(`Not enough coins (have ${debit.balance.toLocaleString()}, need ${gift.coins.toLocaleString()})`);
+        showToast(formatInsufficientCoinsToast(debit.balance, gift.coins));
         return;
       }
       setTestCoinBalance(debit.newBalance);
@@ -3173,46 +3172,37 @@ export function useLiveSpectatorController() {
           showToast(msg || 'Gift failed');
           return;
         }
-        const applied = await applyLiveGiftWalletResult({ result, giftSource });
-        if (applied.paid != null) {
-          walletCoinBalanceRef.current = applied.paid;
-        }
-        if (applied.nextGiftSource) {
-          setGiftSource(applied.nextGiftSource);
-        }
-        if (applied.walletRefreshFailed) {
-          reportFailure('live_gift_wallet_refresh', 'fetchWallet failed');
-          showToast('Could not refresh wallet balance');
-        }
-        if (result.newLevel != null) {
-          newLevel = Math.max(0, Number(result.newLevel) || 0);
-          setUserLevel(newLevel);
-          updateUser({ level: newLevel });
-        }
-        if (result.totalXp != null) {
-          setUserXP(Math.max(0, Number(result.totalXp) || 0));
-        }
-        if (result.leveledUp) {
-          setMessages((prev) => appendCapped(prev, {
+        const success = await applyLivePaidGiftSuccessEffects({
+          result,
+          giftSource,
+          currentLevel: newLevel,
+          walletCoinBalanceRef,
+          setGiftSource,
+          setUserLevel,
+          setUserXP,
+          updateUserLevel: (level) => updateUser({ level }),
+          showToast,
+          missingTransactionToast: 'Gift failed — please try again',
+          onLeveledUp: (level) => {
+            setMessages((prev) => appendCapped(prev, {
               id: `levelup-${Date.now()}`,
               username: viewerName,
-              text: `reached Level ${newLevel}`,
-              level: newLevel,
+              text: `reached Level ${level}`,
+              level,
               isGift: false,
               avatar: viewerAvatar,
               isSystem: true,
             }, LIVE_CHAT_MESSAGE_CAP));
-          liveChatSend( {
-            text: `reached Level ${newLevel}`,
-            level: newLevel,
-            avatar: viewerAvatar,
-          });
-        }
-        giftTransactionId = result.transactionId || null;
-        if (!giftTransactionId) {
-          showToast('Gift failed — please try again');
-          return;
-        }
+            liveChatSend({
+              text: `reached Level ${level}`,
+              level,
+              avatar: viewerAvatar,
+            });
+          },
+        });
+        if (!success.ok) return;
+        newLevel = success.newLevel;
+        giftTransactionId = success.transactionId;
       } catch {
         showToast('Gift failed — please try again');
         return;
