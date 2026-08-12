@@ -2166,7 +2166,13 @@ export function useLiveSpectatorController() {
         const walletBal = Math.max(0, balances.paid);
         walletCoinBalanceRef.current = walletBal;
         setCoinBalance(walletBal);
+      } else if (walletErr) {
+        reportFailure('live_gift_panel_wallet', walletErr);
+        showToast('Could not load wallet balance');
       }
+    }).catch((err) => {
+      reportFailure('live_gift_panel_wallet', err);
+      showToast('Could not load wallet balance');
     });
     apiLiveProgressionMe().then(({ data, error }) => {
       if (!error && data?.progression) {
@@ -3494,7 +3500,13 @@ export function useLiveSpectatorController() {
               const nextWallet = Math.max(0, balances.paid);
               walletCoinBalanceRef.current = nextWallet;
               setCoinBalance(nextWallet);
+            } else if (walletErr) {
+              reportFailure('live_gift_wallet_refresh', walletErr);
+              showToast('Could not refresh wallet balance');
             }
+          }).catch((err) => {
+            reportFailure('live_gift_wallet_refresh', err);
+            showToast('Could not refresh wallet balance');
           });
         }
         if (result.newLevel != null) {
@@ -3672,7 +3684,10 @@ export function useLiveSpectatorController() {
   const handleComboClick = () => {
     if (!lastSentGift) return;
     if (comboCount >= GIFT_COMBO_MAX) return;
-    void handleSendGift(lastSentGift, { fromCombo: true });
+    void handleSendGift(lastSentGift, { fromCombo: true }).catch((err) => {
+      reportFailure('live_gift_combo', err);
+      showToast('Gift failed');
+    });
   };
 
   const leaveStreamWithSlide = useCallback(() => {

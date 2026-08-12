@@ -6,6 +6,8 @@ import {
   type GiftItem,
 } from "../lib/giftsCatalog";
 import { giftGoalProgressPct, type LiveGiftGoal } from "../lib/liveGiftGoal";
+import { showToast } from "../lib/toast";
+import { reportFailure } from "../lib/reportFailure";
 
 type PickerProps = {
   mode: "picker";
@@ -63,8 +65,10 @@ export function GiftGoalGallery(props: Props) {
       .then((items) => {
         if (!cancelled) setGifts(items);
       })
-      .catch(() => {
-        /* keep prior gifts — never treat failure as empty catalog */
+      .catch((err) => {
+        // Keep prior gifts — never treat failure as empty catalog — but surface load failure.
+        reportFailure('gift_goal_gallery_catalog', err);
+        if (!cancelled) showToast('Failed to load gifts');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

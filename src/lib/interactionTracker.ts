@@ -1,49 +1,26 @@
+/**
+ * Feed interaction tracking — uses the single API transport (apiClient.request).
+ * Soft-fails tracking posts (analytics); never invents feed success on GET failure
+ * beyond an explicit null score.
+ */
+
 import { getApiBase } from './api';
-import { useAuthStore } from '../store/useAuthStore';
-import { Capacitor } from '@capacitor/core';
+import { request } from './apiClient';
+import { reportFailure } from './reportFailure';
 
-function getAuthHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const token = useAuthStore.getState().session?.access_token;
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-  return headers;
-}
-
-function getCredentialsMode(): RequestCredentials {
-  return Capacitor.isNativePlatform() ? 'omit' : 'include';
-}
-
-async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit, timeoutMs: number): Promise<Response> {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    clearTimeout(t);
-  }
-}
 async function apiPost(path: string, body: unknown): Promise<unknown> {
-  const base = getApiBase();
-  const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
-  const res = await fetchWithTimeout(url, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(body), credentials: getCredentialsMode() }, 7000);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'API error');
-  }
-  return res.json();
+  const { data, error } = await request(path, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+  if (error) throw new Error(error.message || 'API error');
+  return data;
 }
 
 async function apiGet<T = unknown>(path: string): Promise<T> {
-  const base = getApiBase();
-  const url = base ? `${base}${path.startsWith('/') ? path : `/${path}`}` : path;
-  const res = await fetchWithTimeout(url, { headers: getAuthHeaders(), credentials: getCredentialsMode() }, 7000);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'API error');
-  }
-  return res.json();
+  const { data, error } = await request<T>(path);
+  if (error) throw new Error(error.message || 'API error');
+  return data as T;
 }
 
 const activeViews = new Map<string, {
@@ -122,40 +99,40 @@ export async function stopVideoView(videoId: string) {
       replayed: view.replayed,
       replayCount: view.replayCount,
     });
-  } catch {
-    // Single connection: backend API only; no fallback
+  } catch (err) {
+    reportFailure('feed_track_view', err, { videoId: view.videoId });
   }
 }
 
 export async function trackLike(videoId: string): Promise<void> {
   try {
     await apiPost('/api/feed/track-interaction', { videoId, type: 'like' });
-  } catch {
-    // fallback handled in store
+  } catch (err) {
+    reportFailure('feed_track_like', err, { videoId });
   }
 }
 
 export async function trackComment(videoId: string, text: string): Promise<void> {
   try {
     await apiPost('/api/feed/track-interaction', { videoId, type: 'comment', data: { text } });
-  } catch {
-    // fallback
+  } catch (err) {
+    reportFailure('feed_track_comment', err, { videoId });
   }
 }
 
 export async function trackShare(videoId: string, platform: string = 'copy'): Promise<void> {
   try {
     await apiPost('/api/feed/track-interaction', { videoId, type: 'share', data: { platform } });
-  } catch {
-    // fallback
+  } catch (err) {
+    reportFailure('feed_track_share', err, { videoId });
   }
 }
 
 export async function trackFollow(targetUserId: string, videoId?: string): Promise<void> {
   try {
     await apiPost('/api/feed/track-interaction', { videoId: videoId || '', type: 'follow', data: { targetUserId } });
-  } catch {
-    // fallback
+  } catch (err) {
+    reportFailure('feed_track_follow', err, { targetUserId });
   }
 }
 
@@ -175,7 +152,8 @@ export async function getVideoScore(videoId: string): Promise<unknown> {
   try {
     const result = await apiGet<{ score?: unknown }>(`/api/feed/score/${videoId}`);
     return result.score;
-  } catch {
+  } catch (err) {
+    reportFailure('feed_video_score', err, { videoId });
     return null;
   }
 }

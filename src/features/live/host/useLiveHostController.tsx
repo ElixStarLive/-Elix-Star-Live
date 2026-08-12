@@ -544,9 +544,14 @@ export function useLiveHostController() {
     return () => {
       if (!liveRegisteredRef.current) return;
       const room = effectiveStreamIdRef.current;
-      void apiLiveEnd(room).finally(() => {
-        liveRegisteredRef.current = false;
-      });
+      void apiLiveEnd(room)
+        .then(({ error }) => {
+          if (error) reportFailure('live_end', error, { room });
+        })
+        .catch((err) => reportFailure('live_end', err, { room }))
+        .finally(() => {
+          liveRegisteredRef.current = false;
+        });
     };
   }, [liveRegisteredRef]);
 
@@ -2249,7 +2254,13 @@ export function useLiveHostController() {
         const walletBal = Math.max(0, balances.paid);
         walletCoinBalanceRef.current = walletBal;
         setCoinBalance(walletBal);
+      } else if (walletErr) {
+        reportFailure('live_gift_panel_wallet', walletErr);
+        showToast('Could not load wallet balance');
       }
+    }).catch((err) => {
+      reportFailure('live_gift_panel_wallet', err);
+      showToast('Could not load wallet balance');
     });
     apiLiveProgressionMe().then(({ data, error }) => {
       if (!error && data?.progression) {
@@ -4995,7 +5006,10 @@ export function useLiveHostController() {
 
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    void handleComboClick();
+    void handleComboClick().catch((err) => {
+      reportFailure('live_gift_combo', err);
+      showToast('Gift failed');
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- handleComboClick is a large gift-send path; wrapping it in useCallback would churn wallet/battle deps every render without UI benefit
   }, []);
 

@@ -40,7 +40,6 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
     location.pathname.startsWith('/create/') ||
     location.pathname === '/upload';
   const user = useAuthStore((s) => s.user);
-  const _session = useAuthStore((s) => s.session);
   const [boostType, setBoostType] = useState<'account' | 'live'>(
     contentType === 'live' ? 'live' : 'account'
   );

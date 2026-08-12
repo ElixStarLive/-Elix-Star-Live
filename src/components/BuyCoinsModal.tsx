@@ -79,13 +79,18 @@ export const BuyCoinsModal: React.FC<BuyCoinsModalProps> = ({ isOpen, onClose, o
           if (typeof result.newBalance === 'number') {
             onSuccess(result.newBalance);
           } else {
-            // Server did not return an authoritative balance (rare). Do NOT add
-            // product.coins to the current balance — on a deduplicated/restored
-            // purchase the coins were already credited, so adding again would
-            // double-count in the displayed balance. Keep the known balance;
-            // the next wallet refresh reconciles the real value.
-            const base = typeof currentBalance === 'number' ? currentBalance : 0;
-            onSuccess(Math.max(0, base));
+            // Server did not return an authoritative balance. Refresh wallet —
+            // never invent balance by adding product.coins (dedupe/restore risk).
+            const { useWalletStore } = await import('@/store/useWalletStore');
+            const refreshed = await useWalletStore.getState().fetchWallet();
+            if (refreshed.ok) {
+              onSuccess(useWalletStore.getState().paidBalance);
+            } else if (typeof currentBalance === 'number') {
+              onSuccess(currentBalance);
+              showToast('Purchase completed. Refresh if balance looks wrong.');
+            } else {
+              showToast('Purchase completed. Refresh if balance looks wrong.');
+            }
           }
         }
         if (typeof result.newBalance === 'number') {

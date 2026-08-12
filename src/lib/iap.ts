@@ -437,8 +437,17 @@ export async function purchaseProduct(productId: IAPProductId): Promise<IAPPurch
 
     const consumed = await completeCoinPurchase(mod, transactionId, receipt);
     if (!consumed) {
+      // Server already credited — do not claim purchase failed. Finish the store
+      // token via reconcile so the SKU stays rebuyable (Android ITEM_ALREADY_OWNED).
       reportIapStage('consume_failed_reconcile', { productId });
-      void reconcileOwnedCoinPurchases();
+      try {
+        await reconcileOwnedCoinPurchases();
+      } catch (reconcileErr) {
+        reportIapStage('reconcile_after_consume_fail', {
+          productId,
+          error: (reconcileErr as { message?: string })?.message || String(reconcileErr),
+        });
+      }
     }
 
     return {
@@ -580,8 +589,29 @@ export async function purchaseMembership(
       await mod.NativePurchases.acknowledgePurchase({
         purchaseToken: platform.isAndroid ? receipt : transactionId,
       });
-    } catch {
-      /* best-effort store completion */
+    } catch (ackErr) {
+      // Server already recorded membership — never silent-swallow. Retry once;
+      // if still failing, surface so the buyer can Restore (avoids Play auto-refund).
+      reportIapStage('membership_ack_failed', {
+        error: (ackErr as { message?: string })?.message || String(ackErr),
+        productId: current.status.productId,
+      });
+      try {
+        await mod.NativePurchases.acknowledgePurchase({
+          purchaseToken: platform.isAndroid ? receipt : transactionId,
+        });
+        reportIapStage('membership_ack_retry_ok', { productId: current.status.productId });
+      } catch (ackRetryErr) {
+        reportIapStage('membership_ack_retry_failed', {
+          error: (ackRetryErr as { message?: string })?.message || String(ackRetryErr),
+          productId: current.status.productId,
+        });
+        return {
+          success: false,
+          error:
+            'Purchase recorded but store acknowledgement failed. Tap Restore Purchases or contact support if charged.',
+        };
+      }
     }
 
     const active = data?.active === true;
@@ -655,7 +685,7 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
 
     return { success: true, transactionId, receipt };
   } catch (err) {
-    const msg = err?.message || String(err);
+    const msg = err instanceof Error ? err.message : String(err);
     if (msg.includes('cancel') || msg.includes('Cancel') || msg.includes('USER_CANCELED')) {
       return { success: false, error: 'Purchase cancelled' };
     }
@@ -681,8 +711,14 @@ export async function finalizeNativePurchase(opts: {
       // iOS: finish the transaction (token argument is the transaction id).
       await mod.NativePurchases.acknowledgePurchase({ purchaseToken: opts.transactionId });
     }
-  } catch {
-    /* best-effort store completion */
+  } catch (err) {
+    // Coins are already server-credited; store finish is required for rebuy.
+    // Log and let reconcileOwnedCoinPurchases recover — never invent a client credit.
+    const msg = (err as { message?: string })?.message || String(err);
+    reportIapStage('finalize_native_failed', {
+      transactionId: opts.transactionId,
+      error: msg.slice(0, 200),
+    });
   }
 }
 

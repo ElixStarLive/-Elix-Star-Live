@@ -20,7 +20,7 @@ export function bindLiveCohostWs(handlers: LiveCohostWsHandlers): () => void {
 
   if (handlers.onInvite) pairs.push([LIVE_WS_IN.cohost_invite, handlers.onInvite]);
   if (handlers.onInviteAck) {
-    pairs.push(['cohost_invite_ack', handlers.onInviteAck]);
+    pairs.push([LIVE_WS_IN.cohost_invite_ack, handlers.onInviteAck]);
   }
   if (handlers.onInviteAccepted) {
     pairs.push([LIVE_WS_IN.cohost_invite_accepted, handlers.onInviteAccepted]);
