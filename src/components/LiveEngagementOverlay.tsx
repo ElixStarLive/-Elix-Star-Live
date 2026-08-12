@@ -7,7 +7,6 @@ import {
 
 type Props = {
   state: EngagementPublicState;
-  nowMs: number;
   milestoneFlash: EngagementMilestoneEvent | null;
   stageFlash: number | null;
   onVote?: (optionIndex: number) => void;
@@ -20,13 +19,13 @@ type Props = {
  */
 export function LiveEngagementOverlay({
   state,
-  nowMs: _nowMs,
   milestoneFlash,
   stageFlash,
   onVote,
 }: Props) {
   const [showLb, setShowLb] = useState(false);
   const [showPollSheet, setShowPollSheet] = useState(false);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const features = state.features;
 
   const hasVoted =
@@ -66,6 +65,12 @@ export function LiveEngagementOverlay({
     };
   }, [features.poll, features.leaderboard, state.poll]);
 
+  useEffect(() => {
+    if (!showPollSheet || !state.poll?.endsAt) return;
+    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [showPollSheet, state.poll?.endsAt]);
+
   if (!milestoneFlash && stageFlash == null && !showLb && !showPollSheet) {
     return null;
   }
@@ -89,7 +94,7 @@ export function LiveEngagementOverlay({
                 </div>
                 <span className="text-sm font-bold text-[#F5F5F7] text-center w-full">
                   {state.poll.kind === "trivia" ? "Trivia" : "Live poll"}
-                  {state.poll.endsAt && _nowMs >= state.poll.endsAt
+                  {state.poll.endsAt && nowMs >= state.poll.endsAt
                     ? " · Ended"
                     : ""}
                 </span>
@@ -106,7 +111,7 @@ export function LiveEngagementOverlay({
                   const total = poll.votes.reduce((a, b) => a + b, 0) || 1;
                   const pct = Math.round(((poll.votes[i] || 0) / total) * 100);
                   const ended =
-                    !!poll.endsAt && _nowMs >= poll.endsAt;
+                    !!poll.endsAt && nowMs >= poll.endsAt;
                   return (
                     <button
                       key={`${poll.id}-${i}`}

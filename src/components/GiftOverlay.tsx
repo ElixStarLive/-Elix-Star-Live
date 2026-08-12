@@ -7,6 +7,7 @@ import {
   stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
 import { preferPlayableGiftVideoUrl } from '../lib/giftsCatalog';
+import { releaseVideoElement } from '../lib/live/liveTrackCleanup';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
 const MAX_CACHE = 20;
@@ -78,6 +79,10 @@ function GiftVideo({
   className?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const onEndedRef = useRef(onEnded);
+  onEndedRef.current = onEnded;
+  const onDurationMsRef = useRef(onDurationMs);
+  onDurationMsRef.current = onDurationMs;
 
   const bindVideo = useCallback(
     (el: HTMLVideoElement | null) => {
@@ -95,12 +100,21 @@ function GiftVideo({
 
     const reportDuration = () => {
       const d = el.duration;
-      if (typeof onDurationMs === 'function' && Number.isFinite(d) && d > 0) {
-        onDurationMs(Math.min(Math.ceil(d * 1000) + 400, GIFT_SAFETY_MAX_MS));
+      const report = onDurationMsRef.current;
+      if (typeof report === 'function' && Number.isFinite(d) && d > 0) {
+        report(Math.min(Math.ceil(d * 1000) + 400, GIFT_SAFETY_MAX_MS));
       }
     };
     el.addEventListener('loadedmetadata', reportDuration);
     if (el.readyState >= 1) reportDuration();
+
+    let finished = false;
+    const endAndRelease = () => {
+      if (finished) return;
+      finished = true;
+      releaseVideoElement(el);
+      onEndedRef.current();
+    };
 
     const tryPlay = () => {
       const p = el.play();
@@ -112,16 +126,25 @@ function GiftVideo({
         }
       }).catch(() => {
         el.muted = true;
-        el.play().catch(() => onEnded());
+        el.play().catch(() => endAndRelease());
       });
     };
     if (el.readyState >= 2) tryPlay();
     else el.addEventListener('loadeddata', tryPlay, { once: true });
+
+    const onNativeEnded = () => endAndRelease();
+    el.addEventListener('ended', onNativeEnded);
+    el.addEventListener('error', onNativeEnded);
+
     return () => {
       el.removeEventListener('loadeddata', tryPlay);
       el.removeEventListener('loadedmetadata', reportDuration);
+      el.removeEventListener('ended', onNativeEnded);
+      el.removeEventListener('error', onNativeEnded);
+      // Release decoder even if parent clears currentGift without waiting for ended.
+      releaseVideoElement(el);
     };
-  }, [videoSrc, muted, onEnded, onDurationMs]);
+  }, [videoSrc, muted]);
 
   return (
     <video
@@ -136,8 +159,6 @@ function GiftVideo({
       controls={false}
       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
       preload="auto"
-      onEnded={onEnded}
-      onError={onEnded}
     />
   );
 }
@@ -193,10 +214,10 @@ export function GiftOverlay({
     };
   }, [playSrc, armSafety]);
 
-  const handleEnded = () => {
+  const handleEnded = useCallback(() => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-    onEnded();
-  };
+    onEndedRef.current();
+  }, []);
 
   if (!playSrc || !videoReady) return null;
 

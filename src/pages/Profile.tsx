@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Share2, Lock, Play, Heart, Sparkles, LogOut, UserPlus, Bookmark, Grid3X3, ShoppingBag, Repeat2, Search, Copy, MessageCircle, Check, TrendingUp, Flag, Settings } from 'lucide-react';
 import { LevelBadge } from '../components/LevelBadge';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
 import { uploadAvatar } from '../lib/avatarUpload';
@@ -33,6 +33,7 @@ import {
 } from '../lib/sharePanelContacts';
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { PROFILE_EXIT_TO } from '../lib/settingsNav';
+import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
@@ -72,6 +73,7 @@ interface ProfileData {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { userId: routeUserId } = useParams<{ userId?: string }>();
   const [searchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
@@ -111,9 +113,25 @@ export default function Profile() {
   const registeredViewOwnerRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
+    const liveReturn = resolveLiveProfileReturnPath(location.pathname, location.search);
+    if (liveReturn) {
+      navigate(liveReturn, { replace: true });
+      return;
+    }
+    const returnTo =
+      location.state &&
+      typeof location.state === 'object' &&
+      'returnTo' in location.state &&
+      typeof (location.state as { returnTo?: unknown }).returnTo === 'string'
+        ? (location.state as { returnTo: string }).returnTo.trim()
+        : '';
+    if (returnTo) {
+      navigate(returnTo, { replace: true });
+      return;
+    }
     // Named exit only — no browser history pop (reopens Settings after Settings→Profile).
     navigate(PROFILE_EXIT_TO, { replace: true });
-  }, [navigate]);
+  }, [navigate, location.pathname, location.search, location.state]);
 
   const goSettings = useCallback(() => {
     setShowAccountMenu(false);
@@ -311,11 +329,12 @@ export default function Profile() {
 
   useEffect(() => {
     if (!effectiveUserId) return;
+    let cancelled = false;
     setLoading(true);
-    loadProfile();
-    loadVideos();
+    void loadProfile();
     apiRisingStarsUserBadges(effectiveUserId)
       .then(({ badges }) => {
+        if (cancelled) return;
         const list = Array.isArray(badges) ? badges : [];
         setRisingBadges(
           list.map((b: { code?: string; title?: string; kind?: string }) => ({
@@ -326,9 +345,19 @@ export default function Profile() {
         );
       })
       .catch(() => {
+        if (cancelled) return;
         showToast('Could not load rising badges');
         /* keep prior risingBadges — do not soft-empty on failure */
       });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveUserId]);
+
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    void loadVideos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
 
@@ -448,21 +477,6 @@ export default function Profile() {
         is_creator: p.isVerified || false,
       };
 
-      try {
-        const { videos: vids, error: vidsErr } = await apiFetchUserVideos(effectiveUserId);
-        if (vidsErr) {
-          showToast(vidsErr || 'Could not load video likes');
-        } else {
-          data.likes_count = vids.reduce<number>(
-            (sum: number, v: unknown) =>
-              sum + Number((v as { likes?: number })?.likes || 0),
-            0,
-          );
-        }
-      } catch {
-        showToast('Could not load video likes');
-      }
-
       setProfileData(data);
       trackEvent('profile_view', { user_id: effectiveUserId, is_own: isOwnProfile });
 
@@ -552,6 +566,16 @@ export default function Profile() {
           is_public: v.privacy !== 'private',
         }));
         setVideos(mapped);
+        const likesTotal = allVids.reduce<number>(
+          (sum: number, v: unknown) =>
+            sum + Number((v as { likes?: number })?.likes || 0),
+          0,
+        );
+        setProfileData((prev) =>
+          prev && prev.user_id === effectiveUserId
+            ? { ...prev, likes_count: likesTotal }
+            : prev,
+        );
       } else if (activeTab === 'liked') {
         const { videos: vids, error } = await apiFetchLikedVideos(50, 0);
         if (error) {

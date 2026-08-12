@@ -28,6 +28,8 @@ import {
   apiLiveToken,
   apiLiveStreams,
   collectLiveUserIds,
+  isLivePublishDenied,
+  isLiveTokenTransient,
   LiveRoomLifecycle,
 } from '../../../lib/live';
 import type {
@@ -48,7 +50,9 @@ import {
   battleCreate,
   battleEnd,
   battleInviteSend,
+  battleInviteRosterGet,
   battleJoin,
+  battleRemoveParticipant,
   battleSpectatorVote,
 } from '../battle/liveBattleActions';
 import {
@@ -58,6 +62,7 @@ import {
   normalizeBattleWinner,
   resolveServerBattleWinner,
   scoresForBattleRole,
+  teamTotalsFromScores,
 } from '../battle/liveBattleScore';
 import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
@@ -74,6 +79,7 @@ import {
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
+import { useLiveChatStore } from '../chat/useLiveChatStore';
 import { liveGiftGoalClear, liveGiftGoalSet } from '../gifts/liveGiftWsActions';
 import { liveStreamStart } from '../room/liveRoomActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
@@ -81,10 +87,9 @@ import {
   apiFetchFollowingIds,
   apiFetchProfileById,
   apiFetchProfileByUsername,
-  apiFetchProfiles,
   apiToggleFollow,
 } from '../../feed/feedApi';
-import { isGenericLiveCreatorName, liveNameFromStreamFields, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
+import { isGenericLiveCreatorName, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
@@ -92,6 +97,7 @@ import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
+import { applyServerViewerCount } from '../ws/applyServerViewerCount';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
 import {
@@ -121,20 +127,17 @@ import {
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
   resolveBattleGiftIconUrl,
+  resolveServerBattleGiftTarget,
+  shouldPlayFullBattleGiftVideo,
   type BattleTileGifts,
+  type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { type EngagementPanel } from '../../../components/engagement/EngagementDrawer';
-import { getMembershipStatus } from '../../../lib/iap';
-import {
-  purchaseCreatorMembership,
-  peekPendingMembershipCreator,
-  consumePendingMembershipOpenPanel,
-  loginReturnPath,
-  stashPendingMembershipPurchase,
-} from '../../membership/membershipPurchaseFlow';
+import { useCreatorMembershipPurchase } from '../../membership/useCreatorMembershipPurchase';
 import { useLiveThermalQuality } from '../hooks/useLiveThermalQuality';
+import { applyRemoteVideoBudget } from '../../../lib/live/liveRemoteVideoBudget';
 import type { Room, RemoteTrack, TrackPublication, RemoteParticipant } from 'livekit-client';
 import { RoomEvent } from 'livekit-client';
 import { useWalletStore } from '../../../store/useWalletStore';
@@ -192,7 +195,6 @@ export function useLiveHostController() {
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [isFollowing, setIsFollowing] = useState(false);
-  const [messages, setMessages] = useState<LiveMessage[]>(() => []);
   const [coinBalance, setCoinBalance] = useState(0);
   /** Real wallet coins — never overwritten by test-coin display balance. */
   const walletCoinBalanceRef = useRef(0);
@@ -219,10 +221,11 @@ export function useLiveHostController() {
   const [inputValue, setInputValue] = useState('');
   // Consolidate broadcast logic: host if streamId is broadcast OR if streamId matches my own user ID
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
+  const isBroadcaster = isBroadcast;
+  const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
 
   const {
     state: engagementState,
-    nowMs: engagementNowMs,
     milestoneFlash,
     stageFlash,
     startMystery,
@@ -294,30 +297,29 @@ export function useLiveHostController() {
   const [moderators, setModerators] = useState<Set<string>>(new Set());
   const attachRemoteAudio = useCallback((track: import('livekit-client').Track, el: HTMLAudioElement | null) => {
     if (track.kind !== 'audio') return;
-    if (el) {
-      track.attach(el);
-      el.muted = false;
-      el.volume = 1;
-      el.autoplay = true;
-      (el as unknown as { playsInline: boolean }).playsInline = true;
-      void el.play().catch(() => {});
-      return;
-    }
-    const attached = track.attach();
-    if (attached instanceof HTMLMediaElement) {
-      attached.muted = false;
-      attached.volume = 1;
-      void attached.play().catch(() => {});
-    }
+    if (!el) return;
+    track.attach(el);
+    el.muted = false;
+    el.volume = 1;
+    el.autoplay = true;
+    (el as unknown as { playsInline: boolean }).playsInline = true;
+    void el.play().catch(() => {});
   }, []);
 
   const [isChatVisible, setIsChatVisible] = useState(true);
   const [viewerCount, setViewerCount] = useState(0);
-  // user is already defined above
-  const isBroadcaster = isBroadcast;
-  const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
   const effectiveStreamIdRef = useRef(effectiveStreamId);
   effectiveStreamIdRef.current = effectiveStreamId;
+
+  const messages = useLiveChatStore((s) => s.messagesByStream[effectiveStreamId] ?? []);
+  const updateMessagesForStream = useLiveChatStore((s) => s.updateMessagesForStream);
+  const clearMessagesForStream = useLiveChatStore((s) => s.clearMessagesForStream);
+  const setMessages = useCallback(
+    (updater: (prev: LiveMessage[]) => LiveMessage[]) => {
+      updateMessagesForStream(effectiveStreamId, updater);
+    },
+    [effectiveStreamId, updateMessagesForStream],
+  );
 
   useEffect(() => {
     const key = String(effectiveStreamId || '').trim();
@@ -566,7 +568,6 @@ export function useLiveHostController() {
 
   /** Battle / opponent rooms — separate from host publish session. */
   const battleLifecycleRef = useRef(new LiveRoomLifecycle());
-  const opponentLifecycleRef = useRef(new LiveRoomLifecycle());
 
   const [isFindCreatorsOpen, setIsFindCreatorsOpen] = useState(false);
   const [_memberCount, setMemberCount] = useState(0);
@@ -690,134 +691,29 @@ export function useLiveHostController() {
   const [creatorsLoading, setCreatorsLoading] = useState(false);
   const [creatorsLoadFailed, setCreatorsLoadFailed] = useState(false);
 
-  const loadCreators = useCallback(async () => {
-    if (!user?.id) return;
+  const requestBattleInviteRoster = useCallback(() => {
+    if (!isBroadcast && !isBattleJoiner) return;
     setCreatorsLoading(true);
     setCreatorsLoadFailed(false);
-    try {
-      const [{ streams, error }, profilesResult] = await Promise.all([
-        apiLiveStreams(),
-        apiFetchProfiles(),
-      ]);
-      if (error) throw new Error(error);
-      if (profilesResult.error) {
-        reportFailure('live_creators_profiles', new Error(profilesResult.error));
-        /* keep prior creators — do not overwrite with a de-enriched fake-success list */
-        return;
-      }
+    battleInviteRosterGet({});
+  }, [isBroadcast, isBattleJoiner]);
 
-      const byId = new Map<string, { name: string; avatar: string }>();
-      for (const p of profilesResult.profiles || []) {
-        const id = String(p.user_id ?? p.userId ?? p.id ?? '').trim();
-        if (!id) continue;
-        const disp = profileToLiveDisplay(p);
-        byId.set(id, {
-          name: disp.name || String(p.username ?? '').trim() || 'Creator',
-          avatar: sanitizeLiveAvatar(disp.avatar),
-        });
-      }
-
-      // Support both snake_case and camelCase from /api/live/streams
-      const liveCreators = streams
-        .map((raw) => {
-          const s = raw as {
-            stream_key?: string;
-            room_id?: string;
-            user_id?: string;
-            userId?: string;
-            hostUserId?: string;
-            title?: string;
-            display_name?: string;
-            displayName?: string;
-            username?: string;
-            avatar_url?: string;
-            avatarUrl?: string;
-          };
-          const streamKey = String(s.stream_key ?? s.room_id ?? '').trim();
-          const uid = String(s.user_id ?? s.userId ?? s.hostUserId ?? streamKey).trim();
-          const prof = byId.get(uid) || (streamKey ? byId.get(streamKey) : undefined);
-          const streamLabel = liveNameFromStreamFields(s.title, s.display_name ?? s.displayName, uid);
-          const label =
-            (prof?.name && !isGenericLiveCreatorName(prof.name) ? prof.name : '') ||
-            (typeof s.username === 'string' && s.username.trim()) ||
-            (!isGenericLiveCreatorName(streamLabel) ? streamLabel : '') ||
-            'Creator';
-          const avatar =
-            sanitizeLiveAvatar(prof?.avatar) ||
-            sanitizeLiveAvatar(s.avatar_url) ||
-            sanitizeLiveAvatar(s.avatarUrl) ||
-            '';
-          return { uid, streamKey, label, avatar };
-        })
-        .filter(({ uid, streamKey }) => {
-          if (!uid && !streamKey) return false;
-          const ids = [uid, streamKey].filter(Boolean);
-          if (ids.some((id) => isSelfUser(id, user.id, isBroadcast ? effectiveStreamId : null))) return false;
-          return true;
-        });
-
-      // Real profile photos for invite circles (list/stream payloads often lack avatar_url).
-      await Promise.all(
-        liveCreators.map(async (row) => {
-          if (!isPlaceholderLiveAvatar(row.avatar)) return;
-          const id = row.uid || row.streamKey;
-          if (!id) return;
-          try {
-            const { body } = await apiFetchProfileById(id);
-            if (!body) return;
-            const photo = sanitizeLiveAvatar(profileToLiveDisplay(body).avatar);
-            if (photo) row.avatar = photo;
-          } catch {
-            /* keep empty */
-          }
-        }),
-      );
-
-      setCreators(
-        liveCreators.map(({ uid, streamKey, label, avatar }) => ({
-          id: uid || streamKey,
-          streamKey: streamKey || uid,
-          name: label,
-          username: label,
-          followers: '0',
-          avatar: avatar || ELIX_LOGO,
-          isLive: true,
-        })),
-      );
-      setCreatorsLoadFailed(false);
-    } catch {
-      setCreatorsLoadFailed(true);
-      reportFailure('live_creators_load', new Error('creators_load_failed'));
-      /* keep prior creators — do not fake empty directory on failure */
-    } finally {
-      setCreatorsLoading(false);
-    }
-  }, [user?.id, isBroadcast, effectiveStreamId]);
-
-  useEffect(() => {
-    if (user?.id) loadCreators();
-  }, [user?.id, loadCreators]);
-
-  // Keep invite list fresh while Creators panel is open via feed presence (not a timer bandage).
+  // Keep invite list fresh while Creators panel is open via feed presence +
+  // authoritative battle roster (same source for every seated creator).
   useEffect(() => {
     if (!isFindCreatorsOpen || !user?.id) return;
-    void loadCreators();
+    requestBattleInviteRoster();
     const token = useAuthStore.getState().session?.access_token;
     if (!token) return;
     return connectLiveFeedPresence(token, {
-      onStreamStarted: () => { void loadCreators(); },
-      onStreamEnded: () => { void loadCreators(); },
+      onStreamStarted: () => {
+        requestBattleInviteRoster();
+      },
+      onStreamEnded: () => {
+        requestBattleInviteRoster();
+      },
     });
-  }, [isFindCreatorsOpen, user?.id, loadCreators]);
-
-  const filteredCreators = creators.filter((c) => {
-    if (isSelfUser(c.id, user?.id, isBroadcast ? effectiveStreamId : null)) return false;
-    if (!c.isLive) return false;
-    const q = creatorQuery.trim().toLowerCase();
-    if (!q) return true;
-    return c.username.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
-  });
-  const creatorsToInvite = React.useMemo(() => filteredCreators, [filteredCreators]);
+  }, [isFindCreatorsOpen, user?.id, requestBattleInviteRoster]);
 
   // Battle Player Slots (P1 = creator, P2-P4 = invited players)
   const [battleSlots, setBattleSlots] = useState<BattleSlot[]>([
@@ -829,6 +725,26 @@ export function useLiveHostController() {
   useEffect(() => { battleSlotsRef.current = battleSlots; }, [battleSlots]);
   const hasOpponentStreamRef = useRef(false);
   const inviteTimersRef = useRef<Map<string, number>>(new Map());
+
+  const seatedBattleCreatorIds = useMemo(() => {
+    const ids = new Set<string>();
+    const selfId = user?.id ? String(user.id) : '';
+    if (selfId) ids.add(selfId);
+    for (const slot of battleSlots) {
+      if (slot.userId && slot.status !== 'empty') ids.add(slot.userId);
+    }
+    return ids;
+  }, [user?.id, battleSlots]);
+
+  const filteredCreators = creators.filter((c) => {
+    if (isSelfUser(c.id, user?.id, isBroadcast ? effectiveStreamId : null)) return false;
+    if (!c.isLive) return false;
+    if (seatedBattleCreatorIds.has(c.id) || seatedBattleCreatorIds.has(c.streamKey)) return false;
+    const q = creatorQuery.trim().toLowerCase();
+    if (!q) return true;
+    return c.username.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
+  });
+  const creatorsToInvite = React.useMemo(() => filteredCreators, [filteredCreators]);
 
   const clearBattleInviteTimer = useCallback((creatorId: string) => {
     const t = inviteTimersRef.current.get(creatorId);
@@ -1274,7 +1190,7 @@ export function useLiveHostController() {
         LIVE_CHAT_MESSAGE_CAP,
       ),
     );
-  }, [coHosts.length, featuredUserId, cohostLayoutId, restoreHostCameraPreview]);
+  }, [coHosts.length, featuredUserId, cohostLayoutId, restoreHostCameraPreview, setMessages]);
 
   /** Spectators panel layout buttons — Solo clears seats and stays on normal live. */
   const selectCohostLayout = useCallback(
@@ -1477,12 +1393,17 @@ export function useLiveHostController() {
     [cameraStreamRef],
   );
   const getThermalFacing = useCallback(() => cameraFacing, [cameraFacing]);
+  const getBattleRemoteCount = useCallback(() => {
+    if (!isBattleModeRef.current) return 0;
+    return battleSlotsRef.current.filter((s) => s.status === 'accepted' && s.userId).length;
+  }, []);
   useLiveThermalQuality({
     enabled: Boolean(isCreatorParticipant && user?.id),
     getRoom: getThermalRoom,
     getCameraVideoTrack: getThermalCameraTrack,
     getCameraFacing: getThermalFacing,
     publishesCamera: true,
+    getBattleRemoteCount,
   });
 
   useEffect(() => {
@@ -1532,22 +1453,15 @@ export function useLiveHostController() {
       // and is returned to the subscribe-only spectator page. Only an explicit
       // authorization refusal (403) demotes — transient network errors retry.
       let tokenCreds: { url: string; token: string } | null = null;
-      let deniedCount = 0;
-      for (let attempt = 0; attempt < 12 && !cancelled; attempt += 1) {
+      for (let attempt = 0; attempt < 4 && !cancelled; attempt += 1) {
         const tokenResult = await apiLiveToken(effectiveStreamId, true);
         if (!tokenResult.error && tokenResult.creds?.token) {
           tokenCreds = tokenResult.creds;
           break;
         }
-        const msg = tokenResult.error || '';
-        if (msg.includes('403') || msg.toLowerCase().includes('not authorized')) {
-          deniedCount += 1;
-          // Three consecutive server refusals = genuinely no battle grant.
-          if (deniedCount >= 3) break;
-        } else {
-          deniedCount = 0;
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 500));
+        if (isLivePublishDenied(tokenResult.error)) break;
+        if (!isLiveTokenTransient(tokenResult.error) || attempt === 3) break;
+        await new Promise((resolve) => window.setTimeout(resolve, 400 * (attempt + 1)));
       }
       if (cancelled) return;
       if (!tokenCreds?.token) {
@@ -1863,7 +1777,7 @@ export function useLiveHostController() {
     });
   }, [battleSlots, myCreatorName, opponentStreamKey]);
 
-  const battleRoleRef = useRef<'host' | 'opponent' | null>(null);
+  const battleRoleRef = useRef<ServerBattleGiftTarget | null>(null);
   const [_battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>
     isBattleJoiner ? 'opponent' : 'host',
   );
@@ -1933,7 +1847,6 @@ export function useLiveHostController() {
     };
   }, []);
 
-  const opponentLkRoomRef = useRef<Room | null>(null);
   const [_iAmReady, setIAmReady] = useState(false);
   const [_hostIsReady, setHostIsReady] = useState(false);
   const [_opponentIsReady, setOpponentIsReady] = useState(false);
@@ -1973,85 +1886,8 @@ export function useLiveHostController() {
 
   const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
-  const opponentLkConnectIdRef = useRef(0);
-  // Connect to opponent's LiveKit room to receive their video (creators may still
-  // be publishing there). Host-room attach below covers when they join this room.
-  useEffect(() => {
-    if (!isBattleMode || !opponentStreamKey || !isBroadcast) return;
-    if (opponentStreamKey === effectiveStreamId) return;
-    // Battle opponents publish into the host room — never open a second LiveKit
-    // connection to their old solo stream (that room is empty after accept).
-    if (battleSlotsRef.current[0]?.status === 'accepted') return;
-    const connectId = ++opponentLkConnectIdRef.current;
-    let mounted = true;
-    const opponentLifecycle = opponentLifecycleRef.current;
-
-    (async () => {
-      try {
-        const tok = await apiLiveToken(opponentStreamKey, false);
-        if (tok.error || !tok.creds || !mounted) return;
-        const token = tok.creds.token;
-        const url = tok.creds.url.trim() || getLiveKitUrl();
-        if (!token || !url || !mounted) return;
-
-        const { error, session } = await opponentLifecycle.connectLiveKitOnly(
-          { url, token },
-          {
-            onTrackSubscribed: ({ track }) => {
-              if (!mounted) return;
-              if (track.kind === 'audio') {
-                attachRemoteAudio(track, opponentRemoteAudioRef.current);
-                return;
-              }
-              if (track.kind !== 'video') return;
-              const el = opponentVideoRef.current;
-              if (el) {
-                track.attach(el);
-                void el.play().catch(() => {});
-                setHasOpponentStream(true);
-              }
-            },
-          },
-        );
-        if (!mounted) {
-          opponentLifecycle.liveKit?.disconnect();
-          return;
-        }
-        if (error || !session) return;
-        const room = session.raw;
-        opponentLkRoomRef.current = room;
-        if (!room) return;
-
-        for (const [, participant] of room.remoteParticipants) {
-          for (const [, pub] of participant.videoTrackPublications) {
-            if (pub.track && pub.isSubscribed && opponentVideoRef.current) {
-              pub.track.attach(opponentVideoRef.current);
-              void opponentVideoRef.current.play().catch(() => {});
-              setHasOpponentStream(true);
-            }
-          }
-          for (const [, pub] of participant.audioTrackPublications) {
-            if (pub.track && pub.isSubscribed) attachRemoteAudio(pub.track, opponentRemoteAudioRef.current);
-          }
-        }
-      } catch (e) {
-        console.error('[Battle] Failed to connect to opponent LiveKit room:', e);
-      }
-    })();
-
-    return () => {
-      mounted = false;
-      // Intentional: skip teardown if a newer opponent connect replaced this id.
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
-      if (opponentLkConnectIdRef.current !== connectId) return;
-      const raw = opponentLifecycle.rawRoom;
-      opponentLifecycle.liveKit?.disconnect();
-      if (opponentLkRoomRef.current === raw) opponentLkRoomRef.current = null;
-      // Connection-bug fix only: do not clear hasOpponentStream here.
-      // Opponent may already be attached from the host LiveKit room; clearing
-      // on this cleanup left the pane stuck on "Connecting...".
-    };
-  }, [isBattleMode, opponentStreamKey, isBroadcast, effectiveStreamId, attachRemoteAudio]);
+  // Battle creators publish into the HOST room only. Never open a second LiveKit
+  // room to the invitee's solo stream (duplicate encode/decode/network heat).
 
   // When featuring a co-host on the big screen: attach their remote track + host preview in the small tile.
   useEffect(() => {
@@ -2099,6 +1935,7 @@ export function useLiveHostController() {
 
     const attachAll = () => {
       const slots = battleSlotsRef.current;
+      let battleRemoteCount = 0;
 
       for (const [, participant] of room.remoteParticipants) {
         const identity = participant.identity;
@@ -2129,6 +1966,7 @@ export function useLiveHostController() {
           else if (sameUserId(identity, slots[1]?.userId)) battleEl = player3VideoRef.current;
           else if (sameUserId(identity, slots[2]?.userId)) battleEl = player4VideoRef.current;
           if (battleEl) {
+            battleRemoteCount += 1;
             pub.track.attach(battleEl);
             void battleEl.play().catch(() => {});
             if (sameUserId(identity, slots[0]?.userId)) setHasOpponentStream(true);
@@ -2140,6 +1978,7 @@ export function useLiveHostController() {
             !hasOpponentStreamRef.current &&
             opponentVideoRef.current
           ) {
+            battleRemoteCount += 1;
             pub.track.attach(opponentVideoRef.current);
             void opponentVideoRef.current.play().catch(() => {});
             setHasOpponentStream(true);
@@ -2151,6 +1990,7 @@ export function useLiveHostController() {
           }
         }
       }
+      applyRemoteVideoBudget(room, { battleRemoteCount });
     };
 
     const onTrackSubscribed = (
@@ -2164,30 +2004,12 @@ export function useLiveHostController() {
     attachAll();
     room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
     room.on(RoomEvent.ParticipantConnected, attachAll);
-    room.on(RoomEvent.TrackUnsubscribed, attachAll);
+    // LiveKitSession already detaches on TrackUnsubscribed — do not re-attachAll.
     return () => {
       room.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
       room.off(RoomEvent.ParticipantConnected, attachAll);
-      room.off(RoomEvent.TrackUnsubscribed, attachAll);
     };
   }, [isBroadcast, isBattleMode, coHosts, battleSlots, attachRemoteAudio, user?.id, hasOpponentStream, liveKitRoomRef]);
-
-  // Re-attach opponent room video when battle pane mounts
-  useEffect(() => {
-    const room = opponentLkRoomRef.current;
-    const el = opponentVideoRef.current;
-    if (!room || !el || !isBattleMode) return;
-
-    for (const [, participant] of room.remoteParticipants) {
-      for (const [, pub] of participant.videoTrackPublications) {
-        if (pub.track && pub.isSubscribed) {
-          pub.track.attach(el);
-          void el.play().catch(() => {});
-          setHasOpponentStream(true);
-        }
-      }
-    }
-  }, [isBattleMode, opponentStreamKey, battleSlots]);
 
   // Speed Challenge State
   // SPEED CHALLENGE
@@ -2259,98 +2081,16 @@ export function useLiveHostController() {
 
   // FAN CLUB PANEL - removed top bar, now using Sheet
   const [showFanClub, setShowFanClub] = useState(false);
-  const [isSubscribing, setIsSubscribing] = useState(false);
-  const [isMember, setIsMember] = useState(false);
-
-  useEffect(() => {
-    const creatorId = membershipStatsCreatorId;
-    if (!user?.id || !creatorId || creatorId === user.id) {
-      setIsMember(false);
-      return;
-    }
-    let cancelled = false;
-    void getMembershipStatus(creatorId).then(({ status }) => {
-      if (!cancelled) setIsMember(status?.active === true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [membershipStatsCreatorId, user?.id]);
-
-  const handleSubscribe = useCallback(async () => {
-    const creatorId = membershipStatsCreatorId;
-    if (!creatorId || creatorId === 'broadcast') {
-      showToast('Creator unavailable');
-      return;
-    }
-    if (user?.id && creatorId === user.id) {
-      showToast('Viewers can subscribe to your membership.');
-      return;
-    }
-    if (!user?.id || !useAuthStore.getState().session?.access_token) {
-      stashPendingMembershipPurchase(creatorId);
-      navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
-      return;
-    }
-    setIsSubscribing(true);
-    try {
-      const result = await purchaseCreatorMembership(creatorId);
-      if (!result.ok) {
-        if (result.needsLogin) {
-          navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
-          return;
-        }
-        if (!result.cancelled) {
-          showToast(result.error || 'Membership purchase failed');
-        }
-        return;
-      }
-      setIsMember(true);
-      showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-      refreshMembershipStats();
-    } catch {
-      showToast('Membership purchase failed');
-    } finally {
-      setIsSubscribing(false);
-    }
-  }, [
-    membershipStatsCreatorId,
-    user?.id,
-    navigate,
-    location.pathname,
-    location.search,
-    refreshMembershipStats,
-  ]);
-
-  /** After login/register: reopen Team Status and continue native IAP for pending creator. */
-  const pendingMembershipResumeRef = useRef(false);
-  useEffect(() => {
-    if (!user?.id || pendingMembershipResumeRef.current) return;
-    if (!consumePendingMembershipOpenPanel()) return;
-    const pending = peekPendingMembershipCreator();
-    if (!pending || pending !== membershipStatsCreatorId || pending === user.id) return;
-    pendingMembershipResumeRef.current = true;
-    setShowTeamStatus(true);
-    void (async () => {
-      setIsSubscribing(true);
-      try {
-        const result = await purchaseCreatorMembership(pending);
-        if (!result.ok) {
-          if (!result.cancelled && !result.needsLogin) {
-            showToast(result.error || 'Membership purchase failed');
-          }
-          return;
-        }
-        setIsMember(true);
-        showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-        refreshMembershipStats();
-      } catch {
-        showToast('Membership purchase failed');
-      } finally {
-        setIsSubscribing(false);
-      }
-    })();
-  }, [user?.id, membershipStatsCreatorId, refreshMembershipStats]);
+  const {
+    isMember,
+    isSubscribing,
+    isSelf: membershipIsSelf,
+    handleSubscribe,
+  } = useCreatorMembershipPurchase({
+    creatorId: membershipStatsCreatorId,
+    onActivated: refreshMembershipStats,
+    onOpenPanel: () => setShowTeamStatus(true),
+  });
 
   // Photo Stickers
   const [creatorStickers, setCreatorStickers] = useState<{ id: number; image_url: string; label: string }[]>([]);
@@ -2627,13 +2367,12 @@ export function useLiveHostController() {
     setBattleCountdown(null);
     setHasOpponentStream(false);
     setOpponentStreamKey(null);
-    void opponentLifecycleRef.current.disconnect();
-    opponentLkRoomRef.current = null;
     setIAmReady(false);
     setHostIsReady(false);
     setOpponentIsReady(false);
     setOpponentCreatorName('');
     resetScores();
+    setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
     setGiftTarget('me');
     setBattleUiRole(isBattleJoiner ? 'opponent' : 'host');
     setMutedPlayers({});
@@ -2720,8 +2459,6 @@ export function useLiveHostController() {
     setBattleCountdown(null);
     setHasOpponentStream(false);
     setOpponentStreamKey(null);
-    void opponentLifecycleRef.current.disconnect();
-    opponentLkRoomRef.current = null;
     setIAmReady(false);
     setHostIsReady(false);
     setOpponentIsReady(false);
@@ -2747,18 +2484,36 @@ export function useLiveHostController() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores]);
 
-  /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
-  const removePlayerFromSlot = useCallback((_slotIndex: number) => {
-    if (isBattleMode) {
-      exitBattleMode();
+  /** X on a battle participant — remove ONLY that creator's seat; never end the whole Battle. */
+  const removePlayerFromSlot = useCallback((slotIndex: number) => {
+    const slot = battleSlotsRef.current[slotIndex];
+    const targetUserId = typeof slot?.userId === 'string' ? slot.userId.trim() : '';
+    if (isBattleMode && targetUserId) {
+      // Pending invite only exists locally until accept claims a server seat.
+      if (slot.status === 'invited') {
+        clearInvitedBattleSlot(targetUserId);
+        requestBattleInviteRoster();
+        return;
+      }
+      battleRemoveParticipant({ targetUserId });
+      // Optimistic local clear; battle_state_sync confirms for everyone.
+      setBattleSlots((prev) => {
+        const next = [...prev];
+        if (next[slotIndex]?.userId === targetUserId) {
+          next[slotIndex] = { userId: '', name: '', status: 'empty', avatar: '' };
+        }
+        return next;
+      });
+      setHasOpponentStream(false);
+      requestBattleInviteRoster();
       return;
     }
     setBattleSlots((prev) => {
       const next = [...prev];
-      next[_slotIndex] = { userId: '', name: '', status: 'empty', avatar: '' };
+      next[slotIndex] = { userId: '', name: '', status: 'empty', avatar: '' };
       return next;
     });
-  }, [isBattleMode, exitBattleMode]);
+  }, [isBattleMode, requestBattleInviteRoster, clearInvitedBattleSlot]);
 
   // No auto-start - user must press Match to begin
 
@@ -3251,7 +3006,7 @@ export function useLiveHostController() {
       }
     })();
     viewerIdentityInflightRef.current.set(viewerId, task);
-  }, [user?.id]);
+  }, [user?.id, setMessages]);
   useEffect(() => {
     setMvpGiftScores({});
     setMvpGiftScoresHost({});
@@ -3545,7 +3300,7 @@ export function useLiveHostController() {
         }
       }
       setActiveViewers(viewers);
-      setViewerCount(viewers.length);
+      // Viewer count: server-authoritative viewer_count only (not local list length).
       // Seed announced set only — never wipe (reconnect room_state must not re-allow banners).
       for (const v of viewers) {
         if (v.id) joinAnnouncedRef.current.add(String(v.id));
@@ -3559,6 +3314,7 @@ export function useLiveHostController() {
           roomId: effectiveStreamId,
           coHosts: list,
           hostUserId: user.id,
+          featuredUserId: featuredUserIdRef.current || null,
           layoutId: cohostLayoutIdRef.current,
         });
       }
@@ -3656,18 +3412,19 @@ export function useLiveHostController() {
         if (!mounted) return;
         setMessages(prev => prev.filter(m => m.id !== joinMsgId));
       }, 5000);
-      setViewerCount(prev => prev + 1);
+      // Viewer count: server viewer_count event — not local +/-.
       const joinAvatar = typeof data.avatar_url === 'string' ? data.avatar_url.trim() : '';
       if (uid && !cached && (isGenericViewerName(joinName) || isGenericViewerName(data.display_name) || !joinAvatar)) {
         maybeResolveViewerIdentity(uid);
       }
-      // So new spectators get current co-host layout
+      // So new spectators get current co-host layout (must include featured — omitting it broadcasts null and wipes big-screen for everyone)
       if (isBroadcastRef.current && effectiveStreamId && user?.id) {
         const list = coHostsRef.current.map((h) => ({ id: h.id, userId: h.userId, name: h.name, avatar: h.avatar, status: h.status }));
         cohostLayoutSync({
           roomId: effectiveStreamId,
           coHosts: list,
           hostUserId: user.id,
+          featuredUserId: featuredUserIdRef.current || null,
           layoutId: cohostLayoutIdRef.current,
         });
       }
@@ -3678,7 +3435,7 @@ export function useLiveHostController() {
       const leftId = data.user_id != null ? String(data.user_id) : '';
       // Keep leftId in joinAnnouncedRef so leave/rejoin does not show the banner again this live.
       setActiveViewers(prev => prev.filter(v => String(v.id) !== leftId));
-      setViewerCount(prev => Math.max(0, prev - 1));
+      // Viewer count: server viewer_count event — not local +/-.
       if (!leftId) return;
       // During battle: do NOT exit locally on user_left. Server keeps a reconnect
       // grace window, then emits battle_ended — that is what returns us to normal live.
@@ -3686,7 +3443,9 @@ export function useLiveHostController() {
       if (isBattleModeRef.current) {
         return;
       }
-      setCoHosts(prev => prev.filter(h => !sameUserId(h.userId, leftId)));
+      // Do NOT drop co-hosts on user_left — brief WS blips (cohost LiveKit publish
+      // upgrade, mobile network) must not rewrite layout, revoke publish, or wipe
+      // featured. Seats clear only via removeCoHost / endCoHostMode / explicit exit.
       setBattleSlots(prev => prev.map(s =>
         sameUserId(s.userId, leftId) ? { userId: '', name: '', status: 'empty' as const, avatar: '' } : s
       ));
@@ -3882,10 +3641,10 @@ export function useLiveHostController() {
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
       if (isOwnGift) return;
 
-      // Battle: each creator only plays big gift video for gifts sent to their side.
-      // The other side stays as the small tile icon (lastGifts) — never fullscreen.
-      const giftSide = isBattleModeRef.current
-        ? normalizeBattleGiftTarget(data.battleTarget)
+      // Battle: full gift video only for the recipient creator. Other creators
+      // still update score + small tile icon from this same gift_sent event.
+      const giftSlot = isBattleModeRef.current
+        ? resolveServerBattleGiftTarget(data.battleTarget)
         : null;
       if (
         isBattleModeRef.current &&
@@ -3894,14 +3653,14 @@ export function useLiveHostController() {
         const myRole =
           battleRoleRef.current ||
           (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
-        if (giftSide && myRole && giftSide !== myRole) return;
+        if (!shouldPlayFullBattleGiftVideo(giftSlot, myRole)) return;
       }
 
       enqueueFromGiftSent({
         data,
         catalogRef: giftsCatalogRef,
         setGiftsCatalog,
-        battleSide: giftSide,
+        battleSide: giftSlot ? normalizeBattleGiftTarget(giftSlot) : null,
         txnId,
         trackPlayedVideo: true,
         mounted: () => mounted,
@@ -3926,20 +3685,27 @@ export function useLiveHostController() {
       const selfId = user?.id || '';
       const payloadHostId = typeof payload.hostUserId === 'string' ? payload.hostUserId : '';
       const payloadOpponentId = typeof payload.opponentUserId === 'string' ? payload.opponentUserId : '';
+      const payloadP3Id = typeof payload.player3UserId === 'string' ? payload.player3UserId : '';
+      const payloadP4Id = typeof payload.player4UserId === 'string' ? payload.player4UserId : '';
       if (selfId && payloadHostId && selfId === payloadHostId) battleRoleRef.current = 'host';
       else if (selfId && payloadOpponentId && selfId === payloadOpponentId) battleRoleRef.current = 'opponent';
+      else if (selfId && payloadP3Id && selfId === payloadP3Id) battleRoleRef.current = 'player3';
+      else if (selfId && payloadP4Id && selfId === payloadP4Id) battleRoleRef.current = 'player4';
 
       const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : 'host'));
-      const perspective = scoresForBattleRole(result.totals, role);
+      const uiRole: 'host' | 'opponent' =
+        role === 'opponent' || role === 'player4' ? 'opponent' : 'host';
+      const perspective = scoresForBattleRole(result.totals, uiRole);
       setMyScore(perspective.myScore);
       setOpponentScore(perspective.opponentScore);
-      setBattleUiRole(role);
+      setBattleUiRole(uiRole);
     };
 
     const handleBattleStateSync = (data) => {
       if (!mounted) return;
       const syncStatus = typeof data.status === 'string' ? data.status : '';
-      if (syncStatus === 'ACTIVE' && prevBattleSyncStatusRef.current !== 'ACTIVE') {
+      const prevSyncStatus = prevBattleSyncStatusRef.current;
+      if (syncStatus === 'ACTIVE' && prevSyncStatus !== 'ACTIVE') {
         battleTapScoreRemainingRef.current = 5;
         // New match — everyone gets their single +5 tap again.
         spectatorTapPointsRef.current = 0;
@@ -3957,8 +3723,34 @@ export function useLiveHostController() {
       const selfId = user?.id || '';
       if (selfId && typeof data.hostUserId === 'string' && data.hostUserId === selfId) battleRoleRef.current = 'host';
       else if (selfId && typeof data.opponentUserId === 'string' && data.opponentUserId === selfId) battleRoleRef.current = 'opponent';
+      else if (selfId && typeof data.player3UserId === 'string' && data.player3UserId === selfId) battleRoleRef.current = 'player3';
+      else if (selfId && typeof data.player4UserId === 'string' && data.player4UserId === selfId) battleRoleRef.current = 'player4';
       else if (effectiveStreamId && typeof data.hostRoomId === 'string' && data.hostRoomId === effectiveStreamId) battleRoleRef.current = 'host';
       else if (effectiveStreamId && typeof data.opponentRoomId === 'string' && data.opponentRoomId === effectiveStreamId) battleRoleRef.current = 'opponent';
+
+      // Non-host creator was removed from a seat — leave Battle UI only for self;
+      // do not end the shared session for everyone else.
+      if (
+        isBattleJoiner &&
+        selfId &&
+        syncStatus &&
+        syncStatus !== 'ENDED' &&
+        (prevSyncStatus === 'WAITING' ||
+          prevSyncStatus === 'ACTIVE' ||
+          prevSyncStatus === 'COUNTDOWN')
+      ) {
+        const seated = [
+          typeof data.hostUserId === 'string' ? data.hostUserId : '',
+          typeof data.opponentUserId === 'string' ? data.opponentUserId : '',
+          typeof data.player3UserId === 'string' ? data.player3UserId : '',
+          typeof data.player4UserId === 'string' ? data.player4UserId : '',
+        ].filter(Boolean);
+        if (seated.length > 0 && !seated.includes(selfId)) {
+          endBattleCleanup();
+          navigate('/live/broadcast', { replace: true });
+          return;
+        }
+      }
 
       if (data.status === 'WAITING') {
         setIsBattleMode(true);
@@ -4005,15 +3797,10 @@ export function useLiveHostController() {
         if (paneName) {
           next[0] = { userId: paneUserId || '', name: paneName, status: 'accepted', avatar: keepAvatar(0, paneUserId || '') };
           if (paneUserId) seenIds.add(paneUserId);
-        } else if (!paneUserId) {
-          // Opponent dropped mid-match — keep pane on reconnecting, not "Add creator".
-          if (!isBattleJoiner && prev[0]?.status === 'accepted' && prev[0]?.userId) {
-            next[0] = { ...prev[0] };
-            setHasOpponentStream(false);
-          } else if (!isBattleJoiner) {
-            next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
-            setHasOpponentStream(false);
-          }
+        } else {
+          // Authoritative empty seat — available for Invite Creator refill.
+          next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
+          setHasOpponentStream(false);
         }
         if (selfId) seenIds.add(selfId);
 
@@ -4033,6 +3820,7 @@ export function useLiveHostController() {
         }
         return next;
       });
+      requestBattleInviteRoster();
     };
 
     const handleBattleScore = (data) => {
@@ -4110,6 +3898,11 @@ export function useLiveHostController() {
       }
     };
 
+    const handleViewerCount = (data: unknown) => {
+      if (!mounted) return;
+      applyServerViewerCount(data, setViewerCount);
+    };
+
     const unbindRoomWs = bindLiveRoomWs({
       onRoomState: handleRoomState,
       onUserJoined: handleUserJoined,
@@ -4118,6 +3911,8 @@ export function useLiveHostController() {
       onGiftSent: handleGiftSent,
       onGiftGoalSync: handleGiftGoalSync,
       onHeartSent: handleHeartSent,
+      onViewerCount: handleViewerCount,
+      onConnected: handleViewerCount,
     });
     const handleBoosterActivated = (data: unknown) => {
       const d = data as { multiplier?: number; username?: string; user_id?: string; expires_at?: number; duration_ms?: number };
@@ -4250,6 +4045,7 @@ export function useLiveHostController() {
       });
       // Do NOT battle_create here — each accept used to wipe the previous
       // creator. Host taps Start Match once every accepted creator is ready.
+      requestBattleInviteRoster();
     };
 
     const handleBattleInviteAck = (data: { targetUserId?: string; delivered?: boolean; reason?: string }) => {
@@ -4259,11 +4055,20 @@ export function useLiveHostController() {
       clearInvitedBattleSlot(tid);
       if (data?.reason === 'not_live') {
         showToast('Creator must be live with camera on to battle');
-        void loadCreators();
+        requestBattleInviteRoster();
+        return;
+      }
+      if (data?.reason === 'battle_full') {
+        showToast('Battle is full');
+        requestBattleInviteRoster();
+        return;
+      }
+      if (data?.reason === 'already_seated') {
+        requestBattleInviteRoster();
         return;
       }
       showToast('Creator is not available for battle');
-      void loadCreators();
+      requestBattleInviteRoster();
     };
 
     const handleBattleInviteDeclined = (data: { userId?: string }) => {
@@ -4272,6 +4077,90 @@ export function useLiveHostController() {
       const uid = typeof data?.userId === 'string' ? data.userId : '';
       if (!uid) return;
       clearInvitedBattleSlot(uid);
+      requestBattleInviteRoster();
+    };
+
+    const handleBattleInviteRoster = (data: unknown) => {
+      if (!mounted) return;
+      if (!isBroadcast && !isBattleJoiner) return;
+      const payload = data as {
+        creators?: Array<{
+          id?: string;
+          streamKey?: string;
+          name?: string;
+          username?: string;
+          avatar?: string;
+          isLive?: boolean;
+        }>;
+        error?: string;
+      };
+      if (payload?.error) {
+        setCreatorsLoadFailed(true);
+        setCreatorsLoading(false);
+        return;
+      }
+      const rows = Array.isArray(payload?.creators) ? payload.creators : null;
+      if (!rows) return;
+      setCreators((prev) => {
+        const prevById = new Map(prev.map((c) => [c.id, c]));
+        return rows
+          .map((r) => {
+            const id = String(r.id || '').trim();
+            if (!id) return null;
+            const streamKey = String(r.streamKey || id).trim();
+            const prevRow = prevById.get(id);
+            const name =
+              (typeof r.name === 'string' && r.name.trim()) ||
+              (typeof r.username === 'string' && r.username.trim()) ||
+              prevRow?.name ||
+              'Creator';
+            const avatar =
+              sanitizeLiveAvatar(r.avatar) ||
+              sanitizeLiveAvatar(prevRow?.avatar) ||
+              ELIX_LOGO;
+            return {
+              id,
+              streamKey,
+              name,
+              username: name,
+              followers: '0',
+              avatar,
+              isLive: r.isLive !== false,
+            };
+          })
+          .filter((c): c is NonNullable<typeof c> => !!c);
+      });
+      setCreatorsLoadFailed(false);
+      setCreatorsLoading(false);
+    };
+
+    const handleBattleInviteRosterInvalidate = () => {
+      if (!mounted) return;
+      requestBattleInviteRoster();
+    };
+
+    const handleBattleInviteExpired = (data: { streamKey?: string; reason?: string }) => {
+      if (!mounted) return;
+      setPendingInvite((prev) => {
+        if (!prev) return prev;
+        const sk = typeof data?.streamKey === 'string' ? data.streamKey : '';
+        if (sk && prev.streamKey && sk !== prev.streamKey) return prev;
+        return null;
+      });
+      if (data?.reason === 'battle_full') {
+        showToast('Battle is full');
+      }
+    };
+
+    const handleBattleParticipantRemoved = (data: { userId?: string; streamKey?: string }) => {
+      if (!mounted) return;
+      const uid = typeof data?.userId === 'string' ? data.userId : '';
+      if (!uid || !user?.id || uid !== user.id) return;
+      // This device was removed from a seat — exit Battle UI without ending others.
+      endBattleCleanup();
+      if (isBattleJoiner) {
+        navigate('/live/broadcast', { replace: true });
+      }
     };
 
     const handleCohostRequest = (data) => {
@@ -4366,6 +4255,10 @@ export function useLiveHostController() {
       onInviteAck: handleBattleInviteAck,
       onInviteDeclined: handleBattleInviteDeclined,
       onInviteAccepted: handleBattleInviteAccepted,
+      onInviteRoster: handleBattleInviteRoster,
+      onInviteRosterInvalidate: handleBattleInviteRosterInvalidate,
+      onInviteExpired: handleBattleInviteExpired,
+      onParticipantRemoved: handleBattleParticipantRemoved,
     });
     const unbindCohostWs = bindLiveCohostWs({
       onInvite: handleCohostInvite,
@@ -4762,7 +4655,13 @@ export function useLiveHostController() {
 
       if (gift.video && gift.video.trim()) {
         const videoUrl = resolveLocalGiftVideoUrl(gift.video);
-        if (videoUrl) {
+        const mySlot =
+          battleRoleRef.current ||
+          (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
+        const playFull =
+          !isBattleMode ||
+          shouldPlayFullBattleGiftVideo(serverBattleTarget ?? null, mySlot);
+        if (videoUrl && playFull) {
           const localBattleSide = isBattleMode
             ? normalizeBattleGiftTarget(serverBattleTarget)
             : null;
@@ -5002,18 +4901,27 @@ export function useLiveHostController() {
       if (lastSentGift.video && lastSentGift.video.trim()) {
         const videoUrl = resolveLocalGiftVideoUrl(lastSentGift.video);
         if (videoUrl) {
-          const comboBattleSide = isBattleMode
-            ? normalizeBattleGiftTarget(
-                liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
-                  isBroadcast,
-                  isBattleJoiner,
-                  effectiveStreamId,
-                  hostRoomId: battleStreamIdsRef.current?.hostRoomId ?? '',
-                  opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
-                }),
-              )
+          const comboTarget = isBattleMode
+            ? liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
+                isBroadcast,
+                isBattleJoiner,
+                effectiveStreamId,
+                hostRoomId: battleStreamIdsRef.current?.hostRoomId ?? '',
+                opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
+              })
             : null;
-          enqueueGiftVideo(videoUrl, comboBattleSide);
+          const mySlot =
+            battleRoleRef.current ||
+            (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
+          const playFull =
+            !isBattleMode ||
+            shouldPlayFullBattleGiftVideo(comboTarget, mySlot);
+          if (playFull) {
+            enqueueGiftVideo(
+              videoUrl,
+              isBattleMode ? normalizeBattleGiftTarget(comboTarget) : null,
+            );
+          }
           setShowGiftPanel(false);
         }
       }
@@ -5131,6 +5039,7 @@ export function useLiveHostController() {
 
     const { restEnded, error: endErr } = await hostSession.endHostBroadcast(roomId);
     if (restEnded) {
+      clearMessagesForStream(roomId);
       /* registeredRef cleared inside session */
     } else if (liveRegisteredRef.current) {
       showToast(endErr || 'Could not end stream on server. It may still appear live — try again.');
@@ -5357,7 +5266,7 @@ export function useLiveHostController() {
   const toggleHostPollCore = useCallback(() => {
     const activePoll =
       engagementState?.poll &&
-      engagementNowMs < (engagementState.poll.endsAt || 0);
+      Date.now() < (engagementState.poll.endsAt || 0);
     if (activePoll) endPoll();
     else {
       startPoll(
@@ -5366,7 +5275,7 @@ export function useLiveHostController() {
         'poll',
       );
     }
-  }, [engagementState?.poll, engagementNowMs, endPoll, startPoll]);
+  }, [engagementState?.poll, endPoll, startPoll]);
 
   const toggleHostPoll = useCallback(() => {
     toggleHostPollCore();
@@ -5916,8 +5825,7 @@ export function useLiveHostController() {
   };
 
   // Team totals for bar: always server host + P3 (red) vs server opponent + P4 (blue) — do not use role-swapped myScore.
-  const redTeamScore = battleServerTotals.h + battleServerTotals.p3;
-  const blueTeamScore = battleServerTotals.o + battleServerTotals.p4;
+  const { red: redTeamScore, blue: blueTeamScore } = teamTotalsFromScores(battleServerTotals);
   const totalScore = redTeamScore + blueTeamScore;
   const leftPctRaw = totalScore > 0 ? (redTeamScore / totalScore) * 100 : 50;
   const leftPct = Math.max(3, Math.min(97, leftPctRaw));
@@ -6164,6 +6072,7 @@ export function useLiveHostController() {
     isSpeakingUser,
     isSubscribing,
     isMember,
+    membershipIsSelf,
     lastGifts,
     lastScreenTapRef,
     lastSentGift,
@@ -6177,7 +6086,6 @@ export function useLiveHostController() {
     liveLikes,
     liveRegisteredRef,
     liveViewerLabel,
-    loadCreators,
     location,
     maybeEnqueueUniverse,
     maybeResolveViewerIdentity,
@@ -6240,9 +6148,6 @@ export function useLiveHostController() {
     openGiftGoalPanel,
     openWeeklyRankingFromGift,
     opponentCreatorName,
-    opponentLifecycleRef,
-    opponentLkConnectIdRef,
-    opponentLkRoomRef,
     opponentRemoteAudioRef,
     opponentScore,
     opponentStreamKey,
@@ -6271,6 +6176,7 @@ export function useLiveHostController() {
     removeCoHost,
     removeFanClubSticker,
     removePlayerFromSlot,
+    requestBattleInviteRoster,
     resetBattleForRematch,
     resetComboTimer,
     resolveCircleAvatar,
@@ -6354,7 +6260,6 @@ export function useLiveHostController() {
     setIsMoreMenuOpen,
     setIsMyStreamLive,
     setIsReportModalOpen,
-    setIsSubscribing,
     setLastGifts,
     setLastSentGift,
     setLiveFilterCss,
@@ -6519,7 +6424,6 @@ export function useLiveHostController() {
     votePoll,
     walletCoinBalanceRef,
     engagementState,
-    engagementNowMs,
     milestoneFlash,
     stageFlash,
     startMystery,

@@ -7,10 +7,17 @@
  * the gift animation, updates gift goals, and applies battle scores.
  */
 
-import { broadcastToRoom, tryClaimTransaction, sendToUserGlobal } from "./index";
+import {
+  broadcastToRoom,
+  tryClaimTransaction,
+  releaseTransactionClaim,
+  sendToUserGlobal,
+  isUserInRoomAudience,
+} from "./index";
 import {
   getGiftValue,
   getGiftIconUrl,
+  battleTargetToFanSide,
   normalizeBattleTarget,
   resolvePlayableGiftVideoUrl,
 } from "./giftRegistry";
@@ -46,6 +53,84 @@ export type DeliverGiftInput = {
 export type DeliverGiftResult =
   | { delivered: true }
   | { delivered: false; reason: "duplicate" | "invalid" };
+
+async function applyActiveBattleGiftScore(opts: {
+  roomId: string;
+  userId: string;
+  username: string;
+  giftId: string;
+  transactionId: string;
+  giftSource: DeliverGiftInput["giftSource"];
+  coins: number;
+  target: "host" | "opponent" | "player3" | "player4";
+}): Promise<Record<string, unknown> | null> {
+  if (opts.giftSource !== "paid_coins" && opts.giftSource !== "promotional_coins") {
+    return null;
+  }
+  const activeBattle = await getBattleFromStore(opts.roomId);
+  if (!activeBattle || activeBattle.status !== "ACTIVE") return null;
+
+  // ECONOMY SPLIT (locked):
+  // giftEconomicValue  → Diamonds / financial ledger (credited in REST with coinCost)
+  // giftBattleScore    → battle winner points only (may include Fan Energy ×1.2)
+  // Battle Energy must NEVER increase creator earnings.
+
+  const giftEconomicValue =
+    opts.giftSource === "paid_coins"
+      ? getGiftValue(opts.giftId)
+      : Math.max(0, Math.floor(Number(opts.coins) || getGiftValue(opts.giftId) || 0));
+  if (giftEconomicValue <= 0) return null;
+
+  let fanMult = 1;
+  try {
+    fanMult = await fanEnergyGiftMultiplier(
+      opts.roomId,
+      battleTargetToFanSide(opts.target),
+    );
+  } catch (err) {
+    logger.warn({ err, roomId: opts.roomId }, "deliverVerifiedGift: fan multiplier failed; using 1x");
+  }
+
+  let finalPoints = giftEconomicValue;
+  let boosterCaught: Record<string, unknown> | null = null;
+  if (opts.giftSource === "paid_coins") {
+    try {
+      const catchResult = await resolveBoosterCatch(
+        opts.roomId,
+        opts.userId,
+        opts.transactionId,
+        opts.giftId,
+        giftEconomicValue,
+      );
+      finalPoints = catchResult.finalPoints;
+      if (catchResult.caught) {
+        boosterCaught = {
+          user_id: opts.userId,
+          username: opts.username,
+          multiplier: catchResult.multiplier,
+          base_points: giftEconomicValue,
+          final_points: 0,
+          gift_economic_value: giftEconomicValue,
+          gift_battle_score: 0,
+          gift_id: opts.giftId,
+          battleTarget: opts.target,
+          transaction_id: opts.transactionId,
+          timestamp: new Date().toISOString(),
+        };
+      }
+    } catch (err) {
+      logger.warn({ err, roomId: opts.roomId }, "deliverVerifiedGift: booster catch failed; using base score");
+    }
+  }
+
+  const giftBattleScore = Math.max(1, Math.round(finalPoints * fanMult));
+  await addBattleScoreForTarget(opts.roomId, opts.target, giftBattleScore);
+  if (boosterCaught) {
+    boosterCaught.final_points = giftBattleScore;
+    boosterCaught.gift_battle_score = giftBattleScore;
+  }
+  return boosterCaught;
+}
 
 async function resolveSenderProfile(
   userId: string,
@@ -165,14 +250,45 @@ export async function deliverVerifiedGift(
     timestamp: new Date().toISOString(),
   };
 
-  broadcastToRoom(roomId, "gift_sent", payload);
+  // Battle score is part of ACTIVE-battle delivery. Apply it before gift_sent
+  // so a scored gift is never shown without the score write. If the write
+  // fails, release the claim so REST can retry delivery without double-pay.
+  let boosterCaught: Record<string, unknown> | null = null;
+  try {
+    boosterCaught = await applyActiveBattleGiftScore({
+      roomId,
+      userId,
+      username,
+      giftId,
+      transactionId,
+      giftSource: input.giftSource,
+      coins: Number(input.coins) || 0,
+      target: normalizedTarget || "host",
+    });
+  } catch (err) {
+    await releaseTransactionClaim(transactionId);
+    throw err;
+  }
 
-  // Also push to the stream owner globally so the creator still sees the gift
-  // if their WS room id ever drifts from the spectator room id.
+  // One authoritative in-room broadcast — every spectator/host/co-host in this live
+  // receives the same gift_sent payload on the shared room channel.
+  broadcastToRoom(roomId, "gift_sent", payload);
+  if (boosterCaught) {
+    broadcastToRoom(roomId, "booster_caught", boosterCaught);
+  }
+
+  // Global fallback only when the recipient is NOT already in the room audience
+  // (prevents duplicate gift_sent on the same socket: room broadcast + user global).
   try {
     const ownerId = await resolveStreamOwnerUserId(roomId);
-    if (ownerId && ownerId !== userId) {
+    if (
+      ownerId &&
+      ownerId !== userId &&
+      !(await isUserInRoomAudience(roomId, ownerId))
+    ) {
       sendToUserGlobal(ownerId, "gift_sent", payload);
+    }
+    if (ownerId && ownerId !== userId) {
       try {
         await recordCreatorGiftProgress(userId, ownerId, 1);
       } catch (err) {
@@ -183,8 +299,11 @@ export async function deliverVerifiedGift(
     logger.warn({ err, roomId }, "deliverVerifiedGift: owner notify skipped");
   }
 
-  // Co-host recipient may be on a different client path — push globally too.
-  if (cohostTargetUserId && cohostTargetUserId !== userId) {
+  if (
+    cohostTargetUserId &&
+    cohostTargetUserId !== userId &&
+    !(await isUserInRoomAudience(roomId, cohostTargetUserId))
+  ) {
     try {
       sendToUserGlobal(cohostTargetUserId, "gift_sent", payload);
     } catch (err) {
@@ -193,9 +312,8 @@ export async function deliverVerifiedGift(
   }
 
   if (input.giftSource === "paid_coins") {
-    // Money path only: gift goals + battle scores from paid coins.
-    // Test coins apply match points in the WS gift_sent handler instead.
-    // Starter coins never count as money here.
+    // Money path only: gift goals from paid coins. Battle score is applied
+    // before gift_sent above. Test coins apply match points in the WS handler.
     try {
       const updatedGoal = await incrementGiftGoal(roomId, giftId, 1);
       if (updatedGoal) {
@@ -203,52 +321,6 @@ export async function deliverVerifiedGift(
       }
     } catch (err) {
       logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: gift goal failed");
-    }
-
-    try {
-      const activeBattle = await getBattleFromStore(roomId);
-      if (activeBattle && activeBattle.status === "ACTIVE") {
-        // ECONOMY SPLIT (locked):
-        // giftEconomicValue  → Diamonds / financial ledger (credited in REST with coinCost)
-        // giftBattleScore    → battle winner points only (may include Fan Energy ×1.2)
-        // Battle Energy must NEVER increase creator earnings.
-        const giftEconomicValue = getGiftValue(giftId);
-        if (giftEconomicValue > 0) {
-          const target = normalizedTarget || "host";
-          const catchResult = await resolveBoosterCatch(
-            roomId,
-            userId,
-            transactionId,
-            giftId,
-            giftEconomicValue,
-          );
-          const sideForFan: "host" | "opponent" =
-            target === "opponent" ? "opponent" : "host";
-          const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
-          const giftBattleScore = Math.max(
-            1,
-            Math.round(catchResult.finalPoints * fanMult),
-          );
-          await addBattleScoreForTarget(roomId, target, giftBattleScore);
-          if (catchResult.caught) {
-            broadcastToRoom(roomId, "booster_caught", {
-              user_id: userId,
-              username,
-              multiplier: catchResult.multiplier,
-              base_points: giftEconomicValue,
-              final_points: giftBattleScore,
-              gift_economic_value: giftEconomicValue,
-              gift_battle_score: giftBattleScore,
-              gift_id: giftId,
-              battleTarget: target,
-              transaction_id: transactionId,
-              timestamp: new Date().toISOString(),
-            });
-          }
-        }
-      }
-    } catch (err) {
-      logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: battle score failed");
     }
 
     // Engagement Phase 1: MVP aggregates + gift metrics (separate from Battle Energy).
@@ -282,31 +354,8 @@ export async function deliverVerifiedGift(
   }
 
   if (input.giftSource === "promotional_coins") {
-    // Promo path: visual + MVP/engagement + optional battle points.
+    // Promo path: visual + MVP/engagement. Battle points already applied above.
     // NEVER gift goals money path. NEVER Diamonds / creator earnings.
-    try {
-      const activeBattle = await getBattleFromStore(roomId);
-      if (activeBattle && activeBattle.status === "ACTIVE") {
-        const giftBattleBase = Math.max(
-          0,
-          Math.floor(Number(input.coins) || getGiftValue(giftId) || 0),
-        );
-        if (giftBattleBase > 0) {
-          const target = normalizedTarget || "host";
-          const sideForFan: "host" | "opponent" =
-            target === "opponent" ? "opponent" : "host";
-          const fanMult = await fanEnergyGiftMultiplier(roomId, sideForFan);
-          const giftBattleScore = Math.max(
-            1,
-            Math.round(giftBattleBase * fanMult),
-          );
-          await addBattleScoreForTarget(roomId, target, giftBattleScore);
-        }
-      }
-    } catch (err) {
-      logger.warn({ err, roomId, giftId }, "deliverVerifiedGift: promo battle score failed");
-    }
-
     try {
       const { canWriteEngagementWallets } = await import("../lib/engagementFlags");
       if (canWriteEngagementWallets()) {

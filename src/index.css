@@ -341,12 +341,31 @@
     height: 100dvh;
   }
 
-  /* Reset input visibility */
+  /* iOS Safari/WebView auto-zooms focused inputs under 16px. Keep ≥16px even when
+     Tailwind utilities set smaller text-* sizes — layout of the page stays fixed. */
   input, textarea, select, button {
     font-size: 16px;
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
+  }
+  /* Hard force iOS to read focused control font-size >= 16px. Inline styles or
+     Tailwind classes can otherwise win and trigger auto-zoom. */
+  #root input,
+  #root textarea,
+  #root select,
+  #root [contenteditable='true'] {
+    font-size: 16px !important;
+  }
+  #root :is(input, textarea, select),
+  #root :is(input, textarea, select)[class*='text-'] {
+    font-size: 16px !important;
+  }
+
+  /* Avoid double-tap zoom gestures shifting the app scale on iOS WebView. */
+  html.ios,
+  html.ios body {
+    touch-action: manipulation;
   }
 
   /* Ensure buttons and interactive elements stay in front of videos */
@@ -2612,6 +2631,7 @@ body,
   /* Paint into notch / status-bar band so live video never shows above the bar */
   padding-top: 0 !important;
   margin-top: 0 !important;
+  padding-bottom: 4mm;
 }
 
 /* Live bottom icons bar — same fundal picture as top chrome (solo + co-host + battle) */

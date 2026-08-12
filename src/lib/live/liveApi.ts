@@ -38,6 +38,26 @@ export async function apiLiveEnd(room: string): Promise<{ ok: boolean; error: st
   return { ok: true, error: null };
 }
 
+/** Server refused publish — do not retry; the grant is the owner. */
+export function isLivePublishDenied(error: string | null | undefined): boolean {
+  const m = String(error || '').toLowerCase();
+  return m.includes('not authorized') || m.includes('http_403');
+}
+
+/** Network / 5xx — token endpoint itself failed, not an authorization decision. */
+export function isLiveTokenTransient(error: string | null | undefined): boolean {
+  const m = String(error || '').toLowerCase();
+  return (
+    m.includes('http_5') ||
+    m.includes('503') ||
+    m.includes('database_unavailable') ||
+    m.includes('failed to fetch') ||
+    m.includes('network') ||
+    m.includes('timeout') ||
+    m.includes('econnreset')
+  );
+}
+
 export async function apiLiveToken(
   room: string,
   publish: boolean,

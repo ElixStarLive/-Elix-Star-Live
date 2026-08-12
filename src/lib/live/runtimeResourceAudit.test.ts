@@ -124,7 +124,14 @@ vi.mock('livekit-client', () => ({
   ConnectionState,
   LocalVideoTrack: class {},
   LocalAudioTrack: class {},
-  Track: { Kind: { Video: 'video', Audio: 'audio' } },
+  Track: { Kind: { Video: 'video', Audio: 'audio' }, Source: { Camera: 'camera', Microphone: 'microphone' } },
+  VideoQuality: { LOW: 0, MEDIUM: 1, HIGH: 2 },
+  VideoPresets: {
+    h180: { width: 320, height: 180, encoding: { maxBitrate: 150_000, maxFramerate: 15 } },
+    h360: { width: 640, height: 360, encoding: { maxBitrate: 450_000, maxFramerate: 20 } },
+    h540: { width: 960, height: 540, encoding: { maxBitrate: 800_000, maxFramerate: 24 } },
+    h720: { width: 1280, height: 720, encoding: { maxBitrate: 1_700_000, maxFramerate: 30 } },
+  },
 }));
 
 vi.mock('@capacitor/core', () => ({

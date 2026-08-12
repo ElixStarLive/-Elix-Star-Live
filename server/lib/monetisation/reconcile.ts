@@ -90,35 +90,31 @@ export async function runWalletLedgerReconciliation(): Promise<{
       (Number(p.promote) || 0) + (Number(p.share) || 0) - (Number(p.reverses) || 0);
 
     // Report-only: never rewrite platform wallet here.
-    try {
-      const pw = await pool.query(
-        `SELECT available_pence, pending_pence, reversed_pence
-           FROM elix_platform_wallet_gbp WHERE id = 'default' LIMIT 1`,
-      );
-      if (pw.rowCount) {
-        const availableActual =
-          (Number(pw.rows[0].available_pence) || 0) + (Number(pw.rows[0].pending_pence) || 0);
-        const revActual = Number(pw.rows[0].reversed_pence) || 0;
-        const revExpected = Number(p.reverses) || 0;
-        if (availableActual !== expectedPlatformAvailable) {
-          mismatches.push({
-            scope: "platform:available_plus_pending",
-            expected_pence: expectedPlatformAvailable,
-            actual_pence: availableActual,
-            detail: "platform_wallet_vs_ledger",
-          });
-        }
-        if (revActual !== revExpected) {
-          mismatches.push({
-            scope: "platform:reversed",
-            expected_pence: revExpected,
-            actual_pence: revActual,
-            detail: "platform_wallet_vs_ledger",
-          });
-        }
+    const pw = await pool.query(
+      `SELECT available_pence, pending_pence, reversed_pence
+         FROM elix_platform_wallet_gbp WHERE id = 'default' LIMIT 1`,
+    );
+    if (pw.rowCount) {
+      const availableActual =
+        (Number(pw.rows[0].available_pence) || 0) + (Number(pw.rows[0].pending_pence) || 0);
+      const revActual = Number(pw.rows[0].reversed_pence) || 0;
+      const revExpected = Number(p.reverses) || 0;
+      if (availableActual !== expectedPlatformAvailable) {
+        mismatches.push({
+          scope: "platform:available_plus_pending",
+          expected_pence: expectedPlatformAvailable,
+          actual_pence: availableActual,
+          detail: "platform_wallet_vs_ledger",
+        });
       }
-    } catch {
-      /* optional pre-migration */
+      if (revActual !== revExpected) {
+        mismatches.push({
+          scope: "platform:reversed",
+          expected_pence: revExpected,
+          actual_pence: revActual,
+          detail: "platform_wallet_vs_ledger",
+        });
+      }
     }
 
     // Sanity: creator + platform = net for non-reversal gift/sub rows

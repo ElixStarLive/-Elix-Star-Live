@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
+import { Keyboard } from '@capacitor/keyboard'
 import App from './App'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { NativeDialogProvider } from './components/NativeDialog'
@@ -15,6 +16,10 @@ if (typeof document !== 'undefined' && Capacitor.isNativePlatform()) {
   document.documentElement.classList.add('native-app')
   if (Capacitor.getPlatform() === 'ios') {
     document.documentElement.classList.add('ios')
+    // Hide app/WebView keyboard accessory (prev/next/Done). Native OS keys stay.
+    void Keyboard.setAccessoryBarVisible({ isVisible: false }).catch(() => {})
+    // Keep document position — do not scroll/resize the page under the keyboard.
+    void Keyboard.setScroll({ isDisabled: true }).catch(() => {})
   } else if (Capacitor.getPlatform() === 'android') {
     document.documentElement.classList.add('android')
   }

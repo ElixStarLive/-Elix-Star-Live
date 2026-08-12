@@ -41,6 +41,9 @@ import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
+import { BattleCreatorTileScore } from '../battle/BattleCreatorTileScore';
+import { BattleTileGiftIcons } from '../battle/BattleTileGiftIcons';
+import { teamTotalsFromScores } from '../battle/liveBattleScore';
 import { areTestCoinsEnabled } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
@@ -57,6 +60,11 @@ import {
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
+  MVP_GOLD,
+  MVP_RING_EMPTY_CLASS,
+  MVP_RING_PHOTO_CLASS,
+  MVP_RING_PHOTO_SOFT_CLASS,
+  MVP_BADGE_CLASS,
 } from '../../../lib/profileFrame';
 import {
   SHARE_PANEL_ACTION_DISC_PX,
@@ -68,6 +76,7 @@ import { openExternalLink } from '../../../lib/platform';
 import ReportModal from '../../../components/ReportModal';
 import PromotePanel from '../../../components/PromotePanel';
 import { RankingPanel } from '../../../components/RankingPanel';
+import { watchLiveProfilePath } from '../../../lib/live/liveProfileNav';
 import {
   apiLiveEngagementProgress,
   apiLiveShareCreate,
@@ -88,6 +97,7 @@ import {
 import { cohostInviteAccept } from '../cohost/liveCohostActions';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
+import { LIVE_COHOST_STAGE_BOTTOM } from '../cohost/cohostStageGeometry';
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 
 function formatBattleScoreShort(coins: number) {
@@ -207,7 +217,6 @@ export default function SpectatorLiveScreen() {
     battleTauntBursts,
     boosterActivations,
     boosterCatches,
-    engagementNowMs,
     engagementState,
     coHostVideoRefs,
     cohostGiftScores,
@@ -244,6 +253,8 @@ export default function SpectatorLiveScreen() {
     heartMembers,
     topGifters,
     hasOpponentStream,
+    hasPlayer3Stream,
+    hasPlayer4Stream,
     hasStream,
     hostAvatar,
     hostLevel,
@@ -259,6 +270,7 @@ export default function SpectatorLiveScreen() {
     isCoHosting,
     isFollowing,
     isMember,
+    membershipIsSelf,
     isMicMuted,
     isModerator,
     isMoreMenuOpen,
@@ -267,6 +279,7 @@ export default function SpectatorLiveScreen() {
     isSubscribing,
     joinRequested,
     lastSentGift,
+    lastGifts,
     leaveStreamWithSlide,
     liveKitRoomRef,
     location,
@@ -290,6 +303,8 @@ export default function SpectatorLiveScreen() {
     opponentProfile,
     hostBattleProfile,
     opponentVideoRef,
+    player3VideoRef,
+    player4VideoRef,
     pageExiting,
     pendingBattleInvite,
     pendingCoHostInvite,
@@ -374,6 +389,7 @@ export default function SpectatorLiveScreen() {
     userLevel,
     userXP,
     videoRef,
+    hostRemoteAudioRef,
     viewerAvatar,
     viewerCount,
     viewerName,
@@ -471,6 +487,7 @@ export default function SpectatorLiveScreen() {
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
       <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${spectatorBattle?.active ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
+        <audio ref={hostRemoteAudioRef} autoPlay playsInline className="hidden" />
 
         {spectatorBattle?.active ? (
           <div
@@ -507,20 +524,22 @@ export default function SpectatorLiveScreen() {
 
           /* ═══ BATTLE MODE: creator-identical 50/50 split layout ═══ */
           if (spectatorBattle?.active) {
-            const redTeamScore = (spectatorBattle.hostScore || 0) + (spectatorBattle.player3Score ?? 0);
-            const blueTeamScore = (spectatorBattle.opponentScore || 0) + (spectatorBattle.player4Score ?? 0);
+            const { red: redTeamScore, blue: blueTeamScore } = teamTotalsFromScores({
+              h: spectatorBattle.hostScore || 0,
+              o: spectatorBattle.opponentScore || 0,
+              p3: spectatorBattle.player3Score ?? 0,
+              p4: spectatorBattle.player4Score ?? 0,
+            });
             const total = redTeamScore + blueTeamScore;
             const leftPct = total > 0 ? Math.max(5, Math.min(95, (redTeamScore / total) * 100)) : 50;
             const hS = spectatorBattle.hostScore || 0;
             const oS = spectatorBattle.opponentScore || 0;
             const p3s = spectatorBattle.player3Score ?? 0;
             const p4s = spectatorBattle.player4Score ?? 0;
-            /** 4-way join points: show P1+P3 / P2+P4 whenever any 4th seat or score exists. */
-            const showPkBreakdown =
-              (spectatorBattle.redTeamLabel || '').includes(' + ') ||
-              (spectatorBattle.blueTeamLabel || '').includes(' + ') ||
-              (spectatorBattle.player3Score ?? 0) > 0 ||
-              (spectatorBattle.player4Score ?? 0) > 0;
+            const is4Player =
+              !!(spectatorBattle.player3UserId || spectatorBattle.player4UserId ||
+                spectatorBattle.player3Name || spectatorBattle.player4Name ||
+                p3s > 0 || p4s > 0);
             // End-game suspense hides both scores; Mist Fog hides ONLY the supported
             // creator's side (the one the spectator boosted), never both.
             const mistSupportedSide = mistHidesMyScore ? mistFog?.supportedSide : null;
@@ -540,7 +559,7 @@ export default function SpectatorLiveScreen() {
                   {!battleScoreBarHidden ? (
                     <div
                       className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
-                      style={{ minHeight: showPkBreakdown ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)', height: showPkBreakdown ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)' }}
+                      style={{ minHeight: 'calc(12px + 0.5mm)', height: 'calc(12px + 0.5mm)' }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setBattleScoreBarHidden(true);
@@ -557,19 +576,9 @@ export default function SpectatorLiveScreen() {
                       <div className="relative z-10 flex h-full min-h-[12px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                         <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
                           <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                          {showPkBreakdown && (
-                            <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P1 {formatBattleScoreShort(hS)} + P3 {formatBattleScoreShort(p3s)}
-                            </span>
-                          )}
                         </div>
                         <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
                           <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatBattleScoreShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                          {showPkBreakdown && (
-                            <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              P2 {formatBattleScoreShort(oS)} + P4 {formatBattleScoreShort(p4s)}
-                            </span>
-                          )}
                         </div>
                         {battleHideScores ? (
                           <div className="absolute inset-0 z-20 battle-score-veil pointer-events-none" />
@@ -634,68 +643,124 @@ export default function SpectatorLiveScreen() {
                     />
                     <BattleTauntOverlays bursts={battleTauntBursts} opponentSide="opponent" />
                     <div className="absolute inset-0 flex flex-row gap-0 w-full max-w-full min-w-0 overflow-hidden">
-                      <div className="flex-1 basis-0 min-w-0 h-full overflow-hidden relative bg-[rgba(0,0,0,0.35)]">
-                        <video
-                          ref={videoRef}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          playsInline
-                          autoPlay
-                          style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
-                        />
-                        {!hasStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-panel">
-                            {hostAvatar ? (
-                              <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
-                            ) : (
-                              <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                <span className="text-2xl font-black text-[#F5F5F7]">{(hostName || 'H').charAt(0).toUpperCase()}</span>
-                              </div>
-                            )}
-                            <span className="text-white text-xs font-bold">{hostName}</span>
-                            <div className="flex items-center gap-1">
-                              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                              <span className="text-white text-[10px] font-bold">Connecting...</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative ${
-                          hasOpponentStream ? 'bg-[rgba(0,0,0,0.35)]' : 'bg-transparent'
-                        }`}
-                      >
-                        <video
-                          ref={opponentVideoRef}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          autoPlay
-                          playsInline
-                          muted
-                          style={{ opacity: hasOpponentStream ? 1 : 0, transition: 'opacity 0.3s ease' }}
-                        />
-                        {!hasOpponentStream && (
-                          <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
-                            {spectatorBattle.opponentName ? (
-                              <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
-                                <span className="text-2xl font-black text-[#E6E9EE]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
-                              </div>
-                            ) : (
-                              <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
-                                <span className="text-2xl font-black text-[#E6E9EE]">+</span>
-                              </div>
-                            )}
-                            <span className="text-[#C8CDD5] text-xs font-bold truncate max-w-[90%]">{spectatorBattle.opponentName || 'Invite creator'}</span>
-                            {spectatorBattle.opponentName ? (
+                      <div className="flex-1 basis-0 min-w-0 h-full flex flex-col min-h-0 gap-0 overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-hidden relative bg-[rgba(0,0,0,0.35)]">
+                          <video
+                            ref={videoRef}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            playsInline
+                            autoPlay
+                            style={{ opacity: hasStream ? 1 : 0, transition: 'opacity 0.4s ease' }}
+                          />
+                          {!hasStream && (
+                            <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-panel">
+                              {hostAvatar ? (
+                                <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
+                              ) : (
+                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                                  <span className="text-2xl font-black text-[#F5F5F7]">{(hostName || 'H').charAt(0).toUpperCase()}</span>
+                                </div>
+                              )}
+                              <span className="text-white text-xs font-bold">{hostName}</span>
                               <div className="flex items-center gap-1">
-                                <span className="w-2 h-2 rounded-full bg-[#E6E9EE] animate-pulse" />
-                                <span className="text-[#8B9099] text-[10px] font-bold">Connecting...</span>
+                                <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                <span className="text-white text-[10px] font-bold">Connecting...</span>
                               </div>
-                            ) : null}
+                            </div>
+                          )}
+                          <BattleTileGiftIcons icons={lastGifts.host} />
+                          <BattleCreatorTileScore score={hS} format={formatBattleScoreShort} />
+                        </div>
+                        {is4Player ? (
+                          <div className="flex-1 min-h-0 overflow-hidden relative bg-[rgba(0,0,0,0.35)]">
+                            <video
+                              ref={player3VideoRef}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              playsInline
+                              muted
+                              style={{ opacity: hasPlayer3Stream ? 1 : 0, transition: 'opacity 0.3s ease' }}
+                            />
+                            {!hasPlayer3Stream && (
+                              <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
+                                {spectatorBattle.player3Name ? (
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                    <span className="text-lg font-black text-[#E6E9EE]">{spectatorBattle.player3Name.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                ) : null}
+                                <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player3Name || 'Creator'}</span>
+                              </div>
+                            )}
+                            <BattleTileGiftIcons icons={lastGifts.player3} />
+                            <BattleCreatorTileScore score={p3s} format={formatBattleScoreShort} />
                           </div>
-                        )}
+                        ) : null}
+                      </div>
+                      <div className="flex-1 basis-0 min-w-0 h-full flex flex-col min-h-0 gap-0 overflow-hidden">
+                        <div
+                          className={`flex-1 min-h-0 overflow-hidden relative ${
+                            hasOpponentStream ? 'bg-[rgba(0,0,0,0.35)]' : 'bg-transparent'
+                          }`}
+                        >
+                          <video
+                            ref={opponentVideoRef}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            autoPlay
+                            playsInline
+                            muted
+                            style={{ opacity: hasOpponentStream ? 1 : 0, transition: 'opacity 0.3s ease' }}
+                          />
+                          {!hasOpponentStream && (
+                            <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
+                              {spectatorBattle.opponentName ? (
+                                <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                  <span className="text-2xl font-black text-[#E6E9EE]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
+                                </div>
+                              ) : (
+                                <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                  <span className="text-2xl font-black text-[#E6E9EE]">+</span>
+                                </div>
+                              )}
+                              <span className="text-[#C8CDD5] text-xs font-bold truncate max-w-[90%]">{spectatorBattle.opponentName || 'Invite creator'}</span>
+                              {spectatorBattle.opponentName ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="w-2 h-2 rounded-full bg-[#E6E9EE] animate-pulse" />
+                                  <span className="text-[#8B9099] text-[10px] font-bold">Connecting...</span>
+                                </div>
+                              ) : null}
+                            </div>
+                          )}
+                          <BattleTileGiftIcons icons={lastGifts.opponent} />
+                          <BattleCreatorTileScore score={oS} format={formatBattleScoreShort} />
+                        </div>
+                        {is4Player ? (
+                          <div className="flex-1 min-h-0 overflow-hidden relative bg-[rgba(0,0,0,0.35)]">
+                            <video
+                              ref={player4VideoRef}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              autoPlay
+                              playsInline
+                              muted
+                              style={{ opacity: hasPlayer4Stream ? 1 : 0, transition: 'opacity 0.3s ease' }}
+                            />
+                            {!hasPlayer4Stream && (
+                              <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
+                                {spectatorBattle.player4Name ? (
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
+                                    <span className="text-lg font-black text-[#E6E9EE]">{spectatorBattle.player4Name.charAt(0).toUpperCase()}</span>
+                                  </div>
+                                ) : null}
+                                <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player4Name || 'Creator'}</span>
+                              </div>
+                            )}
+                            <BattleTileGiftIcons icons={lastGifts.player4} />
+                            <BattleCreatorTileScore score={p4s} format={formatBattleScoreShort} />
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                     <div className="absolute inset-0 z-10 flex flex-row touch-manipulation gap-0">
-                      {showPkBreakdown ? (
+                      {is4Player ? (
                         <>
                           <div className="flex-1 basis-0 min-w-0 h-full flex flex-col min-h-0">
                             <button
@@ -879,7 +944,7 @@ export default function SpectatorLiveScreen() {
                           {isEmpty || !photo ? (
                             <div
                               className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                               }`}
                               style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                             >
@@ -888,16 +953,17 @@ export default function SpectatorLiveScreen() {
                               ) : null}
                             </div>
                           ) : (
-                            <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                            <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                               <AvatarRing
                                 src={photo}
                                 alt={label || 'MVP'}
                                 size={LIVE_MVP_PROFILE_RING_PX}
+                                ringColor={isMvp ? MVP_GOLD : undefined}
                               />
                             </div>
                           )}
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
                             </span>
                           )}
@@ -965,7 +1031,7 @@ export default function SpectatorLiveScreen() {
                           {isEmpty || !photo ? (
                             <div
                               className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                               }`}
                               style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                             >
@@ -974,16 +1040,17 @@ export default function SpectatorLiveScreen() {
                               ) : null}
                             </div>
                           ) : (
-                            <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                            <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                               <AvatarRing
                                 src={photo}
                                 alt={label || 'MVP'}
                                 size={LIVE_MVP_PROFILE_RING_PX}
+                                ringColor={isMvp ? MVP_GOLD : undefined}
                               />
                             </div>
                           )}
                           {isMvp && (
-                            <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
                             </span>
                           )}
@@ -1108,7 +1175,7 @@ export default function SpectatorLiveScreen() {
                                 e.stopPropagation();
                                 setShowOpponentPanel(false);
                                 setBattleSidePanel(null);
-                                navigate(`/profile/${profileUid}`);
+                                navigate(watchLiveProfilePath(effectiveStreamId, profileUid));
                               }}
                             >
                               <span className="text-[#F5F5F7] font-bold text-[11px]">Profile</span>
@@ -1222,20 +1289,35 @@ export default function SpectatorLiveScreen() {
                       backgroundColor: '#080A0E',
                     }}
                   />
-                  <button
-                    type="button"
-                    title="Put on big screen"
-                    onClick={(e) => { e.stopPropagation(); if (user?.id) toggleFeaturedUser(user.id); }}
-                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
-                  >
-                    <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
-                  </button>
-                  <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
-                    <button type="button" onClick={toggleMic} className="p-1" title={isMicMuted ? 'Unmute' : 'Mute'}>
-                      {isMicMuted ? <MicOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} /> : <Mic className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
+                  {/* Left-side co-host controls: Camera / Microphone / Switch Screen */}
+                  <div className="absolute top-0.5 left-0.5 z-10 flex flex-col items-center gap-0.5 pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={toggleCam}
+                      className="p-1"
+                      title={isCamOff ? 'Camera on' : 'Camera off'}
+                    >
+                      {isCamOff
+                        ? <CameraOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} />
+                        : <Camera className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
                     </button>
-                    <button type="button" onClick={toggleCam} className="p-1" title={isCamOff ? 'Camera on' : 'Camera off'}>
-                      {isCamOff ? <CameraOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} /> : <Camera className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
+                    <button
+                      type="button"
+                      onClick={toggleMic}
+                      className="p-1"
+                      title={isMicMuted ? 'Unmute' : 'Mute'}
+                    >
+                      {isMicMuted
+                        ? <MicOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} />
+                        : <Mic className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
+                    </button>
+                    <button
+                      type="button"
+                      title="Put on big screen"
+                      onClick={(e) => { e.stopPropagation(); if (user?.id) toggleFeaturedUser(user.id); }}
+                      className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
+                    >
+                      <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                     </button>
                   </div>
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</p>
@@ -1465,7 +1547,7 @@ export default function SpectatorLiveScreen() {
                       type="button"
                       title="Back to host on big screen"
                       onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                      className="absolute top-1 left-1 z-20 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-black/60 border border-[#D8D9DD]/50 pointer-events-auto active:scale-95"
+                      className="absolute top-1 left-1 z-20 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-transparent border border-[#D8D9DD]/50 pointer-events-auto active:scale-95"
                     >
                       <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                       <span className="text-[8px] font-bold text-[#F5F5F7]">Host</span>
@@ -1642,7 +1724,7 @@ export default function SpectatorLiveScreen() {
             style={{ top: 'calc(var(--safe-top) + 90px + 9mm + 30dvh + 6mm + 2mm)' }}
           >
             <div
-              className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[0mm] pointer-events-auto"
+            className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[1.5mm] pointer-events-auto"
               title="Top gifters — MVP"
               onClick={() => {
                 const ranked = [...mvpSlots.global]
@@ -1678,12 +1760,12 @@ export default function SpectatorLiveScreen() {
                   <div
                     key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${slot.id}`}
                     className="relative flex flex-col items-center max-w-[42px]"
-                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                    style={{ zIndex: 3 - i }}
                   >
                     {isEmpty || !photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
@@ -1692,16 +1774,17 @@ export default function SpectatorLiveScreen() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                      <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
                           src={photo}
                           alt={label || 'MVP'}
                           size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
                         />
                       </div>
                     )}
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
                       </span>
                     )}
@@ -1733,7 +1816,7 @@ export default function SpectatorLiveScreen() {
                   showFollow={!user?.id || !hostUserId || user.id !== hostUserId}
                   isFollowing={isFollowing}
                   isLivePro={isLiveProFromGiftReach(hostTotalGiftCoins)}
-                  onAvatarClick={() => navigate(`/profile/${hostUserId}`)}
+                  onAvatarClick={() => navigate(watchLiveProfilePath(effectiveStreamId, hostUserId))}
                   onLike={(e) => {
                     handleLikeTap(e);
                   }}
@@ -1780,17 +1863,26 @@ export default function SpectatorLiveScreen() {
                         <div
                           key={`spectator-top-mvp-${slot.id}`}
                           className="relative"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                          style={{ zIndex: 3 - i, marginLeft: '0mm' }}
                         >
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
-                            <AvatarRing
-                              src={resolveCircleAvatar(slot.avatar, slot.name)}
-                              alt={slot.name || ''}
-                              size={LIVE_MVP_PROFILE_RING_PX}
-                            />
+                          {/* Keep only gold MVP circles + rank numbers (no avatar icons). */}
+                          <div
+                            className={MVP_RING_PHOTO_SOFT_CLASS}
+                            style={{
+                              width: LIVE_MVP_PROFILE_RING_PX,
+                              height: LIVE_MVP_PROFILE_RING_PX,
+                              backgroundColor: '#121419',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <span className="text-white text-[10px] font-black leading-none">
+                              {i + 1}
+                            </span>
                           </div>
                           {isMvp && (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
                             </span>
                           )}
@@ -2004,7 +2096,7 @@ export default function SpectatorLiveScreen() {
                 type="button"
                 onClick={handleComboClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FFFFFF] to-[#E6E9EE] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
@@ -2135,7 +2227,11 @@ export default function SpectatorLiveScreen() {
 
         <GiftAnimationOverlay streamId={effectiveStreamId} isBattleMode={!!spectatorBattle?.active} />
         {/* Separate photo feed (cards + xN) — does not replace gift video animation */}
-        <LiveGiftFeedStack streamId={effectiveStreamId} />
+        <LiveGiftFeedStack
+          streamId={effectiveStreamId}
+          isCohostMode={hasCoHostLowerFundal && !spectatorBattle?.active}
+          cohostStageBottom={LIVE_COHOST_STAGE_BOTTOM}
+        />
 
         {/* POINT MULTIPLIER BOOSTER — a red boxing glove stays on the top-left, beside
             the Weekly Ranking, for the whole active window (server ~30s) while it catches
@@ -2312,6 +2408,17 @@ export default function SpectatorLiveScreen() {
                   <span className="text-[#F5F5F7] font-bold text-sm text-center w-full">Your Team Status</span>
                 </div>
                 <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar min-h-0">
+                  <MembershipBuySection
+                    creatorName={hostName}
+                    creatorAvatar={hostAvatar}
+                    isMember={isMember}
+                    isSubscribing={isSubscribing}
+                    isSelf={membershipIsSelf}
+                    onBuy={() => {
+                      void handleSubscribe();
+                    }}
+                  />
+
                   <div className="bg-transparent rounded-xl p-3 border-0 relative overflow-hidden">
                     <div className="flex items-center gap-3 relative z-10">
                       <div className="w-10 h-10 rounded-full bg-transparent flex items-center justify-center">
@@ -2349,17 +2456,6 @@ export default function SpectatorLiveScreen() {
                       ))}
                     </div>
                   </div>
-
-                  <MembershipBuySection
-                    creatorName={hostName}
-                    creatorAvatar={hostAvatar}
-                    isMember={isMember}
-                    isSubscribing={isSubscribing}
-                    isSelf={Boolean(user?.id && hostUserId && user.id === hostUserId)}
-                    onBuy={() => {
-                      void handleSubscribe();
-                    }}
-                  />
 
                   <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20 mt-2">
                     <div className="text-[#F5F5F7]/60 text-[9px] font-bold uppercase tracking-wider">Total Gift Coins Received</div>
@@ -2544,7 +2640,6 @@ export default function SpectatorLiveScreen() {
         {streamIsLive ? (
           <LiveEngagementOverlay
             state={engagementState}
-            nowMs={engagementNowMs}
             milestoneFlash={milestoneFlash}
             stageFlash={stageFlash}
             onVote={votePoll}
@@ -2641,19 +2736,20 @@ export default function SpectatorLiveScreen() {
                         key={v.id}
                         type="button"
                         className="flex items-center gap-3 w-full py-2.5 active:bg-white/5 rounded-xl transition-colors"
-                        onClick={() => { setShowViewersPanel(false); navigate(`/profile/${v.id}`); }}
+                        onClick={() => { setShowViewersPanel(false); navigate(watchLiveProfilePath(effectiveStreamId, v.id)); }}
                       >
                         <span className="text-white/30 text-xs font-bold w-5 text-right">{i + 1}</span>
                         <div className="relative flex-shrink-0">
-                          <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(v.avatar, label)}
                               alt={label}
                               size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
                             />
                           </div>
                           {isMvp ? (
-                            <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white elix-accent text-[6px] font-black leading-none tracking-wide">
+                            <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
                             </span>
                           ) : null}

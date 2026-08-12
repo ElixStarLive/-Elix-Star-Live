@@ -150,13 +150,9 @@ async function applyPlatformWalletDelta(
   status: LedgerStatus,
 ): Promise<void> {
   if (platformAmountPence === 0) return;
-  try {
-    await client.query(
-      `INSERT INTO elix_platform_wallet_gbp (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`,
-    );
-  } catch {
-    return; // pre-migration
-  }
+  await client.query(
+    `INSERT INTO elix_platform_wallet_gbp (id) VALUES ('default') ON CONFLICT (id) DO NOTHING`,
+  );
   if (platformAmountPence > 0) {
     if (status === "pending" || status === "awaiting_settlement") {
       await client.query(

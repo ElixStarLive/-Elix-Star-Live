@@ -22,8 +22,16 @@ describe("LIVE + battle server state-machine contracts", () => {
   const spectator = read("../../src/features/live/spectator/useLiveSpectatorController.tsx");
 
   it("viewer count is derived from Valkey SCARD and broadcast to the room", () => {
-    expect(wsIndex).toContain("valkeyScard(`room:members:${roomId}`)");
+    expect(wsIndex).toContain("valkeySmembers(`room:members:${roomId}`)");
     expect(wsIndex).toContain('broadcastToRoom(roomId, "viewer_count", { count })');
+    expect(wsIndex).toContain("computeSpectatorViewerCount");
+  });
+
+  it("live clients consume authoritative viewer_count from the server", () => {
+    expect(liveStream).toContain("onViewerCount");
+    expect(spectator).toContain("onViewerCount");
+    expect(liveStream).toContain("applyServerViewerCount");
+    expect(spectator).toContain("applyServerViewerCount");
   });
 
   it("a normal viewer leaving only ends the stream when they are the host", () => {
@@ -66,6 +74,31 @@ describe("LIVE + battle server state-machine contracts", () => {
     const fn = battle.slice(battle.indexOf("export async function removeBattleParticipant"));
     expect(fn).toContain("if (session.hostUserId === userId) return false");
     expect(fn).toContain("broadcastBattleState");
+  });
+
+  it("claimBattleSeat assigns an empty rival seat without starting the timer", () => {
+    expect(battle).toContain("export async function claimBattleSeat");
+    const start = battle.indexOf("export async function claimBattleSeat");
+    const end = battle.indexOf("export async function joinBattle", start);
+    const fn = battle.slice(start, end > start ? end : start + 800);
+    expect(fn).toContain("broadcastBattleState");
+    expect(fn).not.toContain("startBattleTimer");
+  });
+
+  it("handlers expose battle_remove_participant and battle_invite_roster_get", () => {
+    const handlers = read("./handlers.ts");
+    expect(handlers).toContain('case "battle_remove_participant"');
+    expect(handlers).toContain('case "battle_invite_roster_get"');
+    expect(handlers).toContain("claimBattleSeat");
+    expect(handlers).toContain("battle_full");
+    expect(handlers).toContain("publishBattleInviteRoster");
+  });
+
+  it("host removePlayerFromSlot removes one seat instead of ending the whole battle", () => {
+    const start = liveStream.indexOf("const removePlayerFromSlot");
+    const fn = liveStream.slice(start, start + 900);
+    expect(fn).toContain("battleRemoveParticipant");
+    expect(fn).not.toContain("exitBattleMode()");
   });
 
   it("battle clock is server-authoritative and broadcast via battle_tick", () => {

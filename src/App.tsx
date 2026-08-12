@@ -27,6 +27,8 @@ import { subscribeToIncomingCalls } from "./lib/callService";
 import { websocket } from "./lib/websocket";
 import { useSoundLibraryPlayerStore } from "./store/useSoundLibraryPlayerStore";
 import { useSafetyStore } from "./store/useSafetyStore";
+import SpectatorLiveShell from "./features/live/spectator/SpectatorLiveShell";
+import ProfileLiveOverlay from "./features/live/spectator/ProfileLiveOverlay";
 
 
 // Lazy-loaded page components for code splitting
@@ -92,7 +94,6 @@ const Guidelines = lazy(() => import("./pages/Guidelines"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const VideoCall = lazy(() => import("./pages/VideoCall"));
 const AIStudio = lazy(() => import("./pages/AIStudio"));
-const SpectatorPage = lazy(() => import("./pages/SpectatorPage"));
 const RisingStars = lazy(() => import("./pages/RisingStars"));
 const RisingStarsChallenge = lazy(() => import("./pages/RisingStarsChallenge"));
 const AdminRisingStars = lazy(() => import("./pages/admin/RisingStars"));
@@ -107,13 +108,6 @@ const NotificationSettings = lazy(
 function LiveStreamKeyed() {
   const loc = useLocation();
   return <LiveStream key={loc.pathname + loc.search} />;
-}
-
-// Full remount per stream so battle redirects (/watch/B → /watch/A) never
-// carry stale WS/LiveKit/battle state between rooms.
-function SpectatorPageKeyed() {
-  const loc = useLocation();
-  return <SpectatorPage key={loc.pathname} />;
 }
 
 function LiveStreamGuard() {
@@ -250,7 +244,12 @@ function App() {
           path === "/call";
         if (onLiveSurface) return;
         try {
-          if (!websocket.isConnected() || websocket.getCurrentRoomId() !== "__feed__") {
+          // For You inline live preview joins the real stream room on the same
+          // singleton. Do not yank it back to __feed__ while that room is active
+          // (that dropped cohost_layout_sync and left full-bleed solo cards).
+          const currentRoom = websocket.getCurrentRoomId();
+          if (currentRoom && currentRoom !== "__feed__") return;
+          if (!websocket.isConnected() || currentRoom !== "__feed__") {
             websocket.connect("__feed__", token, { persistent: true });
           }
         } catch (err) {
@@ -486,7 +485,9 @@ function App() {
                   path="/live/watch/:streamId"
                   element={<LiveWatchRedirect />}
                 />
-                <Route path="/watch/:streamId" element={<SpectatorPageKeyed />} />
+                <Route path="/watch/:streamId" element={<SpectatorLiveShell />}>
+                  <Route path="profile/:userId" element={<ProfileLiveOverlay />} />
+                </Route>
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/profile/:userId" element={<Profile />} />
                 <Route path="/friends" element={<FriendsFeed />} />

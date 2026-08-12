@@ -49,6 +49,11 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
   const [isPaying, setIsPaying] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
 
+  // iOS only: the fixed bottom sheet is sensitive to the home-indicator safe area.
+  // Increase the sheet dimensions by exactly +6mm so the existing bottom Pay bar
+  // remains fully visible/clickable (panel grows upward because it is bottom-anchored).
+  const iosPanelExtraMm = platform.isNative && platform.isIOS ? 6 : 0;
+
   if (!isOpen) return null;
 
   const paymentMethod = getPaymentMethod();
@@ -133,6 +138,14 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
     <div className="fixed inset-0 z-[100000] flex items-end justify-center bg-black/50" onClick={onClose}>
       <div
         className={`w-full max-w-[480px] elix-panel backdrop-blur-md rounded-t-2xl h-[38vh] max-h-[320px] overflow-hidden flex flex-col border border-black animate-in slide-in-from-bottom ${!bottomNavHidden ? 'bottom-sheet-above-nav' : ''}`}
+        style={
+          iosPanelExtraMm
+            ? {
+                height: `calc(38vh + ${iosPanelExtraMm}mm)`,
+                maxHeight: `calc(320px + ${iosPanelExtraMm}mm)`,
+              }
+            : undefined
+        }
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
@@ -243,6 +256,11 @@ export default function PromotePanel({ isOpen, onClose, contentType, content }: 
             onClick={handlePay}
             disabled={isPaying}
             className="px-5 py-2 rounded-lg bg-[#E6E9EE] text-white elix-accent font-bold text-xs hover:bg-[#E6E9EE]/90 active:scale-95 transition-all disabled:opacity-70"
+            style={
+              platform.isNative && platform.isIOS
+                ? { marginBottom: '3mm', alignSelf: 'flex-end' }
+                : undefined
+            }
           >
             {isPaying ? '...' : 'Pay'}
           </button>

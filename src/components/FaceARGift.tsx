@@ -3,6 +3,7 @@ import { detectFacePose, releaseFaceLandmarker } from '../lib/faceLandmarks';
 import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
 import { initCommercialFaceEngine, shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
+import { getLiveMediaTierConfig } from '../lib/live/liveMediaProfile';
 
 type FaceARGiftProps = {
   giftType: string;
@@ -27,6 +28,12 @@ export function FaceARGift({
   const engine = resolveLiveFaceEffectsEngine();
 
   useEffect(() => {
+    // Under thermal pressure, skip Face AR canvas/MediaPipe — gift video overlay still plays.
+    if (getLiveMediaTierConfig().reduceDecorativeMotion) {
+      onCompleteRef.current?.();
+      return;
+    }
+
     void initCommercialFaceEngine(engine);
 
     const video = videoRef.current;
@@ -62,6 +69,10 @@ export function FaceARGift({
 
     const tick = (now: number) => {
       if (done) return;
+      if (getLiveMediaTierConfig().reduceDecorativeMotion) {
+        finish();
+        return;
+      }
       const elapsed = now - start;
       if (elapsed >= durationMs) {
         finish();
@@ -80,7 +91,7 @@ export function FaceARGift({
         return;
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const cssW = rect.width;
       const cssH = rect.height;
       if (cssW !== lastCssW || cssH !== lastCssH) {
@@ -92,7 +103,7 @@ export function FaceARGift({
         surface.style.height = `${cssH}px`;
       }
 
-      if (shouldTrackWithMediaPipe(engine) && now - lastDetect > 48) {
+      if (shouldTrackWithMediaPipe(engine) && now - lastDetect > 64) {
         lastDetect = now;
         void detectFacePose(video, cssW, cssH, mirrored, now).then((pose) => {
           if (pose) cachedPose = pose;

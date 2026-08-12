@@ -23,7 +23,8 @@ import fs from "fs";
 import { stripeWebhookRouter, livekitWebhookRouter, googlePlayRtdnRouter, appleIapNotifyRouter } from "./routes/webhooks.router";
 import { videoUploadRouter } from "./routes/media.router";
 import { mountRoutes } from "./routes/index";
-import { attachWebSocket, initWsPubSub } from "./websocket/index";
+import { attachWebSocket, initWsPubSub, sendToUserGlobal } from "./websocket/index";
+import { setLiveShareNotifier } from "./lib/liveShareNotify";
 import { initBattleTickLoop, stopBattleTickLoop } from "./websocket/battle";
 import { neonMatureCreatorEarnings } from "./lib/walletNeon";
 import { matureGbpPendingEarnings } from "./lib/monetisation/ledger";
@@ -582,6 +583,7 @@ app.use(errorHandler);
 
 // ── WebSocket + cross-instance pub/sub ───────────────────────────
 attachWebSocket(server);
+setLiveShareNotifier(sendToUserGlobal);
 initWsPubSub();
 initFeedPubSub();
 

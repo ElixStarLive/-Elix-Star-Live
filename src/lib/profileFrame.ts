@@ -14,6 +14,24 @@ export const PROFILE_RING_SIZE_BUMP_MM = 3;
 /** Live top-bar MVP avatars. */
 export const LIVE_MVP_PROFILE_RING_PX = 28;
 
+/**
+ * Shared MVP #1 highlight — gold ring only (size/layout unchanged).
+ * Use these class tokens wherever `isMvp` styles the circle/ring.
+ */
+export const MVP_GOLD = '#D9A62E';
+/** Empty / letter MVP circle: gold border + glow. */
+export const MVP_RING_EMPTY_CLASS =
+  'border-[#D9A62E] shadow-[0_0_6px_0_rgba(217,166,46,0.55)]' as const;
+/** Photo MVP circle wrapper (stage / battle rows). */
+export const MVP_RING_PHOTO_CLASS =
+  'rounded-full shadow-[0_0_6px_0_rgba(217,166,46,0.55)] ring-2 ring-[#D9A62E]' as const;
+/** Compact top-bar / list MVP circle wrapper. */
+export const MVP_RING_PHOTO_SOFT_CLASS =
+  'rounded-full shadow-[0_0_3px_0_rgba(217,166,46,0.30)] ring-2 ring-[#D9A62E]' as const;
+/** Tiny “MVP” pill on the circle — gold fill, same size/placement as before. */
+export const MVP_BADGE_CLASS =
+  'px-1 rounded-full bg-[#D9A62E] text-white text-[6px] font-black leading-none tracking-wide' as const;
+
 /** Live chat message user avatar circle — app-wide standard for level badges. */
 export const LEVEL_BADGE_RING_PX = 26;
 export const CHAT_PROFILE_RING_PX = LEVEL_BADGE_RING_PX;

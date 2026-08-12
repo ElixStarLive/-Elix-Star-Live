@@ -4,20 +4,21 @@ import { MEMBERSHIP_DISPLAY_PRICE } from './membershipPurchaseFlow';
 
 /**
  * Buy block for Team Status / Join Membership panel.
+ * Always visible — never hide the purchase action.
  * Matches existing Super Fan membership card styling — not a redesign.
+ * Price display matches configured £9 product (store charges real IAP price).
  */
 export function MembershipBuySection(props: {
   creatorName: string;
   creatorAvatar?: string;
   isMember: boolean;
   isSubscribing: boolean;
-  /** When true, hide purchase (viewer is the creator). */
+  /** Creator viewing own panel — show block but block self-purchase. */
   isSelf?: boolean;
   onBuy: () => void;
 }) {
-  const { creatorName, creatorAvatar, isMember, isSubscribing, isSelf, onBuy } = props;
-
-  if (isSelf) return null;
+  const { creatorName, creatorAvatar, isMember, isSubscribing, onBuy } = props;
+  const buyDisabled = Boolean(isSubscribing || isMember);
 
   return (
     <div className="bg-gradient-to-r from-[#D8D9DD]/10 to-[#E6E9EE]/5 rounded-xl p-3 border border-[#D8D9DD]/20 relative overflow-hidden mt-3">
@@ -53,7 +54,7 @@ export function MembershipBuySection(props: {
         <button
           type="button"
           onClick={onBuy}
-          disabled={isSubscribing || isMember}
+          disabled={buyDisabled}
           className="w-full py-2 bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
         >
           {isSubscribing ? (

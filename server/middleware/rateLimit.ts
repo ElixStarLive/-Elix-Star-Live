@@ -158,11 +158,26 @@ export function rateLimitBySubject(opts: {
   };
 }
 
-export const apiLimiter = rateLimit({
-  windowMs: 60_000,
-  max: 200,
-  keyPrefix: "api",
-});
+/**
+ * Global /api limiter.
+ *
+ * Anonymous: IP bucket (200/min) — abuse from shared NATs stays bounded.
+ * Signed-in: user bucket (600/min) — live + profile + feed on one session must
+ * not share a carrier/office IP cap. An IP-keyed 200/min bucket 429s a normal
+ * Profile open after a live session ("Too many requests. Please try again later.").
+ */
+export function apiLimiter(req: Request, res: Response, next: NextFunction): void {
+  if (LOADTEST_BYPASS_ENABLED && req.headers["x-loadtest-key"] === LOADTEST_SECRET) {
+    next();
+    return;
+  }
+
+  const token = getTokenFromRequest(req);
+  const sub = token ? verifyAuthToken(token)?.sub ?? null : null;
+  const key = sub ? `api_user:${sub}` : `api:${getClientIp(req)}`;
+  const max = sub ? 600 : 200;
+  runRateCheck(key, 60_000, max, req, res, next);
+}
 
 export const authLimiter = rateLimit({
   windowMs: 60_000,

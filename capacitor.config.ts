@@ -21,6 +21,11 @@ const config: CapacitorConfig = {
       deepLinkingEnabled: true,
       deepLinkingCustomScheme: 'elixstar',
     },
+    // iOS: do not resize/scale the WebView when the keyboard opens.
+    // Accessory prev/next/Done bar is hidden from JS on boot (see main.tsx).
+    Keyboard: {
+      resize: 'none',
+    },
   },
   // Deep link configuration
   ios: {

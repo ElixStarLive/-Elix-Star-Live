@@ -16,8 +16,16 @@ export function useLiveThermalQuality(opts: {
   getCameraVideoTrack: () => MediaStreamTrack | null | undefined;
   getCameraFacing: () => 'user' | 'environment';
   publishesCamera: boolean;
+  getBattleRemoteCount?: () => number;
 }): void {
-  const { enabled, getRoom, getCameraVideoTrack, getCameraFacing, publishesCamera } = opts;
+  const {
+    enabled,
+    getRoom,
+    getCameraVideoTrack,
+    getCameraFacing,
+    publishesCamera,
+    getBattleRemoteCount,
+  } = opts;
 
   useEffect(() => {
     if (!enabled) return;
@@ -27,10 +35,18 @@ export function useLiveThermalQuality(opts: {
       getCameraVideoTrack,
       getCameraFacing,
       publishesCamera,
+      getBattleRemoteCount,
     });
     return () => {
       unregister();
       releaseThermalQualityManager();
     };
-  }, [enabled, getRoom, getCameraVideoTrack, getCameraFacing, publishesCamera]);
+  }, [
+    enabled,
+    getRoom,
+    getCameraVideoTrack,
+    getCameraFacing,
+    publishesCamera,
+    getBattleRemoteCount,
+  ]);
 }

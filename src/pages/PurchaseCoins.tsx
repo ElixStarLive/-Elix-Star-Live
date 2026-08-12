@@ -95,11 +95,15 @@ export default function PurchaseCoins() {
     try {
       setLoading(true);
       const result = await restorePurchases();
-      if (result.errors.length && !result.restoredCoins && !result.restoredMemberships) {
+      if (result.errors.length) {
         showToast(result.errors[0] || 'Could not restore purchases');
-      } else {
-        showToast('Purchases restored');
+        return;
       }
+      if (!result.restoredCoins && !result.restoredMemberships) {
+        showToast('No purchases to restore');
+        return;
+      }
+      showToast('Purchases restored');
     } catch {
       showToast('Could not restore purchases');
     } finally {

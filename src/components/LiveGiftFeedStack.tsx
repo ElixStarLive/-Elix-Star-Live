@@ -59,9 +59,19 @@ function formatXn(n: number) {
   return String(n);
 }
 
-type Props = { streamId: string };
+type Props = {
+  streamId: string;
+  /** Co-host split: sit on the bottom of the big left tile. Solo/battle keep the existing top offset. */
+  isCohostMode?: boolean;
+  /** CSS `top` of the co-host stage bottom edge (host and spectator stages differ). */
+  cohostStageBottom?: string;
+};
 
-export function LiveGiftFeedStack({ streamId }: Props) {
+export function LiveGiftFeedStack({
+  streamId,
+  isCohostMode = false,
+  cohostStageBottom,
+}: Props) {
   const [stack, setStack] = useState<FeedCard[]>([]);
   const clearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamIdRef = useRef(streamId);
@@ -158,7 +168,15 @@ export function LiveGiftFeedStack({ streamId }: Props) {
       <div className="w-full max-w-[480px] relative h-full">
         <div
           className="absolute left-2 flex flex-col gap-1.5"
-          style={{ top: 'calc(22dvh + 6mm)', maxWidth: '220px' }}
+          style={
+            isCohostMode && cohostStageBottom
+              ? {
+                  top: cohostStageBottom,
+                  transform: 'translateY(calc(-100% - 2px))',
+                  maxWidth: '220px',
+                }
+              : { top: 'calc(22dvh + 6mm)', maxWidth: '220px' }
+          }
         >
           {stack.map((g) => {
             const style = BADGE[g.badge];

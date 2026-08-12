@@ -1,11 +1,10 @@
 /**
- * Global "creator is live" top banner.
+ * Global live top banners:
+ * - stream_started: creator you follow went live
+ * - live_share: someone shared an active live with you in-app
  *
- * Slides down from the top of the screen when a creator goes live, tappable to
- * open the live. Listens on the shared websocket singleton (App already keeps
- * `/live/__feed__` connected while browsing) — no second feed socket.
- * Gated by the user's "Live notifications" setting. OS push while the app is
- * closed is handled separately by the server (follower-targeted `live_started` -> FCM/APNs).
+ * Uses the shared websocket singleton (App keeps `/live/__feed__` connected while
+ * browsing). User-global `live_share` is delivered via sendToUserGlobal on any open socket.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -20,14 +19,59 @@ import {
   profileToLiveDisplay,
 } from '../lib/liveCreatorDisplay';
 import { apiFetchProfileById } from '../features/feed/feedApi';
+import { apiLiveStreams, apiLiveToken } from '../lib/live/liveApi';
+import { showToast } from '../lib/toast';
 
-interface LiveBanner {
+interface StartedBanner {
+  kind: 'started';
   room: string;
   name: string;
   avatar: string;
 }
 
+interface ShareBanner {
+  kind: 'share';
+  streamKey: string;
+  sharerName: string;
+  sharerAvatar: string;
+  hostName: string;
+  hostAvatar: string;
+}
+
 const SEEN_CAP = 80;
+const STARTED_DISMISS_MS = 6000;
+const SHARE_DISMISS_MS = 12000;
+
+function parseSharePayload(data: unknown): ShareBanner | null {
+  const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const streamKey = String(payload.streamKey ?? payload.stream_key ?? '').trim();
+  if (!streamKey) return null;
+  const sharerName = String(payload.sharerName ?? payload.sharer_name ?? 'Someone').trim() || 'Someone';
+  const hostName = String(payload.hostName ?? payload.host_name ?? '').trim();
+  return {
+    kind: 'share',
+    streamKey,
+    sharerName,
+    sharerAvatar: String(payload.sharerAvatar ?? payload.sharer_avatar ?? ''),
+    hostName: hostName || 'a creator',
+    hostAvatar: String(payload.hostAvatar ?? payload.host_avatar ?? ''),
+  };
+}
+
+async function isStreamJoinable(streamKey: string): Promise<boolean> {
+  const { streams, error } = await apiLiveStreams();
+  if (!error) {
+    const rows = (Array.isArray(streams) ? streams : []) as Array<{
+      stream_key?: string;
+      room_id?: string;
+    }>;
+    if (rows.some((s) => s.stream_key === streamKey || s.room_id === streamKey)) {
+      return true;
+    }
+  }
+  const { creds, error: tokenErr } = await apiLiveToken(streamKey, false);
+  return !tokenErr && !!creds?.token;
+}
 
 export function LiveNotifyBanner() {
   const navigate = useNavigate();
@@ -36,35 +80,47 @@ export function LiveNotifyBanner() {
   const token = useAuthStore((s) => s.session?.access_token) || '';
   const liveNotifications = useSettingsStore((s) => s.liveNotifications);
 
-  const [banner, setBanner] = useState<LiveBanner | null>(null);
-  const seenRef = useRef<Set<string>>(new Set());
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [startedBanner, setStartedBanner] = useState<StartedBanner | null>(null);
+  const [shareBanner, setShareBanner] = useState<ShareBanner | null>(null);
+  const shareBannerRef = useRef<ShareBanner | null>(null);
+  shareBannerRef.current = shareBanner;
 
-  const dismiss = useCallback(() => {
-    if (dismissTimer.current) {
-      clearTimeout(dismissTimer.current);
-      dismissTimer.current = null;
+  const seenStartedRef = useRef<Set<string>>(new Set());
+  const startedDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const shareDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const dismissStarted = useCallback(() => {
+    if (startedDismissTimer.current) {
+      clearTimeout(startedDismissTimer.current);
+      startedDismissTimer.current = null;
     }
-    setBanner(null);
+    setStartedBanner(null);
   }, []);
 
+  const dismissShare = useCallback(() => {
+    if (shareDismissTimer.current) {
+      clearTimeout(shareDismissTimer.current);
+      shareDismissTimer.current = null;
+    }
+    setShareBanner(null);
+  }, []);
+
+  // stream_started — follower live notifications (settings-gated)
   useEffect(() => {
     if (!token || !liveNotifications) return;
     let cancelled = false;
 
-    const show = async (data: unknown) => {
+    const showStarted = async (data: unknown) => {
       const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
       const room = String(payload.stream_key ?? payload.room_id ?? '');
       const uid = String(payload.user_id ?? '');
       if (!room) return;
-      // Never notify about your own live.
       if (uid && user?.id && uid === user.id) return;
-      // One banner per stream per session.
-      if (seenRef.current.has(room)) return;
-      seenRef.current.add(room);
-      if (seenRef.current.size > SEEN_CAP) {
-        const first = seenRef.current.values().next().value as string | undefined;
-        if (first) seenRef.current.delete(first);
+      if (seenStartedRef.current.has(room)) return;
+      seenStartedRef.current.add(room);
+      if (seenStartedRef.current.size > SEEN_CAP) {
+        const first = seenStartedRef.current.values().next().value as string | undefined;
+        if (first) seenStartedRef.current.delete(first);
       }
 
       let name = liveNameFromStreamFields(
@@ -86,37 +142,100 @@ export function LiveNotifyBanner() {
         }
       }
       if (cancelled) return;
-      setBanner({ room, name: name || 'Someone', avatar });
-      if (dismissTimer.current) clearTimeout(dismissTimer.current);
-      dismissTimer.current = setTimeout(() => setBanner(null), 6000);
+      setStartedBanner({ kind: 'started', room, name: name || 'Someone', avatar });
+      if (startedDismissTimer.current) clearTimeout(startedDismissTimer.current);
+      startedDismissTimer.current = setTimeout(() => setStartedBanner(null), STARTED_DISMISS_MS);
     };
 
-    websocket.on('stream_started', show);
+    websocket.on('stream_started', showStarted);
     return () => {
       cancelled = true;
-      websocket.off('stream_started', show);
-      if (dismissTimer.current) {
-        clearTimeout(dismissTimer.current);
-        dismissTimer.current = null;
+      websocket.off('stream_started', showStarted);
+      if (startedDismissTimer.current) {
+        clearTimeout(startedDismissTimer.current);
+        startedDismissTimer.current = null;
       }
     };
   }, [token, liveNotifications, user?.id]);
 
-  // Don't interrupt while the user is already inside a live / broadcasting.
-  const suppressed =
+  // live_share — in-app share from another user (always on when authenticated)
+  useEffect(() => {
+    if (!token || !user?.id) return;
+
+    const showShare = (data: unknown) => {
+      const parsed = parseSharePayload(data);
+      if (!parsed) return;
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      const sharerId = String(payload.sharerUserId ?? payload.sharer_user_id ?? '').trim();
+      if (sharerId && sharerId === user.id) return;
+      setShareBanner(parsed);
+      if (shareDismissTimer.current) clearTimeout(shareDismissTimer.current);
+      shareDismissTimer.current = setTimeout(() => setShareBanner(null), SHARE_DISMISS_MS);
+    };
+
+    const onStreamEnded = (data: unknown) => {
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      const endedKey = String(payload.stream_key ?? payload.streamKey ?? '').trim();
+      const current = shareBannerRef.current;
+      if (endedKey && current?.streamKey === endedKey) {
+        dismissShare();
+      }
+    };
+
+    websocket.on('live_share', showShare);
+    websocket.on('stream_ended', onStreamEnded);
+    return () => {
+      websocket.off('live_share', showShare);
+      websocket.off('stream_ended', onStreamEnded);
+      if (shareDismissTimer.current) {
+        clearTimeout(shareDismissTimer.current);
+        shareDismissTimer.current = null;
+      }
+    };
+  }, [token, user?.id, dismissShare]);
+
+  const onLiveSurface =
     location.pathname.startsWith('/live') ||
     location.pathname.startsWith('/watch') ||
     location.pathname.startsWith('/create');
 
-  const openLiveWatch = useCallback(() => {
-    if (!banner) return;
-    dismiss();
-    navigate(`/watch/${encodeURIComponent(banner.room)}`);
-  }, [banner, dismiss, navigate]);
+  const startedSuppressed = onLiveSurface;
+  const shareSuppressed =
+    !!shareBanner &&
+    (location.pathname === `/watch/${shareBanner.streamKey}` ||
+      location.pathname.startsWith(`/watch/${shareBanner.streamKey}/`));
 
-  if (!banner || suppressed) return null;
+  const openStartedLive = useCallback(() => {
+    if (!startedBanner) return;
+    dismissStarted();
+    navigate(`/watch/${encodeURIComponent(startedBanner.room)}`);
+  }, [startedBanner, dismissStarted, navigate]);
 
-  return (
+  const openSharedLive = useCallback(async () => {
+    if (!shareBanner) return;
+    const key = shareBanner.streamKey;
+    dismissShare();
+    try {
+      const joinable = await isStreamJoinable(key);
+      if (!joinable) {
+        showToast('This live has ended');
+        return;
+      }
+      navigate(`/watch/${encodeURIComponent(key)}`);
+    } catch {
+      showToast('Could not join live');
+    }
+  }, [shareBanner, dismissShare, navigate]);
+
+  const bannerShell = (
+    label: string,
+    name: string,
+    avatar: string,
+    badge: string,
+    onOpen: () => void,
+    onDismiss: () => void,
+    liveRing?: boolean,
+  ) => (
     <div
       className="fixed left-0 right-0 top-0 z-[9999] flex justify-center px-3 pointer-events-none"
       style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}
@@ -124,29 +243,56 @@ export function LiveNotifyBanner() {
       <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full elix-panel border border-[#D8D9DD]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
         <button
           type="button"
-          onClick={openLiveWatch}
+          onClick={onOpen}
           className="flex-1 min-w-0 flex items-center gap-2 text-left active:scale-[0.99] transition-transform"
         >
-          <StoryGoldRingAvatar size={26} src={banner.avatar} alt={banner.name} live />
+          <StoryGoldRingAvatar size={26} src={avatar} alt={name} live={liveRing} />
           <span className="flex-1 min-w-0 flex items-baseline gap-1.5 truncate">
-            <span className="text-white font-bold text-xs truncate">{banner.name}</span>
-            <span className="text-[#F5F5F7] text-[11px] font-semibold whitespace-nowrap">
-              is live now — tap to watch
+            <span className="text-white font-bold text-xs truncate">{name}</span>
+            <span className="text-[#F5F5F7] text-[11px] font-semibold whitespace-nowrap truncate">
+              {label}
             </span>
           </span>
         </button>
-        <span className="text-[9px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5 tracking-wide">
-          LIVE
+        <span className="text-[9px] font-bold text-white bg-red-600 rounded-full px-1.5 py-0.5 tracking-wide shrink-0">
+          {badge}
         </span>
         <button
           type="button"
-          onClick={dismiss}
+          onClick={onDismiss}
           aria-label="Dismiss"
-          className="p-0.5 text-white/50 active:text-white/80"
+          className="p-0.5 text-white/50 active:text-white/80 shrink-0"
         >
           <X size={14} />
         </button>
       </div>
     </div>
   );
+
+  if (shareBanner && !shareSuppressed) {
+    const hostLabel = shareBanner.hostName.trim() || 'a live';
+    return bannerShell(
+      `shared ${hostLabel} — tap to join`,
+      shareBanner.sharerName,
+      shareBanner.sharerAvatar,
+      'LIVE',
+      () => { void openSharedLive(); },
+      dismissShare,
+      true,
+    );
+  }
+
+  if (startedBanner && !startedSuppressed) {
+    return bannerShell(
+      'is live now — tap to watch',
+      startedBanner.name,
+      startedBanner.avatar,
+      'LIVE',
+      openStartedLive,
+      dismissStarted,
+      true,
+    );
+  }
+
+  return null;
 }

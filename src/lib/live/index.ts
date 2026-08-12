@@ -5,10 +5,12 @@ export {
   apiLiveTokenWithIdentity,
   apiLiveStreams,
   collectLiveUserIds,
+  isLivePublishDenied,
+  isLiveTokenTransient,
   isUserLive,
   findLiveWatchTarget,
   type LiveKitCreds,
 } from './liveApi';
-export { LiveRoomLifecycle, type LiveRole, type LiveRoomConnectOptions } from './liveRoomLifecycle';
+export { LiveRoomLifecycle, type LiveRole } from './liveRoomLifecycle';
 export { LIVE_WS_IN, LIVE_WS_OUT, liveWsSend, liveWsOn, type LiveWsInEvent } from './liveWs';
 export { connectLiveFeedPresence, type FeedPresenceHandlers } from './liveFeedPresence';

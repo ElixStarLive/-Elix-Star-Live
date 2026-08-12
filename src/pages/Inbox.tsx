@@ -986,7 +986,7 @@ export default function Inbox() {
             </button>
 
             {/* Messages — chat threads only (no gifts, no live shares, no system alerts) */}
-            <div className="space-y-1 pt-2">
+            <div className="space-y-1 pt-2" style={{ marginTop: '-5mm' }}>
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Messages</h3>
                 {conversations.length === 0 ? (
                     <p className="text-gold-bright/50 text-xs px-1 py-2">No messages yet</p>

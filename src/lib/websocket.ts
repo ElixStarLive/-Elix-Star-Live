@@ -182,6 +182,17 @@ class WebSocketService {
     return this.ws?.readyState === WebSocket.OPEN;
   }
 
+  /** True while a reconnect timer is pending or the socket is mid-handshake. */
+  isReconnecting(): boolean {
+    return (
+      this.reconnectTimer !== null ||
+      this.ws?.readyState === WebSocket.CONNECTING ||
+      (this.roomId !== null &&
+        this.ws?.readyState !== WebSocket.OPEN &&
+        this.reconnectAttempts > 0)
+    );
+  }
+
   getCurrentRoomId(): string | null {
     return this.roomId;
   }

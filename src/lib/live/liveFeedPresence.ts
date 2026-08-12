@@ -30,6 +30,7 @@ export function connectLiveFeedPresence(
   if (!token) return () => {};
 
   // While in a live room the singleton must stay on that room; App reconnects __feed__ after exit.
+  // Also: For You InlineLiveViewer joins the stream room — do not steal it back to __feed__.
   if (!isLiveRoomId(websocket.getCurrentRoomId())) {
     websocket.connect('__feed__', token, { persistent: true });
   }

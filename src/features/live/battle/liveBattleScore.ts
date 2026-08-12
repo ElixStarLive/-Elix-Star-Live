@@ -164,6 +164,10 @@ export function teamTotalsFromScores(totals: BattleServerTotals): {
   red: number;
   blue: number;
 } {
+  // 4-creator Battle = 2v2 teams (authoritative):
+  // Team A / red  = host (C1) + player3 (C3)
+  // Team B / blue = opponent (C2) + player4 (C4)
+  // Main Battle score / WIN-LOSS uses these combined totals only.
   return {
     red: (totals?.h || 0) + (totals?.p3 || 0),
     blue: (totals?.o || 0) + (totals?.p4 || 0),

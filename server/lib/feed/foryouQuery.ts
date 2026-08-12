@@ -82,8 +82,12 @@ export async function queryRankedForYouPage(input: {
     );
     return rows || [];
   } catch (err) {
-    // Table may not exist yet pre-migration — fall back to recency.
-    logger.warn({ err }, "queryRankedForYouPage failed; falling back to recency");
+    const code = (err as { code?: string })?.code;
+    if (code !== "42P01") {
+      logger.error({ err }, "queryRankedForYouPage failed");
+      throw err;
+    }
+    logger.warn({ err }, "queryRankedForYouPage missing ranking table; falling back to recency");
     try {
       const { rows } = await pool.query(
         `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags, v.music,

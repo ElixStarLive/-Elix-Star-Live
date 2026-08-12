@@ -443,8 +443,9 @@ export default function VideoFeed() {
                 <div className="w-full flex-1 min-h-0 relative overflow-hidden bg-transparent">
                   <Suspense fallback={<div className="w-full h-full bg-transparent" />}>
                     <InlineLiveViewer
-                      key={`foryou-live-${item.stream.streamKey}-v3`}
+                      key={`foryou-live-${item.stream.streamKey}-v4`}
                       streamKey={item.stream.streamKey}
+                      hostUserId={item.stream.userId || item.stream.streamKey}
                       isActive={activeIndex === index}
                       creatorName={item.stream.name}
                       creatorAvatar={item.stream.avatar}

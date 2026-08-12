@@ -81,9 +81,14 @@ export function setActiveThermalTier(tier: ThermalTier): LiveMediaTierConfig {
 export function getLiveRoomOptions(): RoomOptions {
   const cfg = getLiveMediaTierConfig();
   return {
-    adaptiveStream: true,
+    // Pause hidden tracks; select layers from rendered element size (battle tiles).
+    adaptiveStream: {
+      pixelDensity: 1,
+      pauseVideoInBackground: true,
+    },
     dynacast: true,
     stopLocalTrackOnUnpublish: false,
+    videoCaptureDefaults: toLiveKitCaptureOptions('user', cfg.tier),
     publishDefaults: {
       simulcast: true,
       videoEncoding: cfg.publishPreset.encoding,
@@ -132,5 +137,21 @@ export async function applyCaptureTierToVideoTrack(
     await track.applyConstraints(constraints);
   } catch {
     /* device may not support down-tier — keep current capture */
+  }
+}
+
+/**
+ * Live publish/preview must not keep Create's unconstrained (often 1080p/60)
+ * capture. Apply the current Live tier to every live video track on the stream.
+ */
+export async function enforceLiveCaptureOnStream(
+  stream: MediaStream | null | undefined,
+  facing: 'user' | 'environment',
+  tier: ThermalTier = activeTier,
+): Promise<void> {
+  if (!stream) return;
+  const tracks = stream.getVideoTracks().filter((t) => t.readyState === 'live');
+  for (const track of tracks) {
+    await applyCaptureTierToVideoTrack(track, facing, tier);
   }
 }

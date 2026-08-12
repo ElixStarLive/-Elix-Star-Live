@@ -42,6 +42,10 @@ export function namedExitForPath(pathname: string): string {
     return ENGAGEMENT_HOME;
   }
   if (path.startsWith('/profile/') || path === '/edit-profile') return PROFILE_EXIT_TO;
+  if (/^\/watch\/[^/]+\/profile/.test(path)) {
+    const streamId = path.match(/^\/watch\/([^/]+)/)?.[1];
+    return streamId ? `/watch/${streamId}` : VIDEO_EXIT_TO;
+  }
   if (path.startsWith('/shop')) return SHOP_EXIT_TO;
   if (path.startsWith('/video/') || path.startsWith('/watch/')) return VIDEO_EXIT_TO;
   if (path.startsWith('/rising-stars')) {

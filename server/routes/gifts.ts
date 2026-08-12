@@ -39,6 +39,20 @@ function requireAuth(req: Request, res: Response): { userId: string } | null {
   return { userId: payload.sub };
 }
 
+async function deliverGiftToLiveRoom(
+  input: Parameters<typeof deliverVerifiedGift>[0],
+): Promise<boolean> {
+  try {
+    const delivered = await deliverVerifiedGift(input);
+    if (delivered.delivered === true) return true;
+    if (delivered.delivered === false && delivered.reason === "duplicate") return true;
+    return false;
+  } catch (err) {
+    logger.error({ err, roomId: input.roomId }, "handleSendGift: room delivery failed");
+    return false;
+  }
+}
+
 /** Display name + avatar for gift inbox rows (creator sees who sent what). */
 async function giftSenderLabel(userId: string): Promise<{ name: string; avatar: string }> {
   try {
@@ -210,26 +224,20 @@ export async function handleSendGift(req: Request, res: Response) {
         });
       }
 
-      if (!starterResult.already_processed) {
-        try {
-          await deliverVerifiedGift({
-            roomId,
-            userId: auth.userId,
-            giftId,
-            giftName: gift.name,
-            coins: coinCost,
-            giftSource: "starter_coins",
-            transactionId: clientTransactionId,
-            battleTarget: battleTargetRaw,
-            cohostTargetUserId: resolvedCohostTarget,
-            animationUrl:
-              resolveGiftMediaUrl(gift.animation_url) ||
-              resolveGiftMediaUrl(clientAnimationUrl),
-          });
-        } catch (err) {
-          logger.warn({ err, roomId }, "handleSendGift: starter gift room delivery failed");
-        }
-      }
+      const roomDelivered = await deliverGiftToLiveRoom({
+        roomId,
+        userId: auth.userId,
+        giftId,
+        giftName: gift.name,
+        coins: coinCost,
+        giftSource: "starter_coins",
+        transactionId: clientTransactionId,
+        battleTarget: battleTargetRaw,
+        cohostTargetUserId: resolvedCohostTarget,
+        animationUrl:
+          resolveGiftMediaUrl(gift.animation_url) ||
+          resolveGiftMediaUrl(clientAnimationUrl),
+      });
 
       return res.status(200).json({
         ok: true,
@@ -244,7 +252,10 @@ export async function handleSendGift(req: Request, res: Response) {
         leveled_up: starterResult.leveled_up,
         creator_earnings: 0,
         wallet_update: false,
-        message: "Starter gift sent. No creator earnings were created.",
+        room_delivered: roomDelivered,
+        message: roomDelivered
+          ? "Starter gift sent. No creator earnings were created."
+          : "Starter gift recorded. Live room delivery did not complete.",
       });
     }
 
@@ -349,24 +360,20 @@ export async function handleSendGift(req: Request, res: Response) {
         }
       }
 
-      try {
-        await deliverVerifiedGift({
-          roomId,
-          userId: auth.userId,
-          giftId,
-          giftName: gift.name,
-          coins: coinCost,
-          giftSource: "promotional_coins",
-          transactionId: clientTransactionId,
-          battleTarget: battleTargetRaw,
-          cohostTargetUserId: resolvedCohostTarget,
-          animationUrl:
-            resolveGiftMediaUrl(gift.animation_url) ||
-            resolveGiftMediaUrl(clientAnimationUrl),
-        });
-      } catch (err) {
-        logger.warn({ err, roomId }, "handleSendGift: promo gift room delivery failed");
-      }
+      const roomDelivered = await deliverGiftToLiveRoom({
+        roomId,
+        userId: auth.userId,
+        giftId,
+        giftName: gift.name,
+        coins: coinCost,
+        giftSource: "promotional_coins",
+        transactionId: clientTransactionId,
+        battleTarget: battleTargetRaw,
+        cohostTargetUserId: resolvedCohostTarget,
+        animationUrl:
+          resolveGiftMediaUrl(gift.animation_url) ||
+          resolveGiftMediaUrl(clientAnimationUrl),
+      });
 
       return res.status(200).json({
         ok: true,
@@ -378,8 +385,10 @@ export async function handleSendGift(req: Request, res: Response) {
         creator_earnings: 0,
         diamonds: 0,
         wallet_update: false,
-        message:
-          "Promotional gift sent. Zero Diamonds / creator earnings were created.",
+        room_delivered: roomDelivered,
+        message: roomDelivered
+          ? "Promotional gift sent. Zero Diamonds / creator earnings were created."
+          : "Promotional gift recorded. Live room delivery did not complete.",
       });
     }
 
@@ -443,28 +452,20 @@ export async function handleSendGift(req: Request, res: Response) {
         }
       }
 
-      // Deliver to the live room from the server (creator sees animation/chat).
-      // Idempotent with the client WS gift_sent path via transaction claim.
-      if (!debited.alreadyProcessed) {
-        try {
-          await deliverVerifiedGift({
-            roomId,
-            userId: auth.userId,
-            giftId,
-            giftName: gift.name,
-            coins: coinCost,
-            giftSource: "paid_coins",
-            transactionId: clientTransactionId,
-            battleTarget: battleTargetRaw,
-            cohostTargetUserId: resolvedCohostTarget,
-            animationUrl:
-              resolveGiftMediaUrl(gift.animation_url) ||
-              resolveGiftMediaUrl(clientAnimationUrl),
-          });
-        } catch (err) {
-          logger.warn({ err, roomId }, "handleSendGift: paid gift room delivery failed");
-        }
-      }
+      const roomDelivered = await deliverGiftToLiveRoom({
+        roomId,
+        userId: auth.userId,
+        giftId,
+        giftName: gift.name,
+        coins: coinCost,
+        giftSource: "paid_coins",
+        transactionId: clientTransactionId,
+        battleTarget: battleTargetRaw,
+        cohostTargetUserId: resolvedCohostTarget,
+        animationUrl:
+          resolveGiftMediaUrl(gift.animation_url) ||
+          resolveGiftMediaUrl(clientAnimationUrl),
+      });
 
       return res.status(200).json({
         ok: true,
@@ -477,7 +478,10 @@ export async function handleSendGift(req: Request, res: Response) {
         total_xp: paidGiftXp?.total_xp,
         new_level: paidGiftXp?.new_level,
         leveled_up: paidGiftXp?.leveled_up ?? false,
-        message: "Gift sent and delivered to the live room.",
+        room_delivered: roomDelivered,
+        message: roomDelivered
+          ? "Gift sent and delivered to the live room."
+          : "Gift paid. Live room delivery did not complete.",
       });
     }
 

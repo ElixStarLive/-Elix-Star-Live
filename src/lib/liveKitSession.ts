@@ -108,6 +108,13 @@ export class LiveKitSession {
       .on(RoomEvent.ParticipantDisconnected, (p) => {
         if (generation !== this.connectGeneration) return;
         detachParticipantTracks(p);
+        try {
+          for (const pub of p.videoTrackPublications.values()) {
+            if (pub.isSubscribed) pub.setSubscribed(false);
+          }
+        } catch {
+          /* participant already gone */
+        }
         this.handlers.onParticipantDisconnected?.(p);
       })
       .on(RoomEvent.TrackPublished, (publication, participant) => {

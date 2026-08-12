@@ -134,9 +134,11 @@ export function LiveSideMissionStack({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
+    setRemainMs(msUntilLocalMidnight());
     const id = window.setInterval(() => setRemainMs(msUntilLocalMidnight()), 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [open]);
 
   const xpMax = Math.max(1, battlePassXpMax);
   const xpCur = Math.max(0, Math.min(battlePassXp, xpMax));

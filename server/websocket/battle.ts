@@ -173,46 +173,114 @@ export async function createBattle(
   return session;
 }
 
+/** Non-host creator seats still open in a 4-creator battle (max 3 rivals). */
+export function battleOpenSeatCount(session: BattleSession): number {
+  let open = 0;
+  if (!session.opponentUserId) open += 1;
+  if (!session.player3UserId) open += 1;
+  if (!session.player4UserId) open += 1;
+  return open;
+}
+
+export function battleSeatedUserIds(session: BattleSession): string[] {
+  return [
+    session.hostUserId,
+    session.opponentUserId,
+    session.player3UserId,
+    session.player4UserId,
+  ].filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
+const SEAT_CLAIM_LOCK_PREFIX = "battle:seat_lock:";
+
+/**
+ * Assign an empty rival seat without starting/ending the match.
+ * Used for invite accept (WAITING or ACTIVE) so one creator joining never
+ * resets or ends the shared battle session.
+ */
+export async function claimBattleSeat(
+  roomId: string,
+  userId: string,
+  userName: string,
+): Promise<BattleSession | null> {
+  const lockKey = SEAT_CLAIM_LOCK_PREFIX + roomId;
+  const locked = await valkeySetNx(lockKey, "1", 2_000);
+  if (!locked) {
+    // Brief contention — retry once after a short wait so a valid accept is not lost.
+    await new Promise((r) => setTimeout(r, 50));
+    const retry = await valkeySetNx(lockKey, "1", 2_000);
+    if (!retry) return null;
+  }
+  try {
+    const session = await getBattleFromStore(roomId);
+    if (!session || session.status === "ENDED") return null;
+
+    if (
+      session.opponentUserId === userId ||
+      session.player3UserId === userId ||
+      session.player4UserId === userId ||
+      session.hostUserId === userId
+    ) {
+      return session;
+    }
+
+    if (!session.opponentUserId) {
+      session.opponentUserId = userId;
+      session.opponentName = userName;
+    } else if (!session.player3UserId) {
+      session.player3UserId = userId;
+      session.player3Name = userName;
+    } else if (!session.player4UserId) {
+      session.player4UserId = userId;
+      session.player4Name = userName;
+    } else {
+      return null;
+    }
+
+    await valkeySet("ubr:" + userId, roomId, BATTLE_TTL);
+    await saveBattleToStore(roomId, session);
+    broadcastBattleState(roomId, session);
+    return session;
+  } finally {
+    await valkeyDel(lockKey);
+  }
+}
+
 export async function joinBattle(
   roomId: string,
   userId: string,
   userName: string,
 ): Promise<BattleSession | null> {
-  const session = await getBattleFromStore(roomId);
-  if (!session || session.status === "ENDED") return null;
+  // Seat claim only. Timer starts from battle_create (Start Match) — never from
+  // a single creator connecting, or one leave/join would desync the whole room.
+  return claimBattleSeat(roomId, userId, userName);
+}
 
-  if (
-    session.opponentUserId === userId ||
-    session.player3UserId === userId ||
-    session.player4UserId === userId
-  ) {
-    if (session.status === "WAITING") await startBattleTimer(roomId);
-    return session;
+const PENDING_INVITES_KEY_PREFIX = "battle:pending_invites:";
+
+export async function trackPendingBattleInvite(
+  roomId: string,
+  targetUserId: string,
+): Promise<void> {
+  await valkeySadd(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
+}
+
+export async function untrackPendingBattleInvite(
+  roomId: string,
+  targetUserId: string,
+): Promise<void> {
+  await valkeySrem(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
+}
+
+/** Drop every outstanding invite when seats are full (no 5th creator). */
+export async function clearPendingBattleInvites(roomId: string): Promise<string[]> {
+  const key = PENDING_INVITES_KEY_PREFIX + roomId;
+  const members = await valkeySmembers(key);
+  for (const targetUserId of members) {
+    await valkeyDel(`battle_invite:${roomId}:${targetUserId}`);
   }
-  if (session.hostUserId === userId) return session;
-
-  if (!session.opponentUserId) {
-    session.opponentUserId = userId;
-    session.opponentName = userName;
-  } else if (!session.player3UserId) {
-    session.player3UserId = userId;
-    session.player3Name = userName;
-  } else if (!session.player4UserId) {
-    session.player4UserId = userId;
-    session.player4Name = userName;
-  } else {
-    return null;
-  }
-
-  await valkeySet("ubr:" + userId, roomId, BATTLE_TTL);
-  await saveBattleToStore(roomId, session);
-
-  if (session.status === "WAITING") {
-    await startBattleTimer(roomId);
-  } else {
-    broadcastBattleState(roomId, session);
-  }
-  return session;
+  await valkeyDel(key);
+  return members;
 }
 
 export async function startBattleTimer(roomId: string): Promise<void> {
@@ -280,7 +348,10 @@ export async function addBattleScoreForTarget(
   });
 }
 
-/** Remove a non-host creator from an active battle without ending the match. */
+/**
+ * Remove a non-host creator from the battle without ending the match for others.
+ * Clears only that seat so it can be refilled via Invite Creator.
+ */
 export async function removeBattleParticipant(
   roomId: string,
   userId: string,

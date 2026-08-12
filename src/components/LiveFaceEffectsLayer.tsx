@@ -3,6 +3,7 @@ import { detectFacePose, releaseFaceLandmarker } from '../lib/faceLandmarks';
 import { drawFaceAREffect } from '../lib/faceARRenderer';
 import { resolveLiveFaceEffectsEngine } from '../lib/liveFaceEffectsProvider';
 import { initCommercialFaceEngine, shouldTrackWithMediaPipe } from '../lib/commercialFaceEffects';
+import { getLiveMediaTierConfig } from '../lib/live/liveMediaProfile';
 
 type LiveFaceEffectsLayerProps = {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -26,6 +27,9 @@ export function LiveFaceEffectsLayer({
   useEffect(() => {
     if (!active || effectType === 'none') return;
 
+    // Thermal: skip MediaPipe/RAF GPU loop when device is under pressure.
+    if (getLiveMediaTierConfig().reduceDecorativeMotion) return;
+
     let cancelled = false;
     void initCommercialFaceEngine(engine);
 
@@ -47,9 +51,19 @@ export function LiveFaceEffectsLayer({
     let lastCssW = 0;
     let lastCssH = 0;
     let cachedPose: Awaited<ReturnType<typeof detectFacePose>> = null;
+    // Fair+ already returns above; keep detect interval conservative if we expand later.
+    const detectIntervalMs = 48;
 
     const tick = (now: number) => {
       if (cancelled) return;
+      if (getLiveMediaTierConfig().reduceDecorativeMotion) {
+        // Thermal rose mid-effect — stop GPU work without tearing down Live.
+        cancelAnimationFrame(raf);
+        canvas?.remove();
+        canvasRef.current = null;
+        releaseFaceLandmarker();
+        return;
+      }
       const rect = parent.getBoundingClientRect();
       if (rect.width < 2 || rect.height < 2) {
         raf = requestAnimationFrame(tick);
@@ -62,7 +76,7 @@ export function LiveFaceEffectsLayer({
         return;
       }
 
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const cssW = rect.width;
       const cssH = rect.height;
       if (cssW !== lastCssW || cssH !== lastCssH) {
@@ -74,7 +88,7 @@ export function LiveFaceEffectsLayer({
         surface.style.height = `${cssH}px`;
       }
 
-      if (shouldTrackWithMediaPipe(engine) && now - lastDetect > 48) {
+      if (shouldTrackWithMediaPipe(engine) && now - lastDetect > detectIntervalMs) {
         lastDetect = now;
         void detectFacePose(video, cssW, cssH, mirrored, now).then((pose) => {
           if (pose) cachedPose = pose;

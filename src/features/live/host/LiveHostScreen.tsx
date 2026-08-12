@@ -40,6 +40,8 @@ import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
+import { BattleCreatorTileScore } from '../battle/BattleCreatorTileScore';
+import { BattleTileGiftIcons } from '../battle/BattleTileGiftIcons';
 import { LiveFaceEffectsLayer } from '../../../components/LiveFaceEffectsLayer';
 import { LIVE_FACE_EFFECT_OPTIONS, getLiveFaceEngineLabel } from '../../../lib/liveFaceEffectsProvider';
 import { GiftOverlay } from '../../../components/GiftOverlay';
@@ -58,6 +60,11 @@ import {
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
+  MVP_GOLD,
+  MVP_RING_EMPTY_CLASS,
+  MVP_RING_PHOTO_CLASS,
+  MVP_RING_PHOTO_SOFT_CLASS,
+  MVP_BADGE_CLASS,
 } from '../../../lib/profileFrame';
 import { RoyceCloseIcon } from '../../../components/royce';
 import type { LiveMessage } from '../types';
@@ -89,6 +96,7 @@ import { engagementFlags } from '../../../config/engagementFlags';
 import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
 import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
+import { LIVE_HOST_COHOST_STAGE_BOTTOM } from '../cohost/cohostStageGeometry';
 import { apiLiveGetDailyHearts, apiLiveMembership, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 import { liveChatSend } from '../chat/liveChatActions';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
@@ -97,6 +105,7 @@ import { reportFailure } from '../../../lib/reportFailure';
 import { platform } from '../../../lib/platform';
 import { MembershipBuySection } from '../../membership/MembershipBuySection';
 import { stashPendingMembershipPurchase } from '../../membership/membershipPurchaseFlow';
+import { useLiveHostController } from './useLiveHostController';
 
 const LIVE_BOTTOM_ICON_BTN =
   'w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0 shadow-none active:scale-95 transition-transform flex-shrink-0';
@@ -136,8 +145,6 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
 }
 
 const _EMOJI_LIST = ['ðŸ˜€','ðŸ˜‚','ðŸ¥°','ðŸ˜','ðŸ”¥','ðŸ’¯','ðŸ‘','ðŸŽ‰','â¤ï¸','ðŸ’œ','ðŸ’™','â­','ðŸŒŸ','âœ¨','ðŸ™Œ','ðŸ‘‘','ðŸ’Ž','ðŸš€','ðŸŽµ','ðŸ’ƒ','ðŸ•º','ðŸ˜Ž','ðŸ¤©','ðŸ’ª','ðŸ«¶','ðŸ’–'];
-
-import { useLiveHostController } from './useLiveHostController';
 
 /** Thin Live host UI shell â€” orchestration owns useLiveHostController. */
 export default function LiveHostScreen() {
@@ -301,12 +308,13 @@ export default function LiveHostScreen() {
     isSpeakingUser,
     isSubscribing,
     isMember,
+    membershipIsSelf,
     lastScreenTapRef,
     lastSentGift,
+    lastGifts,
     leftPct,
     liveFilterCss,
     liveViewerLabel,
-    loadCreators,
     location,
     navigate,
     messages,
@@ -370,6 +378,7 @@ export default function LiveHostScreen() {
     removeCoHost,
     removeFanClubSticker,
     removePlayerFromSlot,
+    requestBattleInviteRoster,
     resolveCircleAvatar,
     roomRemoteAudioRef,
     saveGiftGoal,
@@ -462,7 +471,6 @@ export default function LiveHostScreen() {
     votePoll,
     walletCoinBalanceRef,
     engagementState,
-    engagementNowMs,
     milestoneFlash,
     stageFlash,
   } = useLiveHostController();
@@ -833,31 +841,50 @@ export default function LiveHostScreen() {
                         poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                         style={{ opacity: camOff ? 0 : 1, transition: 'opacity 0.3s ease', backgroundColor: 'transparent' }}
                       />
-                      <div className="absolute top-0.5 left-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
+                      {/* Left-side co-host control column: Camera / Microphone / Switch Screen */}
+                      <div className="absolute top-0.5 left-0.5 z-10 flex flex-col items-center gap-0.5 pointer-events-auto">
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            title="Remove co-host"
+                            aria-label="Remove co-host"
+                            onClick={(e) => { e.stopPropagation(); removeCoHost(host.id); }}
+                            className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                          >
+                            <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Put on big screen"
+                            onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
+                            className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
+                          >
+                            <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                          </button>
+                        </div>
                         <button
                           type="button"
-                          title="Remove co-host"
-                          aria-label="Remove co-host"
-                          onClick={(e) => { e.stopPropagation(); removeCoHost(host.id); }}
-                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                          onClick={(e) => { e.stopPropagation(); toggleCoHostCamera(host.id); }}
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5"
+                          title={coHostCameraOff[host.id] ? 'Camera on' : 'Camera off'}
                         >
-                          <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                          {coHostCameraOff[host.id] ? (
+                            <CameraOff className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} />
+                          ) : (
+                            <Camera className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} />
+                          )}
                         </button>
                         <button
                           type="button"
-                          title="Put on big screen"
-                          onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
-                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
+                          onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }}
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5"
+                          title={host.isMuted ? 'Unmute' : 'Mute'}
                         >
-                          <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
-                        </button>
-                      </div>
-                      <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostMute(host.id); }} className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5" title={host.isMuted ? 'Unmute' : 'Mute'}>
-                          {host.isMuted ? <MicOff className="text-white w-3 h-3" strokeWidth={2.5} /> : <Mic className="text-white w-3 h-3" strokeWidth={2.5} />}
-                        </button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleCoHostCamera(host.id); }} className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5" title={coHostCameraOff[host.id] ? 'Camera on' : 'Camera off'}>
-                          {coHostCameraOff[host.id] ? <CameraOff className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} /> : <Camera className="text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] w-3 h-3" strokeWidth={2.5} />}
+                          {host.isMuted ? (
+                            <MicOff className="text-white w-3 h-3" strokeWidth={2.5} />
+                          ) : (
+                            <Mic className="text-white w-3 h-3" strokeWidth={2.5} />
+                          )}
                         </button>
                       </div>
                       {(lastGiftIcon || score > 0) && (
@@ -1001,7 +1028,7 @@ export default function LiveHostScreen() {
             style={{ top: 'calc(90px + 9mm + 36dvh + 10mm + 2mm)' }}
           >
             <div
-              className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[0mm] pointer-events-auto"
+            className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[1.5mm] pointer-events-auto"
               onClick={openTopGiftersAll}
               title="Top gifters — MVP"
             >
@@ -1019,12 +1046,12 @@ export default function LiveHostScreen() {
                   <div
                     key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${viewer.id}`}
                     className="relative flex flex-col items-center max-w-[42px]"
-                    style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                    style={{ zIndex: 3 - i }}
                   >
                     {isEmpty || !photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
@@ -1033,16 +1060,17 @@ export default function LiveHostScreen() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                      <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
                           src={photo}
                           alt={label || 'MVP'}
                           size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
                         />
                       </div>
                     )}
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
                       </span>
                     )}
@@ -1117,7 +1145,7 @@ export default function LiveHostScreen() {
                     {!battleScoreBarHidden ? (
                       <div
                         className="relative w-full overflow-hidden cursor-pointer pointer-events-auto"
-                        style={{ minHeight: is4Player ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)', height: is4Player ? 'calc(14px + 0.5mm)' : 'calc(12px + 0.5mm)' }}
+                        style={{ minHeight: 'calc(12px + 0.5mm)', height: 'calc(12px + 0.5mm)' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           setBattleScoreBarHidden(true);
@@ -1134,19 +1162,9 @@ export default function LiveHostScreen() {
                         <div className="relative z-10 flex h-full min-h-[12px] items-center justify-between gap-1.5 px-2 pointer-events-none leading-none">
                           <div className={`flex min-w-0 flex-1 flex-col items-start justify-center gap-0 ${hideRedScore ? 'opacity-0' : ''}`}>
                             <AnimatedScore value={typeof redTeamScore === 'number' && Number.isFinite(redTeamScore) ? redTeamScore : 0} durationMs={0} format={formatCountShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                            {is4Player && (
-                              <span className="text-[5px] text-white/80 tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                P1 {formatCountShort(battleServerTotals.h)} + P3 {formatCountShort(battleServerTotals.p3)}
-                              </span>
-                            )}
                           </div>
                           <div className={`flex min-w-0 flex-1 flex-col items-end justify-center gap-0 ${hideBlueScore ? 'opacity-0' : ''}`}>
                             <AnimatedScore value={typeof blueTeamScore === 'number' && Number.isFinite(blueTeamScore) ? blueTeamScore : 0} durationMs={0} format={formatCountShort} className="text-white font-black text-[10px] tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" />
-                            {is4Player && (
-                              <span className="text-[5px] text-white/80 tabular-nums leading-none text-right drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                P2 {formatCountShort(battleServerTotals.o)} + P4 {formatCountShort(battleServerTotals.p4)}
-                              </span>
-                            )}
                           </div>
                         </div>
                         {battleHideScores ? (
@@ -1292,6 +1310,8 @@ export default function LiveHostScreen() {
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                         </button>
                       </div>
+                      <BattleTileGiftIcons icons={lastGifts.host} />
+                      <BattleCreatorTileScore score={battleServerTotals.h} format={formatCountShort} />
                     </div>
                     <div
                       className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative pointer-events-auto ${
@@ -1425,6 +1445,8 @@ export default function LiveHostScreen() {
                           {battleSlots[0].status !== 'empty' ? battleSlots[0].name : 'P2'}
                         </div>
                       </div>
+                      <BattleTileGiftIcons icons={lastGifts.opponent} />
+                      <BattleCreatorTileScore score={battleServerTotals.o} format={formatCountShort} />
                     </div>
                   </div>
 
@@ -1511,6 +1533,8 @@ export default function LiveHostScreen() {
                           {battleSlots[1].status !== 'empty' ? battleSlots[1].name : 'P3'}
                         </div>
                       </div>
+                      <BattleTileGiftIcons icons={lastGifts.player3} />
+                      <BattleCreatorTileScore score={battleServerTotals.p3} format={formatCountShort} />
 
                       {battleWinner && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
@@ -1607,6 +1631,8 @@ export default function LiveHostScreen() {
                           {battleSlots[2].status !== 'empty' ? battleSlots[2].name : 'P4'}
                         </div>
                       </div>
+                      <BattleTileGiftIcons icons={lastGifts.player4} />
+                      <BattleCreatorTileScore score={battleServerTotals.p4} format={formatCountShort} />
 
                       {battleWinner && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
@@ -1666,7 +1692,7 @@ export default function LiveHostScreen() {
                     {isEmpty || !photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
@@ -1675,16 +1701,17 @@ export default function LiveHostScreen() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                      <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
                           src={photo}
                           alt={label || 'MVP'}
                           size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
                         />
                       </div>
                     )}
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
                       </span>
                     )}
@@ -1729,7 +1756,7 @@ export default function LiveHostScreen() {
                     {isEmpty || !photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? 'border-[#E6E9EE] shadow-[0_0_6px_0_rgba(230,233,238,0.55)]' : 'border-[#E6E9EE]/45'
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
@@ -1738,16 +1765,17 @@ export default function LiveHostScreen() {
                         ) : null}
                       </div>
                     ) : (
-                      <div className={isMvp ? 'rounded-full shadow-[0_0_6px_0_rgba(230,233,238,0.55)] ring-2 ring-[#E6E9EE]' : 'rounded-full'}>
+                      <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
                           src={photo}
                           alt={label || 'MVP'}
                           size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
                         />
                       </div>
                     )}
                     {isMvp && (
-                      <span className="absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                      <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
                       </span>
                     )}
@@ -1822,9 +1850,12 @@ export default function LiveHostScreen() {
                                   e.stopPropagation();
                                   // Creator own live: send today's membership heart (orange Join), then open team status.
                                   // Spectators / battle joiners: Follow first, then send heart to this stream's creator.
+                                  // Always open the membership panel so Buy Membership is reachable.
                                   const creatorId = isBroadcast
                                     ? String(user?.id || '').trim()
                                     : String(effectiveStreamId || '').trim();
+
+                                  setShowTeamStatus(true);
 
                                   if (!user?.id) {
                                     if (creatorId && creatorId !== 'broadcast') {
@@ -1843,7 +1874,6 @@ export default function LiveHostScreen() {
 
                                   if (hasJoinedToday) {
                                     showToast("Already sent today's membership heart");
-                                    setShowTeamStatus(true);
                                     return;
                                   }
 
@@ -1856,7 +1886,6 @@ export default function LiveHostScreen() {
                                     if (before?.hasSent) {
                                       setHasJoinedToday(true);
                                       showToast("Already sent today's membership heart");
-                                      setShowTeamStatus(true);
                                       return;
                                     }
                                   } catch (err) {
@@ -1867,19 +1896,16 @@ export default function LiveHostScreen() {
                                     const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
                                     if (error) {
                                       showToast('Could not send membership heart. Try again.');
-                                      setShowTeamStatus(true);
                                       return;
                                     }
                                     const already = d?.already === true;
                                     if (!(d?.ok === true || already)) {
                                       showToast('Could not send membership heart. Try again.');
-                                      setShowTeamStatus(true);
                                       return;
                                     }
 
                                     // Server owns the day flag (POST ok/already + GET hasSent).
                                     setHasJoinedToday(true);
-                                    setShowTeamStatus(true);
                                     spawnHeartFromClient(
                                       e.clientX,
                                       e.clientY,
@@ -1950,29 +1976,38 @@ export default function LiveHostScreen() {
 
                       <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
                         {topMvpViewers.length > 0 ? (
-                          <div
-                            className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                            style={{ transform: 'translateX(-2mm)' }}
-                            onClick={openTopGiftersAll}
-                            title="Top viewers & gifters"
-                          >
+                      <div
+                        className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                        style={{ transform: 'translateX(-2mm)' }}
+                        onClick={openTopGiftersAll}
+                        title="Top viewers & gifters"
+                      >
                             {topMvpViewers.slice(0, 3).map((viewer, i) => {
                               const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
                               return (
                               <div
                                 key={`top-viewers-${viewer.id}`}
                                 className="relative"
-                                style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                            style={{ zIndex: 3 - i, marginLeft: '0mm' }}
                               >
-                                <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
-                                  <AvatarRing
-                                    src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                    alt={viewer.displayName || viewer.username || ''}
-                                    size={LIVE_MVP_PROFILE_RING_PX}
-                                  />
-                                </div>
+                            {/* Keep only gold MVP circles + rank numbers (no avatar icons). */}
+                            <div
+                              className={MVP_RING_PHOTO_SOFT_CLASS}
+                              style={{
+                                width: LIVE_MVP_PROFILE_RING_PX,
+                                height: LIVE_MVP_PROFILE_RING_PX,
+                                backgroundColor: '#121419',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                            >
+                              <span className="text-white text-[10px] font-black leading-none">
+                                {i + 1}
+                              </span>
+                            </div>
                                 {isMvp && (
-                                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                                  <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                                     MVP
                                   </span>
                                 )}
@@ -2143,7 +2178,7 @@ export default function LiveHostScreen() {
                 type="button"
                 onClick={onComboButtonClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-gradient-to-b from-[#FFFFFF] to-[#E6E9EE] flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[72px] h-[72px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
                 {typeof lastSentGift.icon === 'string' && (lastSentGift.icon.startsWith('http') || lastSentGift.icon.startsWith('/')) ? (
                   <img src={lastSentGift.icon} alt="" className="w-7 h-7 object-contain mb-0.5" draggable={false} />
@@ -2539,7 +2574,7 @@ export default function LiveHostScreen() {
                 {filteredCreators.length === 0 && creatorsLoadFailed ? (
                   <div className="py-6 flex flex-col items-center gap-2">
                     <p className="text-white/50 text-[11px] text-center px-4">Could not load live creators</p>
-                    <button type="button" onClick={() => loadCreators()} className="px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
+                    <button type="button" onClick={() => requestBattleInviteRoster()} className="px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
                       Retry
                     </button>
                   </div>
@@ -2550,7 +2585,7 @@ export default function LiveHostScreen() {
                     <p className="text-white/40 text-[10px] text-center leading-snug">
                       Only creators who are live with camera on can be invited to battle. This list refreshes automatically.
                     </p>
-                    <button type="button" onClick={() => loadCreators()} className="mt-1 px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
+                    <button type="button" onClick={() => requestBattleInviteRoster()} className="mt-1 px-3 py-1.5 rounded-lg bg-white/10 border border-[#D8D9DD]/40 text-[#F5F5F7] text-[10px] font-bold active:scale-95">
                       Refresh
                     </button>
                   </div>
@@ -2808,15 +2843,16 @@ export default function LiveHostScreen() {
                           >
                             <span className="text-white/30 text-xs font-bold w-5 text-right flex-shrink-0">{i + 1}</span>
                             <div className="relative flex-shrink-0">
-                              <div className={isMvp ? 'rounded-full shadow-[0_0_3px_0_rgba(230,233,238,0.30)]' : 'rounded-full'}>
+                              <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
                                 <AvatarRing
                                   src={resolveCircleAvatar(v.avatar, displayName)}
                                   alt={displayName}
                                   size={LIVE_MVP_PROFILE_RING_PX}
+                                  ringColor={isMvp ? MVP_GOLD : undefined}
                                 />
                               </div>
                               {isMvp ? (
-                                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] px-1 rounded-full bg-[#E6E9EE] text-white text-[6px] font-black leading-none tracking-wide">
+                                <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                                   MVP
                                 </span>
                               ) : null}
@@ -3027,6 +3063,17 @@ export default function LiveHostScreen() {
             
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-4 pb-4 no-scrollbar min-h-0">
+               <MembershipBuySection
+                 creatorName={isBroadcast ? myCreatorName : (hostName || myCreatorName)}
+                 creatorAvatar={isBroadcast ? myAvatar : (hostAvatar || myAvatar)}
+                 isMember={isMember}
+                 isSubscribing={isSubscribing}
+                 isSelf={membershipIsSelf}
+                 onBuy={() => {
+                   void handleSubscribe();
+                 }}
+               />
+
                {/* Team Status Card */}
                <div className="bg-transparent rounded-xl p-3 border-0 relative overflow-hidden">
                  <div className="flex items-center gap-3 relative z-10">
@@ -3066,17 +3113,6 @@ export default function LiveHostScreen() {
                    ))}
                  </div>
                </div>
-
-               <MembershipBuySection
-                 creatorName={isBroadcast ? myCreatorName : (hostName || myCreatorName)}
-                 creatorAvatar={isBroadcast ? myAvatar : (hostAvatar || myAvatar)}
-                 isMember={isMember}
-                 isSubscribing={isSubscribing}
-                 isSelf={Boolean(isBroadcast || (user?.id && String(effectiveStreamId || '').trim() === user.id))}
-                 onBuy={() => {
-                   void handleSubscribe();
-                 }}
-               />
 
                {/* Total Gift Coins */}
                <div className="bg-white/5 rounded-xl p-3 border border-[#D8D9DD]/20 mt-2">
@@ -3238,7 +3274,6 @@ export default function LiveHostScreen() {
 
       <LiveEngagementOverlay
         state={engagementState}
-        nowMs={engagementNowMs}
         milestoneFlash={milestoneFlash}
         stageFlash={stageFlash}
         onVote={votePoll}
@@ -3443,7 +3478,11 @@ export default function LiveHostScreen() {
 
       <GiftAnimationOverlay streamId={effectiveStreamId} isBattleMode={isBattleMode} />
       {/* Separate photo feed (cards + xN) — does not replace gift video animation */}
-      <LiveGiftFeedStack streamId={effectiveStreamId} />
+      <LiveGiftFeedStack
+        streamId={effectiveStreamId}
+        isCohostMode={hasCoHostLowerFundal && !isBattleMode}
+        cohostStageBottom={LIVE_HOST_COHOST_STAGE_BOTTOM}
+      />
 
       {/* POINT MULTIPLIER BOOSTER â€” a red boxing glove stays on the top-left, beside
           the Weekly Ranking, for the whole active window (server ~30s) while it catches

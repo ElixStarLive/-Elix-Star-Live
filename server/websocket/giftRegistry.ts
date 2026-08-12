@@ -80,12 +80,27 @@ export function isGiftCacheLoaded(): boolean {
   return cacheLoaded;
 }
 
+export type ServerBattleTarget = "host" | "opponent" | "player3" | "player4";
+
+/** Map gift battleTarget to authoritative server score bucket (P1–P4). */
 export function normalizeBattleTarget(
   rawTarget: unknown,
-): "host" | "opponent" | null {
-  if (rawTarget === "host" || rawTarget === "opponent") return rawTarget;
+): ServerBattleTarget | null {
+  if (
+    rawTarget === "host" ||
+    rawTarget === "opponent" ||
+    rawTarget === "player3" ||
+    rawTarget === "player4"
+  ) {
+    return rawTarget;
+  }
   if (rawTarget === "me") return "host";
-  if (rawTarget === "player4") return "opponent";
-  if (rawTarget === "player3") return "host";
   return null;
+}
+
+/** Fan Energy side: red = host + player3, blue = opponent + player4. */
+export function battleTargetToFanSide(
+  target: ServerBattleTarget,
+): "host" | "opponent" {
+  return target === "opponent" || target === "player4" ? "opponent" : "host";
 }

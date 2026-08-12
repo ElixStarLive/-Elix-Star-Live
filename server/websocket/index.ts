@@ -36,7 +36,6 @@ import {
   valkeyDel,
   valkeySadd,
   valkeySrem,
-  valkeyScard,
   valkeySmembers,
   valkeySetNx,
   valkeyExpire,
@@ -160,6 +159,32 @@ export function sendToUser(
   });
 }
 
+/** True when userId already receives room broadcasts for this live (local socket or Valkey member set). */
+export async function isUserInRoomAudience(
+  roomId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!roomId || !userId) return false;
+  const room = rooms.get(roomId);
+  if (
+    room &&
+    Array.from(room).some(
+      (c) => c.userId === userId && c.ws.readyState === WebSocket.OPEN,
+    )
+  ) {
+    return true;
+  }
+  if (isValkeyConfigured()) {
+    try {
+      const members = await valkeySmembers(`room:members:${roomId}`);
+      return members.includes(userId);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
 export function sendToUserGlobal(
   userId: string,
   event: string,
@@ -281,6 +306,16 @@ export async function tryClaimTransaction(
   return { claimed: false, existingTimestamp: val ? Number(val) : undefined };
 }
 
+export async function releaseTransactionClaim(transactionId: string): Promise<void> {
+  const id = String(transactionId || "").trim();
+  if (!id) return;
+  if (!isValkeyConfigured()) {
+    localTxnClaims.delete(id);
+    return;
+  }
+  await valkeyDel(`txn:${id}`);
+}
+
 export async function markTransactionProcessed(
   transactionId: string,
   timestamp: number,
@@ -293,7 +328,12 @@ export async function markTransactionProcessed(
 
 export async function getCohostLayout(
   roomId: string,
-): Promise<{ coHosts: unknown[]; hostUserId: string; layoutId?: string } | null> {
+): Promise<{
+  coHosts: unknown[];
+  hostUserId: string;
+  layoutId?: string;
+  featuredUserId?: string | null;
+} | null> {
   if (!isValkeyConfigured()) return null;
   const val = await valkeyGet(`cohost:${roomId}`);
   if (val) {
@@ -311,6 +351,7 @@ export async function setCohostLayout(
   coHosts: unknown[],
   hostUserId: string,
   layoutId?: string | null,
+  featuredUserId?: string | null,
 ): Promise<void> {
   if (!isValkeyConfigured()) return;
   await valkeySet(
@@ -321,6 +362,9 @@ export async function setCohostLayout(
       ...(typeof layoutId === 'string' && layoutId.trim()
         ? { layoutId: layoutId.trim() }
         : {}),
+      ...(typeof featuredUserId === 'string' && featuredUserId.trim()
+        ? { featuredUserId: featuredUserId.trim() }
+        : { featuredUserId: null }),
     }),
     3_600_000,
   );
@@ -408,8 +452,17 @@ export async function clearCohostPublishGrants(roomId: string): Promise<void> {
 const BATTLE_GRANT_TTL_MS = 10 * 60 * 1000;
 
 export async function grantBattlePublish(roomId: string, userId: string): Promise<void> {
-  if (!isValkeyConfigured() || !roomId || !userId) return;
+  if (!roomId || !userId) {
+    throw new Error("battle_grant_invalid");
+  }
+  if (!isValkeyConfigured()) {
+    throw new Error("battle_grant_unavailable");
+  }
   await valkeySet(`battle_grant:${roomId}:${userId}`, "1", BATTLE_GRANT_TTL_MS);
+  const ok = await hasBattlePublishGrant(roomId, userId);
+  if (!ok) {
+    throw new Error("battle_grant_write_failed");
+  }
 }
 
 export async function hasBattlePublishGrant(roomId: string, userId: string): Promise<boolean> {
@@ -575,14 +628,15 @@ export function disconnectUserSessions(userId: string, reason = "Banned"): numbe
   return closed;
 }
 
-// ── Viewer count from Valkey SCARD ───────────────────────────────
+// ── Viewer count (spectators only — authoritative) ─────────────────
 
 /**
  * Persisting the viewer count on every join/leave hammers the DB on hot rooms
  * (one UPDATE per event × many concurrent viewers). The realtime count is served
- * from Valkey SCARD and broadcast immediately; the DB copy only needs to be
- * eventually-consistent for the feed/live list, so coalesce writes per room to a
- * single trailing write that carries the latest value.
+ * from Valkey room membership minus host/co-host/battle publishers, broadcast
+ * immediately; the DB copy only needs to be eventually-consistent for the feed/
+ * live list, so coalesce writes per room to a single trailing write that carries
+ * the latest value.
  */
 const VIEWER_DB_WRITE_DEBOUNCE_MS = 3000;
 const viewerCountDbWriter = createCoalescedWriter<number>((roomId, count) => {
@@ -591,17 +645,93 @@ const viewerCountDbWriter = createCoalescedWriter<number>((roomId, count) => {
   });
 }, VIEWER_DB_WRITE_DEBOUNCE_MS);
 
-async function updateViewerCount(roomId: string): Promise<void> {
-  let count: number;
+/** Unique WS member ids in this live room (Valkey SET or local fallback). */
+async function listRoomMemberUserIds(roomId: string): Promise<string[]> {
   if (isValkeyConfigured()) {
-    count = await valkeyScard(`room:members:${roomId}`);
-    if (count > 0) {
+    const ids = await valkeySmembers(`room:members:${roomId}`);
+    if (ids.length > 0) {
       await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
     }
-  } else {
-    const room = rooms.get(roomId);
-    count = room ? room.size : 0;
+    return ids;
   }
+  const room = rooms.get(roomId);
+  if (!room) return [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const c of room) {
+    if (!seen.has(c.userId)) {
+      seen.add(c.userId);
+      out.push(c.userId);
+    }
+  }
+  return out;
+}
+
+/** Host, co-host publishers, and battle creators are not counted as spectators. */
+async function computeSpectatorViewerCount(roomId: string): Promise<number> {
+  const memberIds = await listRoomMemberUserIds(roomId);
+  if (memberIds.length === 0) return 0;
+
+  const exclude = new Set<string>();
+  try {
+    const ownerId = await resolveStreamOwnerUserId(roomId);
+    if (ownerId) exclude.add(ownerId);
+  } catch {
+    /* non-fatal */
+  }
+
+  if (isValkeyConfigured()) {
+    try {
+      const cohosts = await valkeySmembers(`cohost_grants:${roomId}`);
+      for (const id of cohosts) exclude.add(id);
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  try {
+    const layout = await getCohostLayout(roomId);
+    if (layout?.hostUserId) exclude.add(layout.hostUserId);
+    if (Array.isArray(layout?.coHosts)) {
+      for (const h of layout.coHosts) {
+        const uid =
+          typeof (h as { userId?: string }).userId === "string"
+            ? (h as { userId: string }).userId
+            : typeof (h as { id?: string }).id === "string"
+              ? (h as { id: string }).id
+              : "";
+        if (uid) exclude.add(uid);
+      }
+    }
+  } catch {
+    /* non-fatal */
+  }
+
+  try {
+    const battle = await getBattleFromStore(roomId);
+    if (battle && battle.status !== "ENDED") {
+      for (const uid of [
+        battle.hostUserId,
+        battle.opponentUserId,
+        battle.player3UserId,
+        battle.player4UserId,
+      ]) {
+        if (uid) exclude.add(uid);
+      }
+    }
+  } catch {
+    /* non-fatal */
+  }
+
+  let count = 0;
+  for (const id of memberIds) {
+    if (!exclude.has(id)) count += 1;
+  }
+  return Math.max(0, count);
+}
+
+async function updateViewerCount(roomId: string): Promise<void> {
+  const count = await computeSpectatorViewerCount(roomId);
   broadcastToRoom(roomId, "viewer_count", { count });
   viewerCountDbWriter.schedule(roomId, count);
 }
@@ -790,6 +920,11 @@ function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: st
             "Battle creator gone after grace, removing from match (others continue)",
           );
           await removeBattleParticipant(battleRoomId, userId);
+          // Seat freed — clients refresh Invite Creator from authoritative roster.
+          broadcastToRoom(battleRoomId, "battle_invite_roster_invalidate", {
+            streamKey: battleRoomId,
+            freedUserId: userId,
+          });
         }
       } catch (err) {
         logger.error(
@@ -915,15 +1050,21 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
           if (!userStillInRoom && isValkeyConfigured()) {
             await valkeySrem(`room:members:${client.roomId}`, client.userId);
-            // Leaving the room removes any co-host publish entitlement.
-            await revokeCohostPublish(client.roomId, client.userId);
+            // Do NOT revokeCohostPublish here — brief WS reconnects (cohost
+            // publish token upgrade, mobile blips) must keep the grant. Grants
+            // are revoked only when the host removes the seat via layout sync
+            // or when the live ends (deleteCohostLayout).
           }
 
-          broadcastToRoom(client.roomId, "user_left", {
-            user_id: client.userId,
-            username: client.username,
-            avatar_url: client.avatarUrl,
-          });
+          // Only announce leave when this user has no other open socket in the room
+          // (prevents false -1 on clients during brief WS reconnect / second tab).
+          if (!userStillInRoom) {
+            broadcastToRoom(client.roomId, "user_left", {
+              user_id: client.userId,
+              username: client.username,
+              avatar_url: client.avatarUrl,
+            });
+          }
 
           if (!userStillInRoom) {
             clearEngagementActiveRoom(client.userId, client.roomId).catch(() => undefined);
@@ -1140,16 +1281,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       const viewers = await buildViewerList(roomId);
 
-      let memberCount: number;
-      if (isValkeyConfigured()) {
-        memberCount = await valkeyScard(`room:members:${roomId}`);
-      } else {
-        memberCount = (rooms.get(roomId) as Set<Client>).size;
-      }
+      const spectatorCount = await computeSpectatorViewerCount(roomId);
 
       sendToClient(client, "connected", {
         room_id: roomId,
-        user_count: memberCount,
+        user_count: spectatorCount,
+        viewer_count: spectatorCount,
+        count: spectatorCount,
       });
 
       sendToClient(client, "room_state", {
@@ -1162,25 +1300,37 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         sendToClient(client, "cohost_layout_sync", {
           coHosts: lastCohost.coHosts,
           hostUserId: lastCohost.hostUserId,
+          featuredUserId:
+            typeof lastCohost.featuredUserId === "string" && lastCohost.featuredUserId.trim()
+              ? lastCohost.featuredUserId.trim()
+              : null,
           ...(typeof lastCohost.layoutId === "string" && lastCohost.layoutId
             ? { layoutId: lastCohost.layoutId }
             : {}),
         });
       }
 
-      broadcastToRoom(
-        roomId,
-        "user_joined",
-        {
-          user_id: client.userId,
-          username: client.username,
-          display_name: client.displayName,
-          avatar_url: client.avatarUrl,
-          level: client.level,
-          country: client.country,
-        },
-        client,
+      const userAlreadyPresent = Array.from(rooms.get(roomId) || []).some(
+        (c) =>
+          c.userId === client.userId &&
+          c.ws !== client.ws &&
+          c.ws.readyState === WebSocket.OPEN,
       );
+      if (!userAlreadyPresent) {
+        broadcastToRoom(
+          roomId,
+          "user_joined",
+          {
+            user_id: client.userId,
+            username: client.username,
+            display_name: client.displayName,
+            avatar_url: client.avatarUrl,
+            level: client.level,
+            country: client.country,
+          },
+          client,
+        );
+      }
 
       await updateViewerCount(roomId);
 

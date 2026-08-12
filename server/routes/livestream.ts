@@ -220,6 +220,10 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
         // live creator.
         if (!mem && !dbRow) return [];
         const userId = mem?.userId ?? dbRow?.user_id ?? (room.name as NonNullable<typeof room.name>);
+        const spectatorCount =
+          typeof dbRow?.viewer_count === "number" && Number.isFinite(dbRow.viewer_count)
+            ? Math.max(0, Math.floor(dbRow.viewer_count))
+            : Math.max(0, (room.numParticipants ?? 1) - 1);
         return [{
           room_id: room.name,
           stream_key: room.name,
@@ -228,7 +232,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           status: "live" as const,
           title: mem?.displayName ?? dbRow?.display_name ?? undefined,
           display_name: mem?.displayName ?? dbRow?.display_name ?? undefined,
-          viewer_count: room.numParticipants,
+          viewer_count: spectatorCount,
         }];
       });
 
@@ -242,6 +246,10 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
         const room = roomsByName.get(row.stream_key);
         if (!room) return [];
         seenKeys.add(row.stream_key);
+        const spectatorCount =
+          typeof row.viewer_count === "number" && Number.isFinite(row.viewer_count)
+            ? Math.max(0, Math.floor(row.viewer_count))
+            : Math.max(0, (room.numParticipants ?? 1) - 1);
         return [{
           room_id: row.stream_key,
           stream_key: row.stream_key,
@@ -250,7 +258,7 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           status: "live" as const,
           title: row.display_name || undefined,
           display_name: row.display_name || undefined,
-          viewer_count: room.numParticipants,
+          viewer_count: spectatorCount,
         }];
       });
 

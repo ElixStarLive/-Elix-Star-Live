@@ -1,8 +1,9 @@
-import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes } from "./index";
+import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes, isUserInRoomAudience } from "./index";
 import { logger } from "../lib/logger";
 import {
   createBattle,
   joinBattle,
+  claimBattleSeat,
   startBattleTimer,
   endBattle,
   removeBattleParticipant,
@@ -12,6 +13,11 @@ import {
   getBattleScores,
   saveBattleToStore,
   getUserBattleRoom,
+  battleOpenSeatCount,
+  battleSeatedUserIds,
+  trackPendingBattleInvite,
+  untrackPendingBattleInvite,
+  clearPendingBattleInvites,
 } from "./battle";
 import {
   broadcastToFeedSubscribers,
@@ -58,6 +64,106 @@ const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
 function battleAcceptedKey(roomId: string, userId: string): string {
   return `battle_accept:${roomId}:${userId}`;
+}
+
+/**
+ * Authoritative Invite Creator list for a battle room — same source for every
+ * seated creator. Excludes anyone already in a battle seat.
+ */
+async function publishBattleInviteRoster(
+  roomId: string,
+  toClient?: Client,
+): Promise<void> {
+  try {
+    const battle = await getBattleFromStore(roomId);
+    const seated = new Set(battle ? battleSeatedUserIds(battle) : []);
+    const ownerId = await resolveStreamOwnerUserId(roomId);
+    if (ownerId) seated.add(ownerId);
+
+    const rows = await dbGetLiveStreams();
+    const eligible = rows.filter((r) => {
+      const uid = typeof r.user_id === "string" ? r.user_id.trim() : "";
+      if (!uid || seated.has(uid)) return false;
+      return true;
+    });
+    const ids = eligible.map((r) => r.user_id).filter(Boolean);
+    const profileById = new Map<
+      string,
+      { display_name?: string | null; username?: string | null; avatar_url?: string | null }
+    >();
+    const pool = getPool();
+    if (pool && ids.length > 0) {
+      try {
+        const pr = await pool.query(
+          `SELECT user_id, display_name, username, avatar_url
+             FROM profiles
+            WHERE user_id = ANY($1::text[])`,
+          [ids],
+        );
+        for (const p of pr.rows as Array<{
+          user_id?: string;
+          display_name?: string | null;
+          username?: string | null;
+          avatar_url?: string | null;
+        }>) {
+          const uid = typeof p.user_id === "string" ? p.user_id.trim() : "";
+          if (uid) profileById.set(uid, p);
+        }
+      } catch (err) {
+        logger.warn({ err, roomId }, "publishBattleInviteRoster: profile enrich failed");
+      }
+    }
+    const creators = eligible.map((r) => {
+      const prof = profileById.get(r.user_id);
+      const name =
+        (typeof prof?.display_name === "string" && prof.display_name.trim()) ||
+        (typeof prof?.username === "string" && prof.username.trim()) ||
+        (r.display_name && String(r.display_name).trim()) ||
+        "Creator";
+      const avatar =
+        typeof prof?.avatar_url === "string" && prof.avatar_url.trim()
+          ? prof.avatar_url.trim()
+          : "";
+      return {
+        id: r.user_id,
+        streamKey: r.stream_key || r.user_id,
+        name,
+        username: name,
+        avatar,
+        isLive: true,
+      };
+    });
+
+    const payload = { streamKey: roomId, creators };
+    if (toClient) {
+      sendToClient(toClient, "battle_invite_roster", payload);
+    } else {
+      broadcastToRoom(roomId, "battle_invite_roster", payload);
+    }
+  } catch (err) {
+    logger.error({ err, roomId }, "publishBattleInviteRoster failed");
+    const payload = { streamKey: roomId, creators: [] as unknown[], error: "roster_unavailable" };
+    if (toClient) {
+      sendToClient(toClient, "battle_invite_roster", payload);
+    } else {
+      broadcastToRoom(roomId, "battle_invite_roster", payload);
+    }
+  }
+}
+
+/** After a seat frees or fills, sync Invite Creator panels for everyone in-room. */
+async function afterBattleSeatChange(roomId: string): Promise<void> {
+  const battle = await getBattleFromStore(roomId);
+  if (battle && battle.status !== "ENDED" && battleOpenSeatCount(battle) === 0) {
+    const expired = await clearPendingBattleInvites(roomId);
+    for (const targetUserId of expired) {
+      sendToUserGlobal(targetUserId, "battle_invite_expired", {
+        streamKey: roomId,
+        reason: "battle_full",
+      });
+    }
+  }
+  await publishBattleInviteRoster(roomId);
 }
 
 /**
@@ -291,10 +397,18 @@ export async function handleMessage(
           broadcastToRoom(client.roomId, "gift_sent", testPayload);
           try {
             const testOwnerId = await resolveStreamOwnerUserId(client.roomId);
-            if (testOwnerId && testOwnerId !== client.userId) {
+            if (
+              testOwnerId &&
+              testOwnerId !== client.userId &&
+              !(await isUserInRoomAudience(client.roomId, testOwnerId))
+            ) {
               sendToUserGlobal(testOwnerId, "gift_sent", testPayload);
             }
-            if (testCohostTarget && testCohostTarget !== client.userId) {
+            if (
+              testCohostTarget &&
+              testCohostTarget !== client.userId &&
+              !(await isUserInRoomAudience(client.roomId, testCohostTarget))
+            ) {
               sendToUserGlobal(testCohostTarget, "gift_sent", testPayload);
             }
           } catch { /* non-fatal */ }
@@ -406,7 +520,11 @@ export async function handleMessage(
             };
             broadcastToRoom(client.roomId, "gift_sent", retryPayload);
             const ownerId = await resolveStreamOwnerUserId(client.roomId);
-            if (ownerId && ownerId !== client.userId) {
+            if (
+              ownerId &&
+              ownerId !== client.userId &&
+              !(await isUserInRoomAudience(client.roomId, ownerId))
+            ) {
               sendToUserGlobal(ownerId, "gift_sent", retryPayload);
             }
           } catch (err) {
@@ -545,7 +663,13 @@ export async function handleMessage(
         if (!(await wsRateCheck(client.userId, "battle_join", 20, 60_000))) break;
         const inviteKey = `battle_invite:${client.roomId}:${client.userId}`;
         const invited = await valkeyGet(inviteKey);
-        if (!invited) {
+        const acceptedGrant = await valkeyGet(
+          battleAcceptedKey(client.roomId, client.userId),
+        );
+        // Accept already deletes the invite key and claims a seat; battle_join
+        // on room connect must honor the accepted grant so the joiner is not
+        // rejected with "Battle invite required".
+        if (!invited && !acceptedGrant) {
           sendToClient(client, "battle_error", {
             message: "Battle invite required",
           });
@@ -558,10 +682,11 @@ export async function handleMessage(
         );
         if (!battleSession) {
           sendToClient(client, "battle_error", {
-            message: "No battle to join",
+            message: invited || acceptedGrant ? "Battle is full" : "No battle to join",
           });
-        } else {
+        } else if (invited) {
           await valkeyDel(inviteKey);
+          await untrackPendingBattleInvite(client.roomId, client.userId);
         }
         break;
       }
@@ -585,7 +710,16 @@ export async function handleMessage(
         );
         if (participantIds.includes(client.userId)) break;
         const voteTarget =
-          data.target === "host" ? "host" : "opponent";
+          data.target === "host"
+            ? "host"
+            : data.target === "opponent"
+              ? "opponent"
+              : data.target === "player3"
+                ? "player3"
+                : data.target === "player4"
+                  ? "player4"
+                  : null;
+        if (!voteTarget) break;
         // One award per (battle, viewer). TTL covers the battle window.
         const onceKey = `battle_vote_once:${voteBattle.id}:${client.userId}`;
         const firstTap = await valkeySetNx(onceKey, voteTarget, 600_000);
@@ -599,7 +733,7 @@ export async function handleMessage(
           });
           break;
         }
-        await addBattleScoreForTarget(voteRoom, voteTarget as "host" | "opponent", 5);
+        await addBattleScoreForTarget(voteRoom, voteTarget, 5);
         sendToClient(client, "battle_vote_ack", {
           target: voteTarget,
           points: 5,
@@ -623,10 +757,75 @@ export async function handleMessage(
           if (bSession.player4UserId) {
             await revokeBattlePublish(client.roomId, bSession.player4UserId);
           }
+          await clearPendingBattleInvites(client.roomId);
           await endBattle(client.roomId);
         } else {
+          // Non-host leave: drop only this creator — never end the whole battle.
           await revokeBattlePublish(client.roomId, client.userId);
-          await removeBattleParticipant(client.roomId, client.userId);
+          const removed = await removeBattleParticipant(client.roomId, client.userId);
+          if (removed) {
+            sendToUserGlobal(client.userId, "battle_participant_removed", {
+              streamKey: client.roomId,
+              userId: client.userId,
+              reason: "left",
+            });
+            const after = await getBattleFromStore(client.roomId);
+            if (
+              after &&
+              after.status === "ACTIVE" &&
+              battleOpenSeatCount(after) === 3
+            ) {
+              // No rival creators left mid-ACTIVE — resolve from current scores.
+              await endBattle(client.roomId);
+            } else {
+              await afterBattleSeatChange(client.roomId);
+            }
+          }
+        }
+        break;
+      }
+
+      case "battle_remove_participant": {
+        // Host kick OR self-leave for one seat only. Must never call endBattle
+        // for the whole room unless this was the last rival in an ACTIVE match.
+        if (!(await wsRateCheck(client.userId, "battle_remove_participant", 40, 60_000))) {
+          break;
+        }
+        const targetUserId =
+          typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
+        if (!targetUserId) break;
+        const remSession = await getBattleFromStore(client.roomId);
+        if (!remSession || remSession.status === "ENDED") break;
+        const isBattleHost = remSession.hostUserId === client.userId;
+        const isSelf = targetUserId === client.userId;
+        if (!isBattleHost && !isSelf) break;
+        if (targetUserId === remSession.hostUserId) break;
+
+        const wasSeated =
+          remSession.opponentUserId === targetUserId ||
+          remSession.player3UserId === targetUserId ||
+          remSession.player4UserId === targetUserId;
+        if (!wasSeated) break;
+
+        await revokeBattlePublish(client.roomId, targetUserId);
+        const removed = await removeBattleParticipant(client.roomId, targetUserId);
+        if (!removed) break;
+
+        sendToUserGlobal(targetUserId, "battle_participant_removed", {
+          streamKey: client.roomId,
+          userId: targetUserId,
+          reason: isSelf ? "left" : "removed",
+        });
+
+        const after = await getBattleFromStore(client.roomId);
+        if (
+          after &&
+          after.status === "ACTIVE" &&
+          battleOpenSeatCount(after) === 3
+        ) {
+          await endBattle(client.roomId);
+        } else {
+          await afterBattleSeatChange(client.roomId);
         }
         break;
       }
@@ -690,6 +889,27 @@ export async function handleMessage(
         const targetUserId =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
         if (!targetUserId || targetUserId === client.userId) break;
+
+        const liveBattle = await getBattleFromStore(client.roomId);
+        if (liveBattle && liveBattle.status !== "ENDED") {
+          if (battleSeatedUserIds(liveBattle).includes(targetUserId)) {
+            sendToClient(client, "battle_invite_ack", {
+              targetUserId,
+              delivered: false,
+              reason: "already_seated",
+            });
+            break;
+          }
+          if (battleOpenSeatCount(liveBattle) <= 0) {
+            sendToClient(client, "battle_invite_ack", {
+              targetUserId,
+              delivered: false,
+              reason: "battle_full",
+            });
+            break;
+          }
+        }
+
         // Battle is creator vs creator: the target must be LIVE as a host
         // right now. A spectator can never receive a battle invite.
         const targetRoomRaw =
@@ -736,6 +956,7 @@ export async function handleMessage(
           "1",
           10 * 60 * 1000,
         );
+        await trackPendingBattleInvite(streamKey, targetUserId);
         const invitePayload = {
           // Accept must authorize against the room owner — never the opponent inviter.
           hostUserId: ownerId,
@@ -759,9 +980,11 @@ export async function handleMessage(
           typeof data.hostStreamKey === "string" ? data.hostStreamKey.trim() : "";
         if (!hostStreamKey) break;
         await valkeyDel(`battle_invite:${hostStreamKey}:${client.userId}`);
+        await untrackPendingBattleInvite(hostStreamKey, client.userId);
         broadcastToRoom(hostStreamKey, "battle_invite_declined", {
           userId: client.userId,
         });
+        await publishBattleInviteRoster(hostStreamKey);
         break;
       }
 
@@ -803,6 +1026,30 @@ export async function handleMessage(
           });
           break;
         }
+
+        const existingBattle = hostRoomForInvite
+          ? await getBattleFromStore(hostRoomForInvite)
+          : null;
+
+        // Mid-battle / waiting session: claim a real seat atomically BEFORE
+        // granting publish. Prevents a 5th creator and fake successful joins.
+        if (existingBattle && existingBattle.status !== "ENDED") {
+          const claimed = await claimBattleSeat(
+            hostRoomForInvite,
+            client.userId,
+            data.requesterName || client.displayName,
+          );
+          if (!claimed) {
+            await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
+            await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
+            sendToClient(client, "battle_error", {
+              message: "Battle is full",
+              reason: "battle_full",
+            });
+            break;
+          }
+        }
+
         // Persist the accepted creator role before navigation. This is the
         // authority used by battle_create and by the LiveKit publish-token
         // check; a spectator never receives either grant.
@@ -811,8 +1058,18 @@ export async function handleMessage(
           "1",
           BATTLE_USER_ROOM_TTL_MS,
         );
-        await grantBattlePublish(hostRoomForInvite, client.userId);
+        try {
+          await grantBattlePublish(hostRoomForInvite, client.userId);
+        } catch (err) {
+          logger.error({ err, roomId: hostRoomForInvite }, "battle_invite_accept: publish grant failed");
+          sendToClient(client, "battle_error", {
+            message: "Battle join is unavailable",
+            reason: "grant_failed",
+          });
+          break;
+        }
         await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
+        await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
         // Handshake with the accepter: the grant now exists, so their client
         // may navigate into the battle knowing the publish token will be
         // issued. Removes the accept -> navigate -> token race entirely.
@@ -837,6 +1094,21 @@ export async function handleMessage(
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
           streamKey: accepterStreamKey,
         });
+        await afterBattleSeatChange(hostRoomForInvite);
+        break;
+      }
+
+      case "battle_invite_roster_get": {
+        if (!(await wsRateCheck(client.userId, "battle_invite_roster_get", 60, 60_000))) {
+          break;
+        }
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId) break;
+        const isOwner = ownerId === client.userId;
+        const isBattleCreator =
+          !isOwner && (await hasBattlePublishGrant(client.roomId, client.userId));
+        if (!isOwner && !isBattleCreator) break;
+        await publishBattleInviteRoster(client.roomId, client);
         break;
       }
 
@@ -1052,16 +1324,19 @@ export async function handleMessage(
             await revokeCohostPublish(roomId, uid);
           }
         }
+        // Keep publish grants aligned with the authoritative seat list (re-grant
+        // every sync so a prior WS-leave revoke cannot leave a seated cohost stuck).
         for (const uid of nextIds) {
-          if (!previousIds.has(uid)) {
-            await grantCohostPublish(roomId, uid);
-          }
+          await grantCohostPublish(roomId, uid);
         }
         await setCohostLayout(
           roomId,
           coHosts,
           hostUserId,
           typeof data.layoutId === "string" ? data.layoutId : null,
+          typeof data.featuredUserId === "string" && data.featuredUserId.trim()
+            ? data.featuredUserId.trim()
+            : null,
         );
         const featuredUserId =
           typeof data.featuredUserId === "string" && data.featuredUserId.trim()

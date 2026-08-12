@@ -38,7 +38,6 @@ export function useLiveEngagement(options: Options = {}) {
   const [state, setState] = useState<EngagementPublicState>(emptyState);
   const [milestoneFlash, setMilestoneFlash] = useState<EngagementMilestoneEvent | null>(null);
   const [stageFlash, setStageFlash] = useState<number | null>(null);
-  const [nowMs, setNowMs] = useState(() => Date.now());
   const visibleRef = useRef(
     typeof document !== "undefined" ? document.visibilityState === "visible" : true,
   );
@@ -119,12 +118,6 @@ export function useLiveEngagement(options: Options = {}) {
 
   useEffect(() => {
     if (!enabled) return;
-    const id = window.setInterval(() => setNowMs(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [enabled]);
-
-  useEffect(() => {
-    if (!enabled) return;
     const tick = () => {
       if (!visibleRef.current) return;
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
@@ -171,7 +164,6 @@ export function useLiveEngagement(options: Options = {}) {
 
   return {
     state,
-    nowMs,
     milestoneFlash,
     stageFlash,
     startMystery,

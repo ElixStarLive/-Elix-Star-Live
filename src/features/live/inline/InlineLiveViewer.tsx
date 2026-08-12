@@ -16,14 +16,16 @@ import {
   LIVE_VIDEO_TRANSPARENT_POSTER,
 } from "../../../lib/prepareLiveVideoEl";
 import {
+  FOR_YOU_COHOST_STAGE_TOP,
   LIVE_COHOST_STAGE_HEIGHT,
-  LIVE_COHOST_STAGE_TOP,
 } from "../cohost/cohostStageGeometry";
 import { Radio } from "lucide-react";
 
 interface InlineLiveViewerProps {
   streamKey: string;
   isActive: boolean;
+  /** Host app user id when known (from /api/live/streams). Improves host vs co-host matching. */
+  hostUserId?: string;
   creatorName?: string;
   creatorAvatar?: string;
   viewerCount?: number;
@@ -39,9 +41,20 @@ type CohostTile = {
   status: string;
 };
 
+/** Strip spectator `__v_` suffix so host/co-host publisher ids compare cleanly. */
+function appUserIdFromIdentity(identity: string | null | undefined): string {
+  const i = (identity || "").trim();
+  const m = i.match(/^(.*)__v_[a-f0-9]{12}$/i);
+  return (m?.[1] || i).trim();
+}
+
+function isViewerOnlyIdentity(identity: string | null | undefined): boolean {
+  return /__v_[a-f0-9]{12}$/i.test((identity || "").trim());
+}
+
 function sameId(a: string | null | undefined, b: string | null | undefined): boolean {
-  const na = (a || "").trim().toLowerCase();
-  const nb = (b || "").trim().toLowerCase();
+  const na = appUserIdFromIdentity(a).toLowerCase();
+  const nb = appUserIdFromIdentity(b).toLowerCase();
   return !!na && !!nb && na === nb;
 }
 
@@ -52,6 +65,7 @@ function sameId(a: string | null | undefined, b: string | null | undefined): boo
 export default function InlineLiveViewer({
   streamKey,
   isActive,
+  hostUserId: hostUserIdProp,
   creatorName = "Creator",
   creatorAvatar,
   viewerCount = 0,
@@ -65,7 +79,8 @@ export default function InlineLiveViewer({
   const roomRef = useRef<Room | null>(null);
   const connectedKeyRef = useRef<string>("");
   const modeRef = useRef<PreviewMode>("normal");
-  const hostIdRef = useRef<string>(streamKey);
+  const initialHostId = String(hostUserIdProp || streamKey || "").trim() || streamKey;
+  const hostIdRef = useRef<string>(initialHostId);
   const opponentIdRef = useRef<string>("");
   const routeVideoTrackRef = useRef<(track: RemoteTrack, identity: string) => void>(() => {});
   const reattachAllRef = useRef<(room: Room) => void>(() => {});
@@ -74,7 +89,7 @@ export default function InlineLiveViewer({
   const [connecting, setConnecting] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [mode, setMode] = useState<PreviewMode>("normal");
-  const [hostUserId, setHostUserId] = useState(streamKey);
+  const [hostUserId, setHostUserId] = useState(initialHostId);
   const [coHosts, setCoHosts] = useState<CohostTile[]>([]);
   const [battle, setBattle] = useState<{
     opponentName: string;
@@ -85,13 +100,21 @@ export default function InlineLiveViewer({
   } | null>(null);
 
   modeRef.current = mode;
-  hostIdRef.current = hostUserId || streamKey;
+  hostIdRef.current = hostUserId || hostUserIdProp || streamKey;
+
+  useEffect(() => {
+    const hid = String(hostUserIdProp || streamKey || "").trim();
+    if (!hid) return;
+    setHostUserId((prev) => (sameId(prev, hid) ? prev : hid));
+    hostIdRef.current = hid;
+  }, [hostUserIdProp, streamKey]);
 
   const findCoHostEl = useCallback((identity: string): HTMLVideoElement | null => {
-    const direct = coHostVideoRefs.current.get(identity);
+    const appId = appUserIdFromIdentity(identity);
+    const direct = coHostVideoRefs.current.get(identity) || coHostVideoRefs.current.get(appId);
     if (direct) return direct;
     for (const [uid, el] of coHostVideoRefs.current) {
-      if (sameId(uid, identity)) return el;
+      if (sameId(uid, identity) || sameId(uid, appId)) return el;
     }
     return null;
   }, []);
@@ -126,17 +149,51 @@ export default function InlineLiveViewer({
     };
   }, []);
 
+  const ensureCohostTile = useCallback((identity: string, name?: string) => {
+    const appId = appUserIdFromIdentity(identity);
+    if (!appId) return appId;
+    setCoHosts((prev) => {
+      if (prev.some((h) => sameId(h.userId, appId))) return prev;
+      return [
+        ...prev,
+        {
+          userId: appId,
+          name: (name || appId).trim() || "User",
+          avatar: "",
+          status: "live",
+        },
+      ];
+    });
+    return appId;
+  }, []);
+
+  const enterCohostMode = useCallback(() => {
+    if (modeRef.current === "battle") return;
+    if (modeRef.current === "cohost") return;
+    setMode("cohost");
+    modeRef.current = "cohost";
+  }, []);
+
   const routeVideoTrack = useCallback(
     (track: RemoteTrack, identity: string) => {
       if (track.kind !== "video" || !identity) return;
       const m = modeRef.current;
-      const hostId = hostIdRef.current || streamKey;
+      const hostId = hostIdRef.current || hostUserIdProp || streamKey;
+      const appId = appUserIdFromIdentity(identity);
+      const isHost =
+        sameId(appId, hostId) ||
+        sameId(identity, hostId) ||
+        sameId(appId, streamKey) ||
+        sameId(identity, streamKey);
 
       // Host identity always maps to the host pane (never a co-host tile / never steal full card).
-      if (sameId(identity, hostId) || sameId(identity, streamKey)) {
+      if (isHost) {
         attachToEl(track, hostVideoRef.current);
         return;
       }
+
+      // Subscribe-only spectators never drive layout.
+      if (isViewerOnlyIdentity(identity)) return;
 
       if (m === "battle") {
         if (sameId(identity, opponentIdRef.current) || !opponentIdRef.current) {
@@ -146,20 +203,24 @@ export default function InlineLiveViewer({
         }
       }
 
-      if (m === "cohost") {
-        const tile = findCoHostEl(identity);
-        if (tile) {
-          attachToEl(track, tile);
-          return;
-        }
-        // Unknown non-host during co-host — do not dump onto the host half.
+      // Non-host publisher → real co-host half-screen stage (never full-card dump).
+      enterCohostMode();
+      ensureCohostTile(identity);
+      const tile = findCoHostEl(identity);
+      if (tile) {
+        attachToEl(track, tile);
         return;
       }
-
-      // Normal single-host: only the host track fills the card.
-      // Non-host remotes wait for layout/room detection → cohost mode.
+      // Tile not mounted yet — remount/reattach effect + ref callback will attach.
     },
-    [attachToEl, findCoHostEl, streamKey],
+    [
+      attachToEl,
+      findCoHostEl,
+      streamKey,
+      hostUserIdProp,
+      enterCohostMode,
+      ensureCohostTile,
+    ],
   );
 
   const reattachAll = useCallback(
@@ -181,11 +242,12 @@ export default function InlineLiveViewer({
 
   const syncCohostTilesFromRoom = useCallback((room: Room) => {
     if (modeRef.current === "battle") return;
-    const hostId = hostIdRef.current || streamKey;
+    const hostId = hostIdRef.current || hostUserIdProp || streamKey;
     const tiles: CohostTile[] = [];
     for (const [, p] of room.remoteParticipants) {
       const identity = p.identity || "";
-      if (!identity || sameId(identity, hostId) || sameId(identity, streamKey)) continue;
+      if (!identity || isViewerOnlyIdentity(identity)) continue;
+      if (sameId(identity, hostId) || sameId(identity, streamKey)) continue;
       let liveVideo = false;
       for (const [, pub] of p.videoTrackPublications) {
         if (pub.track && pub.isSubscribed) {
@@ -194,28 +256,34 @@ export default function InlineLiveViewer({
         }
       }
       if (!liveVideo) continue;
+      const appId = appUserIdFromIdentity(identity);
       tiles.push({
-        userId: identity,
-        name: (p.name || identity).trim() || "User",
+        userId: appId,
+        name: (p.name || appId).trim() || "User",
         avatar: "",
         status: "live",
       });
     }
-    if (tiles.length === 0) return;
+    if (tiles.length === 0) {
+      if (modeRef.current === "cohost") {
+        setCoHosts([]);
+        setMode("normal");
+        modeRef.current = "normal";
+      }
+      return;
+    }
     setCoHosts((prev) => {
-      const byId = new Map(prev.map((h) => [h.userId.trim().toLowerCase(), h]));
+      const byId = new Map(prev.map((h) => [appUserIdFromIdentity(h.userId).toLowerCase(), h]));
       return tiles.map((t) => {
-        const prevTile = byId.get(t.userId.trim().toLowerCase());
+        const prevTile = byId.get(appUserIdFromIdentity(t.userId).toLowerCase());
         return prevTile
           ? { ...t, name: prevTile.name || t.name, avatar: prevTile.avatar || t.avatar }
           : t;
       });
     });
-    if (modeRef.current !== "battle") {
-      setMode("cohost");
-      modeRef.current = "cohost";
-    }
-  }, [streamKey]);
+    setMode("cohost");
+    modeRef.current = "cohost";
+  }, [streamKey, hostUserIdProp]);
   const syncCohostTilesFromRoomRef = useRef(syncCohostTilesFromRoom);
   syncCohostTilesFromRoomRef.current = syncCohostTilesFromRoom;
 
@@ -286,12 +354,13 @@ export default function InlineLiveViewer({
       })).filter((h) => h.userId);
       const hid = typeof data.hostUserId === "string" && data.hostUserId
         ? data.hostUserId
-        : streamKey;
+        : (hostUserIdProp || streamKey);
       setHostUserId(hid);
       hostIdRef.current = hid;
       const live = tiles.filter(
         (h) =>
           !sameId(h.userId, hid) &&
+          !isViewerOnlyIdentity(h.userId) &&
           (h.status === "live" || h.status === "accepted"),
       );
       setCoHosts(live);
@@ -357,8 +426,9 @@ export default function InlineLiveViewer({
         setCoHosts([]);
         setBattle(null);
         opponentIdRef.current = "";
-        hostIdRef.current = streamKey;
-        setHostUserId(streamKey);
+        const hid = String(hostUserIdProp || streamKey || "").trim() || streamKey;
+        hostIdRef.current = hid;
+        setHostUserId(hid);
       }
       try {
         const tok = await apiLiveToken(streamKey, false);
@@ -393,10 +463,43 @@ export default function InlineLiveViewer({
               if (room) syncCohostTilesFromRoomRef.current(room);
               routeVideoTrackRef.current(track, participant?.identity || "");
             },
+            onParticipantConnected: () => {
+              if (!mounted) return;
+              const room = lifecycle.liveKit?.raw;
+              if (room) syncCohostTilesFromRoomRef.current(room);
+            },
             onParticipantDisconnected: (participant) => {
               if (!mounted) return;
               const identity = participant?.identity || "";
-              if (!sameId(identity, streamKey) && !sameId(identity, hostIdRef.current)) return;
+              const hostId = hostIdRef.current || hostUserIdProp || streamKey;
+              if (!sameId(identity, streamKey) && !sameId(identity, hostId)) {
+                // Co-host left — refresh tiles from remaining publishers.
+                const room = lifecycle.liveKit?.raw;
+                if (room) {
+                  syncCohostTilesFromRoomRef.current(room);
+                  // If no co-host publishers remain, fall back to normal.
+                  let stillCohost = false;
+                  for (const [, p] of room.remoteParticipants) {
+                    const id = p.identity || "";
+                    if (!id || isViewerOnlyIdentity(id)) continue;
+                    if (sameId(id, hostId) || sameId(id, streamKey)) continue;
+                    for (const [, pub] of p.videoTrackPublications) {
+                      if (pub.track && pub.isSubscribed) {
+                        stillCohost = true;
+                        break;
+                      }
+                    }
+                    if (stillCohost) break;
+                  }
+                  if (!stillCohost && modeRef.current === "cohost") {
+                    setCoHosts([]);
+                    setMode("normal");
+                    modeRef.current = "normal";
+                    reattachAllRef.current(room);
+                  }
+                }
+                return;
+              }
               setHasStream(false);
               setIsOffline(true);
               cleanup();
@@ -451,7 +554,7 @@ export default function InlineLiveViewer({
       setConnecting(false);
     };
     // Route/reattach callbacks are refs — reconnect only when slide ownership changes.
-  }, [isActive, streamKey]);
+  }, [isActive, streamKey, hostUserIdProp]);
 
   // Re-route when layout mode / cohost tiles change.
   useEffect(() => {
@@ -604,14 +707,14 @@ export default function InlineLiveViewer({
         </div>
       )}
 
-      {/* ── Co-host: same stage geometry as /watch spectator (not full-card) ── */}
+      {/* ── Co-host: same host|cohost split + height as /watch; top = below For You TopNav ── */}
       {mode === "cohost" && (
         <div className="absolute inset-0" style={{ background: "#080A0E" }}>
           <div
-            className="absolute left-0 right-0 overflow-hidden"
+            className="absolute left-0 right-0 z-0 bg-transparent overflow-hidden rounded-none"
             data-elix-foryou-cohost-stage="1"
             style={{
-              top: LIVE_COHOST_STAGE_TOP,
+              top: FOR_YOU_COHOST_STAGE_TOP,
               height: LIVE_COHOST_STAGE_HEIGHT,
             }}
           >
@@ -678,7 +781,11 @@ export default function InlineLiveViewer({
                       <video
                         ref={(el) => {
                           if (el) {
+                            const appId = appUserIdFromIdentity(h.userId);
                             coHostVideoRefs.current.set(h.userId, el);
+                            if (appId && appId !== h.userId) {
+                              coHostVideoRefs.current.set(appId, el);
+                            }
                             const room = roomRef.current;
                             if (room) {
                               for (const [, p] of room.remoteParticipants) {
@@ -692,6 +799,8 @@ export default function InlineLiveViewer({
                             }
                           } else {
                             coHostVideoRefs.current.delete(h.userId);
+                            const appId = appUserIdFromIdentity(h.userId);
+                            if (appId) coHostVideoRefs.current.delete(appId);
                           }
                         }}
                         className={`absolute inset-0 w-full h-full object-cover z-[2] ${LIVE_WEBRTC_VIDEO_CLASS}`}

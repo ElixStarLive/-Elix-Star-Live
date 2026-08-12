@@ -161,6 +161,9 @@ export function resolveGiftAssetUrl(path: string): string {
 export function preferPlayableGiftVideoUrl(url: string): string {
   if (!url) return url;
   if (/\.webm(\?|#|$)/i.test(url)) {
+    // Universe gifts are currently cataloged as .webm assets (no paired .mp4),
+    // so converting breaks playback. Keep the original URL for universe assets.
+    if (/universe/i.test(url)) return url;
     return url.replace(/\.webm(\?|#|$)/i, '.mp4$1');
   }
   return url;

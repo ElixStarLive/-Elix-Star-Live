@@ -1,6 +1,10 @@
 /**
  * Spectator/cohost LiveKit subscribe/publish — clean owner.
  * Room WS stays with spectator bind path. Room() only via LiveRoomLifecycle.
+ *
+ * Publish upgrades (spectator → cohost) require a new LiveKit JWT. That is a
+ * single intentional reconnect of THIS client only — never a second Room owner,
+ * never used to paper over unrelated disconnects.
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -29,8 +33,14 @@ export function useSpectatorLiveSession(opts: {
     let cancelled = false;
     (async () => {
       setJoinError(null);
-      const tok = await apiLiveToken(opts.roomId, opts.publish);
+      // Prefer authorized publish token; if cohost grant is missing, stay in the
+      // live as subscribe-only instead of leaving the room disconnected.
+      let tok = await apiLiveToken(opts.roomId, opts.publish);
       if (cancelled) return;
+      if (opts.publish && (tok.error || !tok.creds)) {
+        tok = await apiLiveToken(opts.roomId, false);
+        if (cancelled) return;
+      }
       if (tok.error || !tok.creds) {
         const err = tok.error || 'Could not get watch token';
         setJoinError(err);

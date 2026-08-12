@@ -68,7 +68,7 @@ router.post("/toggle", validateBody(targetSchema), async (req: Request, res: Res
 
   try {
     const check = await assertTargetExists(targetType, targetId);
-    if (!check.ok) {
+    if (check.ok === false) {
       return res.status(check.status).json({ error: check.error });
     }
 

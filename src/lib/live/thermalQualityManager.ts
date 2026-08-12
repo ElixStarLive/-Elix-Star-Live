@@ -1,6 +1,6 @@
 /**
  * Thermal-aware Live quality — one manager for host / spectator / battle.
- * Does not disconnect rooms; reduces capture/publish cost under pressure.
+ * Does not disconnect rooms; reduces capture/publish/subscribe cost under pressure.
  */
 import type { Room } from 'livekit-client';
 import { Track } from 'livekit-client';
@@ -11,6 +11,7 @@ import {
   setActiveThermalTier,
   type ThermalTier,
 } from './liveMediaProfile';
+import { applyRemoteVideoBudget } from './liveRemoteVideoBudget';
 
 type Registration = {
   getRoom: () => Room | null;
@@ -18,11 +19,13 @@ type Registration = {
   getCameraFacing: () => 'user' | 'environment';
   /** When false, skip capture down-tier (spectator subscribe-only). */
   publishesCamera: boolean;
+  /** Remote publishers currently rendered (e.g. 3 in 4-creator Battle). */
+  getBattleRemoteCount?: () => number;
 };
 
 let managerRefCount = 0;
 let listenerRemove: (() => void) | null = null;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: number | null = null;
 const registrations = new Set<Registration>();
 let lastAppliedTier: ThermalTier | null = null;
 
@@ -55,7 +58,14 @@ async function applyTier(tier: ThermalTier): Promise<void> {
       await applyCaptureTierToVideoTrack(track, reg.getCameraFacing(), tier);
     }
     const room = reg.getRoom();
-    if (!room || !reg.publishesCamera) continue;
+    if (!room) continue;
+
+    // Always cap remote decode (spectator + host battle tiles) when thermal rises.
+    applyRemoteVideoBudget(room, {
+      battleRemoteCount: reg.getBattleRemoteCount?.() ?? 0,
+    });
+
+    if (!reg.publishesCamera) continue;
     const pub =
       room.localParticipant.getTrackPublication(Track.Source.Camera) ??
       room.localParticipant.getTrackPublicationByName('camera');

@@ -28,13 +28,13 @@ import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
-import { getLiveKitUrl } from '../../../lib/api';
 import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
 import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
+import { applyServerViewerCount } from '../ws/applyServerViewerCount';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import {
   DEFAULT_COHOST_LAYOUT_ID,
@@ -42,22 +42,27 @@ import {
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import {
+  appendBattleTileGiftForTarget,
   BATTLE_TILE_GIFT_STACK_CAP,
+  EMPTY_BATTLE_TILE_GIFTS,
   normalizeBattleGiftTarget,
   resolveBattleGiftIconUrl,
+  resolveBattleSlotForCreatorId,
+  resolveServerBattleGiftTarget,
+  shouldPlayFullBattleGiftVideo,
+  type BattleTileGifts,
+  type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { parseLiveGiftGoal, type LiveGiftGoal, isGiftGoalComplete, playGiftGoalReachedSound } from '../../../lib/liveGiftGoal';
 import { resolveUiAvatarUrl } from '../../../lib/royceAssets';
-import { getMembershipStatus } from '../../../lib/iap';
 import {
-  purchaseCreatorMembership,
-  peekPendingMembershipCreator,
-  consumePendingMembershipOpenPanel,
   loginReturnPath,
   stashPendingMembershipPurchase,
 } from '../../membership/membershipPurchaseFlow';
+import { useCreatorMembershipPurchase } from '../../membership/useCreatorMembershipPurchase';
 import { useLiveThermalQuality } from '../hooks/useLiveThermalQuality';
+import { applyRemoteVideoBudget } from '../../../lib/live/liveRemoteVideoBudget';
 import {
   apiLiveEngagementMissions,
   apiLiveGetDailyHearts,
@@ -75,9 +80,8 @@ import {
   apiFetchProfileById,
   apiToggleFollow,
 } from '../../feed/feedApi';
-import type { Room } from 'livekit-client';
 import { RoomEvent, ConnectionState } from 'livekit-client';
-import { apiLiveStreams, apiLiveToken, collectLiveUserIds, LiveRoomLifecycle } from '../../../lib/live';
+import { apiLiveStreams, apiLiveToken, collectLiveUserIds } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import { extractGiftId, extractGiftTxnId, resolveLocalGiftVideoUrl } from '../gifts/liveGiftIngest';
 import { useLiveGiftPlaybackQueue } from '../gifts/useLiveGiftPlaybackQueue';
@@ -98,6 +102,7 @@ import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
+import { useLiveChatStore } from '../chat/useLiveChatStore';
 import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
 import { apiFetchWallet } from '../../wallet/walletApi';
 
@@ -160,8 +165,10 @@ export function useLiveSpectatorController() {
     enqueueGiftVideo,
     handleGiftEnded,
     seenGiftTxnRef,
+    playedGiftVideoTxnRef,
     markGiftTxnSeen,
     hasSeenGiftTxn,
+    hasPlayedGiftVideoTxn,
     enqueueFromGiftSent,
   } = useLiveGiftPlaybackQueue();
   const [hostName, setHostName] = useState('Creator');
@@ -175,7 +182,15 @@ export function useLiveSpectatorController() {
   const [viewerCount, setViewerCount] = useState(0);
   const [activeLikes, setActiveLikes] = useState(0);
 
-  const [messages, setMessages] = useState<LiveMessage[]>([]);
+  const messages = useLiveChatStore((s) => s.messagesByStream[effectiveStreamId] ?? []);
+  const updateMessagesForStream = useLiveChatStore((s) => s.updateMessagesForStream);
+  const clearMessagesForStream = useLiveChatStore((s) => s.clearMessagesForStream);
+  const setMessages = useCallback(
+    (updater: (prev: LiveMessage[]) => LiveMessage[]) => {
+      updateMessagesForStream(effectiveStreamId, updater);
+    },
+    [effectiveStreamId, updateMessagesForStream],
+  );
   const [inputValue, setInputValue] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
   /** Real wallet coins — never overwritten by test-coin display balance. */
@@ -201,8 +216,6 @@ export function useLiveSpectatorController() {
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
   const [showFanClub, setShowFanClub] = useState(false);
   const [showTeamStatus, setShowTeamStatus] = useState(false);
-  const [isSubscribing, setIsSubscribing] = useState(false);
-  const [isMember, setIsMember] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
 
   // Point Multiplier Booster (glove) — the spectator's own active booster
@@ -221,7 +234,6 @@ export function useLiveSpectatorController() {
 
   const {
     state: engagementState,
-    nowMs: engagementNowMs,
     milestoneFlash,
     stageFlash,
     votePoll,
@@ -559,6 +571,18 @@ export function useLiveSpectatorController() {
     refreshMembershipStats();
   }, [showTeamStatus, refreshMembershipStats]);
 
+  const membershipCreatorId = String(hostUserId || effectiveStreamId || '').trim();
+  const {
+    isMember,
+    isSubscribing,
+    isSelf: membershipIsSelf,
+    handleSubscribe,
+  } = useCreatorMembershipPurchase({
+    creatorId: membershipCreatorId,
+    onActivated: refreshMembershipStats,
+    onOpenPanel: () => setShowTeamStatus(true),
+  });
+
   // ═══════════════════════════════════════════════════
   // BATTLE STATE (spectator sees host's battle status)
   // ═══════════════════════════════════════════════════
@@ -574,6 +598,10 @@ export function useLiveSpectatorController() {
     timeLeft: number;
     opponentName?: string;
     opponentRoomId?: string;
+    player3Name?: string;
+    player4Name?: string;
+    player3UserId?: string;
+    player4UserId?: string;
     winner?: string;
     redTeamLabel?: string;
     blueTeamLabel?: string;
@@ -696,6 +724,8 @@ export function useLiveSpectatorController() {
     hostUserId: string;
     opponentRoomId: string;
     opponentUserId: string;
+    player3UserId: string;
+    player4UserId: string;
   } | null>(null);
 
   // No Left/Right picker — gift + mist target follows the stream room you're watching.
@@ -724,6 +754,46 @@ export function useLiveSpectatorController() {
     battleStreamIds?.hostRoomId,
     battleStreamIds?.opponentRoomId,
     effectiveStreamId,
+  ]);
+
+  // Resolve which creator's audience this spectator is for full gift-video routing.
+  useEffect(() => {
+    const navState = location.state as { battleAudienceCreatorId?: string } | null;
+    const fromNav =
+      typeof navState?.battleAudienceCreatorId === 'string'
+        ? navState.battleAudienceCreatorId.trim()
+        : '';
+    const fromCurrentHost = String(hostUserIdRef.current || hostUserId || '').trim();
+    const creatorId = fromNav || battleAudienceCreatorIdRef.current || fromCurrentHost;
+    if (creatorId) {
+      battleAudienceCreatorIdRef.current = creatorId;
+    }
+    if (!spectatorBattle?.active) {
+      setBattleAudienceSlot('host');
+      return;
+    }
+    const ids = {
+      hostUserId: battleStreamIds?.hostUserId || hostUserId,
+      opponentUserId: battleStreamIds?.opponentUserId,
+      player3UserId: battleStreamIds?.player3UserId || spectatorBattle.player3UserId,
+      player4UserId: battleStreamIds?.player4UserId || spectatorBattle.player4UserId,
+      hostRoomId: battleStreamIds?.hostRoomId,
+      opponentRoomId: battleStreamIds?.opponentRoomId || spectatorBattle.opponentRoomId,
+    };
+    const slot =
+      resolveBattleSlotForCreatorId(creatorId, ids) ||
+      resolveBattleSlotForCreatorId(effectiveStreamId, ids) ||
+      'host';
+    setBattleAudienceSlot(slot);
+  }, [
+    spectatorBattle?.active,
+    spectatorBattle?.opponentRoomId,
+    spectatorBattle?.player3UserId,
+    spectatorBattle?.player4UserId,
+    battleStreamIds,
+    effectiveStreamId,
+    hostUserId,
+    location.state,
   ]);
 
   const fireAutoBooster = useCallback(() => {
@@ -807,8 +877,10 @@ export function useLiveSpectatorController() {
   }, [mvpSlots, pushBattleTaunt, spectatorBattle?.active]);
 
   const opponentVideoRef = useRef<HTMLVideoElement>(null);
-  const opponentLkRoomRef = useRef<Room | null>(null);
-  const opponentLifecycleRef = useRef(new LiveRoomLifecycle());
+  const player3VideoRef = useRef<HTMLVideoElement>(null);
+  const player4VideoRef = useRef<HTMLVideoElement>(null);
+  const [hasPlayer3Stream, setHasPlayer3Stream] = useState(false);
+  const [hasPlayer4Stream, setHasPlayer4Stream] = useState(false);
   const spectatorLiveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
@@ -816,6 +888,16 @@ export function useLiveSpectatorController() {
   const [battleSidePanel, setBattleSidePanel] = useState<'host' | 'opponent' | null>(null);
   const [lastOpponentGift, setLastOpponentGift] = useState<string[]>([]);
   const [lastHostGift, setLastHostGift] = useState<string[]>([]);
+  /** Per-creator battle tile gift icons (small corner — not full video). */
+  const [lastGifts, setLastGifts] = useState<BattleTileGifts>(EMPTY_BATTLE_TILE_GIFTS);
+  /**
+   * Which creator's audience this spectator belongs to for full gift-video routing.
+   * Preserved across battle-room redirect via location.state + in-memory ref.
+   */
+  const [battleAudienceSlot, setBattleAudienceSlot] = useState<ServerBattleGiftTarget>('host');
+  const battleAudienceSlotRef = useRef<ServerBattleGiftTarget>('host');
+  battleAudienceSlotRef.current = battleAudienceSlot;
+  const battleAudienceCreatorIdRef = useRef<string>('');
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
@@ -966,29 +1048,9 @@ export function useLiveSpectatorController() {
   // Battle remaining seconds: server battle_tick / battle_state only (no local owner).
   // Display updates when WS delivers timeLeft — do not race a second setInterval.
 
-  // Connect to opponent's LiveKit room so spectators see both battle videos.
-  // Also keep host-room attach below — after accept the opponent may publish there.
   useEffect(() => {
-    const roomId = spectatorBattle?.opponentRoomId;
-    if (!spectatorBattle?.active || !roomId) {
-      void opponentLifecycleRef.current.disconnect();
-      opponentLkRoomRef.current = null;
-      if (!spectatorBattle?.active) setHasOpponentStream(false);
-      return;
-    }
-    // Opponent room id may equal host room when they already joined the battle room.
-    if (roomId === effectiveStreamId) {
-      void opponentLifecycleRef.current.disconnect();
-      opponentLkRoomRef.current = null;
-      return;
-    }
-
-    // Battle joiners publish into the HOST LiveKit room after accept.
-    // One room owner only — secondary opponent-room connect duplicates decode/subscribe.
-    // Host-room attach effect below owns both battle tiles.
-    void opponentLifecycleRef.current.disconnect();
-    opponentLkRoomRef.current = null;
-  }, [spectatorBattle?.active, spectatorBattle?.opponentRoomId, effectiveStreamId]);
+    if (!spectatorBattle?.active) setHasOpponentStream(false);
+  }, [spectatorBattle?.active]);
 
   // ═══════════════════════════════════════════════════
   // CO-HOST STATE (synced from host so spectators see same layout)
@@ -1239,6 +1301,7 @@ export function useLiveSpectatorController() {
 
   // Video ref for live stream (LiveKit)
   const videoRef = useRef<HTMLVideoElement>(null);
+  const hostRemoteAudioRef = useRef<HTMLAudioElement>(null);
   /** Tap-to-like / floating hearts — rendered in chat panel (right side), not over video. */
   const spectatorStageRef = useRef<HTMLDivElement>(null);
   const spectatorChatHeartsRef = useRef<HTMLDivElement>(null);
@@ -1327,6 +1390,12 @@ export function useLiveSpectatorController() {
     hasStreamRef.current = hasStream;
   }, [hasStream]);
   const [liveConnectRetryKey, setLiveConnectRetryKey] = useState(0);
+  const liveConnectRetryAttemptsRef = useRef(0);
+  const streamIsLiveRef = useRef(streamIsLive);
+  streamIsLiveRef.current = streamIsLive;
+  const effectiveStreamIdRef = useRef(effectiveStreamId);
+  effectiveStreamIdRef.current = effectiveStreamId;
+  const lkDisconnectRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spectatorSession = useSpectatorLiveSession({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
     roomId: effectiveStreamId,
@@ -1343,13 +1412,36 @@ export function useLiveSpectatorController() {
     [coHostPublishStreamRef],
   );
   const getSpectatorThermalFacing = useCallback(() => cameraFacing, [cameraFacing]);
+  const getSpectatorBattleRemoteCount = useCallback(() => {
+    const b = spectatorBattleRef.current;
+    if (!b?.active) return 0;
+    let n = 0;
+    if (b.opponentRoomId || b.opponentName) n += 1;
+    if (b.player3UserId || b.player3Name) n += 1;
+    if (b.player4UserId || b.player4Name) n += 1;
+    return n;
+  }, []);
   useLiveThermalQuality({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
     getRoom: getSpectatorThermalRoom,
     getCameraVideoTrack: getSpectatorThermalCameraTrack,
     getCameraFacing: getSpectatorThermalFacing,
     publishesCamera: isCoHosting,
+    getBattleRemoteCount: getSpectatorBattleRemoteCount,
   });
+
+  // Background → foreground: retry LiveKit when WS reconnects globally in App.tsx.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (streamIsLiveRef.current !== true || !effectiveStreamIdRef.current) return;
+      if (!spectatorSession.connected && !spectatorSession.joinError) {
+        setLiveConnectRetryKey((k) => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [spectatorSession.connected, spectatorSession.joinError]);
 
   // Attach featured co-host / host-small tracks when big-screen switch changes.
   useEffect(() => {
@@ -1463,11 +1555,6 @@ export function useLiveSpectatorController() {
         };
 
         const { streams, error: streamsErr } = await apiLiveStreams();
-        if (streamsErr) {
-          setStreamIsLive(false);
-          showToast('Stream is offline');
-          return;
-        }
         const streamRows = (Array.isArray(streams) ? streams : []) as Array<{
           stream_key?: string;
           room_id?: string;
@@ -1476,8 +1563,10 @@ export function useLiveSpectatorController() {
           title?: string;
         }>;
         const stream =
-          streamRows.find((s) => s.stream_key === effectiveStreamId) ||
-          streamRows.find((s) => s.room_id === effectiveStreamId);
+          !streamsErr
+            ? streamRows.find((s) => s.stream_key === effectiveStreamId) ||
+              streamRows.find((s) => s.room_id === effectiveStreamId)
+            : undefined;
 
         if (stream) {
           if (cancelled) return;
@@ -1492,22 +1581,26 @@ export function useLiveSpectatorController() {
           return;
         }
 
-        // Not in the public list — still try to join if the room is live.
+        // List miss or list-fetch error — token issuance is the join owner.
         const { creds, error: tokenErr } = await apiLiveToken(effectiveStreamId, false);
         if (cancelled) return;
         if (tokenErr || !creds?.token) {
           setStreamIsLive(false);
-          showToast('Stream is offline');
+          const transient =
+            String(tokenErr || '').includes('503') ||
+            String(tokenErr || '').toLowerCase().includes('database_unavailable') ||
+            String(tokenErr || '').toLowerCase().includes('failed to fetch');
+          showToast(transient ? 'Could not connect to stream' : 'Stream is offline');
           return;
         }
         setStreamIsLive(true);
-        setViewerCount(0);
+        // Authoritative count arrives on WS connect (viewer_count / connected).
         syncMvpSlotsRef.current();
         await applyHostMeta(effectiveStreamId);
       } catch {
         if (!cancelled) {
           setStreamIsLive(false);
-          showToast('Stream is offline');
+          showToast('Could not connect to stream');
         }
       }
     })();
@@ -1610,7 +1703,9 @@ export function useLiveSpectatorController() {
         const isSelf = sameUserId(identity, myIdentity);
         if (track.kind === 'audio') {
           if (isSelf) return;
-          if (isHostIdentity(identity)) track.attach();
+          if (isHostIdentity(identity) && hostRemoteAudioRef.current) {
+            track.attach(hostRemoteAudioRef.current);
+          }
           return;
         }
         if (track.kind === 'video' && participant && videoRef.current) {
@@ -1645,6 +1740,31 @@ export function useLiveSpectatorController() {
         if (!id) return;
         markRemoteCam(id, false);
       },
+      onDisconnected: () => {
+        if (!streamIsLiveRef.current || !effectiveStreamIdRef.current) return;
+        if (lkDisconnectRetryRef.current) clearTimeout(lkDisconnectRetryRef.current);
+        // Prefer LiveKit SDK reconnect; only rebuild Room with exponential backoff.
+        const attempt = liveConnectRetryAttemptsRef.current;
+        if (attempt >= 5) return;
+        const delayMs = Math.min(30_000, 2_000 * Math.pow(2, attempt));
+        lkDisconnectRetryRef.current = setTimeout(() => {
+          lkDisconnectRetryRef.current = null;
+          if (streamIsLiveRef.current && effectiveStreamIdRef.current) {
+            liveConnectRetryAttemptsRef.current = attempt + 1;
+            setLiveConnectRetryKey((k) => k + 1);
+          }
+        }, delayMs);
+      },
+      onReconnected: () => {
+        liveConnectRetryAttemptsRef.current = 0;
+        if (lkDisconnectRetryRef.current) {
+          clearTimeout(lkDisconnectRetryRef.current);
+          lkDisconnectRetryRef.current = null;
+        }
+      },
+      onConnected: () => {
+        liveConnectRetryAttemptsRef.current = 0;
+      },
     };
   }
 
@@ -1670,8 +1790,8 @@ export function useLiveSpectatorController() {
         }
       }
       for (const [, publication] of participant.audioTrackPublications) {
-        if (publication.track && publication.isSubscribed && isHostIdentity(identity)) {
-          publication.track.attach();
+        if (publication.track && publication.isSubscribed && isHostIdentity(identity) && hostRemoteAudioRef.current) {
+          publication.track.attach(hostRemoteAudioRef.current);
         }
       }
     }
@@ -1772,55 +1892,92 @@ export function useLiveSpectatorController() {
     }
   }, [spectatorBattle?.active, effectiveStreamId, markRemoteCam, liveKitRoomRef]);
 
-  // Battle: the opponent publishes into the HOST's LiveKit room (their solo room
-  // ends when they join the battle). Route their host-room track to the opponent
-  // panel so spectators always see both fighters.
+  // Battle: route each creator's host-room LiveKit track to the correct tile.
   useEffect(() => {
-    const oppId = battleStreamIds?.opponentUserId;
     const room = liveKitRoomRef.current;
-    if (!room || !spectatorBattle?.active) return;
-    const tryAttach = () => {
-      const el = opponentVideoRef.current;
-      if (!el) return;
+    if (!room || !spectatorBattle?.active) {
+      setHasPlayer3Stream(false);
+      setHasPlayer4Stream(false);
+      return;
+    }
+
+    const attachForUser = (
+      userId: string | undefined,
+      el: HTMLVideoElement | null,
+      onAttached: (attached: boolean) => void,
+    ) => {
+      if (!userId || !el) {
+        onAttached(false);
+        return;
+      }
       for (const [, p] of room.remoteParticipants) {
         const identity = p.identity || '';
-        const isHost =
-          identity === (hostUserIdRef.current || '') ||
-          identity === effectiveStreamId;
-        if (isHost) continue;
-        if (oppId && identity !== oppId) continue;
+        if (!sameUserId(identity, userId)) continue;
         for (const [, pub] of p.videoTrackPublications) {
           if (pub.track && pub.isSubscribed) {
             pub.track.attach(el);
+            prepareLiveVideoEl(el);
             void el.play().catch(() => {});
-            setHasOpponentStream(true);
+            onAttached(true);
             return;
           }
         }
       }
+      onAttached(false);
     };
-    tryAttach();
+
+    const tryAttachAll = () => {
+      attachForUser(
+        battleStreamIds?.hostUserId || hostUserIdRef.current || hostUserId || effectiveStreamId,
+        videoRef.current,
+        (attached) => { if (attached) setHasStream(true); },
+      );
+      attachForUser(
+        battleStreamIds?.opponentUserId,
+        opponentVideoRef.current,
+        setHasOpponentStream,
+      );
+      attachForUser(
+        battleStreamIds?.player3UserId || spectatorBattle.player3UserId,
+        player3VideoRef.current,
+        setHasPlayer3Stream,
+      );
+      attachForUser(
+        battleStreamIds?.player4UserId || spectatorBattle.player4UserId,
+        player4VideoRef.current,
+        setHasPlayer4Stream,
+      );
+      applyRemoteVideoBudget(room, {
+        battleRemoteCount: getSpectatorBattleRemoteCount(),
+      });
+    };
+
+    tryAttachAll();
     const onSub = (
       track: import('livekit-client').RemoteTrack,
-      _pub: import('livekit-client').TrackPublication,
-      participant: import('livekit-client').RemoteParticipant,
     ) => {
-      if (track.kind !== 'video') return;
-      const identity = participant?.identity || '';
-      const isHost =
-        identity === (hostUserIdRef.current || '') ||
-        identity === effectiveStreamId;
-      if (isHost) return;
-      if (oppId && identity !== oppId) return;
-      tryAttach();
+      if (track.kind === 'video') tryAttachAll();
     };
     room.on(RoomEvent.TrackSubscribed, onSub);
-    room.on(RoomEvent.ParticipantConnected, tryAttach);
+    room.on(RoomEvent.ParticipantConnected, tryAttachAll);
     return () => {
       room.off(RoomEvent.TrackSubscribed, onSub);
-      room.off(RoomEvent.ParticipantConnected, tryAttach);
+      room.off(RoomEvent.ParticipantConnected, tryAttachAll);
     };
-  }, [battleStreamIds?.opponentUserId, spectatorBattle?.active, hasStream, effectiveStreamId, liveKitRoomRef]);
+  }, [
+    battleStreamIds?.hostUserId,
+    battleStreamIds?.opponentUserId,
+    battleStreamIds?.player3UserId,
+    battleStreamIds?.player4UserId,
+    spectatorBattle?.active,
+    spectatorBattle?.player3UserId,
+    spectatorBattle?.player4UserId,
+    hasStream,
+    effectiveStreamId,
+    hostUserId,
+    liveKitRoomRef,
+    getSpectatorBattleRemoteCount,
+  ]);
 
   // If we're still "connecting" after 18s, hint that host may not be publishing
   useEffect(() => {
@@ -2039,91 +2196,19 @@ export function useLiveSpectatorController() {
     });
   }, [showGiftPanel, user?.id]);
 
-  const handleSubscribe = useCallback(async () => {
-    const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
-    if (!creatorId || creatorId === user?.id) {
-      showToast('Creator unavailable');
-      return;
-    }
-    if (!user?.id || !useAuthStore.getState().session?.access_token) {
-      stashPendingMembershipPurchase(creatorId);
-      navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
-      return;
-    }
-    setIsSubscribing(true);
-    try {
-      const result = await purchaseCreatorMembership(creatorId);
-      if (!result.ok) {
-        if (result.needsLogin) {
-          navigate('/login', { state: { from: loginReturnPath(location.pathname, location.search) } });
-          return;
-        }
-        if (!result.cancelled) {
-          showToast(result.error || 'Membership purchase failed');
-        }
-        return;
-      }
-      setIsMember(true);
-      showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-      refreshMembershipStats();
-    } catch {
-      showToast('Membership purchase failed');
-    } finally {
-      setIsSubscribing(false);
-    }
-  }, [hostUserId, user?.id, navigate, location.pathname, location.search, refreshMembershipStats]);
-
-  const pendingMembershipResumeRef = useRef(false);
+  // Reset gift txn dedupe when switching to a different live room.
   useEffect(() => {
-    if (!user?.id || pendingMembershipResumeRef.current) return;
-    if (!consumePendingMembershipOpenPanel()) return;
-    const pending = peekPendingMembershipCreator();
-    const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
-    if (!pending || !creatorId || pending !== creatorId || pending === user.id) return;
-    pendingMembershipResumeRef.current = true;
-    setShowTeamStatus(true);
-    void (async () => {
-      setIsSubscribing(true);
-      try {
-        const result = await purchaseCreatorMembership(pending);
-        if (!result.ok) {
-          if (!result.cancelled && !result.needsLogin) {
-            showToast(result.error || 'Membership purchase failed');
-          }
-          return;
-        }
-        setIsMember(true);
-        showToast(result.alreadyActive ? 'Membership already active' : 'Membership activated!');
-        refreshMembershipStats();
-      } catch {
-        showToast('Membership purchase failed');
-      } finally {
-        setIsSubscribing(false);
-      }
-    })();
-  }, [user?.id, hostUserId, refreshMembershipStats]);
-
-  useEffect(() => {
-    const creatorId = hostUserIdRef.current || hostUserId;
-    if (!user?.id || !creatorId || creatorId === user.id) {
-      setIsMember(false);
-      return;
-    }
-    let cancelled = false;
-    void getMembershipStatus(creatorId).then(({ status }) => {
-      if (!cancelled) setIsMember(status?.active === true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [hostUserId, user?.id]);
+    seenGiftTxnRef.current.clear();
+    playedGiftVideoTxnRef.current.clear();
+    setCurrentGift(null);
+    setGiftQueue([]);
+  }, [effectiveStreamId, seenGiftTxnRef, playedGiftVideoTxnRef, setCurrentGift, setGiftQueue]);
 
   // WebSocket: spectators join the creator's live room (same room id = effectiveStreamId) for real-time chat, gifts, join/leave
   useEffect(() => {
-    if (!effectiveStreamId || !user?.id || !streamIsLive) return;
+    if (!effectiveStreamId || !user?.id) return;
 
     let mounted = true;
-    const joinAnnounced = joinAnnouncedRef.current;
 
     const connect = async () => {
       const token = useAuthStore.getState().session?.access_token || '';
@@ -2146,7 +2231,6 @@ export function useLiveSpectatorController() {
         // "host found" (or live video) just because another spectator joined
         // and we got a fresh room snapshot without the host id.
         let foundHostInList = false;
-        let count = 0;
         for (const v of viewers) {
           if (v.user_id === hid || v.user_id === effectiveStreamId || v.is_host) {
             foundHostInList = true;
@@ -2157,13 +2241,12 @@ export function useLiveSpectatorController() {
               level: v.level || 1,
             });
             joinAnnouncedRef.current.add(String(v.user_id));
-            count++;
           }
         }
         if (foundHostInList || hasStreamRef.current || !hid) {
           hostFoundInRoom = true;
         }
-        setViewerCount(Math.max(count, viewers.length - 1));
+        // Viewer count: server-authoritative viewer_count only.
         syncMvpSlots();
       }
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
@@ -2224,10 +2307,9 @@ export function useLiveSpectatorController() {
       // The join banner is ephemeral: it appears only when someone joins, then
       // clears itself so it never stays permanently in the chat feed.
       window.setTimeout(() => {
-        if (!mounted) return;
         setMessages(prev => prev.filter(m => m.id !== joinMsgId));
       }, 5000);
-      setViewerCount(prev => prev + 1);
+      // Viewer count: server viewer_count event — not local +/-.
       syncMvpSlots();
     };
 
@@ -2237,7 +2319,7 @@ export function useLiveSpectatorController() {
         actualViewersRef.current.delete(data.user_id);
         // Keep announced — leave/rejoin must not show join banner again this live.
       }
-      setViewerCount(prev => Math.max(0, prev - 1));
+      // Viewer count: server viewer_count event — not local +/-.
       syncMvpSlots();
     };
 
@@ -2292,11 +2374,18 @@ export function useLiveSpectatorController() {
     const handleGiftSent = (data) => {
       if (!mounted) return;
       const txnId = extractGiftTxnId(data);
-      if (txnId) {
-        if (hasSeenGiftTxn(txnId)) return;
+      const wsGiftId = extractGiftId(data);
+      const alreadySeen = hasSeenGiftTxn(txnId);
+      const videoAlreadyPlayed = hasPlayedGiftVideoTxn(txnId);
+
+      // Skip only when this transaction's video already played — not when the first
+      // payload lacked a URL (room broadcast + owner/cohost global can deliver twice).
+      if (alreadySeen && videoAlreadyPlayed) return;
+
+      if (txnId && !alreadySeen) {
         markGiftTxnSeen(txnId);
       }
-      const wsGiftId = extractGiftId(data);
+
       const giftDef = wsGiftId
         ? giftsCatalogRef.current.find((g) => g.id === wsGiftId)
         : undefined;
@@ -2304,122 +2393,139 @@ export function useLiveSpectatorController() {
       const giftCoins =
         giftDef?.coins ??
         (typeof data.coins === 'number' && Number.isFinite(data.coins) ? data.coins : 0);
-      // Co-host tile corner scores must update for the sender too (own gift echo
-      // returns early below for chat/video — scores still need to land here).
-      const cohostTarget =
-        (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
-        (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
-        '';
-      if (cohostTarget && giftCoins > 0) {
-        setCohostGiftScores((prev) => ({
-          ...prev,
-          [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
-        }));
-        const iconUrl = resolveBattleGiftIconUrl(
-          (typeof data.gift_icon === 'string' && data.gift_icon) ||
-            (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
-          resolveGiftAssetUrl,
-        );
-        if (iconUrl) {
-          setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
-        }
-      }
-      // Skip echo of our own gift — sender already queued local animation/chat.
-      if (gifterId && user?.id && gifterId === user.id) return;
-      if (gifterId && giftCoins > 0) {
-        const gifterName =
-          (typeof data.username === 'string' && data.username.trim()) ||
-          mvpIdentityRef.current.get(gifterId)?.name ||
-          'User';
-        const gifterAvatar =
-          (typeof data.avatar === 'string' && data.avatar) ||
-          mvpIdentityRef.current.get(gifterId)?.avatar ||
+
+      // Chat / MVP / co-host tile scores only on first delivery of this transaction.
+      if (!alreadySeen) {
+        const cohostTarget =
+          (typeof data.cohostTargetUserId === 'string' && data.cohostTargetUserId.trim()) ||
+          (typeof data.cohost_target_user_id === 'string' && data.cohost_target_user_id.trim()) ||
           '';
-        const gifterLevel =
-          (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
-          mvpIdentityRef.current.get(gifterId)?.level ??
-          1;
-        mvpIdentityRef.current.set(gifterId, {
-          name: gifterName,
-          avatar: gifterAvatar,
-          level: gifterLevel,
-        });
-        mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
-        if (spectatorBattleRef.current?.active) {
-          const side = normalizeBattleGiftTarget(data.battleTarget);
-          if (side === 'host') {
-            mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
-          } else if (side === 'opponent') {
-            mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
-          }
-        }
-        syncMvpSlots();
-      }
-      {
-        const giftName = formatGiftDisplayName(
-          giftDef?.name ||
-          (typeof data.giftName === 'string' && data.giftName.trim()) ||
-          (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
-          'Gift',
-        );
-        const msg: LiveMessage = {
-          id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
-          username: typeof data.username === 'string' ? data.username : 'User',
-          text: `sent ${giftName}`,
-          level: Number.isFinite(Number(data.level)) && Number(data.level) >= 0
-            ? Math.floor(Number(data.level))
-            : 1,
-          avatar: typeof data.avatar === 'string' ? data.avatar : '',
-          isGift: true,
-        };
-        setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
-        {
-          const flowerKey = giftName.toLowerCase();
-          if (
-            spectatorBattleRef.current?.active &&
-            (flowerKey.includes('rose') || flowerKey.includes('flower'))
-          ) {
-            roseCountRef.current += 1;
-            setRoseCount(roseCountRef.current);
-          }
-        }
-        if (spectatorBattleRef.current?.active) {
-          const side = normalizeBattleGiftTarget(data.battleTarget);
+        if (cohostTarget && giftCoins > 0) {
+          setCohostGiftScores((prev) => ({
+            ...prev,
+            [cohostTarget]: (prev[cohostTarget] || 0) + giftCoins,
+          }));
           const iconUrl = resolveBattleGiftIconUrl(
             (typeof data.gift_icon === 'string' && data.gift_icon) ||
               (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
             resolveGiftAssetUrl,
           );
-          if (iconUrl && side === 'opponent') {
-            setLastOpponentGift((prev) => {
-              const next = [...prev, iconUrl];
-              return next.length > BATTLE_TILE_GIFT_STACK_CAP
-                ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-                : next;
-            });
+          if (iconUrl) {
+            setCohostLastGifts((prev) => ({ ...prev, [cohostTarget]: iconUrl }));
           }
-          if (iconUrl && side === 'host') {
-            setLastHostGift((prev) => {
-              const next = [...prev, iconUrl];
-              return next.length > BATTLE_TILE_GIFT_STACK_CAP
-                ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-                : next;
+        }
+
+        // Skip echo chat/MVP for our own gift — sender already queued locally.
+        if (!(gifterId && user?.id && gifterId === user.id)) {
+          if (gifterId && giftCoins > 0) {
+            const gifterName =
+              (typeof data.username === 'string' && data.username.trim()) ||
+              mvpIdentityRef.current.get(gifterId)?.name ||
+              'User';
+            const gifterAvatar =
+              (typeof data.avatar === 'string' && data.avatar) ||
+              mvpIdentityRef.current.get(gifterId)?.avatar ||
+              '';
+            const gifterLevel =
+              (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
+              mvpIdentityRef.current.get(gifterId)?.level ??
+              1;
+            mvpIdentityRef.current.set(gifterId, {
+              name: gifterName,
+              avatar: gifterAvatar,
+              level: gifterLevel,
             });
+            mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
+            if (spectatorBattleRef.current?.active) {
+              const side = normalizeBattleGiftTarget(data.battleTarget);
+              if (side === 'host') {
+                mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
+              } else if (side === 'opponent') {
+                mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
+              }
+            }
+            syncMvpSlots();
+          }
+          const giftName = formatGiftDisplayName(
+            giftDef?.name ||
+            (typeof data.giftName === 'string' && data.giftName.trim()) ||
+            (typeof data.gift_name === 'string' && data.gift_name.trim()) ||
+            'Gift',
+          );
+          const msg: LiveMessage = {
+            id: `gift-ws-${txnId || Date.now()}-${Math.random()}`,
+            username: typeof data.username === 'string' ? data.username : 'User',
+            text: `sent ${giftName}`,
+            level: Number.isFinite(Number(data.level)) && Number(data.level) >= 0
+              ? Math.floor(Number(data.level))
+              : 1,
+            avatar: typeof data.avatar === 'string' ? data.avatar : '',
+            isGift: true,
+          };
+          setMessages(prev => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
+          {
+            const flowerKey = giftName.toLowerCase();
+            if (
+              spectatorBattleRef.current?.active &&
+              (flowerKey.includes('rose') || flowerKey.includes('flower'))
+            ) {
+              roseCountRef.current += 1;
+              setRoseCount(roseCountRef.current);
+            }
+          }
+          if (spectatorBattleRef.current?.active) {
+            const iconUrl = resolveBattleGiftIconUrl(
+              (typeof data.gift_icon === 'string' && data.gift_icon) ||
+                (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
+              resolveGiftAssetUrl,
+            );
+            const giftSlot = resolveServerBattleGiftTarget(data.battleTarget);
+            if (iconUrl && giftSlot) {
+              setLastGifts((prev) => appendBattleTileGiftForTarget(prev, giftSlot, iconUrl));
+            }
+            const side = normalizeBattleGiftTarget(data.battleTarget);
+            if (iconUrl && side === 'opponent') {
+              setLastOpponentGift((prev) => {
+                const next = [...prev, iconUrl];
+                return next.length > BATTLE_TILE_GIFT_STACK_CAP
+                  ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+                  : next;
+              });
+            }
+            if (iconUrl && side === 'host') {
+              setLastHostGift((prev) => {
+                const next = [...prev, iconUrl];
+                return next.length > BATTLE_TILE_GIFT_STACK_CAP
+                  ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
+                  : next;
+              });
+            }
           }
         }
       }
+
       // Play gift video for other users' gifts (sender already queued locally).
-      // In battle: video plays only on the receiving side's half (battleSide).
-      const battleSide = spectatorBattleRef.current?.active
-        ? normalizeBattleGiftTarget(data.battleTarget)
+      if (gifterId && user?.id && gifterId === user.id) return;
+
+      const giftSlot = spectatorBattleRef.current?.active
+        ? resolveServerBattleGiftTarget(data.battleTarget)
         : null;
+      // Battle: full video only for the target creator's audience. Others keep
+      // the same gift event as a small tile icon (lastGifts) — never fullscreen.
+      if (
+        spectatorBattleRef.current?.active &&
+        !shouldPlayFullBattleGiftVideo(giftSlot, battleAudienceSlotRef.current)
+      ) {
+        return;
+      }
+
       enqueueFromGiftSent({
         data,
         catalogRef: giftsCatalogRef,
         setGiftsCatalog,
-        battleSide,
+        battleSide: giftSlot ? normalizeBattleGiftTarget(giftSlot) : null,
         txnId,
-        trackPlayedVideo: false,
+        trackPlayedVideo: true,
         mounted: () => mounted,
       });
     };
@@ -2427,6 +2533,10 @@ export function useLiveSpectatorController() {
     const handleStreamEnded = (data?: Record<string, unknown>) => {
 
       if (!mounted) return;
+      // Ignore end events for other rooms (feed broadcasts / stale listeners).
+      const endedKey =
+        data && typeof data.stream_key === 'string' ? data.stream_key.trim() : '';
+      if (endedKey && endedKey !== effectiveStreamId) return;
       const reason =
         data && typeof data.reason === 'string' ? data.reason : '';
       // Client-only reconnect exhaustion — never treat as host ending the live.
@@ -2440,7 +2550,16 @@ export function useLiveSpectatorController() {
         data && typeof data.battle_room_id === 'string' ? data.battle_room_id : '';
       if (battleRoom) {
         if (battleRoom !== effectiveStreamId) {
-          navigate(`/watch/${battleRoom}`, { replace: true });
+          const audienceCreatorId = String(
+            hostUserIdRef.current || hostUserId || effectiveStreamId || '',
+          ).trim();
+          if (audienceCreatorId) {
+            battleAudienceCreatorIdRef.current = audienceCreatorId;
+          }
+          navigate(`/watch/${battleRoom}`, {
+            replace: true,
+            state: { battleAudienceCreatorId: audienceCreatorId },
+          });
           return;
         }
         // Same room is the battle room — stay; do not show "Stream ended".
@@ -2449,17 +2568,19 @@ export function useLiveSpectatorController() {
       if (reason === 'host_joined_battle') {
         return;
       }
-      // Host WS grace races during battle must not kick spectators while PK UI
-      // is active, or while LiveKit still has the host after a brief disconnect.
+      // Host WS grace races during battle / cohost must not kick spectators while
+      // LiveKit is still connected to this room (host or co-host tracks may blip).
       const inBattle = !!spectatorBattleRef.current?.active;
       if (inBattle) return;
-      if (reason === 'host_disconnected' && hasStreamRef.current) {
+      if (reason === 'host_disconnected') {
         const lkRoom = liveKitRoomRef.current;
         if (lkRoom?.state === ConnectionState.Connected) return;
+        if (hasStreamRef.current) return;
       }
       setStreamEndedReceived(true);
       setStreamIsLive(false);
       websocket.disconnect();
+      clearMessagesForStream(effectiveStreamId);
       setTimeout(() => { if (mounted) navigate('/feed', { replace: true }); }, 2000);
     };
 
@@ -2484,6 +2605,8 @@ export function useLiveSpectatorController() {
           hostUserId: typeof data.hostUserId === 'string' ? data.hostUserId : '',
           opponentRoomId: typeof data.opponentRoomId === 'string' ? data.opponentRoomId : '',
           opponentUserId: typeof data.opponentUserId === 'string' ? data.opponentUserId : '',
+          player3UserId: typeof data.player3UserId === 'string' ? data.player3UserId : '',
+          player4UserId: typeof data.player4UserId === 'string' ? data.player4UserId : '',
         });
       }
       if (inBattleLayout) {
@@ -2506,6 +2629,10 @@ export function useLiveSpectatorController() {
           timeLeft: toTime(data.timeLeft, status === 'WAITING' ? 300 : (prev?.timeLeft ?? 300)),
           opponentName: data.opponentName || data.opponent_name || prev?.opponentName,
           opponentRoomId: data.opponentRoomId || prev?.opponentRoomId,
+          player3Name: data.player3Name || prev?.player3Name,
+          player4Name: data.player4Name || prev?.player4Name,
+          player3UserId: data.player3UserId || prev?.player3UserId,
+          player4UserId: data.player4UserId || prev?.player4UserId,
           redTeamLabel: labels.red || prev?.redTeamLabel || '',
           blueTeamLabel: labels.blue || prev?.blueTeamLabel || '',
           winner: undefined,
@@ -2519,6 +2646,9 @@ export function useLiveSpectatorController() {
         setTimeout(() => {
           setSpectatorBattle(null);
           resetScores();
+          setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
+          setLastHostGift([]);
+          setLastOpponentGift([]);
         }, 2500);
       }
     };
@@ -2565,6 +2695,10 @@ export function useLiveSpectatorController() {
           player4Score: result.totals.p4,
           opponentName: newOppName,
           opponentRoomId: newOppRoom,
+          player3Name: (typeof data.player3Name === 'string' && data.player3Name) || prevState?.player3Name,
+          player4Name: (typeof data.player4Name === 'string' && data.player4Name) || prevState?.player4Name,
+          player3UserId: (typeof data.player3UserId === 'string' && data.player3UserId) || prevState?.player3UserId,
+          player4UserId: (typeof data.player4UserId === 'string' && data.player4UserId) || prevState?.player4UserId,
           winner: prevState?.winner,
           redTeamLabel: labels.red || prevState?.redTeamLabel || '',
           blueTeamLabel: labels.blue || prevState?.blueTeamLabel || '',
@@ -2610,6 +2744,9 @@ export function useLiveSpectatorController() {
       setTimeout(() => {
         setSpectatorBattle(null);
         resetScores();
+        setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
+        setLastHostGift([]);
+        setLastOpponentGift([]);
       }, 2500);
     };
 
@@ -2650,7 +2787,9 @@ export function useLiveSpectatorController() {
       }
       if (typeof data.featuredUserId === 'string' && data.featuredUserId.trim()) {
         setFeaturedUserId(data.featuredUserId.trim());
-      } else if (data.featuredUserId === null) {
+      } else if (data.featuredUserId === null || data.featuredUserId === undefined) {
+        // Host is the sole layout owner — null/omitted clears featured.
+        // Always apply so a prior local-only toggle cannot stick.
         setFeaturedUserId(null);
       }
       const layoutParsed = parseCohostLayoutId(data.layoutId);
@@ -2722,8 +2861,14 @@ export function useLiveSpectatorController() {
       }
     };
 
-    const onConnected = () => {
-      // Re-sync battle layout if creator already switched to battle before we joined.
+    const handleViewerCount = (data: unknown) => {
+      if (!mounted) return;
+      applyServerViewerCount(data, setViewerCount);
+    };
+
+    const onConnected = (data?: unknown) => {
+      handleViewerCount(data);
+      // Full session resync after WS reconnect (battle, co-host layout, viewer count).
       battleGetState();
     };
     const unbindRoomWs = bindLiveRoomWs({
@@ -2735,6 +2880,7 @@ export function useLiveSpectatorController() {
       onGiftGoalSync: handleGiftGoalSync,
       onHeartSent: handleHeartSent,
       onStreamEnded: handleStreamEnded,
+      onViewerCount: handleViewerCount,
       onConnected,
     });
     const handleBoosterActivated = (data: unknown) => {
@@ -2804,6 +2950,15 @@ export function useLiveSpectatorController() {
 
     const goOffline = async (_reason: string) => {
       if (!mounted) return;
+      // Never eject while the same-room WS or LiveKit session is recovering.
+      if (
+        websocket.getCurrentRoomId() === effectiveStreamId &&
+        (websocket.isConnected() || websocket.isReconnecting())
+      ) {
+        return;
+      }
+      const lkReconnecting = liveKitRoomRef.current;
+      if (lkReconnecting?.state === ConnectionState.Reconnecting) return;
       // Already watching host video — another spectator joining must never tear this down.
       if (hasStreamRef.current) return;
       // Battle layout active — do not synthesize offline while PK is running.
@@ -2844,17 +2999,36 @@ export function useLiveSpectatorController() {
 
     const connectTimeout = setTimeout(() => {
       if (!mounted || hasStreamRef.current) return;
+      if (
+        websocket.getCurrentRoomId() === effectiveStreamId &&
+        (websocket.isConnected() || websocket.isReconnecting())
+      ) {
+        return;
+      }
       // Host is often not listed in WS viewers — do NOT force hostFoundInRoom=false
       // from roomUsers alone (that falsely ends watch when another spectator joins).
       if (!hostFoundInRoom) goOffline('host_not_found_after_connect_timeout');
-    }, 15000);
+    }, 45000);
 
     const videoTimeout = setTimeout(() => {
       if (!mounted || hasStreamRef.current) return;
+      if (
+        websocket.getCurrentRoomId() === effectiveStreamId &&
+        (websocket.isConnected() || websocket.isReconnecting())
+      ) {
+        return;
+      }
+      const lkRoom = liveKitRoomRef.current;
+      if (
+        lkRoom?.state === ConnectionState.Connected ||
+        lkRoom?.state === ConnectionState.Reconnecting
+      ) {
+        return;
+      }
       const vid = videoRef.current;
       const hasTrack = vid?.srcObject && (vid.srcObject as MediaStream).getVideoTracks().length > 0;
       if (!hasTrack && !hostFoundInRoom) goOffline('no_video_track_and_host_not_found_after_video_timeout');
-    }, 25000);
+    }, 60000);
 
     return () => {
       mounted = false;
@@ -2864,13 +3038,13 @@ export function useLiveSpectatorController() {
       unbindBattleWs();
       unbindBattleInviteWs();
       unbindCohostWs();
-      joinAnnounced.clear();
+      // Do NOT clear joinAnnouncedRef — reconnect must not reset join dedupe or viewer state.
       // Do NOT websocket.disconnect() here — battle/MVP callback identity churn was
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveStreamId, user?.id, streamIsLive]);
+  }, [effectiveStreamId, user?.id]);
 
   // Disconnect WS only when leaving this stream page entirely.
   useEffect(() => {
@@ -3006,15 +3180,16 @@ export function useLiveSpectatorController() {
     [user?.id, hostUserId, effectiveStreamId, isFollowing, navigate, location.pathname],
   );
 
-  /** One membership heart per calendar day. Counts on creator membership stats (heart_days). */
+  /** One membership heart per calendar day. Counts on creator membership stats (heart_days).
+   * Always opens Team Status so Buy Membership is reachable even if heart cannot send yet. */
   const sendMembershipHeartJoin = useCallback(
     async (e?: React.MouseEvent) => {
       e?.stopPropagation();
-      if (!isFollowing) {
-        showToast('Follow first to give a membership heart');
-        return;
-      }
-      const creatorId = String(hostUserIdRef.current || hostUserId || '').trim();
+      const creatorId = String(hostUserIdRef.current || hostUserId || effectiveStreamId || '').trim();
+
+      // Open membership panel first — Buy Membership must be visible in the same sheet.
+      setShowTeamStatus(true);
+
       if (!user?.id) {
         if (creatorId && creatorId !== 'broadcast') {
           stashPendingMembershipPurchase(creatorId);
@@ -3035,9 +3210,13 @@ export function useLiveSpectatorController() {
         return;
       }
 
+      if (!isFollowing) {
+        showToast('Follow first to give a membership heart');
+        return;
+      }
+
       if (hasJoinedToday) {
         showToast('Already sent today’s membership heart');
-        setShowTeamStatus(true);
         return;
       }
 
@@ -3047,7 +3226,6 @@ export function useLiveSpectatorController() {
         if (before?.hasSent) {
           setHasJoinedToday(true);
           showToast('Already sent today’s membership heart');
-          setShowTeamStatus(true);
           return;
         }
       } catch (err) {
@@ -3058,20 +3236,17 @@ export function useLiveSpectatorController() {
         const { data: d, error } = await apiLiveSendDailyHeart(creatorId);
         if (error) {
           showToast('Could not send membership heart. Try again.');
-          setShowTeamStatus(true);
           return;
         }
         const already = d?.already === true;
         const ok = d?.ok === true || already;
         if (!ok) {
           showToast('Could not send membership heart. Try again.');
-          setShowTeamStatus(true);
           return;
         }
 
         // Orange Join immediately after a successful send (same day) — server owns the day flag.
         setHasJoinedToday(true);
-        setShowTeamStatus(true);
 
         if (e && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
           spawnHeartFromClient(e.clientX, e.clientY);
@@ -3133,6 +3308,8 @@ export function useLiveSpectatorController() {
       viewerAvatar,
       userLevel,
       refreshMembershipStats,
+      effectiveStreamId,
+      setMessages,
     ],
   );
 
@@ -3357,8 +3534,18 @@ export function useLiveSpectatorController() {
     if (gift.video && gift.video.trim()) {
       const videoUrl = resolveLocalGiftVideoUrl(gift.video);
       if (videoUrl) {
-        const localBattleSide = spectatorBattle?.active ? spectatorGiftBattleTarget : null;
-        enqueueGiftVideo(videoUrl, localBattleSide);
+        const localSlot = spectatorBattle?.active
+          ? resolveServerBattleGiftTarget(spectatorGiftBattleTarget)
+          : null;
+        const playFull =
+          !spectatorBattle?.active ||
+          shouldPlayFullBattleGiftVideo(localSlot, battleAudienceSlotRef.current);
+        if (playFull) {
+          enqueueGiftVideo(
+            videoUrl,
+            spectatorBattle?.active ? spectatorGiftBattleTarget : null,
+          );
+        }
       }
     }
 
@@ -3433,6 +3620,10 @@ export function useLiveSpectatorController() {
     });
     if (spectatorBattle?.active) {
       const iconUrl = resolveBattleGiftIconUrl(gift.icon, resolveGiftAssetUrl);
+      const giftSlot = resolveServerBattleGiftTarget(spectatorGiftBattleTarget);
+      if (iconUrl && giftSlot) {
+        setLastGifts((prev) => appendBattleTileGiftForTarget(prev, giftSlot, iconUrl));
+      }
       if (iconUrl && spectatorGiftBattleTarget === 'opponent') {
         setLastOpponentGift((prev) => {
           const next = [...prev, iconUrl];
@@ -3525,7 +3716,6 @@ export function useLiveSpectatorController() {
     battleTauntBursts,
     boosterActivations,
     boosterCatches,
-    engagementNowMs,
     engagementState,
     coHostChanRef,
     coHostPublishStreamRef,
@@ -3588,6 +3778,7 @@ export function useLiveSpectatorController() {
     isCoHosting,
     isFollowing,
     isMember,
+    membershipIsSelf,
     isMicMuted,
     isModerator,
     isMoreMenuOpen,
@@ -3597,6 +3788,8 @@ export function useLiveSpectatorController() {
     joinRequested,
     lastOpponentGift,
     lastHostGift,
+    lastGifts,
+    battleAudienceSlot,
     lastSentGift,
     leaveStreamWithSlide,
     liveConnectRetryKey,
@@ -3620,12 +3813,14 @@ export function useLiveSpectatorController() {
     mvpSlots,
     myVideoRef,
     navigate,
-    opponentLifecycleRef,
-    opponentLkRoomRef,
     opponentProfile,
     hostBattleProfile,
     opponentProfileFetchedRef,
     opponentVideoRef,
+    player3VideoRef,
+    player4VideoRef,
+    hasPlayer3Stream,
+    hasPlayer4Stream,
     pageExiting,
     pendingBattleInvite,
     pendingCoHostInvite,
@@ -3690,11 +3885,9 @@ export function useLiveSpectatorController() {
     setIsChatVisible,
     setIsCoHosting,
     setIsFollowing,
-    setIsMember,
     setIsMicMuted,
     setIsMoreMenuOpen,
     setIsReportModalOpen,
-    setIsSubscribing,
     setJoinRequested,
     setLastOpponentGift,
     setLastSentGift,
@@ -3819,6 +4012,7 @@ export function useLiveSpectatorController() {
     userLevel,
     userXP,
     videoRef,
+    hostRemoteAudioRef,
     viewerAvatar,
     viewerCount,
     viewerName,

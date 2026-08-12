@@ -46,6 +46,65 @@ export function normalizeBattleGiftTarget(raw: unknown): BattleGiftSide | null {
   return null;
 }
 
+/** Exact PK seat for gift scoring / animation — never collapse P3→host or P4→opponent. */
+export function resolveServerBattleGiftTarget(
+  raw: unknown,
+): ServerBattleGiftTarget | null {
+  if (
+    raw === "host" ||
+    raw === "opponent" ||
+    raw === "player3" ||
+    raw === "player4"
+  ) {
+    return raw;
+  }
+  if (raw === "me") return "host";
+  return null;
+}
+
+export type BattleCreatorIds = {
+  hostUserId?: string | null;
+  opponentUserId?: string | null;
+  player3UserId?: string | null;
+  player4UserId?: string | null;
+  hostRoomId?: string | null;
+  opponentRoomId?: string | null;
+};
+
+function sameBattleId(a: string | null | undefined, b: string | null | undefined): boolean {
+  const na = typeof a === "string" ? a.trim().toLowerCase() : "";
+  const nb = typeof b === "string" ? b.trim().toLowerCase() : "";
+  return !!na && !!nb && na === nb;
+}
+
+/** Map a creator userId / roomId to their battle seat. */
+export function resolveBattleSlotForCreatorId(
+  creatorId: string | null | undefined,
+  ids: BattleCreatorIds | null | undefined,
+): ServerBattleGiftTarget | null {
+  const cid = typeof creatorId === "string" ? creatorId.trim() : "";
+  if (!cid || !ids) return null;
+  if (sameBattleId(cid, ids.hostUserId) || sameBattleId(cid, ids.hostRoomId)) return "host";
+  if (sameBattleId(cid, ids.opponentUserId) || sameBattleId(cid, ids.opponentRoomId)) {
+    return "opponent";
+  }
+  if (sameBattleId(cid, ids.player3UserId)) return "player3";
+  if (sameBattleId(cid, ids.player4UserId)) return "player4";
+  return null;
+}
+
+/**
+ * Full gift video plays only for the target creator + that creator's audience.
+ * Other creators / audiences still receive the same gift event (score + small icon).
+ */
+export function shouldPlayFullBattleGiftVideo(
+  giftTarget: ServerBattleGiftTarget | null,
+  audienceSlot: ServerBattleGiftTarget | null,
+): boolean {
+  if (!giftTarget || !audienceSlot) return false;
+  return giftTarget === audienceSlot;
+}
+
 /** Resolve gift PNG/icon URL for battle tile stacks (icon only — never video). */
 export function resolveBattleGiftIconUrl(
   icon: unknown,
@@ -91,25 +150,14 @@ export function appendBattleTileGift(
   };
 }
 
-/** Append icon for a server battleTarget (P3/P4 also mirror onto team host/opponent tiles). */
+/** Append icon only on the recipient creator's tile (no team mirroring). */
 export function appendBattleTileGiftForTarget(
   prev: BattleTileGifts,
   target: unknown,
   iconUrl: string,
 ): BattleTileGifts {
   if (!iconUrl) return prev;
-  if (target === "player3") {
-    return appendBattleTileGift(appendBattleTileGift(prev, "player3", iconUrl), "host", iconUrl);
-  }
-  if (target === "player4") {
-    return appendBattleTileGift(appendBattleTileGift(prev, "player4", iconUrl), "opponent", iconUrl);
-  }
-  const side = normalizeBattleGiftTarget(target);
-  if (side === "host" || target === "host" || target === "me") {
-    return appendBattleTileGift(prev, "host", iconUrl);
-  }
-  if (side === "opponent" || target === "opponent") {
-    return appendBattleTileGift(prev, "opponent", iconUrl);
-  }
-  return prev;
+  const slot = resolveServerBattleGiftTarget(target);
+  if (!slot) return prev;
+  return appendBattleTileGift(prev, slot, iconUrl);
 }

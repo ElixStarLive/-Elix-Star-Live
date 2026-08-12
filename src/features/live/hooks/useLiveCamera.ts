@@ -8,7 +8,10 @@ import {
   getCachedCameraStream,
   setCachedCameraStream,
 } from '../../../lib/cameraStream';
-import { buildCameraGetUserMediaVideoConstraints } from '../../../lib/live/liveMediaProfile';
+import {
+  buildCameraGetUserMediaVideoConstraints,
+  enforceLiveCaptureOnStream,
+} from '../../../lib/live/liveMediaProfile';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
 
 export type LiveCameraApi = ReturnType<typeof useLiveCamera>;
@@ -98,6 +101,9 @@ export function useLiveCamera(opts: {
             cached.getVideoTracks().forEach((t) => {
               t.enabled = !isCamOffRef.current;
             });
+            // Create hands off unconstrained capture (often 1080p/60). Live owns
+            // 720p/30 — apply before preview/publish so Normal Live does not encode max.
+            await enforceLiveCaptureOnStream(cached, cameraFacing);
             if (videoRef.current) {
               videoRef.current.srcObject = cached;
               prepareLiveVideoEl(videoRef.current);
@@ -137,6 +143,9 @@ export function useLiveCamera(opts: {
       stream.getVideoTracks().forEach((t) => {
         t.enabled = !isCamOffRef.current;
       });
+
+      // Browser may ignore getUserMedia ideals — enforce Live 720p/30 on the live track.
+      await enforceLiveCaptureOnStream(stream, cameraFacing);
 
       // Widest view when the device exposes zoom.
       try {
