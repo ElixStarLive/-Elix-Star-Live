@@ -54,7 +54,6 @@ import { apiLiveStreams, isUserLive } from '../lib/live';
 const VIDEO_SIDEBAR_AVATAR = 38;
 /** Description-row creator circle only: +1mm each side. Level pill stays {@link LEVEL_BADGE_PILL_PX}. */
 const VIDEO_DESC_AVATAR_PX = profileRingOuterAddMm(LEVEL_BADGE_RING_PX, 2);
-const GOLD_ICON = 'royce-icon-gold';
 const GOLD_COUNT = 'text-[10px] font-semibold leading-none text-gold-light';
 
 interface EnhancedVideoPlayerProps {
@@ -66,55 +65,7 @@ interface EnhancedVideoPlayerProps {
   edgeToBottomNav?: boolean;
 }
 
-// Premium Sidebar Button Component
-export const PremiumSidebarButton = ({ 
-  onClick, 
-  isActive = false, 
-  iconSrc,
-  icon: Icon,
-  label, 
-  className = ""
-}: { 
-  onClick: () => void; 
-  isActive?: boolean; 
-  iconSrc?: string;
-  icon?: React.ElementType;
-  label?: string;
-  className?: string;
-}) => (
-  <div className={`flex flex-col items-center ${className}`}>
-    <button 
-      onClick={onClick}
-      className="relative w-14 h-14 flex items-center justify-center transition-all duration-200 active:scale-90"
-    >
-      {iconSrc ? (
-        <img 
-          src={iconSrc} 
-          alt="" 
-          className={`w-7 h-7 object-contain transition-all duration-200 ${isActive ? 'brightness-125' : 'opacity-80'}`}
-        />
-      ) : Icon && (
-        <Icon 
-          className={`w-7 h-7 stroke-[2px] transition-all duration-200 ${
-            isActive ? GOLD_ICON : 'text-gold-bright/60'
-          }`}
-          style={isActive && !iconSrc ? { fill: '#D8D9DD' } : { fill: 'transparent' }}
-        />
-      )}
-    </button>
-    {label && (
-      <span 
-        className={`elix-silver-red-text text-xs font-semibold mt-1 cursor-pointer hover:underline transition-opacity ${
-          isActive ? '' : 'opacity-70'
-        }`}
-        style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
-        onClick={onClick}
-      >
-        {label}
-      </span>
-    )}
-  </div>
-);
+// Premium Sidebar Button removed — unused leftover (never mounted).
 
 export default function EnhancedVideoPlayer({ 
   videoId, 

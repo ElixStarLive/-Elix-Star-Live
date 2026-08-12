@@ -18,7 +18,7 @@ function nonNegOrNull(n: unknown): number | null {
 }
 
 /** Parse wallet JSON. Returns null when paid balance fields are missing (never invent 0). */
-export function parseWalletBalances(
+function parseWalletBalances(
   data: Record<string, unknown> | null | undefined,
 ): WalletBalances | null {
   if (!data || typeof data !== 'object') return null;

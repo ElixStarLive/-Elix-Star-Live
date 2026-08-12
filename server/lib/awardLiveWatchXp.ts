@@ -4,6 +4,7 @@
  */
 import { getPool } from "./postgres";
 import { logger } from "./logger";
+import { applyXpGainAndSyncLevel } from "./xpProgressionApply";
 
 export async function awardLiveWatchXp(input: {
   userId: string;
@@ -63,50 +64,14 @@ export async function awardLiveWatchXp(input: {
       [input.userId, xpAmount, input.roomId, idempotencyKey],
     );
     const xpGained = tx.rows[0] ? xpAmount : 0;
-    if (xpGained > 0) {
-      await client.query(
-        `UPDATE user_progression
-            SET total_xp = total_xp + $2, updated_at = NOW()
-          WHERE user_id = $1`,
-        [input.userId, xpGained],
-      );
-    }
-    const calculated = await client.query(
-      `SELECT up.total_xp::bigint AS total_xp,
-              COALESCE(MAX(l.level), 0)::int AS calculated_level
-         FROM user_progression up
-         LEFT JOIN xp_level_requirements l
-           ON l.total_xp_required <= up.total_xp
-        WHERE up.user_id = $1
-        GROUP BY up.total_xp`,
-      [input.userId],
-    );
-    const totalXp = Math.max(0, Number(calculated.rows[0]?.total_xp) || 0);
-    const newLevel = Math.max(0, Number(calculated.rows[0]?.calculated_level) || 0);
-    await client.query(
-      `UPDATE user_progression SET current_level = $2, updated_at = NOW()
-        WHERE user_id = $1`,
-      [input.userId, newLevel],
-    );
-    await client.query(
-      `UPDATE profiles SET level = $2, updated_at = NOW() WHERE user_id = $1`,
-      [input.userId, newLevel],
-    );
-    if (newLevel !== oldLevel) {
-      await client.query(
-        `INSERT INTO level_history
-           (user_id, from_level, to_level, total_xp, source_xp_transaction_id)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [input.userId, oldLevel, newLevel, totalXp, tx.rows[0]?.id || null],
-      );
-    }
+    const result = await applyXpGainAndSyncLevel(client, {
+      userId: input.userId,
+      oldLevel,
+      xpGained,
+      sourceTransactionId: tx.rows[0]?.id ? String(tx.rows[0].id) : null,
+    });
     await client.query("COMMIT");
-    return {
-      xp_gained: xpGained,
-      total_xp: totalXp,
-      new_level: newLevel,
-      leveled_up: newLevel > oldLevel,
-    };
+    return result;
   } catch (err) {
     await client.query("ROLLBACK").catch(() => undefined);
     logger.error({ err, userId: input.userId }, "awardLiveWatchXp failed");

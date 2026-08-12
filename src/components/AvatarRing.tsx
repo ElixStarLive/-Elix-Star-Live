@@ -1,7 +1,4 @@
 import { resolveUiAvatarUrl } from '../lib/royceAssets';
-import { USER_CIRCLE_GLOW } from '../lib/userCircleGlow';
-
-export { USER_CIRCLE_GLOW };
 
 interface AvatarRingProps {
   src: string;

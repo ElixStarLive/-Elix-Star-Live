@@ -10,24 +10,12 @@ import { platform } from './platform';
 import { useAuthStore } from '../store/useAuthStore';
 import { request } from './apiClient';
 import {
-  APPLE_IAP_PRODUCT_IDS,
-  APPLE_IAP_PRODUCTS,
-  GOOGLE_PLAY_PRODUCT_IDS,
-  GOOGLE_PLAY_PRODUCTS,
   coinAmountForProviderProduct,
   isProductAllowedForProvider,
   storeCoinProductIdsForNativePlatform,
   type StoreCoinProductId,
   type StoreIapProvider,
 } from './storeProductCatalogs';
-
-export {
-  APPLE_IAP_PRODUCT_IDS,
-  APPLE_IAP_PRODUCTS,
-  GOOGLE_PLAY_PRODUCT_IDS,
-  GOOGLE_PLAY_PRODUCTS,
-  storeCoinProductIdsForNativePlatform,
-};
 
 export type IAPProductId = StoreCoinProductId;
 
@@ -55,20 +43,14 @@ function isSkuForCurrentStore(productId: string): boolean {
   return isProductAllowedForProvider(provider, productId);
 }
 
-/** Coin SKUs for the current native store — platform catalogue only. */
-export function coinProductIdsForPlatform(): readonly string[] {
-  return storeCoinProductIdsForNativePlatform(nativePlatformKey());
-}
-
 // Promote boost product IDs (Apple IAP) — match goals: views £5, likes £10, profile £20, followers £30
-export const PROMOTE_PRODUCTS = {
+const PROMOTE_PRODUCTS = {
   'com.elixstarlive.promote_views':     { goal: 'views',     label: 'More video views',      amountGbp: 5  },
   'com.elixstarlive.promote_likes':     { goal: 'likes',     label: 'More likes & comments', amountGbp: 10 },
   'com.elixstarlive.promote_profile':   { goal: 'profile',   label: 'More profile views',    amountGbp: 20 },
   'com.elixstarlive.promote_followers': { goal: 'followers', label: 'More followers',        amountGbp: 30 },
 } as const;
 
-export const PROMOTE_PRODUCT_IDS = Object.keys(PROMOTE_PRODUCTS) as PromoteProductId[];
 export type PromoteProductId = keyof typeof PROMOTE_PRODUCTS;
 
 /** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
@@ -167,7 +149,7 @@ export async function initializeIAP(): Promise<void> {
   }
 }
 
-export async function isBillingAvailable(): Promise<boolean> {
+async function isBillingAvailable(): Promise<boolean> {
   if (!platform.isNative) return false;
   if (_billingSupported !== null) return _billingSupported;
   await initializeIAP();
@@ -669,6 +651,10 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
 
   const available = await isBillingAvailable();
   if (!available) return { success: false, error: 'Purchases are not supported on this device' };
+
+  if (!(productId in PROMOTE_PRODUCTS)) {
+    return { success: false, error: 'Unknown promote product' };
+  }
 
   promotePurchaseInProgress = true;
   try {

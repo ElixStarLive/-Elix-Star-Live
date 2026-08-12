@@ -445,3 +445,23 @@ Test coins:                         PRESERVED (owner order)
 3. Continue Knip unused-export traces (**never** `testCoins`).  
 4. Shared gift-send extract (behavior-identical) when ordered.  
 5. Local smoke after commit/push.
+
+---
+
+## Pass 6 progress (2026-08-12) — continue full app
+
+| Action | Status |
+|--------|--------|
+| Shared XP apply owner `server/lib/xpProgressionApply.ts` used by live-watch + paid-gift XP | DONE |
+| jscpd XP award SQL duplicate owners unified | DONE (root cause) |
+| IAP barrel re-exports of catalogs removed (single owner remains `storeProductCatalogs`) | DONE |
+| Dead `PremiumSidebarButton` removed (never mounted) | DONE |
+| Dead AvatarRing `USER_CIRCLE_GLOW` re-export removed | DONE |
+| `parseWalletBalances` unexported (internal to walletApi) | DONE |
+| **testCoins** | UNTOUCHED |
+| Sonar | Still BLOCKED (no server/token) — not fake-pass |
+| Remaining Knip unused exports | Mostly server public API / design tokens — KEEP with TRACE; not mass-deleted |
+| Remaining Semgrep empty-catch | OPEN inventory — intentional defensive teardowns; money paths need per-site unlock |
+| Host↔spectator gift mega-controllers | OPEN structural — UI freeze |
+
+**Locally actionable Pass 6 complete.** Remaining gate items are BLOCKED/OPEN with evidence, not abandoned silently.
