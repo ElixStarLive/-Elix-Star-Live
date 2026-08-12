@@ -47,6 +47,7 @@ import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdenti
 import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
+import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
 import {
   addTestGiftXp,
   debitTestCoinsForGift,
@@ -1244,15 +1245,16 @@ export function useLiveSpectatorController() {
   >([]);
 
   const spawnHeartAt = useCallback((x: number, y: number, colorOverride?: string, likerName?: string, likerAvatar?: string) => {
-    const id = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    const dx = Math.round((Math.random() * 2 - 1) * 120);
-    const rot = Math.round((Math.random() * 2 - 1) * 45);
-    const size = Math.round(24 + Math.random() * 12);
-    const colors = ['#FF0000', '#ffffff', '#E60026', '#E6E9EE', '#FF1744', '#CC0000'];
-    const color = colorOverride ?? colors[Math.floor(Math.random() * colors.length)];
-    setFloatingHearts((prev) => [...prev.slice(-40), { id, x, y, dx, rot, size, color, username: likerName, avatar: likerAvatar }]);
+    const particle = createFloatingHeartParticle({
+      x,
+      y,
+      colorOverride,
+      username: likerName,
+      avatar: likerAvatar,
+    });
+    setFloatingHearts((prev) => [...prev.slice(-40), particle]);
     window.setTimeout(() => {
-      setFloatingHearts((prev) => prev.filter((h) => h.id !== id));
+      setFloatingHearts((prev) => prev.filter((h) => h.id !== particle.id));
     }, 500);
   }, []);
 

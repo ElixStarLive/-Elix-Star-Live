@@ -736,6 +736,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **185** clones — down from 186 |
 | Android | 1.0.615 |
 
+### Continue 16 — floating heart particle geometry
+| Item | Change |
+|------|--------|
+| Floating heart particle factory | `createFloatingHeartParticle.ts` |
+| jscpd | **184** clones — down from 185 |
+| Android | 1.0.616 |
+
+
 
 
 
