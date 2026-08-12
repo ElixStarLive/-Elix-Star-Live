@@ -3,12 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import type { Video } from '../store/useVideoStore';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 
 /** True when the still looks like a black / empty first frame. */
 function isNearlyBlackImage(img: HTMLImageElement): boolean {

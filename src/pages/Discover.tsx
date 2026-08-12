@@ -11,6 +11,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 import { generateWebLink } from '../lib/deepLinks';
 import {
   apiFetchAllVideos,
@@ -762,9 +763,4 @@ function EmptyState({ icon, text, sub }: { icon: React.ReactNode; text: string; 
   );
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return String(num);
-}
 

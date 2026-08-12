@@ -10,6 +10,7 @@ import { AvatarRing } from './AvatarRing';
 import { navigateToDmWithUser } from '../lib/openDmThread';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
 import { useSafetyStore } from '../store/useSafetyStore';
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 
 interface LikeUser {
   id: string;
@@ -112,12 +113,6 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
     useSafetyStore.getState().blockUser(user.id);
     showToast('User blocked');
     onClose();
-  };
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
   };
 
   const filteredLikes = likesData.filter(user => {

@@ -728,6 +728,15 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **186** clones — down from 187 |
 | Android | 1.0.614 |
 
+### Continue 15 — shared compact number formatter
+| Item | Change |
+|------|--------|
+| `formatCompactNumber` single owner | `src/lib/formatCompactNumber.ts` |
+| Wired into Likes/Profile modals, EnhancedVideoPlayer, TrendingSnapFeed, Hashtag, Discover, Profile | RankingPanel kept (toLocaleString variant) |
+| jscpd | **185** clones — down from 186 |
+| Android | 1.0.615 |
+
+
 
 
 

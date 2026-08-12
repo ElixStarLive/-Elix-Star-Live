@@ -21,6 +21,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 import { useSettingsStore } from '../store/useSettingsStore';
 import { trackEvent } from '../lib/analytics';
 import EnhancedCommentsModal from './EnhancedCommentsModal';
@@ -987,13 +988,6 @@ export default function EnhancedVideoPlayer({
     retryingRef.current = false;
     retryVideoSrc();
   }, [retryVideoSrc]);
-
-  // Format functions
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
 
   if (!video) return null;
 

@@ -5,6 +5,7 @@ import { Hash, TrendingUp } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { apiFetchHashtag, apiFetchHashtagVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 
 interface Video {
   id: string;
@@ -123,8 +124,3 @@ export default function Hashtag() {
   );
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return String(num);
-}

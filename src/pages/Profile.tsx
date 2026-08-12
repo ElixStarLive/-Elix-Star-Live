@@ -5,6 +5,7 @@ import { LevelBadge } from '../components/LevelBadge';
 import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
+import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 import { uploadAvatar } from '../lib/avatarUpload';
 import { AvatarRing } from '../components/AvatarRing';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
@@ -1536,10 +1537,4 @@ export default function Profile() {
       )}
     </div>
   );
-}
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return String(num);
 }
