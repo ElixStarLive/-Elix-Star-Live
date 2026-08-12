@@ -39,33 +39,39 @@ describe("Money and economy safety contracts", () => {
   });
 
   it("test coins add battle score + animation only and never touch money", () => {
-    // Test coins are gated by canAcceptTestCoinsBattleScore (with a kill switch)
-    // and behave as BATTLE GAME SCORE only: battle points + animation, never money.
+    // TEST COINS ≠ REAL COINS. Battle score + animation only. Never wallet / IAP / Stripe.
     expect(testCoins).toContain("canAcceptTestCoinsBattleScore");
     expect(testCoins).toContain("BATTLE GAME SCORE ONLY");
     expect(handlers).toContain("test_coins_blocked");
 
-    // The test-coin branch of gift_sent must NEVER credit the wallet, creator
-    // earnings, or paid gift-goal progression — that is the hard money rule.
     const start = handlers.indexOf("if (isTestCoinsGiftSource(data))");
     expect(start).toBeGreaterThan(-1);
     const end = handlers.indexOf("const verified = await verifyGiftTransaction", start);
     expect(end).toBeGreaterThan(start);
     const testCoinBranch = handlers.slice(start, end);
-    // Score YES
+
+    // Allowed: battle score + gift animation audience emit (£0).
     expect(testCoinBranch).toContain("addBattleScoreForTarget");
-    expect(testCoinBranch).toContain("broadcastToRoom");
+    expect(testCoinBranch).toContain("emitGiftSentToTargetAudience");
     expect(testCoinBranch).toContain('giftSource: "test_coins"');
+    expect(testCoinBranch).toContain('origin: "test_coins"');
     expect(testCoinBranch).toContain("financialValueGbp: 0");
-    // Money NO
+    expect(testCoinBranch).toContain('status: "test"');
+
+    // Forbidden: real-money / real-coin settlement paths (must stay on paid branch only).
+    expect(testCoinBranch).not.toContain("verifyGiftTransaction");
+    expect(testCoinBranch).not.toContain("deliverVerifiedGift");
     expect(testCoinBranch).not.toContain("neonCreditCreatorEarning");
     expect(testCoinBranch).not.toContain("neonDebitGift");
+    expect(testCoinBranch).not.toContain("neonCreditIap");
     expect(testCoinBranch).not.toContain("incrementGiftGoal");
     expect(testCoinBranch).not.toContain("recordCreatorGiftProgress");
     expect(testCoinBranch).not.toContain("paidCoinLots");
     expect(testCoinBranch).not.toContain("createPaidCoinLot");
     expect(testCoinBranch).not.toContain("settlePaidCoinLot");
     expect(testCoinBranch).not.toContain("stripe");
+    expect(testCoinBranch).not.toContain("paid_coins");
+    expect(testCoinBranch).not.toContain("starter_coins");
   });
 
   it("battle screen tap awards +5 once per unique viewer per battle (£0)", () => {

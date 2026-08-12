@@ -368,8 +368,7 @@ export async function handleMessage(
             // Catalog points for MVP/UI only — giftSource marks this as not money.
             coins: testPoints,
             giftSource: "test_coins",
-            // Unique id so clients receiving this event twice (room broadcast +
-            // direct owner send) dedupe it and play the animation exactly once.
+            // Not a money txn. Unique id for client animation dedupe only.
             transactionId: `test-${randomUUID()}`,
             battleTarget: testBattleTarget,
             ...(testCohostTarget
