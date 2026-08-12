@@ -790,6 +790,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **178** clones / **2.23%** lines (clone count +1 from helpers; line % down) |
 | Android | 1.0.622 |
 
+### Continue 23 — cohost featured controls + remote video mute
+| Item | Change |
+|------|--------|
+| Featured/speaking/video-el callbacks hook | `useLiveCohostFeaturedControls.ts` |
+| Remote video mute → cam-off Set | `applyRemoteVideoTrackMuteState.ts` |
+| jscpd | **177** clones / **2.22%** lines |
+| Android | 1.0.623 |
+
 
 
 

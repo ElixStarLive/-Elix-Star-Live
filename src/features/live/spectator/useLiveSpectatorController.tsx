@@ -43,9 +43,9 @@ import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
-import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
-import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
+import { useLiveCohostFeaturedControls } from '../cohost/useLiveCohostFeaturedControls';
+import { applyRemoteVideoTrackMuteState } from '../cohost/applyRemoteVideoTrackMuteState';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
@@ -1033,22 +1033,17 @@ export function useLiveSpectatorController() {
     featuredUserIdRef.current = featuredUserId;
   }, [featuredUserId]);
 
-  const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
-    return findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
-  }, []);
-
-  const isSpeakingUser = useCallback(
-    (userId?: string | null) => isSpeakingUserId(speakingIds, userId),
-    [speakingIds],
-  );
-
-  const toggleFeaturedUser = useCallback((userId: string) => {
-    toggleFeaturedUserId(setFeaturedUserId, userId);
-  }, []);
-
-  const markRemoteCam = useCallback((identity: string, off: boolean) => {
-    markRemoteCamOff(setRemoteCamOff, identity, off);
-  }, []);
+  const {
+    findCoHostVideoEl,
+    isSpeakingUser,
+    toggleFeaturedUser,
+    markRemoteCam,
+  } = useLiveCohostFeaturedControls({
+    coHostVideoRefs,
+    speakingIds,
+    setFeaturedUserId,
+    setRemoteCamOff,
+  });
 
   const [isCoHosting, setIsCoHosting] = useState(false);
 
@@ -1643,16 +1638,10 @@ export function useLiveSpectatorController() {
         setSpeakingIds(new Set(identities.filter(Boolean)));
       },
       onTrackMuted: (pub, participant) => {
-        if (pub.kind !== 'video') return;
-        const id = participant?.identity;
-        if (!id) return;
-        markRemoteCam(id, true);
+        applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, true);
       },
       onTrackUnmuted: (pub, participant) => {
-        if (pub.kind !== 'video') return;
-        const id = participant?.identity;
-        if (!id) return;
-        markRemoteCam(id, false);
+        applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, false);
       },
       onDisconnected: () => {
         if (!streamIsLiveRef.current || !effectiveStreamIdRef.current) return;

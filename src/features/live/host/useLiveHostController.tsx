@@ -45,9 +45,9 @@ import { openLiveGiftSentHandler } from '../gifts/openLiveGiftSentHandler';
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
-import { isSpeakingUserId, toggleFeaturedUserId } from '../cohost/liveFeaturedSpeaking';
 import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
-import { markRemoteCamOff } from '../cohost/markRemoteCamOff';
+import { useLiveCohostFeaturedControls } from '../cohost/useLiveCohostFeaturedControls';
+import { applyRemoteVideoTrackMuteState } from '../cohost/applyRemoteVideoTrackMuteState';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
@@ -1238,16 +1238,10 @@ export function useLiveHostController() {
       setSpeakingIds(new Set(identities.filter(Boolean)));
     },
     onTrackMuted: (pub, participant) => {
-      if (pub.kind !== 'video') return;
-      const id = participant?.identity;
-      if (!id) return;
-      markRemoteCamOff(setRemoteCamOff, id, true);
+      applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, true);
     },
     onTrackUnmuted: (pub, participant) => {
-      if (pub.kind !== 'video') return;
-      const id = participant?.identity;
-      if (!id) return;
-      markRemoteCamOff(setRemoteCamOff, id, false);
+      applyRemoteVideoTrackMuteState(pub, participant, setRemoteCamOff, false);
     },
   };
 
@@ -1256,18 +1250,12 @@ export function useLiveHostController() {
     ? liveCoHosts.find((h) => sameUserId(h.userId, featuredUserId)) || null
     : null;
 
-  const findCoHostVideoEl = useCallback((identity: string): HTMLVideoElement | null => {
-    return findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
-  }, []);
-
-  const isSpeakingUser = useCallback(
-    (userId?: string | null) => isSpeakingUserId(speakingIds, userId),
-    [speakingIds],
-  );
-
-  const toggleFeaturedUser = useCallback((userId: string) => {
-    toggleFeaturedUserId(setFeaturedUserId, userId);
-  }, []);
+  const { findCoHostVideoEl, isSpeakingUser, toggleFeaturedUser } =
+    useLiveCohostFeaturedControls({
+      coHostVideoRefs,
+      speakingIds,
+      setFeaturedUserId,
+    });
 
   const filteredHostCreators = creators.filter(c =>
     c.name.toLowerCase().includes(hostSearchQuery.trim().toLowerCase()) &&
