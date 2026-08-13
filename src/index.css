@@ -2360,7 +2360,7 @@ body {
   background-attachment: scroll, scroll !important;
 }
 /* Battle top chrome — same fundal as creator column (host + spectator identical), screen-top.
-   padding-bottom 2mm (was 4mm via .elix-live-top-chrome) — fundal only lifts 2mm so it
+   padding-bottom 1mm (was 4mm via .elix-live-top-chrome) — fundal only lifts so it
    does not cover the battle score bar; Weekly Ranking / capsules stay put. */
 #root .elix-live-room .elix-battle-top-fundal {
   background-color: var(--elix-bg) !important;
@@ -2368,7 +2368,7 @@ body {
   background-size: 100% auto !important;
   background-position: top center !important;
   background-repeat: no-repeat !important;
-  padding-bottom: 2mm !important;
+  padding-bottom: 1mm !important;
 }
 /* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
 .elix-battle-mvp-row,
