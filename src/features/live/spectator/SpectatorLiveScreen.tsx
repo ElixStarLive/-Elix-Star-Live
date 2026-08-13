@@ -876,180 +876,6 @@ export default function SpectatorLiveScreen() {
                   </div>
                 </div>
 
-                {/* MVP under cameras — above chat (z-100) so the 6 circles stay visible */}
-                <div
-                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
-                  style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
-                >
-                  <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
-                  <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
-                    title="Top gifters — red side"
-                    onClick={() => {
-                      const ranked = [...mvpSlots.host]
-                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
-                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
-                        id: s.id,
-                        name: s.name,
-                        avatar: s.avatar,
-                        level: s.level,
-                        points: s.points ?? 0,
-                      }));
-                      setViewersList(list);
-                      setShowViewersPanel(true);
-                    }}
-                  >
-                    {mvpSlots.host.map((slot, i) => {
-                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
-                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0);
-                      const isMvp = !isEmpty && i === 0 && gifted > 0;
-                      const raw = String(slot.name || '').trim();
-                      const label = isEmpty
-                        ? ''
-                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                          ? raw.split('@')[0] || 'User'
-                          : raw || 'User';
-                      const photo =
-                        !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
-                          ? slot.avatar
-                          : '';
-                      const pts =
-                        gifted >= 1_000_000
-                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
-                          : gifted >= 1000
-                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
-                            : String(Math.floor(gifted));
-                      return (
-                        <div
-                          key={`mvp-l-${slot.id}`}
-                          className="relative flex flex-col items-center max-w-[42px]"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
-                        >
-                          {!isEmpty && gifted > 0 ? (
-                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {pts}
-                            </span>
-                          ) : (
-                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
-                          )}
-                          {isEmpty || !photo ? (
-                            <div
-                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                              }`}
-                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                            />
-                          ) : (
-                            <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
-                              <AvatarRing
-                                src={photo}
-                                alt={label || 'MVP'}
-                                size={LIVE_MVP_PROFILE_RING_PX}
-                                ringColor={isMvp ? MVP_GOLD : undefined}
-                              />
-                            </div>
-                          )}
-                          {isMvp && (
-                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                              MVP
-                            </span>
-                          )}
-                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {label || '\u00A0'}
-                          </span>
-                          <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : pts}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
-                    title="Top gifters — blue side"
-                    onClick={() => {
-                      const ranked = [...mvpSlots.opponent]
-                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
-                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
-                        id: s.id,
-                        name: s.name,
-                        avatar: s.avatar,
-                        level: s.level,
-                        points: s.points ?? 0,
-                      }));
-                      setViewersList(list);
-                      setShowViewersPanel(true);
-                    }}
-                  >
-                    {mvpSlots.opponent.map((slot, i) => {
-                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
-                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0);
-                      const isMvp = !isEmpty && i === 0 && gifted > 0;
-                      const raw = String(slot.name || '').trim();
-                      const label = isEmpty
-                        ? ''
-                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                          ? raw.split('@')[0] || 'User'
-                          : raw || 'User';
-                      const photo =
-                        !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
-                          ? slot.avatar
-                          : '';
-                      const pts =
-                        gifted >= 1_000_000
-                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
-                          : gifted >= 1000
-                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
-                            : String(Math.floor(gifted));
-                      return (
-                        <div
-                          key={`mvp-r-${slot.id}`}
-                          className="relative flex flex-col items-center max-w-[42px]"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
-                        >
-                          {!isEmpty && gifted > 0 ? (
-                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                              {pts}
-                            </span>
-                          ) : (
-                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
-                          )}
-                          {isEmpty || !photo ? (
-                            <div
-                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                              }`}
-                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                            />
-                          ) : (
-                            <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
-                              <AvatarRing
-                                src={photo}
-                                alt={label || 'MVP'}
-                                size={LIVE_MVP_PROFILE_RING_PX}
-                                ringColor={isMvp ? MVP_GOLD : undefined}
-                              />
-                            </div>
-                          )}
-                          {isMvp && (
-                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                              MVP
-                            </span>
-                          )}
-                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {label || '\u00A0'}
-                          </span>
-                          <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : pts}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  </div>
-                </div>
                 {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
                   <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
                     <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
@@ -1762,6 +1588,174 @@ export default function SpectatorLiveScreen() {
               })}
             </div>
           </div>
+        )}
+
+        {spectatorBattle?.active && (
+                <div
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+                  style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
+                >
+                  <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+                  <div
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
+                    title="Top gifters — red side"
+                    onClick={() => {
+                      const ranked = [...mvpSlots.host]
+                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
+                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
+                  >
+                    {mvpSlots.host.map((slot, i) => {
+                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
+                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0);
+                      const isMvp = !isEmpty && i === 0 && gifted > 0;
+                      const raw = String(slot.name || '').trim();
+                      const label = isEmpty
+                        ? ''
+                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                          ? raw.split('@')[0] || 'User'
+                          : raw || 'User';
+                      const pts =
+                        gifted >= 1_000_000
+                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
+                          : gifted >= 1000
+                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
+                            : String(Math.floor(gifted));
+                      return (
+                        <div
+                          key={`mvp-l-${slot.id}`}
+                          className="relative flex flex-col items-center max-w-[42px]"
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                        >
+                          {!isEmpty && gifted > 0 ? (
+                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {pts}
+                            </span>
+                          ) : (
+                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
+                          )}
+                          {isEmpty ? (
+                            <div
+                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
+                              }`}
+                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                            />
+                          ) : (
+                            <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                              <AvatarRing
+                                src={resolveCircleAvatar(slot.avatar, slot.name)}
+                                alt={label || 'MVP'}
+                                size={LIVE_MVP_PROFILE_RING_PX}
+                                ringColor={isMvp ? MVP_GOLD : undefined}
+                              />
+                            </div>
+                          )}
+                          {isMvp && (
+                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                              MVP
+                            </span>
+                          )}
+                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {label || '\u00A0'}
+                          </span>
+                          <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {isEmpty ? '\u00A0' : pts}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div
+                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
+                    title="Top gifters — blue side"
+                    onClick={() => {
+                      const ranked = [...mvpSlots.opponent]
+                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
+                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
+                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
+                  >
+                    {mvpSlots.opponent.map((slot, i) => {
+                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
+                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0);
+                      const isMvp = !isEmpty && i === 0 && gifted > 0;
+                      const raw = String(slot.name || '').trim();
+                      const label = isEmpty
+                        ? ''
+                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                          ? raw.split('@')[0] || 'User'
+                          : raw || 'User';
+                      const pts =
+                        gifted >= 1_000_000
+                          ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
+                          : gifted >= 1000
+                            ? `${(Math.round((gifted / 1000) * 10) / 10)}K`
+                            : String(Math.floor(gifted));
+                      return (
+                        <div
+                          key={`mvp-r-${slot.id}`}
+                          className="relative flex flex-col items-center max-w-[42px]"
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
+                        >
+                          {!isEmpty && gifted > 0 ? (
+                            <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                              {pts}
+                            </span>
+                          ) : (
+                            <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
+                          )}
+                          {isEmpty ? (
+                            <div
+                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
+                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
+                              }`}
+                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                            />
+                          ) : (
+                            <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                              <AvatarRing
+                                src={resolveCircleAvatar(slot.avatar, slot.name)}
+                                alt={label || 'MVP'}
+                                size={LIVE_MVP_PROFILE_RING_PX}
+                                ringColor={isMvp ? MVP_GOLD : undefined}
+                              />
+                            </div>
+                          )}
+                          {isMvp && (
+                            <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                              MVP
+                            </span>
+                          )}
+                          <span className="mt-1.5 text-[#D9A62E] text-[7px] font-semibold truncate max-w-full leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {label || '\u00A0'}
+                          </span>
+                          <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
+                            {isEmpty ? '\u00A0' : pts}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  </div>
+                </div>
         )}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
