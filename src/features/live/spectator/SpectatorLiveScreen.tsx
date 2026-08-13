@@ -61,6 +61,7 @@ import {
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_BATTLE_STAGE_BOTTOM,
+  LIVE_BATTLE_LOWER_FUNDAL_TOP,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -498,7 +499,7 @@ export default function SpectatorLiveScreen() {
         {spectatorBattle?.active ? (
           <div
             className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
-            style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
+            style={{ top: LIVE_BATTLE_LOWER_FUNDAL_TOP }}
             aria-hidden
           />
         ) : hasCoHostLowerFundal ? (
