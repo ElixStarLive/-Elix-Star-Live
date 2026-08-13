@@ -324,7 +324,7 @@ export function GiftPanel({
                   onClick={() => onGiftSourceChange("starter_coins")}
                   className={`text-[8px] font-bold px-1 py-0.5 rounded ${
                     giftSource === "starter_coins"
-                      ? "bg-white text-black"
+                      ? "bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7]"
                       : "text-white/60"
                   }`}
                   title="Free onboarding coins; no monetary value or creator earnings"

@@ -267,7 +267,7 @@ export function RankingPanel({
                   <button
                     type="button"
                     onClick={onSendGiftGoal}
-                    className="w-full py-2 bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
+                    className="w-full py-2 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98]"
                   >
                     Send {giftGoal.giftName}
                   </button>

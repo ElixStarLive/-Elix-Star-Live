@@ -2529,11 +2529,11 @@ export default function SpectatorLiveScreen() {
                         <button
                           onClick={handleSubscribe}
                           disabled={isSubscribing}
-                          className="w-full py-2 bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all shadow-lg disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+                          className="w-full py-2 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold text-[10px] uppercase tracking-wide rounded-xl active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
                         >
                           {isSubscribing ? (
                             <>
-                              <div className="w-3 h-3 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                              <div className="w-3 h-3 border-2 border-white/30 border-t-[#F5F5F7] rounded-full animate-spin" />
                               <span>Processing...</span>
                             </>
                           ) : (

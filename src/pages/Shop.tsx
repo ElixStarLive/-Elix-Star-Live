@@ -953,7 +953,7 @@ export default function Shop() {
                   type="button"
                   onClick={handleCreateListing}
                   disabled={creating || !newTitle.trim() || !newPrice.trim()}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#D8D9DD] to-[#D8D9DD] text-black font-bold text-sm disabled:opacity-50"
+                  className="w-full py-3 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold text-sm disabled:opacity-50"
                 >
                   {creating ? (editingItemId ? 'Saving...' : 'Listing...') : (editingItemId ? 'Save changes' : 'List for Sale')}
                 </button>
