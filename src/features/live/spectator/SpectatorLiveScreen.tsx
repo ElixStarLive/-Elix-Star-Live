@@ -59,6 +59,7 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
+  LIVE_BATTLE_STAGE_BOTTOM,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -888,10 +889,10 @@ export default function SpectatorLiveScreen() {
                   </div>
                 </div>
 
-                {/* MVP under cameras — fundal = app container width; video stage paints above */}
+                {/* MVP under cameras — above chat (z-100) so the 6 circles stay visible */}
                 <div
-                  className="elix-battle-mvp-row fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
-                  style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+                  style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
                 >
                   <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
                   <div
@@ -1724,7 +1725,7 @@ export default function SpectatorLiveScreen() {
         {/* Co-host MVP circles under stage (not battle) */}
         {!spectatorBattle?.active && hasCoHostLowerFundal && (
           <div
-            className="fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
+            className="fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
             style={{ top: 'calc(var(--safe-top) + 90px + 9mm + 30dvh + 6mm + 2mm)' }}
           >
             <div
@@ -1745,35 +1746,29 @@ export default function SpectatorLiveScreen() {
                 setShowViewersPanel(true);
               }}
             >
-              {Array.from({ length: 3 }, (_, i) => {
-                const slot = mvpSlots.global[i];
-                const isEmpty = !slot;
-                const gifted = isEmpty ? 0 : (slot.points ?? 0);
-                const isMvp = !isEmpty && i === 0 && gifted > 0;
-                const raw = String(slot?.name || '').trim();
-                const label = isEmpty
-                  ? ''
-                  : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                    ? raw.split('@')[0] || 'User'
-                    : raw || 'User';
+              {mvpSlots.global.slice(0, 3).map((slot, i) => {
+                const gifted = slot.points ?? 0;
+                const isMvp = i === 0 && gifted > 0;
+                const raw = String(slot.name || '').trim();
+                const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                  ? raw.split('@')[0] || 'User'
+                  : raw || 'User';
                 const photo =
-                  !isEmpty && slot.avatar && !isPlaceholderLiveAvatar(slot.avatar)
-                    ? slot.avatar
-                    : '';
+                  slot.avatar && !isPlaceholderLiveAvatar(slot.avatar) ? slot.avatar : '';
                 return (
                   <div
-                    key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${slot.id}`}
+                    key={`cohost-mvp-${slot.id}`}
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i }}
                   >
-                    {isEmpty || !photo ? (
+                    {!photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
-                        {!isEmpty && label ? (
+                        {label ? (
                           <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
                         ) : null}
                       </div>
@@ -1867,23 +1862,15 @@ export default function SpectatorLiveScreen() {
                         <div
                           key={`spectator-top-mvp-${slot.id}`}
                           className="relative"
-                          style={{ zIndex: 3 - i, marginLeft: '0mm' }}
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
                         >
-                          {/* Keep only gold MVP circles + rank numbers (no avatar icons). */}
-                          <div
-                            className={MVP_RING_PHOTO_SOFT_CLASS}
-                            style={{
-                              width: LIVE_MVP_PROFILE_RING_PX,
-                              height: LIVE_MVP_PROFILE_RING_PX,
-                              backgroundColor: '#121419',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <span className="text-white text-[10px] font-black leading-none">
-                              {i + 1}
-                            </span>
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || 'MVP'}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
+                            />
                           </div>
                           {isMvp && (
                             <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
@@ -2054,14 +2041,12 @@ export default function SpectatorLiveScreen() {
                       claimable: false as const,
                     }}
               supporters={
-                mvpSlots.global.length === 0
-                    ? []
-                    : mvpSlots.global.slice(0, 3).map((s) => ({
-                      id: s.id,
-                      name: s.name,
-                      avatar: s.avatar,
-                      points: s.points ?? 0,
-                    }))
+                mvpSlots.global.slice(0, 3).map((s) => ({
+                  id: s.id,
+                  name: s.name,
+                  avatar: s.avatar,
+                  points: s.points ?? 0,
+                }))
               }
               battlePassLevel={userLevel || 1}
               battlePassXp={userXP % 1000}

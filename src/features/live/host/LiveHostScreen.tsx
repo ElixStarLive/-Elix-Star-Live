@@ -54,6 +54,7 @@ import {
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
+  LIVE_BATTLE_STAGE_BOTTOM,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -1001,7 +1002,7 @@ export default function LiveHostScreen() {
         {/* Co-host MVP circles under stage (not battle — battle has its own MVP row) */}
         {!isBattleMode && hasCoHostLowerFundal && (
           <div
-            className="fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
+            className="fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
             style={{ top: 'calc(90px + 9mm + 36dvh + 10mm + 2mm)' }}
           >
             <div
@@ -1009,30 +1010,26 @@ export default function LiveHostScreen() {
               onClick={openTopGiftersAll}
               title="Top gifters — MVP"
             >
-              {Array.from({ length: 3 }, (_, i) => {
-                const viewer = topMvpViewers[i];
-                const isEmpty = !viewer;
-                const gifted = isEmpty ? 0 : (mvpGiftScores[viewer.id] ?? 0);
-                const isMvp = !isEmpty && i === 0 && gifted > 0;
-                const label = isEmpty ? '' : liveViewerLabel(viewer);
+              {topMvpViewers.slice(0, 3).map((viewer, i) => {
+                const gifted = mvpGiftScores[viewer.id] ?? 0;
+                const isMvp = i === 0 && gifted > 0;
+                const label = liveViewerLabel(viewer);
                 const photo =
-                  !isEmpty && viewer.avatar && !isPlaceholderLiveAvatar(viewer.avatar)
-                    ? viewer.avatar
-                    : '';
+                  viewer.avatar && !isPlaceholderLiveAvatar(viewer.avatar) ? viewer.avatar : '';
                 return (
                   <div
-                    key={isEmpty ? `__cohost-mvp-empty-${i}` : `cohost-mvp-${viewer.id}`}
+                    key={`cohost-mvp-${viewer.id}`}
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i }}
                   >
-                    {isEmpty || !photo ? (
+                    {!photo ? (
                       <div
                         className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       >
-                        {!isEmpty && label ? (
+                        {label ? (
                           <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
                         ) : null}
                       </div>
@@ -1616,10 +1613,10 @@ export default function LiveHostScreen() {
             );
           })()}
 
-            {/* MVP under cameras — fundal = app container width; video stage paints above (higher z) */}
+            {/* MVP under cameras — above chat (z-100) so the 6 circles stay visible */}
             <div
-              className="elix-battle-mvp-row fixed left-0 right-0 z-[75] flex justify-center pointer-events-none"
-              style={{ top: 'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' }}
+              className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+              style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
             >
               <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
               <div
@@ -1923,42 +1920,35 @@ export default function LiveHostScreen() {
 
                       <div className="pointer-events-auto flex items-center gap-[0mm] mt-1">
                         {topMvpViewers.length > 0 ? (
-                      <div
-                        className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                        style={{ transform: 'translateX(-2mm)' }}
-                        onClick={openTopGiftersAll}
-                        title="Top viewers & gifters"
-                      >
+                          <div
+                            className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
+                            style={{ transform: 'translateX(-2mm)' }}
+                            onClick={openTopGiftersAll}
+                            title="Top viewers & gifters"
+                          >
                             {topMvpViewers.slice(0, 3).map((viewer, i) => {
                               const isMvp = i === 0 && (mvpGiftScores[viewer.id] ?? 0) > 0;
+                              const label = liveViewerLabel(viewer);
                               return (
-                              <div
-                                key={`top-viewers-${viewer.id}`}
-                                className="relative"
-                            style={{ zIndex: 3 - i, marginLeft: '0mm' }}
-                              >
-                            {/* Keep only gold MVP circles + rank numbers (no avatar icons). */}
-                            <div
-                              className={MVP_RING_PHOTO_SOFT_CLASS}
-                              style={{
-                                width: LIVE_MVP_PROFILE_RING_PX,
-                                height: LIVE_MVP_PROFILE_RING_PX,
-                                backgroundColor: '#121419',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}
-                            >
-                              <span className="text-white text-[10px] font-black leading-none">
-                                {i + 1}
-                              </span>
-                            </div>
-                                {isMvp && (
-                                  <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                                    MVP
-                                  </span>
-                                )}
-                              </div>
+                                <div
+                                  key={`top-viewers-${viewer.id}`}
+                                  className="relative"
+                                  style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                                >
+                                  <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                                    <AvatarRing
+                                      src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                                      alt={label || 'MVP'}
+                                      size={LIVE_MVP_PROFILE_RING_PX}
+                                      ringColor={isMvp ? MVP_GOLD : undefined}
+                                    />
+                                  </div>
+                                  {isMvp && (
+                                    <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                                      MVP
+                                    </span>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>

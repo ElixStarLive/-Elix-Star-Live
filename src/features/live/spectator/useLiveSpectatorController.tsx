@@ -417,8 +417,13 @@ export function useLiveSpectatorController() {
       }
       return out;
     };
+    // Top-bar global: 1 joined viewer = 1 circle (max 3). No empty placeholder rings.
+    // Battle host/opponent rows still pad to 3 empty seats under the cameras.
     setMvpSlots({
-      global: withPoints(mvpGiftScoresRef.current, [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3)),
+      global: withPoints(
+        mvpGiftScoresRef.current,
+        [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3),
+      ),
       host: padSide('host', hostSlots),
       opponent: padSide('opponent', oppSlots),
     });

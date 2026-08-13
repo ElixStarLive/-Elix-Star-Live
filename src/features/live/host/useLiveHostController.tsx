@@ -2873,6 +2873,7 @@ export function useLiveHostController() {
     [activeViewers, isGenericViewerName, maybeResolveViewerIdentity],
   );
 
+  /** Top-bar circles: 1 joined viewer = 1 circle (max 3). No empty placeholder rings. */
   const topMvpViewers = useMemo(
     () => buildMvpRanked(mvpGiftScores, 3),
     [buildMvpRanked, mvpGiftScores],
