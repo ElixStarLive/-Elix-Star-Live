@@ -1080,15 +1080,29 @@ export async function handleMessage(
       }
 
       case "battle_invite_roster_get": {
+        const rosterDeny = (error: string) => {
+          sendToClient(client, "battle_invite_roster", {
+            streamKey: client.roomId,
+            creators: [] as unknown[],
+            error,
+          });
+        };
         if (!(await wsRateCheck(client.userId, "battle_invite_roster_get", 60, 60_000))) {
+          rosterDeny("rate_limited");
           break;
         }
         const ownerId = await resolveStreamOwnerUserId(client.roomId);
-        if (!ownerId) break;
+        if (!ownerId) {
+          rosterDeny("no_room");
+          break;
+        }
         const isOwner = ownerId === client.userId;
         const isBattleCreator =
           !isOwner && (await hasBattlePublishGrant(client.roomId, client.userId));
-        if (!isOwner && !isBattleCreator) break;
+        if (!isOwner && !isBattleCreator) {
+          rosterDeny("forbidden");
+          break;
+        }
         await publishBattleInviteRoster(client.roomId, client);
         break;
       }

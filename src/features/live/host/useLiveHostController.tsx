@@ -154,7 +154,6 @@ import {
 } from '../engagement/liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
 import { apiToggleRepost } from '../../reposts/repostsApi';
-import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
 import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
   battleSideFromAudienceCreatorId,
@@ -634,21 +633,12 @@ export function useLiveHostController() {
     battleInviteRosterGet({});
   }, [isBroadcast, isBattleJoiner]);
 
-  // Keep invite list fresh while Creators panel is open via feed presence +
-  // authoritative battle roster (same source for every seated creator).
+  // Creators panel: one roster get on the live-room socket. Do not attach
+  // feed-presence here — that can steal the singleton onto __feed__ and the
+  // invite list never comes back (spinner never clears).
   useEffect(() => {
     if (!isFindCreatorsOpen || !user?.id) return;
     requestBattleInviteRoster();
-    const token = useAuthStore.getState().session?.access_token;
-    if (!token) return;
-    return connectLiveFeedPresence(token, {
-      onStreamStarted: () => {
-        requestBattleInviteRoster();
-      },
-      onStreamEnded: () => {
-        requestBattleInviteRoster();
-      },
-    });
   }, [isFindCreatorsOpen, user?.id, requestBattleInviteRoster]);
 
   // Battle Player Slots (P1 = creator, P2-P4 = invited players)
@@ -905,6 +895,7 @@ export function useLiveHostController() {
   const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
   const isBroadcastRef = useRef(false);
+  const isBattleJoinerRef = useRef(false);
   const selfUserIdRef = useRef<string | null>(null);
   const featuredUserIdRef = useRef<string | null>(null);
   const MAX_CO_HOSTS = 8;
@@ -913,10 +904,11 @@ export function useLiveHostController() {
   useEffect(() => {
     coHostsRef.current = coHosts;
     isBroadcastRef.current = isBroadcast;
+    isBattleJoinerRef.current = isBattleJoiner;
     selfUserIdRef.current = user?.id ?? null;
     featuredUserIdRef.current = featuredUserId;
     cohostLayoutIdRef.current = cohostLayoutId;
-  }, [coHosts, isBroadcast, user?.id, featuredUserId, cohostLayoutId]);
+  }, [coHosts, isBroadcast, isBattleJoiner, user?.id, featuredUserId, cohostLayoutId]);
 
   // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
   useEffect(() => {
@@ -3771,7 +3763,10 @@ export function useLiveHostController() {
 
     const handleBattleInviteRoster = (data: unknown) => {
       if (!mounted) return;
-      if (!isBroadcast && !isBattleJoiner) return;
+      if (!isBroadcastRef.current && !isBattleJoinerRef.current) {
+        setCreatorsLoading(false);
+        return;
+      }
       const payload = data as {
         creators?: Array<{
           id?: string;
@@ -3783,13 +3778,12 @@ export function useLiveHostController() {
         }>;
         error?: string;
       };
-      if (payload?.error) {
+      const rows = Array.isArray(payload?.creators) ? payload.creators : [];
+      if (payload?.error && rows.length === 0) {
         setCreatorsLoadFailed(true);
         setCreatorsLoading(false);
         return;
       }
-      const rows = Array.isArray(payload?.creators) ? payload.creators : null;
-      if (!rows) return;
       setCreators((prev) => {
         const prevById = new Map(prev.map((c) => [c.id, c]));
         return rows
