@@ -551,9 +551,10 @@ export default function SpectatorLiveScreen() {
             const hideBlueScore = battleHideScores || mistSupportedSide === 'opponent';
             return (
               <div
-                className="absolute inset-0 z-[80] flex flex-col"
+                className="absolute inset-0 z-[80] flex flex-col overflow-hidden"
                 style={{
                   paddingTop: 'calc(var(--safe-top) + 112px - 2.5mm)',
+                  paddingBottom: '305px',
                 }}
               >
                 {/* Battle video half — score + videos + MVP inside height box (host-identical) */}
@@ -1566,10 +1567,12 @@ export default function SpectatorLiveScreen() {
 
         {spectatorBattle?.active && (
                 <div
-                  className="elix-battle-mvp-row absolute left-0 right-0 z-[120] flex justify-center pointer-events-none"
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
                   style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
                 >
-                  <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+                  <div className="relative w-full max-w-[480px] min-h-[56px]">
+                  <div className="elix-battle-mvp-fundal absolute inset-0 pointer-events-none" aria-hidden />
+                  <div className="relative z-[2] px-3 py-1.5 flex items-end justify-between overflow-x-hidden min-h-[56px]">
                   {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
                     <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                       <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
@@ -1660,6 +1663,7 @@ export default function SpectatorLiveScreen() {
                         </div>
                       );
                     })}
+                  </div>
                   </div>
                   </div>
                 </div>

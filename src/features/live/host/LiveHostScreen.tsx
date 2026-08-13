@@ -1045,10 +1045,12 @@ export default function LiveHostScreen() {
 
         {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
             <div
-              className="elix-battle-mvp-row absolute left-0 right-0 z-[120] flex justify-center pointer-events-none"
+              className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
               style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
             >
-              <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+              <div className="relative w-full max-w-[480px] min-h-[56px]">
+              <div className="elix-battle-mvp-fundal absolute inset-0 pointer-events-none" aria-hidden />
+              <div className="relative z-[2] px-3 py-1.5 flex items-end justify-between overflow-x-hidden min-h-[56px]">
               {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
                 <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                   <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
@@ -1121,6 +1123,7 @@ export default function LiveHostScreen() {
                     </div>
                   );
                 })}
+              </div>
               </div>
               </div>
             </div>
@@ -1218,7 +1221,7 @@ export default function LiveHostScreen() {
                     ) : (
                       <div className="w-full h-0" aria-hidden />
                     )}
-                    {/* Match timer — flush under battle score bar (0mm gap); SPEED beside timer when active */}
+                    {/* Match timer — flush under battle score bar (0mm gap) */}
                     <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                       <button
                         type="button"
