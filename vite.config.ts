@@ -80,14 +80,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          // Only include Trae dev locator in development mode
-          ...(mode === 'development' ? ['react-dev-locator'] : []),
-        ],
-      },
-    }),
+    react(),
     /*
     VitePWA({
       registerType: 'autoUpdate',
