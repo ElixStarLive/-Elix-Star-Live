@@ -52,9 +52,9 @@ export const LIVE_BATTLE_STAGE_BOTTOM =
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 
-/** Battle chat — 56px reserved under cameras for the MVP ring strip (setup + fight). */
+/** Battle chat sits flush under the cameras (join circles overlay the video stage). */
 export const LIVE_BATTLE_CHAT_HEIGHT =
-  'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 56px - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
+  'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
 /** Keep chat below MVP rings (bottom anchor unchanged). */
 export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;

@@ -2355,42 +2355,6 @@ body {
   background-position: top center !important;
   background-repeat: no-repeat !important;
 }
-/* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
-.elix-battle-mvp-row,
-#root .elix-live-room .elix-battle-mvp-row {
-  position: fixed !important;
-  isolation: isolate;
-  min-height: 56px;
-  background: none !important;
-  background-image: none !important;
-}
-/* Do not paint viewport-wide ::before (looked narrower / cut). Fundal lives on inner .elix-battle-mvp-fundal. */
-.elix-battle-mvp-row::before {
-  content: none !important;
-  display: none !important;
-}
-.elix-battle-mvp-fundal,
-#root .elix-live-room .elix-battle-mvp-fundal {
-  width: 100%;
-  max-width: 480px;
-  min-height: 56px;
-  background-color: transparent !important;
-  background-image: var(--elix-panel-fill) !important;
-  background-size: 100% auto, 100% auto !important;
-  background-position: top center, top center !important;
-  background-repeat: no-repeat, no-repeat !important;
-  background-attachment: scroll, scroll !important;
-}
-.elix-battle-mvp-row > * {
-  position: relative;
-  z-index: 1;
-}
-/* Keep MVP avatar rings as normal photo rings — do NOT paint fundal over faces */
-#root .elix-live-room .elix-battle-mvp-row .elix-profile-ring {
-  background-color: #121419 !important;
-  background-image: none !important;
-}
-
 .elix-battle-score-host {
   background-color: transparent !important;
   background-image: var(--elix-battle-fill) !important;
