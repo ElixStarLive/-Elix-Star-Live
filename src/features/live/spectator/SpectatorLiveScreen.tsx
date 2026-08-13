@@ -61,7 +61,6 @@ import {
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_BATTLE_STAGE_BOTTOM,
-  LIVE_BATTLE_LOWER_FUNDAL_TOP,
   LIVE_TOP_AVATAR_RING_PX,
   LIVE_BOTTOM_ACTION_PADDING,
   LIVE_BOTTOM_ACTION_RESERVE,
@@ -499,7 +498,7 @@ export default function SpectatorLiveScreen() {
         {spectatorBattle?.active ? (
           <div
             className="elix-battle-lower-fundal pointer-events-none absolute inset-x-0 bottom-0 z-[1]"
-            style={{ top: LIVE_BATTLE_LOWER_FUNDAL_TOP }}
+            style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
             aria-hidden
           />
         ) : hasCoHostLowerFundal ? (
@@ -1933,13 +1932,7 @@ export default function SpectatorLiveScreen() {
           }}
         >
           <div
-            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${
-              spectatorBattle?.active
-                ? 'bg-transparent'
-                : hasCoHostLowerFundal
-                  ? 'elix-live-chat-fundal'
-                  : 'bg-transparent'
-            }`}
+            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${hasCoHostLowerFundal ? 'elix-live-chat-fundal' : 'bg-transparent'}`}
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',

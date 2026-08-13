@@ -49,10 +49,6 @@ export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 export const LIVE_BATTLE_STAGE_BOTTOM =
   'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
 
-/** Battle list fundal only — 3mm above stage bottom (does not move chat or battle UI). */
-export const LIVE_BATTLE_LOWER_FUNDAL_TOP =
-  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 6mm)' as const;
-
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 
