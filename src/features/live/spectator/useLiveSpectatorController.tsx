@@ -368,6 +368,7 @@ export function useLiveSpectatorController() {
     const pickSide = (side: 'host' | 'opponent', excludeIds?: Set<string>) => {
       const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
       const other = side === 'host' ? mvpGiftScoresOpponentRef.current : mvpGiftScoresHostRef.current;
+      const globalScores = mvpGiftScoresRef.current;
       const exclusive = base.filter((s) => {
         const mine = scores[s.id] ?? 0;
         if (mine <= 0) return false;
@@ -375,7 +376,7 @@ export function useLiveSpectatorController() {
         if (side === 'host') return mine >= theirs;
         return mine > theirs;
       });
-      const rankedExclusive = withPoints(scores, [...exclusive].sort(sortBy(scores))).slice(0, 3);
+      const rankedExclusive = withPoints(globalScores, [...exclusive].sort(sortBy(globalScores))).slice(0, 3);
       if (rankedExclusive.length >= 3) return rankedExclusive;
       const seen = new Set(rankedExclusive.map((s) => s.id));
       const fillers = [...base]
@@ -386,11 +387,11 @@ export function useLiveSpectatorController() {
           if (side === 'host') return theirs <= mine;
           return mine >= theirs;
         })
-        .sort(sortBy(scores));
+        .sort(sortBy(globalScores));
       const out = [...rankedExclusive];
       for (const s of fillers) {
         if (out.length >= 3) break;
-        out.push({ ...s, points: scores[s.id] ?? 0 });
+        out.push({ ...s, points: globalScores[s.id] ?? 0 });
         seen.add(s.id);
       }
       return out;
@@ -398,29 +399,15 @@ export function useLiveSpectatorController() {
 
     const hostSlots = pickSide('host');
     const oppSlots = pickSide('opponent', new Set(hostSlots.map((s) => s.id)));
-    const padSide = (side: 'host' | 'opponent', list: MvpSlotRow[]) => {
-      const out = list.slice(0, 3);
-      while (out.length < 3) {
-        const i = out.length;
-        out.push({
-          id: `__mvp-empty-${side}-${i}`,
-          name: '',
-          avatar: '',
-          level: 1,
-          points: 0,
-        });
-      }
-      return out;
-    };
-    // Top-bar global: 1 joined viewer = 1 circle (max 3). No empty placeholder rings.
-    // Battle host/opponent rows still pad to 3 empty seats under the cameras.
+    const globalScores = mvpGiftScoresRef.current;
+    // Top-bar + battle rows: 1 joined viewer = 1 circle. No empty placeholder rings.
     setMvpSlots({
       global: withPoints(
-        mvpGiftScoresRef.current,
-        [...base].sort(sortBy(mvpGiftScoresRef.current)).slice(0, 3),
+        globalScores,
+        [...base].sort(sortBy(globalScores)).slice(0, 3),
       ),
-      host: padSide('host', hostSlots),
-      opponent: padSide('opponent', oppSlots),
+      host: withPoints(globalScores, hostSlots.slice(0, 3)),
+      opponent: withPoints(globalScores, oppSlots.slice(0, 3)),
     });
   }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 

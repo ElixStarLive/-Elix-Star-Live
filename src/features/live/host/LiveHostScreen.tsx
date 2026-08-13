@@ -1055,11 +1055,10 @@ export default function LiveHostScreen() {
                 onClick={openTopGiftersHost}
                 title="Top gifters — red side"
               >
-                {topMvpHostBattle.map((viewer, i) => {
-                  const isEmpty = String(viewer.id).startsWith('__mvp-empty-');
-                  const gifted = isEmpty ? 0 : (mvpGiftScoresHost[viewer.id] ?? 0);
-                  const isMvp = !isEmpty && i === 0 && gifted > 0;
-                  const label = isEmpty ? '' : liveViewerLabel(viewer);
+                {topMvpHostBattle.filter((v) => !String(v.id).startsWith('__mvp-empty-')).map((viewer, i) => {
+                  const gifted = mvpGiftScores[viewer.id] ?? 0;
+                  const isMvp = i === 0 && gifted > 0;
+                  const label = liveViewerLabel(viewer);
                   const pts = formatCountShort(gifted);
                   return (
                   <div
@@ -1067,30 +1066,21 @@ export default function LiveHostScreen() {
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    {!isEmpty && gifted > 0 ? (
+                    {gifted > 0 ? (
                       <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                         {pts}
                       </span>
                     ) : (
                       <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
                     )}
-                    {isEmpty ? (
-                      <div
-                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                        }`}
-                        style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                    <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={label || 'MVP'}
+                        size={LIVE_MVP_PROFILE_RING_PX}
+                        ringColor={isMvp ? MVP_GOLD : undefined}
                       />
-                    ) : (
-                      <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                        <AvatarRing
-                          src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                          alt={label || 'MVP'}
-                          size={LIVE_MVP_PROFILE_RING_PX}
-                          ringColor={isMvp ? MVP_GOLD : undefined}
-                        />
-                      </div>
-                    )}
+                    </div>
                     {isMvp && (
                       <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
@@ -1100,7 +1090,7 @@ export default function LiveHostScreen() {
                       {label || '\u00A0'}
                     </span>
                     <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {isEmpty ? '\u00A0' : pts}
+                      {pts}
                     </span>
                   </div>
                   );
@@ -1111,11 +1101,10 @@ export default function LiveHostScreen() {
                 onClick={openTopGiftersOpponent}
                 title="Top gifters — blue side"
               >
-                {topMvpOpponentBattle.map((viewer, i) => {
-                  const isEmpty = String(viewer.id).startsWith('__mvp-empty-');
-                  const gifted = isEmpty ? 0 : (mvpGiftScoresOpponent[viewer.id] ?? 0);
-                  const isMvp = !isEmpty && i === 0 && gifted > 0;
-                  const label = isEmpty ? '' : liveViewerLabel(viewer);
+                {topMvpOpponentBattle.filter((v) => !String(v.id).startsWith('__mvp-empty-')).map((viewer, i) => {
+                  const gifted = mvpGiftScores[viewer.id] ?? 0;
+                  const isMvp = i === 0 && gifted > 0;
+                  const label = liveViewerLabel(viewer);
                   const pts = formatCountShort(gifted);
                   return (
                   <div
@@ -1123,30 +1112,21 @@ export default function LiveHostScreen() {
                     className="relative flex flex-col items-center max-w-[42px]"
                     style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                   >
-                    {!isEmpty && gifted > 0 ? (
+                    {gifted > 0 ? (
                       <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                         {pts}
                       </span>
                     ) : (
                       <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
                     )}
-                    {isEmpty ? (
-                      <div
-                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                        }`}
-                        style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                    <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                      <AvatarRing
+                        src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                        alt={label || 'MVP'}
+                        size={LIVE_MVP_PROFILE_RING_PX}
+                        ringColor={isMvp ? MVP_GOLD : undefined}
                       />
-                    ) : (
-                      <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                        <AvatarRing
-                          src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                          alt={label || 'MVP'}
-                          size={LIVE_MVP_PROFILE_RING_PX}
-                          ringColor={isMvp ? MVP_GOLD : undefined}
-                        />
-                      </div>
-                    )}
+                    </div>
                     {isMvp && (
                       <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                         MVP
@@ -1156,7 +1136,7 @@ export default function LiveHostScreen() {
                       {label || '\u00A0'}
                     </span>
                     <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                      {isEmpty ? '\u00A0' : pts}
+                      {pts}
                     </span>
                   </div>
                   );

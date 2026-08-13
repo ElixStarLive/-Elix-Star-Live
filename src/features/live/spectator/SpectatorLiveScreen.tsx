@@ -1614,16 +1614,13 @@ export default function SpectatorLiveScreen() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.host.map((slot, i) => {
-                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
-                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresHostRef.current[slot.id] ?? 0);
-                      const isMvp = !isEmpty && i === 0 && gifted > 0;
+                    {mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-')).map((slot, i) => {
+                      const gifted = slot.points ?? mvpGiftScoresRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && gifted > 0;
                       const raw = String(slot.name || '').trim();
-                      const label = isEmpty
-                        ? ''
-                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                          ? raw.split('@')[0] || 'User'
-                          : raw || 'User';
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                        ? raw.split('@')[0] || 'User'
+                        : raw || 'User';
                       const pts =
                         gifted >= 1_000_000
                           ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
@@ -1636,30 +1633,21 @@ export default function SpectatorLiveScreen() {
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          {!isEmpty && gifted > 0 ? (
+                          {gifted > 0 ? (
                             <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                               {pts}
                             </span>
                           ) : (
                             <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
                           )}
-                          {isEmpty ? (
-                            <div
-                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                              }`}
-                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={label || 'MVP'}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
                             />
-                          ) : (
-                            <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                              <AvatarRing
-                                src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                alt={label || 'MVP'}
-                                size={LIVE_MVP_PROFILE_RING_PX}
-                                ringColor={isMvp ? MVP_GOLD : undefined}
-                              />
-                            </div>
-                          )}
+                          </div>
                           {isMvp && (
                             <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
@@ -1669,7 +1657,7 @@ export default function SpectatorLiveScreen() {
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : pts}
+                            {pts}
                           </span>
                         </div>
                       );
@@ -1693,16 +1681,13 @@ export default function SpectatorLiveScreen() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.opponent.map((slot, i) => {
-                      const isEmpty = String(slot.id).startsWith('__mvp-empty-');
-                      const gifted = isEmpty ? 0 : (slot.points ?? mvpGiftScoresOpponentRef.current[slot.id] ?? 0);
-                      const isMvp = !isEmpty && i === 0 && gifted > 0;
+                    {mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-')).map((slot, i) => {
+                      const gifted = slot.points ?? mvpGiftScoresRef.current[slot.id] ?? 0;
+                      const isMvp = i === 0 && gifted > 0;
                       const raw = String(slot.name || '').trim();
-                      const label = isEmpty
-                        ? ''
-                        : /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
-                          ? raw.split('@')[0] || 'User'
-                          : raw || 'User';
+                      const label = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)
+                        ? raw.split('@')[0] || 'User'
+                        : raw || 'User';
                       const pts =
                         gifted >= 1_000_000
                           ? `${(Math.round((gifted / 1_000_000) * 10) / 10)}M`
@@ -1715,30 +1700,21 @@ export default function SpectatorLiveScreen() {
                           className="relative flex flex-col items-center max-w-[42px]"
                           style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '1.5mm' }}
                         >
-                          {!isEmpty && gifted > 0 ? (
+                          {gifted > 0 ? (
                             <span className="mb-0.5 text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
                               {pts}
                             </span>
                           ) : (
                             <span className="mb-0.5 text-[7px] leading-none opacity-0" aria-hidden>{'\u00A0'}</span>
                           )}
-                          {isEmpty ? (
-                            <div
-                              className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                                isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
-                              }`}
-                              style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={label || 'MVP'}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
                             />
-                          ) : (
-                            <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                              <AvatarRing
-                                src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                alt={label || 'MVP'}
-                                size={LIVE_MVP_PROFILE_RING_PX}
-                                ringColor={isMvp ? MVP_GOLD : undefined}
-                              />
-                            </div>
-                          )}
+                          </div>
                           {isMvp && (
                             <span className={`absolute top-[22px] left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
                               MVP
@@ -1748,7 +1724,7 @@ export default function SpectatorLiveScreen() {
                             {label || '\u00A0'}
                           </span>
                           <span className="text-[#F5F5F7] text-[7px] font-black tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]">
-                            {isEmpty ? '\u00A0' : pts}
+                            {pts}
                           </span>
                         </div>
                       );
