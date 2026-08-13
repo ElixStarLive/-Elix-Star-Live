@@ -439,7 +439,7 @@ export function useLiveHostController() {
     // Derive host name from stream key (simplified without DB)
     const hostLabel = effectiveStreamId.slice(0, 8).toUpperCase();
     setHostName(`Creator ${hostLabel}`);
-    setHostAvatar(`https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=FFFFFF`);
+    setHostAvatar('');
   }, [isBroadcast, effectiveStreamId]);
 
   const [isMyStreamLive, setIsMyStreamLive] = useState(false);
@@ -967,7 +967,7 @@ export function useLiveHostController() {
       id: `host-${Date.now()}-${Math.random().toString(36).slice(2)}`,
       userId: creator.id,
       name: creator.name,
-      avatar: creator.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(creator.name)}&background=121212&color=FFFFFF`,
+      avatar: sanitizeLiveAvatar(creator.avatar),
       status: 'invited',
       isMuted: false,
     };
@@ -1061,7 +1061,7 @@ export function useLiveHostController() {
         id: `host-${Date.now()}`,
         userId: req.requesterId,
         name: req.requesterName,
-        avatar: req.requesterAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.requesterName)}&background=121212&color=FFFFFF`,
+        avatar: sanitizeLiveAvatar(req.requesterAvatar),
         status: 'live',
         isMuted: false,
       }];
@@ -1376,7 +1376,7 @@ export function useLiveHostController() {
 
       const hostLabel = effectiveStreamId.slice(0, 8).toUpperCase();
       let hName = `Host ${hostLabel}`;
-      let hAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(hostLabel)}&background=121212&color=FFFFFF`;
+      let hAvatar = '';
       try {
         const { body: profileBody } = await apiFetchProfileById(effectiveStreamId);
         if (profileBody) {
@@ -1386,22 +1386,23 @@ export function useLiveHostController() {
             (typeof profile.display_name === 'string' && profile.display_name.trim()) ||
             (typeof profile.username === 'string' && profile.username.trim()) ||
             '';
-          const resolvedAvatar =
+          const resolvedAvatar = sanitizeLiveAvatar(
             (typeof profile.avatarUrl === 'string' && profile.avatarUrl.trim()) ||
             (typeof profile.avatar_url === 'string' && profile.avatar_url.trim()) ||
-            '';
+            '',
+          );
           if (resolvedName) hName = resolvedName;
           if (resolvedAvatar) hAvatar = resolvedAvatar;
         }
       } catch {
-        // Keep fallback host label/avatar.
+        // Keep fallback host label; avatar stays empty until a real photo loads.
       }
 
       if (cancelled) return;
       setBattleSlots(prev => {
         const next = [...prev];
-        // Keep a real seeded avatar over the generated fallback.
-        const avatar = prev[0].avatar && hAvatar.startsWith('https://ui-avatars.com/') ? prev[0].avatar : hAvatar;
+        const prevPhoto = sanitizeLiveAvatar(prev[0].avatar);
+        const avatar = hAvatar || prevPhoto;
         next[0] = { userId: effectiveStreamId, name: hName, status: 'accepted', avatar };
         return next;
       });
@@ -5020,13 +5021,16 @@ export function useLiveHostController() {
     coins?: number,
     opts?: { userId?: string; avatar?: string; level?: number | null; liveStreamKey?: string },
   ) => {
-    const avatar = opts?.avatar ?? (username === myCreatorName
-      ? myAvatar
-      : `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=121212&color=FFFFFF`);
-    const level = opts?.level ?? (username === myCreatorName ? userLevel : null);
-    const donated = username === myCreatorName ? sessionContribution : 0;
+    const name = String(username || '').trim();
+    // System banners are not real users — never open a fake profile with initials.
+    if (!name || /^system$/i.test(name)) return;
+    const avatar =
+      sanitizeLiveAvatar(opts?.avatar) ||
+      (name === myCreatorName ? sanitizeLiveAvatar(myAvatar) : '');
+    const level = opts?.level ?? (name === myCreatorName ? userLevel : null);
+    const donated = name === myCreatorName ? sessionContribution : 0;
     setMiniProfile({
-      username,
+      username: name,
       avatar,
       level,
       coins,
@@ -5045,7 +5049,7 @@ export function useLiveHostController() {
             id: opts.userId,
             username: String(prof.displayName || prof.username || prev.username),
             bio: String(prof.bio || ''),
-            avatar: String(prof.avatarUrl || prev.avatar),
+            avatar: sanitizeLiveAvatar(String(prof.avatarUrl || '')) || prev.avatar,
             level: Number(prof.level) || prev.level,
             followers_count: Number(prof.followers) || 0,
             following_count: Number(prof.following) || 0,
@@ -5054,11 +5058,13 @@ export function useLiveHostController() {
           return;
         }
       }
-      const { body: prof } = await apiFetchProfileByUsername(username);
+      const { body: prof } = await apiFetchProfileByUsername(name);
       if (prof?.user_id) {
         const resolvedId = typeof prof.user_id === 'string' ? prof.user_id : '';
         const resolvedBio = typeof prof.bio === 'string' ? prof.bio : '';
-        const resolvedAvatar = typeof prof.avatar_url === 'string' ? prof.avatar_url : '';
+        const resolvedAvatar = sanitizeLiveAvatar(
+          typeof prof.avatar_url === 'string' ? prof.avatar_url : '',
+        );
         const resolvedLevel = Number(prof.level);
         const resolvedFollowers = Number(prof.followers_count);
         const resolvedFollowing = Number(prof.following_count);

@@ -648,9 +648,7 @@ export default function LiveHostScreen() {
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 object-cover object-center" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                        <span className="text-2xl font-black text-[#F5F5F7]/60">{(creatorName || user?.username || 'Me').charAt(0).toUpperCase()}</span>
-                      </div>
+                      <div className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 bg-[rgba(0,0,0,0.35)]" />
                     )}
                     <span className="text-white font-bold text-xs">{creatorName || user?.username || user?.name || 'Me'}</span>
                   </div>
@@ -699,9 +697,7 @@ export default function LiveHostScreen() {
                     {myAvatar ? (
                       <img src={myAvatar} alt="" className="w-28 h-28 rounded-full object-cover object-center mb-4 opacity-80" />
                     ) : (
-                      <div className="w-28 h-28 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center mb-4">
-                        <span className="text-4xl font-black text-[#F5F5F7]/60">{creatorName.charAt(0).toUpperCase()}</span>
-                      </div>
+                      <div className="w-28 h-28 rounded-full bg-[rgba(0,0,0,0.35)] mb-4" />
                     )}
                     <p className="text-white font-bold text-lg">{creatorName}</p>
                     <div className="flex items-center gap-1.5 mt-1">
@@ -759,9 +755,7 @@ export default function LiveHostScreen() {
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                              <span className="text-[#F5F5F7]/60 text-sm font-bold">{(creatorName || 'Me').charAt(0)}</span>
-                            </div>
+                            <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
                           )}
                         </div>
                       )}
@@ -804,9 +798,7 @@ export default function LiveHostScreen() {
                         {host.avatar ? (
                           <img src={host.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                            <span className="text-[#F5F5F7]/60 text-sm font-bold">{(host.name || '?').charAt(0)}</span>
-                          </div>
+                          <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
                         )}
                         <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{host.name}</span>
                       </div>
@@ -899,7 +891,7 @@ export default function LiveHostScreen() {
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                      {invitedHost.avatar ? <img src={invitedHost.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7]/60 text-base font-bold">{(invitedHost.name || '?').charAt(0)}</div>}
+                      {invitedHost.avatar ? <img src={invitedHost.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : null}
                     </div>
                     <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{invitedHost.name}</p>
                     <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Waiting</span>
@@ -920,7 +912,7 @@ export default function LiveHostScreen() {
                       <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
                     </button>
                     <div className="w-10 h-10 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                      {pendingHost.avatar ? <img src={pendingHost.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] text-sm font-bold">{(pendingHost.name || '?').charAt(0)}</div>}
+                      {pendingHost.avatar ? <img src={pendingHost.avatar} alt="" className="w-full h-full object-cover" /> : null}
                     </div>
                     <p className="text-white text-[8px] font-bold mt-0.5 truncate max-w-[95%] text-center">{pendingHost.name}</p>
                     <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Pending</span>
@@ -1029,11 +1021,7 @@ export default function LiveHostScreen() {
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                      >
-                        {label ? (
-                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                        ) : null}
-                      </div>
+                      />
                     ) : (
                       <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
@@ -1212,9 +1200,7 @@ export default function LiveHostScreen() {
                           {(user?.avatar || myAvatar) ? (
                             <img src={user?.avatar || myAvatar || ''} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                              <span className="text-lg font-black text-[#F5F5F7]/60">{(creatorName || user?.username || 'Me').charAt(0).toUpperCase()}</span>
-                            </div>
+                            <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)]" />
                           )}
                           <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{creatorName || user?.username || user?.name || 'Me'}</span>
                         </div>
@@ -1287,9 +1273,7 @@ export default function LiveHostScreen() {
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                  <span className="text-2xl font-black text-[#F5F5F7]/60">{(battleSlots[0].name || 'P').charAt(0).toUpperCase()}</span>
-                                </div>
+                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)]" />
                               )}
                               <span className="text-white font-bold text-xs">{battleSlots[0].name}</span>
                             </div>
@@ -1299,9 +1283,7 @@ export default function LiveHostScreen() {
                               {battleSlots[0].avatar ? (
                                 <img src={battleSlots[0].avatar} alt={battleSlots[0].name} className="w-16 h-16 rounded-full object-cover object-center" />
                               ) : (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                  <span className="text-2xl font-black text-[#F5F5F7]">{(battleSlots[0].name || 'P').charAt(0).toUpperCase()}</span>
-                                </div>
+                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)]" />
                               )}
                               <span className="text-white text-xs font-bold">{battleSlots[0].name}</span>
                               <div className="flex items-center gap-1">
@@ -1423,9 +1405,7 @@ export default function LiveHostScreen() {
                                 {battleSlots[1].avatar ? (
                                   <img src={battleSlots[1].avatar} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                    <span className="text-lg font-black text-[#F5F5F7]/60">{(battleSlots[1].name || '?').charAt(0).toUpperCase()}</span>
-                                  </div>
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)]" />
                                 )}
                                 <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{battleSlots[1].name}</span>
                               </div>
@@ -1520,9 +1500,7 @@ export default function LiveHostScreen() {
                                 {battleSlots[2].avatar ? (
                                   <img src={battleSlots[2].avatar} alt="" className="w-12 h-12 rounded-full object-cover object-center" />
                                 ) : (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                    <span className="text-lg font-black text-[#F5F5F7]/60">{(battleSlots[2].name || '?').charAt(0).toUpperCase()}</span>
-                                  </div>
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(0,0,0,0.35)]" />
                                 )}
                                 <span className="text-white font-bold text-[10px] truncate max-w-full px-1">{battleSlots[2].name}</span>
                               </div>
@@ -1654,11 +1632,7 @@ export default function LiveHostScreen() {
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                      >
-                        {!isEmpty && label ? (
-                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                        ) : null}
-                      </div>
+                      />
                     ) : (
                       <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
@@ -1718,11 +1692,7 @@ export default function LiveHostScreen() {
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                      >
-                        {!isEmpty && label ? (
-                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                        ) : null}
-                      </div>
+                      />
                     ) : (
                       <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
@@ -2070,7 +2040,7 @@ export default function LiveHostScreen() {
                       isModerator={isBroadcast || moderators.has(user?.id || '')}
                       onLike={() => handleLikeTap()}
                       onHeartSpawn={(_cx, _cy) => handleLikeTap()}
-                      onProfileTap={(username) => openMiniProfile(username)}
+                  onProfileTap={(username) => openMiniProfile(username)}
                       onDeleteMessage={(msgId) => setMessages(prev => prev.filter(m => m.id !== msgId))}
                       onBlockUser={(username) => {
                         setMessages(prev => prev.filter(m => m.username !== username));
@@ -3499,7 +3469,7 @@ export default function LiveHostScreen() {
                 >
                   <StoryGoldRingAvatar
                     size={SHARE_PANEL_AVATAR_PX}
-                    src={f.avatar_url || '/royce/default-avatar.svg'}
+                    src={f.avatar_url || ''}
                     alt={f.username}
                     live={shareLiveUserIds.has(f.user_id)}
                   />

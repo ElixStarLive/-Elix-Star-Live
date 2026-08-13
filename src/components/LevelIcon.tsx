@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { AvatarRing } from './AvatarRing';
-import { resolveUiAvatarUrl, ROYCE_DEFAULT_AVATAR } from '../lib/royceAssets';
+import { sanitizeLiveAvatar } from '../lib/liveCreatorDisplay';
 import {
   clampUserLevel,
   getLevelAccentStyle,
@@ -16,11 +16,6 @@ export interface LevelIconProps {
   barColor?: string;
   text?: 'lv' | 'level';
   hideCircle?: boolean;
-}
-
-function isUsableAvatarUrl(url: string | undefined): url is string {
-  const t = typeof url === 'string' ? url.trim() : '';
-  return Boolean(t) && t !== ROYCE_DEFAULT_AVATAR && !t.includes('/royce/default-avatar');
 }
 
 /** Royal pink + white diamond — solid strokes so it stays visible at small chip sizes. */
@@ -185,11 +180,8 @@ export const LevelIcon: React.FC<LevelIconProps> = ({
     </div>
   );
 
-  const chatAvatarSrc = resolveUiAvatarUrl(
-    isUsableAvatarUrl(avatarUrl) ? avatarUrl.trim() : '',
-    displayName || 'User',
-    circleSize * 2,
-  );
+  /** Real profile photo only — empty ring when missing (no initials / logo). */
+  const chatAvatarSrc = sanitizeLiveAvatar(avatarUrl);
 
   if (hideCircle) {
     return (

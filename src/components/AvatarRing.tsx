@@ -1,4 +1,4 @@
-import { resolveUiAvatarUrl } from '../lib/royceAssets';
+import { isPlaceholderLiveAvatar } from '../lib/liveCreatorDisplay';
 
 interface AvatarRingProps {
   src: string;
@@ -14,7 +14,7 @@ const SILVER_RING = '#E6E9EE';
 
 /**
  * User avatar circle — silver ring flush on the photo (same as story circles).
- * Do not remove the circle.
+ * Real profile photo only. No initials, logo, or generated icons inside the circle.
  */
 export function AvatarRing({
   src,
@@ -26,7 +26,8 @@ export function AvatarRing({
 }: AvatarRingProps) {
   const safeAlt = typeof alt === 'string' ? alt : '';
   const safeSize = typeof size === 'number' && Number.isFinite(size) && size > 0 ? Math.floor(size) : 40;
-  const imgSrc = resolveUiAvatarUrl(src, safeAlt, safeSize * 2);
+  const photo = typeof src === 'string' ? src.trim() : '';
+  const showPhoto = Boolean(photo) && !isPlaceholderLiveAvatar(photo);
   const stroke = typeof ringColor === 'string' && ringColor.trim() ? ringColor.trim() : SILVER_RING;
 
   return (
@@ -41,12 +42,14 @@ export function AvatarRing({
       }}
       onClick={onClick}
     >
-      <img
-        src={imgSrc}
-        alt={safeAlt}
-        className="block w-full h-full object-cover object-center"
-        draggable={false}
-      />
+      {showPhoto ? (
+        <img
+          src={photo}
+          alt={safeAlt}
+          className="block w-full h-full object-cover object-center"
+          draggable={false}
+        />
+      ) : null}
     </div>
   );
 }

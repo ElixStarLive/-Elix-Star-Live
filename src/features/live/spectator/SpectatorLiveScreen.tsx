@@ -662,11 +662,9 @@ export default function SpectatorLiveScreen() {
                             <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-panel">
                               {hostAvatar ? (
                                 <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center" />
-                              ) : (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                                  <span className="text-2xl font-black text-[#F5F5F7]">{(hostName || 'H').charAt(0).toUpperCase()}</span>
-                                </div>
-                              )}
+                                  ) : (
+                                    <div className="w-16 h-16 rounded-full bg-[rgba(0,0,0,0.35)]" />
+                                  )}
                               <span className="text-white text-xs font-bold">{hostName}</span>
                               <div className="flex items-center gap-1">
                                 <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
@@ -690,9 +688,7 @@ export default function SpectatorLiveScreen() {
                             {!hasPlayer3Stream && (
                               <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
                                 {spectatorBattle.player3Name ? (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
-                                    <span className="text-lg font-black text-[#E6E9EE]">{spectatorBattle.player3Name.charAt(0).toUpperCase()}</span>
-                                  </div>
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] border border-[var(--elix-border)]" />
                                 ) : null}
                                 <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player3Name || 'Creator'}</span>
                               </div>
@@ -719,9 +715,7 @@ export default function SpectatorLiveScreen() {
                           {!hasOpponentStream && (
                             <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
                               {spectatorBattle.opponentName ? (
-                                <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
-                                  <span className="text-2xl font-black text-[#E6E9EE]">{spectatorBattle.opponentName.charAt(0).toUpperCase()}</span>
-                                </div>
+                                <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] border border-[var(--elix-border)]" />
                               ) : (
                                 <div className="w-16 h-16 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
                                   <span className="text-2xl font-black text-[#E6E9EE]">+</span>
@@ -752,9 +746,7 @@ export default function SpectatorLiveScreen() {
                             {!hasPlayer4Stream && (
                               <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 elix-battle-slot">
                                 {spectatorBattle.player4Name ? (
-                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] flex items-center justify-center border border-[var(--elix-border)]">
-                                    <span className="text-lg font-black text-[#E6E9EE]">{spectatorBattle.player4Name.charAt(0).toUpperCase()}</span>
-                                  </div>
+                                  <div className="w-12 h-12 rounded-full bg-[rgba(8,10,14,0.65)] border border-[var(--elix-border)]" />
                                 ) : null}
                                 <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player4Name || 'Creator'}</span>
                               </div>
@@ -953,11 +945,7 @@ export default function SpectatorLiveScreen() {
                                 isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                               }`}
                               style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                            >
-                              {!isEmpty && label ? (
-                                <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                              ) : null}
-                            </div>
+                            />
                           ) : (
                             <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                               <AvatarRing
@@ -1040,11 +1028,7 @@ export default function SpectatorLiveScreen() {
                                 isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                               }`}
                               style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                            >
-                              {!isEmpty && label ? (
-                                <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                              ) : null}
-                            </div>
+                            />
                           ) : (
                             <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                               <AvatarRing
@@ -1127,11 +1111,7 @@ export default function SpectatorLiveScreen() {
                         {(profile?.avatarUrl) ? (
                           <img src={profile.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center flex-shrink-0">
-                            <span className="text-sm font-black text-[#F5F5F7]">
-                              {(profile?.displayName || fallbackName || 'C').charAt(0).toUpperCase()}
-                            </span>
-                          </div>
+                          <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex-shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-bold text-sm truncate leading-tight">
@@ -1275,9 +1255,7 @@ export default function SpectatorLiveScreen() {
                     {(viewerAvatar || user?.avatar) ? (
                       <img src={viewerAvatar || user?.avatar || ''} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                        <span className="text-[#F5F5F7]/60 text-sm font-bold">{(viewerName || '?').charAt(0)}</span>
-                      </div>
+                      <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
                     )}
                   </div>
                   )}
@@ -1347,9 +1325,7 @@ export default function SpectatorLiveScreen() {
                     {h.avatar ? (
                       <img src={h.avatar} alt="" className="w-10 h-10 rounded-full object-cover object-center" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
-                        <span className="text-[#F5F5F7]/60 text-sm font-bold">{(h.name || '?').charAt(0)}</span>
-                      </div>
+                      <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
                     )}
                     <span className="text-white/90 text-[8px] font-bold truncate max-w-full px-1">{h.name}</span>
                   </div>
@@ -1427,7 +1403,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                    {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7]/60 text-base font-bold">{(slot.host.name || '?').charAt(0)}</div>}
+                    {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover opacity-60" /> : null}
                   </div>
                   <p className="text-white/60 text-[9px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
                   <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Waiting</span>
@@ -1438,7 +1414,7 @@ export default function SpectatorLiveScreen() {
               return (
                 <>
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-[rgba(0,0,0,0.35)]">
-                    {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-[#F5F5F7] text-sm font-bold">{(slot.host.name || '?').charAt(0)}</div>}
+                    {slot.host.avatar ? <img src={slot.host.avatar} alt="" className="w-full h-full object-cover" /> : null}
                   </div>
                   <p className="text-white text-[8px] font-bold mt-0.5 truncate max-w-[95%] text-center">{slot.host.name}</p>
                   <span className="text-[#F5F5F7]/70 text-[8px] font-semibold">Pending</span>
@@ -1768,11 +1744,7 @@ export default function SpectatorLiveScreen() {
                           isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
-                      >
-                        {label ? (
-                          <span className="text-white text-[10px] font-black">{label.charAt(0).toUpperCase()}</span>
-                        ) : null}
-                      </div>
+                      />
                     ) : (
                       <div className={isMvp ? MVP_RING_PHOTO_CLASS : 'rounded-full'}>
                         <AvatarRing
@@ -2842,7 +2814,7 @@ export default function SpectatorLiveScreen() {
                       >
                         <StoryGoldRingAvatar
                           size={SHARE_PANEL_AVATAR_PX}
-                          src={u.avatar || '/royce/default-avatar.svg'}
+                          src={u.avatar || ''}
                           alt={u.name}
                           live={shareLiveUserIds.has(u.id)}
                         />

@@ -12,7 +12,7 @@ interface LevelBadgeProps {
   layout?: 'fit' | 'fixed';
   variant?: 'clean' | 'default' | 'chat';
   avatar?: string;
-  /** Display name for initials when photo URL is missing */
+  /** Display name for accessibility alt text only — never used for letter placeholders */
   name?: string;
   hideCircle?: boolean;
 }

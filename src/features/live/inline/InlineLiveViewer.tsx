@@ -588,13 +588,9 @@ export default function InlineLiveViewer({
         </div>
       ) : (
         <div
-          className="rounded-full bg-white/10 flex items-center justify-center shrink-0"
+          className="rounded-full bg-white/10 shrink-0"
           style={{ width: INLINE_LIVE_PLACEHOLDER_AVATAR_PX, height: INLINE_LIVE_PLACEHOLDER_AVATAR_PX }}
-        >
-          <span className="text-3xl font-bold text-[#F5F5F7]/80">
-            {(creatorName || "C").charAt(0).toUpperCase()}
-          </span>
-        </div>
+        />
       )}
       <p className="text-white font-semibold text-base truncate max-w-[80%]">{creatorName}</p>
       {connecting && !isOffline ? (
@@ -735,11 +731,7 @@ export default function InlineLiveViewer({
                     {displayAvatar ? (
                       <img src={displayAvatar} alt="" className="w-16 h-16 rounded-full object-cover" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center">
-                        <span className="text-[#F5F5F7] font-bold text-2xl">
-                          {(creatorName || "C").charAt(0).toUpperCase()}
-                        </span>
-                      </div>
+                      <div className="w-16 h-16 rounded-full bg-white/10" />
                     )}
                     <span className="text-white font-bold text-xs">{creatorName}</span>
                   </div>
@@ -771,11 +763,7 @@ export default function InlineLiveViewer({
                         {h.avatar ? (
                           <img src={h.avatar} alt="" className="w-8 h-8 rounded-full object-cover" />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center border border-[#D8D9DD]/40">
-                            <span className="text-[#F5F5F7]/70 text-xs font-bold">
-                              {(h.name || "?").charAt(0)}
-                            </span>
-                          </div>
+                          <div className="w-8 h-8 rounded-full bg-[rgba(0,0,0,0.35)] border border-[#D8D9DD]/40" />
                         )}
                       </div>
                       <video

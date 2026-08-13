@@ -1,4 +1,5 @@
 import React from 'react';
+import { isPlaceholderLiveAvatar } from '../lib/liveCreatorDisplay';
 
 /** Live badge + live ring (red) when on-air; silver ring otherwise. */
 const SILVER_RING = '#E6E9EE';
@@ -7,6 +8,7 @@ const LIVE_RING = '#FF2D55';
 /**
  * User avatar circle — silver ring flush on the photo (no gap).
  * Live: red live ring + LIVE badge below.
+ * Real profile photo only — empty dark circle when no photo (no initials/icons).
  */
 export function StoryGoldRingAvatar({
   size = 56,
@@ -32,8 +34,8 @@ export function StoryGoldRingAvatar({
   const liveBadgePadX = Math.max(3, Math.round(safeSize * 0.08));
   const liveBadgePadY = Math.max(1, Math.round(safeSize * 0.02));
   const liveBadgeRadius = Math.max(2, Math.round(safeSize * 0.055));
-  const safeSrc = typeof src === 'string' && src.trim() ? src.trim() : '';
-  const initial = (alt || '?').trim().charAt(0).toUpperCase() || '?';
+  const rawSrc = typeof src === 'string' ? src.trim() : '';
+  const showPhoto = Boolean(rawSrc) && !isPlaceholderLiveAvatar(rawSrc);
   const ringColor = live ? LIVE_RING : SILVER_RING;
 
   return (
@@ -53,9 +55,9 @@ export function StoryGoldRingAvatar({
           background: '#121419',
         }}
       >
-        {safeSrc ? (
+        {showPhoto ? (
           <img
-            src={safeSrc}
+            src={rawSrc}
             alt={alt}
             className="block w-full h-full object-cover object-center"
             style={{
@@ -63,11 +65,7 @@ export function StoryGoldRingAvatar({
             }}
             draggable={false}
           />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-white/70 font-bold text-lg">
-            {initial}
-          </div>
-        )}
+        ) : null}
       </div>
       {live ? (
         <div

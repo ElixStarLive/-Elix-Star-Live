@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LevelBadge } from './LevelBadge';
 import { Trash2, Ban, Shield, Heart } from 'lucide-react';
 import { LIVE_MVP_PROFILE_RING_PX } from '../lib/profileFrame';
+import { sanitizeLiveAvatar } from '../lib/liveCreatorDisplay';
 
 /** Live chat user ring — same diameter as MVP circles. */
 const LIVE_CHAT_RING_PX = LIVE_MVP_PROFILE_RING_PX;
@@ -110,6 +111,13 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
         {messages.map((msg, idx) => {
           const ringPx = msg.isSystem ? LIVE_JOIN_BANNER_RING_PX : LIVE_CHAT_RING_PX;
           const pillPx = msg.isSystem ? LIVE_JOIN_BANNER_PILL_PX : LIVE_CHAT_PILL_PX;
+          const chatName = typeof msg.username === 'string' ? msg.username.trim() : '';
+          const isSystemIdentity = /^system$/i.test(chatName);
+          const photo = sanitizeLiveAvatar(typeof msg.avatar === 'string' ? msg.avatar : '');
+          const openProfile = () => {
+            if (isSystemIdentity || !chatName) return;
+            onProfileTap?.(chatName);
+          };
           return (
           <div
             key={typeof msg.id === 'string' ? msg.id : `msg-${idx}`}
@@ -126,20 +134,21 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
               style={msg.isSystem ? { height: LIVE_JOIN_BANNER_RING_PX } : undefined}
             >
               <div 
-                className="flex-shrink-0 cursor-pointer relative z-10 flex items-center justify-center"
+                className={`flex-shrink-0 relative z-10 flex items-center justify-center ${isSystemIdentity ? '' : 'cursor-pointer'}`}
                 style={{ height: ringPx }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (onProfileTap) onProfileTap(msg.username);
+                  openProfile();
                 }}
               >
                 <LevelBadge
                   level={typeof msg.level === 'number' ? msg.level : 1}
                   layout="fixed"
-                  avatar={typeof msg.avatar === 'string' ? msg.avatar : undefined}
-                  name={typeof msg.username === 'string' ? msg.username : undefined}
+                  avatar={photo || undefined}
+                  name={chatName || undefined}
                   circleSize={ringPx}
                   size={pillPx}
+                  hideCircle={isSystemIdentity && !photo}
                 />
               </div>
               <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -156,13 +165,13 @@ export function ChatOverlay({ messages, variant = 'panel', compact = false, clas
                   </div>
                 )}
                 <span 
-                    className="text-white font-semibold text-[11px] leading-none cursor-pointer hover:underline whitespace-nowrap" 
+                    className={`text-white font-semibold text-[11px] leading-none whitespace-nowrap ${isSystemIdentity ? '' : 'cursor-pointer hover:underline'}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onProfileTap?.(String(msg.username ?? ''));
+                      openProfile();
                     }}
                 >
-                  {typeof msg.username === 'string' ? msg.username : 'User'}
+                  {chatName || 'User'}
                 </span>
                 {/* Join / system events read inline next to the colored level badge */}
                 {msg.isSystem && typeof msg.text === 'string' && msg.text ? (
