@@ -244,7 +244,6 @@ export default function LiveHostScreen() {
     creatorName,
     creatorStickers,
     creatorsLoadFailed,
-    creatorsLoading,
     creatorsToInvite,
     currentGift,
     currentUniverse,
@@ -2400,11 +2399,6 @@ export default function LiveHostScreen() {
                   );
                 })}
 
-                {filteredCreators.length === 0 && creatorsLoading ? (
-                  <div className="py-6 flex justify-center">
-                    <div className="w-5 h-5 border-2 border-[#D8D9DD]/40 border-t-transparent rounded-full animate-spin" />
-                  </div>
-                ) : null}
                 {filteredCreators.length === 0 && creatorsLoadFailed ? (
                   <div className="py-6 flex flex-col items-center gap-2">
                     <p className="text-white/50 text-[11px] text-center px-4">Could not load live creators</p>
@@ -2413,7 +2407,7 @@ export default function LiveHostScreen() {
                     </button>
                   </div>
                 ) : null}
-                {filteredCreators.length === 0 && !creatorsLoading && !creatorsLoadFailed ? (
+                {filteredCreators.length === 0 && !creatorsLoadFailed ? (
                   <div className="py-8 flex flex-col items-center gap-2 px-4">
                     <p className="text-white/70 text-[12px] font-semibold text-center">No other creators live</p>
                     <p className="text-white/40 text-[10px] text-center leading-snug">

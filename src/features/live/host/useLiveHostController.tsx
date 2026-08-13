@@ -623,19 +623,35 @@ export function useLiveHostController() {
 
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
-  const [creatorsLoading, setCreatorsLoading] = useState(false);
   const [creatorsLoadFailed, setCreatorsLoadFailed] = useState(false);
+  const battleInviteRosterSeqRef = useRef(0);
+  const battleInviteRosterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const requestBattleInviteRoster = useCallback(() => {
     if (!isBroadcast && !isBattleJoiner) return;
-    setCreatorsLoading(true);
     setCreatorsLoadFailed(false);
+    const seq = ++battleInviteRosterSeqRef.current;
+    if (battleInviteRosterTimeoutRef.current) {
+      clearTimeout(battleInviteRosterTimeoutRef.current);
+    }
+    battleInviteRosterTimeoutRef.current = setTimeout(() => {
+      if (battleInviteRosterSeqRef.current !== seq) return;
+      setCreatorsLoadFailed(true);
+    }, 8000);
     battleInviteRosterGet({});
   }, [isBroadcast, isBattleJoiner]);
 
+  useEffect(() => {
+    return () => {
+      if (battleInviteRosterTimeoutRef.current) {
+        clearTimeout(battleInviteRosterTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Creators panel: one roster get on the live-room socket. Do not attach
   // feed-presence here — that can steal the singleton onto __feed__ and the
-  // invite list never comes back (spinner never clears).
+  // invite list never comes back.
   useEffect(() => {
     if (!isFindCreatorsOpen || !user?.id) return;
     requestBattleInviteRoster();
@@ -2302,8 +2318,9 @@ export function useLiveHostController() {
     // Creators panel stays closed — host opens it via Add creator / Explore only.
     setIsFindCreatorsOpen(false);
     battleCreate({ hostName: creatorName });
+    requestBattleInviteRoster();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores]);
+  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores, requestBattleInviteRoster]);
 
   /** X on a battle participant — remove ONLY that creator's seat; never end the whole Battle. */
   const removePlayerFromSlot = useCallback((slotIndex: number) => {
@@ -3765,8 +3782,11 @@ export function useLiveHostController() {
 
     const handleBattleInviteRoster = (data: unknown) => {
       if (!mounted) return;
+      if (battleInviteRosterTimeoutRef.current) {
+        clearTimeout(battleInviteRosterTimeoutRef.current);
+        battleInviteRosterTimeoutRef.current = null;
+      }
       if (!isBroadcastRef.current && !isBattleJoinerRef.current) {
-        setCreatorsLoading(false);
         return;
       }
       const payload = data as {
@@ -3783,7 +3803,6 @@ export function useLiveHostController() {
       const rows = Array.isArray(payload?.creators) ? payload.creators : [];
       if (payload?.error && rows.length === 0) {
         setCreatorsLoadFailed(true);
-        setCreatorsLoading(false);
         return;
       }
       setCreators((prev) => {
@@ -3816,7 +3835,6 @@ export function useLiveHostController() {
           .filter((c): c is NonNullable<typeof c> => !!c);
       });
       setCreatorsLoadFailed(false);
-      setCreatorsLoading(false);
     };
 
     const handleBattleInviteRosterInvalidate = () => {
@@ -5438,7 +5456,6 @@ export function useLiveHostController() {
     creatorStickers,
     creators,
     creatorsLoadFailed,
-    creatorsLoading,
     creatorsToInvite,
     currentGift,
     currentUniverse,
@@ -5677,7 +5694,6 @@ export function useLiveHostController() {
     setCreatorStickers,
     setCreators,
     setCreatorsLoadFailed,
-    setCreatorsLoading,
     setCurrentGift,
     setCurrentUniverse,
     setDailyHeartCount,
