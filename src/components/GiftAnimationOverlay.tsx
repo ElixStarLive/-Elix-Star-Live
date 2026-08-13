@@ -138,8 +138,8 @@ export default function GiftAnimationOverlay({
         <div
           className="absolute left-0 right-0"
           style={{
-            // Solo + battle: top middle of Weekly Ranking capsule row (not battle stage bottom).
-            top: 'calc(env(safe-area-inset-top, 0px) + 66px)',
+            // Solo + battle: Weekly Ranking row, 0.5mm down.
+            top: 'calc(env(safe-area-inset-top, 0px) + 66px + 0.5mm)',
           }}
         >
           {currentGift && (
