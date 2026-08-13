@@ -555,7 +555,7 @@ export default function SpectatorLiveScreen() {
               <div
                 className="absolute inset-0 z-[80] flex flex-col overflow-hidden"
                 style={{
-                  paddingTop: 'calc(var(--safe-top) + 112px - 0.5mm)',
+                  paddingTop: 'calc(var(--safe-top) + 112px - 2.5mm)',
                   paddingBottom: '305px',
                 }}
               >

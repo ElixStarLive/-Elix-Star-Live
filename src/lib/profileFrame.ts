@@ -47,7 +47,7 @@ export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
  * Matches host/spectator battle stage + lower fundal.
  */
 export const LIVE_BATTLE_STAGE_BOTTOM =
-  'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
+  'calc(var(--safe-top) + 112px - 2.5mm + 44dvh - 3mm)' as const;
 
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
