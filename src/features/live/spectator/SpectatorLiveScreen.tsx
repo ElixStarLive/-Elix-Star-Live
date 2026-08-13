@@ -2193,6 +2193,7 @@ export default function SpectatorLiveScreen() {
         <LiveGiftFeedStack
           streamId={effectiveStreamId}
           isCohostMode={hasCoHostLowerFundal && !spectatorBattle?.active}
+          isBattleMode={!!spectatorBattle?.active}
           cohostStageBottom={LIVE_COHOST_STAGE_BOTTOM}
         />
 

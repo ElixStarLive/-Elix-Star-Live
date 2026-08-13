@@ -5,6 +5,7 @@ import {
   ELIX_GIFT_PILL_EVENT,
   type ElixGiftPillDetail,
 } from './GiftAnimationOverlay';
+import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
 
 /**
  * Separate live gift-feed stack (photo: cards + xN).
@@ -61,8 +62,10 @@ function formatXn(n: number) {
 
 type Props = {
   streamId: string;
-  /** Co-host split: sit on the bottom of the big left tile. Solo/battle keep the existing top offset. */
+  /** Co-host split: sit on the bottom of the big left tile. Solo keeps the existing top offset. */
   isCohostMode?: boolean;
+  /** Battle: sit at bottom:0 of the battle video stage (not the red Weekly Ranking banner). */
+  isBattleMode?: boolean;
   /** CSS `top` of the co-host stage bottom edge (host and spectator stages differ). */
   cohostStageBottom?: string;
 };
@@ -70,6 +73,7 @@ type Props = {
 export function LiveGiftFeedStack({
   streamId,
   isCohostMode = false,
+  isBattleMode = false,
   cohostStageBottom,
 }: Props) {
   const [stack, setStack] = useState<FeedCard[]>([]);
@@ -175,7 +179,13 @@ export function LiveGiftFeedStack({
                   transform: 'translateY(calc(-100% - 2px))',
                   maxWidth: '220px',
                 }
-              : { top: 'calc(22dvh + 6mm)', maxWidth: '220px' }
+              : isBattleMode
+                ? {
+                    top: LIVE_BATTLE_STAGE_BOTTOM,
+                    transform: 'translateY(-100%)',
+                    maxWidth: '220px',
+                  }
+                : { top: 'calc(22dvh + 6mm)', maxWidth: '220px' }
           }
         >
           {stack.map((g) => {

@@ -3373,6 +3373,7 @@ export default function LiveHostScreen() {
       <LiveGiftFeedStack
         streamId={effectiveStreamId}
         isCohostMode={hasCoHostLowerFundal && !isBattleMode}
+        isBattleMode={isBattleMode}
         cohostStageBottom={LIVE_HOST_COHOST_STAGE_BOTTOM}
       />
 
