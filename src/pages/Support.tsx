@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Book, ChevronRight, HelpCircle, Mail, MessageCircle, Send, Shield } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { SettingsSectionLabel as S } from '../components/settings/SettingsSectionLabel';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import { SETTINGS_HOME, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
 
 const FAQ_ITEMS = [
   {
@@ -47,6 +47,7 @@ const FAQ_ITEMS = [
 
 export default function Support() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showContactForm, setShowContactForm] = useState(false);
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
@@ -54,8 +55,14 @@ export default function Support() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goSafety = useCallback(
+    () => navigate('/settings/safety', { state: containerReturnState('/support') }),
+    [navigate],
+  );
   const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
   const goTerms = useCallback(() => navigate('/terms'), [navigate]);
   const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);

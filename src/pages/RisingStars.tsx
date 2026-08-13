@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Star, Users, MapPin, Music, ChevronRight } from "lucide-react";
 import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
 import { showToast } from "../lib/toast";
@@ -12,7 +12,12 @@ import {
   apiRisingStarsStandings,
   apiRisingStarsTeams,
 } from "../features/risingStars/risingStarsApi";
-import { RISING_STARS_EXIT_TO } from "../lib/settingsNav";
+import {
+  RISING_STARS_EXIT_TO,
+  RISING_STARS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+} from "../lib/settingsNav";
 
 interface Season {
   id: string;
@@ -64,6 +69,7 @@ interface Team {
 
 export default function RisingStars() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [season, setSeason] = useState<Season | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -75,13 +81,22 @@ export default function RisingStars() {
   const [tab, setTab] = useState<"challenges" | "standings" | "teams">("challenges");
   const [loading, setLoading] = useState(true);
 
-  const goBack = useCallback(() => navigate(RISING_STARS_EXIT_TO, { replace: true }), [navigate]);
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, RISING_STARS_EXIT_TO), { replace: true }),
+    [navigate, location.state],
+  );
   const openChallenge = useCallback(
-    (challengeId: string) => navigate(`/rising-stars/challenge/${challengeId}`),
+    (challengeId: string) =>
+      navigate(`/rising-stars/challenge/${challengeId}`, {
+        state: containerReturnState(RISING_STARS_HOME),
+      }),
     [navigate],
   );
   const openCreatorProfile = useCallback(
-    (creatorUserId: string) => navigate(`/profile/${creatorUserId}`),
+    (creatorUserId: string) =>
+      navigate(`/profile/${creatorUserId}`, {
+        state: containerReturnState(RISING_STARS_HOME),
+      }),
     [navigate],
   );
 

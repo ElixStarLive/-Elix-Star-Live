@@ -32,7 +32,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { engagementFlags } from '../config/engagementFlags';
-import { SETTINGS_EXIT_TO, ENGAGEMENT_HOME } from '../lib/settingsNav';
+import { SETTINGS_EXIT_TO, ENGAGEMENT_HOME, SETTINGS_HOME, containerReturnState } from '../lib/settingsNav';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -56,8 +56,14 @@ export default function Settings() {
   const goEngagement = useCallback(() => navigate(ENGAGEMENT_HOME), [navigate]);
   const goAdmin = useCallback(() => navigate('/admin'), [navigate]);
   const goNotifications = useCallback(() => navigate('/settings/notifications'), [navigate]);
-  const goLikedVideos = useCallback(() => navigate('/profile?tab=liked'), [navigate]);
-  const goSaved = useCallback(() => navigate('/saved'), [navigate]);
+  const goLikedVideos = useCallback(
+    () => navigate('/profile?tab=liked', { state: containerReturnState(SETTINGS_HOME) }),
+    [navigate],
+  );
+  const goSaved = useCallback(
+    () => navigate('/saved', { state: containerReturnState(SETTINGS_HOME) }),
+    [navigate],
+  );
   const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
   const goHowItWorks = useCallback(() => navigate('/how-it-works'), [navigate]);
   const goSupport = useCallback(() => navigate('/support'), [navigate]);

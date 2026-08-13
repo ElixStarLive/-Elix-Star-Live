@@ -1,11 +1,11 @@
 import React, { useCallback, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { CheckCircle, Flag } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
-import { FEED_HOME } from '../lib/settingsNav';
+import { FEED_HOME, exitToFromLocationState } from '../lib/settingsNav';
 
 const REPORT_REASONS = {
   video: [
@@ -35,6 +35,7 @@ const REPORT_REASONS = {
 
 export default function Report() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const rawType = searchParams.get('type') || 'video';
   const contentType = (
@@ -48,7 +49,10 @@ export default function Report() {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const goBack = useCallback(() => navigate(FEED_HOME, { replace: true }), [navigate]);
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, FEED_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   const reasons = REPORT_REASONS[contentType] || REPORT_REASONS.video;
 

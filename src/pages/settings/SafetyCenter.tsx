@@ -1,24 +1,36 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, Eye, AlertTriangle, Ban, Flag, HelpCircle } from 'lucide-react';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
 import { SettingsOptionRow as R } from '../../components/settings/SettingsOptionRow';
 import { SettingsSectionLabel as S } from '../../components/settings/SettingsSectionLabel';
-import { SETTINGS_HOME } from '../../lib/settingsNav';
+import { SETTINGS_HOME, containerReturnState, exitToFromLocationState } from '../../lib/settingsNav';
+
+const SAFETY_HOME = '/settings/safety';
 
 export default function SafetyCenter() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goBlocked = useCallback(
+    () => navigate('/settings/blocked', { state: containerReturnState(SAFETY_HOME) }),
+    [navigate],
+  );
   const goReport = useCallback(
-    () => navigate('/report?type=support&id=support_ticket'),
+    () => navigate('/report?type=support&id=support_ticket', { state: containerReturnState(SAFETY_HOME) }),
     [navigate],
   );
   const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
   const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
   const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
-  const goSupport = useCallback(() => navigate('/support'), [navigate]);
+  const goSupport = useCallback(
+    () => navigate('/support', { state: containerReturnState(SAFETY_HOME) }),
+    [navigate],
+  );
 
   return (
     <SettingsOptionSheet onClose={exit} title="Safety Center">

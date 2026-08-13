@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Music, Vote, Video, Radio } from "lucide-react";
 import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
 import { showToast } from "../lib/toast";
@@ -13,7 +13,7 @@ import {
   apiRisingStarsEnterChallenge,
   apiRisingStarsVoteEntry,
 } from "../features/risingStars/risingStarsApi";
-import { RISING_STARS_HOME } from "../lib/settingsNav";
+import { RISING_STARS_HOME, containerReturnState, exitToFromLocationState } from "../lib/settingsNav";
 
 interface Challenge {
   id: string;
@@ -43,6 +43,7 @@ interface Entry {
 export default function RisingStarsChallenge() {
   const { challengeId } = useParams<{ challengeId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -52,16 +53,29 @@ export default function RisingStarsChallenge() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
 
-  const goBack = useCallback(() => navigate(RISING_STARS_HOME, { replace: true }), [navigate]);
+  const challengePath = challengeId
+    ? `/rising-stars/challenge/${challengeId}`
+    : RISING_STARS_HOME;
+
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, RISING_STARS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
   const goLogin = useCallback(() => navigate("/login"), [navigate]);
   const goCreate = useCallback(() => navigate("/create"), [navigate]);
   const openCreatorProfile = useCallback(
-    (creatorUserId: string) => navigate(`/profile/${creatorUserId}`),
-    [navigate],
+    (creatorUserId: string) =>
+      navigate(`/profile/${creatorUserId}`, {
+        state: containerReturnState(challengePath),
+      }),
+    [navigate, challengePath],
   );
   const openVideo = useCallback(
-    (videoId: string) => navigate(`/video/${videoId}`),
-    [navigate],
+    (videoId: string) =>
+      navigate(`/video/${videoId}`, {
+        state: containerReturnState(challengePath),
+      }),
+    [navigate, challengePath],
   );
   const openWatchLive = useCallback(
     (roomId: string | null) => {
@@ -69,9 +83,11 @@ export default function RisingStarsChallenge() {
         showToast("Live stage not scheduled yet");
         return;
       }
-      navigate(`/watch/${encodeURIComponent(roomId)}`);
+      navigate(`/watch/${encodeURIComponent(roomId)}`, {
+        state: containerReturnState(challengePath),
+      });
     },
-    [navigate],
+    [navigate, challengePath],
   );
 
   const soundTitle = useMemo(() => {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceCloseIcon } from './royce';
 import { Ban, Play, MoreHorizontal, Flag, Search, Video } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
@@ -18,6 +18,7 @@ import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
 import { initiateCall } from '../lib/callService';
+import { containerReturnState } from '../lib/settingsNav';
 
 interface User {
   id: string;
@@ -49,6 +50,7 @@ interface UserProfileModalProps {
 
 export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLiveHint = false }: UserProfileModalProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showReportModal, setShowReportModal] = useState(false);
   const [showMoreOptions, setShowMoreOptions] = useState(false);
   const [profileUser, setProfileUser] = useState<User | null>(null);
@@ -214,13 +216,17 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
 
   const openVideoFromGrid = useCallback((videoId: string) => {
     onClose();
-    navigate(`/video/${videoId}`, { state: { fromProfile: true } });
-  }, [onClose, navigate]);
+    const path = location.pathname.split('?')[0] || '/feed';
+    navigate(`/video/${videoId}`, {
+      state: { ...containerReturnState(path), fromProfile: true },
+    });
+  }, [onClose, navigate, location.pathname]);
 
   const goSearch = useCallback(() => {
     onClose();
-    navigate('/search');
-  }, [onClose, navigate]);
+    const path = location.pathname.split('?')[0] || '/feed';
+    navigate('/search', { state: containerReturnState(path) });
+  }, [onClose, navigate, location.pathname]);
 
   if (!isOpen) return null;
 

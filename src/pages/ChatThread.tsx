@@ -15,6 +15,7 @@ import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { apiFetchProfileById, apiFetchProfiles, apiFetchVideoById } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live';
 import { reportFailure } from '../lib/reportFailure';
+import { inboxReturnState } from '../lib/settingsNav';
 
 interface Message {
   id: string;
@@ -175,15 +176,15 @@ export default function ChatThread() {
   }, [navigate, otherUser]);
 
   const openWatchLive = useCallback((roomKey: string) => {
-    navigate(`/watch/${roomKey}`);
+    navigate(`/watch/${roomKey}`, { state: inboxReturnState() });
   }, [navigate]);
 
   const openProfile = useCallback((profileId: string) => {
-    navigate(`/profile/${profileId}`);
+    navigate(`/profile/${profileId}`, { state: inboxReturnState() });
   }, [navigate]);
 
   const openVideo = useCallback((videoId: string) => {
-    navigate(`/video/${videoId}`);
+    navigate(`/video/${videoId}`, { state: inboxReturnState() });
   }, [navigate]);
 
   const openPreviewMedia = useCallback((preview: LinkPreview) => {
@@ -192,7 +193,7 @@ export default function ChatThread() {
   }, [openVideo, openWatchLive]);
 
   const openAppLink = useCallback((path: string) => {
-    navigate(path);
+    navigate(path, { state: inboxReturnState() });
   }, [navigate]);
 
   // People currently live — shown as a horizontal scroll row at the top of the chat.

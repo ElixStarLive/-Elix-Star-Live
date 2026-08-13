@@ -7,7 +7,7 @@ import { useVideoStore } from '../store/useVideoStore';
 import { showToast } from '../lib/toast';
 import { AvatarRing } from '../components/AvatarRing';
 import { apiToggleFollow } from '../features/feed/feedApi';
-import { FOLLOW_LIST_EXIT_TO } from '../lib/settingsNav';
+import { FOLLOW_LIST_EXIT_TO, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
 
 type Person = {
   user_id: string;
@@ -58,11 +58,18 @@ export default function FollowList() {
     void load();
   }, [load]);
 
-  const goBack = useCallback(() => navigate(FOLLOW_LIST_EXIT_TO, { replace: true }), [navigate]);
+  const listFallback = userId ? `/profile/${userId}` : FOLLOW_LIST_EXIT_TO;
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, listFallback), { replace: true }),
+    [navigate, location.state, listFallback],
+  );
   const goLogin = useCallback(() => navigate('/login'), [navigate]);
   const openProfile = useCallback(
-    (targetId: string) => navigate(`/profile/${targetId}`),
-    [navigate],
+    (targetId: string) =>
+      navigate(`/profile/${targetId}`, {
+        state: containerReturnState(location.pathname),
+      }),
+    [navigate, location.pathname],
   );
 
   const toggleFollow = async (targetId: string) => {

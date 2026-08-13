@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import EnhancedVideoPlayer from "../components/EnhancedVideoPlayer";
 import { FeedStoryCirclesOverlay } from "../components/FeedStoryCirclesOverlay";
 import { useVideoStore } from "../store/useVideoStore";
-import { FEED_HOME } from "../lib/settingsNav";
+import { FEED_HOME, containerReturnState } from "../lib/settingsNav";
 
 export default function StemFeed() {
   const navigate = useNavigate();
@@ -29,7 +29,7 @@ export default function StemFeed() {
   }, [location.pathname, fetchStemVideos]);
 
   const goSearch = useCallback(() => {
-    navigate('/search');
+    navigate('/search', { state: containerReturnState('/stem') });
   }, [navigate]);
 
   const goBack = useCallback(() => {

@@ -12,7 +12,7 @@ import { useCartStore } from '../store/useCartStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiShopCheckout, apiShopCheckoutSessionStatus } from '../features/shop/shopApi';
-import { returnToFromLocationState, SHOP_EXIT_TO } from '../lib/settingsNav';
+import { returnToFromLocationState, SHOP_EXIT_TO, containerReturnState } from '../lib/settingsNav';
 import { reportFailure } from '../lib/reportFailure';
 
 const SHOP_LIVE_RING = 56;
@@ -94,7 +94,7 @@ export default function Shop() {
   }, [navigate, location.state]);
 
   const goSearch = useCallback(() => {
-    navigate('/search');
+    navigate('/search', { state: containerReturnState('/shop') });
   }, [navigate]);
 
   const goLiveDiscover = useCallback(() => {
@@ -102,7 +102,7 @@ export default function Shop() {
   }, [navigate]);
 
   const openWatchLive = useCallback((streamKey: string) => {
-    navigate(`/watch/${streamKey}`);
+    navigate(`/watch/${streamKey}`, { state: containerReturnState('/shop') });
   }, [navigate]);
 
   const openCreateListing = useCallback(() => {

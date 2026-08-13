@@ -1,12 +1,13 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Upload, Play, Wand2, Download, Share2, Sparkles } from 'lucide-react';
 import AIToolsPanel from '../components/AIToolsPanel';
-import { AI_STUDIO_EXIT_TO } from '../lib/settingsNav';
+import { AI_STUDIO_EXIT_TO, exitToFromLocationState } from '../lib/settingsNav';
 
 export default function AIStudio() {
   const navigate = useNavigate();
+  const location = useLocation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,8 +22,8 @@ export default function AIStudio() {
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
   const goBack = useCallback(() => {
-    navigate(AI_STUDIO_EXIT_TO, { replace: true });
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, AI_STUDIO_EXIT_TO), { replace: true });
+  }, [navigate, location.state]);
 
   const openFilePicker = useCallback(() => {
     fileInputRef.current?.click();

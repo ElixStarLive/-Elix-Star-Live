@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { AvatarRing } from '../components/AvatarRing';
 import { isPasswordResetEnabled } from '../lib/authFeatures';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import { SETTINGS_HOME, exitToFromLocationState } from '../lib/settingsNav';
 import { showToast } from '../lib/toast';
 
 /** Sole owner for saved creator login accounts (email/username/avatar only). */
@@ -66,11 +66,15 @@ function migrateLegacyCreatorLoginKeys(): SavedCreatorAccount[] {
 
 export default function CreatorLoginDetails() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signInWithPassword, signUpWithPassword, signOut, resendSignupConfirmation } = useAuthStore();
   const [saveDetails, setSaveDetails] = useState(false);
   const showPasswordReset = isPasswordResetEnabled();
 
-  const goBack = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
   const goProfile = useCallback(() => navigate('/profile', { replace: true }), [navigate]);
   const goForgotPassword = useCallback(() => navigate('/forgot-password'), [navigate]);
 

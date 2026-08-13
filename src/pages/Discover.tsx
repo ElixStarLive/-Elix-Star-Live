@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { RoyceIcon } from '../components/royce';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, TrendingUp, Hash, Users, Video as VideoIcon, Trophy, Music, Flame, Sparkles, Star, Zap, Heart, MessageCircle, Bookmark, Share2, MoreHorizontal } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
@@ -21,7 +21,7 @@ import {
   apiToggleFollow,
 } from '../features/feed/feedApi';
 import { apiLiveRankingsWeekly } from '../features/live/engagement/liveEngagementApi';
-import { FEED_HOME } from '../lib/settingsNav';
+import { FEED_HOME, DISCOVER_HOME, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
 
 interface Video {
   id: string;
@@ -58,6 +58,7 @@ interface CreatorRanking {
 
 export default function Discover() {
   const navigate = useNavigate();
+  const location = useLocation();
   const pageRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'trending' | 'search' | 'hashtags' | 'ranking'>('trending');
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,8 +218,8 @@ export default function Discover() {
   }, []);
 
   const goBack = useCallback(() => {
-    navigate(FEED_HOME, { replace: true });
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, FEED_HOME), { replace: true });
+  }, [navigate, location.state]);
 
   const clearSearchQuery = useCallback(() => {
     setSearchQuery('');
@@ -237,7 +238,7 @@ export default function Discover() {
   }, []);
 
   const goRisingStars = useCallback(() => {
-    navigate('/rising-stars');
+    navigate('/rising-stars', { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate]);
 
   const searchMusic = useCallback(() => {
@@ -261,7 +262,7 @@ export default function Discover() {
   }, []);
 
   const openCreatorProfile = useCallback((userId: string) => {
-    navigate(`/profile/${userId}`);
+    navigate(`/profile/${userId}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate]);
 
   return (
@@ -548,7 +549,7 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
   const feed = variant === 'feed';
 
   const openVideo = useCallback(() => {
-    navigate(`/video/${video.id}`);
+    navigate(`/video/${video.id}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate, video.id]);
 
   const handleLike = useCallback(async (e: React.MouseEvent) => {
@@ -590,12 +591,12 @@ function VideoThumbnail({ video, variant = 'grid' }: { video: Video; variant?: '
 
   const openVideoMore = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/video/${video.id}`);
+    navigate(`/video/${video.id}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate, video.id]);
 
   const openVideoComment = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/video/${video.id}`);
+    navigate(`/video/${video.id}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate, video.id]);
 
   return (
@@ -684,7 +685,7 @@ function UserSearchResult({ user }: { user: User }) {
   const [followed, setFollowed] = useState(false);
 
   const openUserProfile = useCallback(() => {
-    navigate(`/profile/${user.user_id}`);
+    navigate(`/profile/${user.user_id}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate, user.user_id]);
 
   const handleFollow = useCallback(async (e: React.MouseEvent) => {
@@ -730,7 +731,7 @@ function HashtagItem({ hashtag, index }: { hashtag: Hashtag; index: number }) {
 
   const openHashtag = useCallback(() => {
     trackEvent('hashtag_click', { hashtag: hashtag.tag });
-    navigate(`/hashtag/${hashtag.tag}`);
+    navigate(`/hashtag/${hashtag.tag}`, { state: containerReturnState(DISCOVER_HOME) });
   }, [navigate, hashtag.tag]);
 
   return (

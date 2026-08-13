@@ -1,11 +1,12 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Hash, TrendingUp } from 'lucide-react';
 import { trackEvent } from '../lib/analytics';
 import { apiFetchHashtag, apiFetchHashtagVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
+import { DISCOVER_HOME, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
 
 interface Video {
   id: string;
@@ -17,15 +18,22 @@ interface Video {
 
 export default function Hashtag() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { tag } = useParams<{ tag: string }>();
   const [videos, setVideos] = useState<Video[]>([]);
   const [hashtagInfo, setHashtagInfo] = useState<{ use_count: number; trending_score: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const goFeed = useCallback(() => navigate('/feed'), [navigate]);
+  const hashtagPath = tag ? `/hashtag/${tag}` : DISCOVER_HOME;
+
+  const goFeed = useCallback(
+    () => navigate(exitToFromLocationState(location.state, DISCOVER_HOME), { replace: true }),
+    [navigate, location.state],
+  );
   const openVideo = useCallback(
-    (videoId: string) => navigate(`/video/${videoId}`),
-    [navigate],
+    (videoId: string) =>
+      navigate(`/video/${videoId}`, { state: containerReturnState(hashtagPath) }),
+    [navigate, hashtagPath],
   );
 
   useEffect(() => {

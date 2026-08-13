@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceBackIcon } from '../components/royce';
 import { Bookmark, Play } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetchSavedVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
-import { SETTINGS_EXIT_TO } from '../lib/settingsNav';
+import {
+  SETTINGS_HOME,
+  SAVED_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+} from '../lib/settingsNav';
 
 interface SavedVideo {
   id: string;
@@ -18,6 +23,7 @@ interface SavedVideo {
 
 export default function SavedVideos() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [videos, setVideos] = useState<SavedVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -90,12 +96,15 @@ export default function SavedVideos() {
   }, [load]);
 
   const goBack = useCallback(() => {
-    navigate(SETTINGS_EXIT_TO, { replace: true });
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true });
+  }, [navigate, location.state]);
 
-  const openVideo = useCallback((videoId: string) => {
-    navigate(`/video/${videoId}`);
-  }, [navigate]);
+  const openVideo = useCallback(
+    (videoId: string) => {
+      navigate(`/video/${videoId}`, { state: containerReturnState(SAVED_HOME) });
+    },
+    [navigate],
+  );
 
   const loadMore = useCallback(() => {
     void load(videos.length, true);

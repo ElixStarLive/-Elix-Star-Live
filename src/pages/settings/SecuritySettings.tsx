@@ -4,9 +4,11 @@ import { KeyRound, Shield, ShieldCheck } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { SettingsOptionRow as R } from "../../components/settings/SettingsOptionRow";
 import { isPasswordResetEnabled } from "../../lib/authFeatures";
-import { SETTINGS_HOME } from "../../lib/settingsNav";
+import { SETTINGS_HOME, containerReturnState } from "../../lib/settingsNav";
 import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
+
+const SECURITY_HOME = "/settings/security";
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
@@ -16,7 +18,10 @@ export default function SecuritySettings() {
 
   const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
   const goForgotPassword = useCallback(() => navigate("/forgot-password"), [navigate]);
-  const goBlocked = useCallback(() => navigate("/settings/blocked"), [navigate]);
+  const goBlocked = useCallback(
+    () => navigate("/settings/blocked", { state: containerReturnState(SECURITY_HOME) }),
+    [navigate],
+  );
 
   const refreshTwoFactor = useCallback(async () => {
     setTwoFactorLoading(true);

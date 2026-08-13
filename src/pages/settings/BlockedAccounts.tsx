@@ -1,6 +1,6 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { Search, Ban } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { showToast } from '../../lib/toast';
 import { AvatarRing } from '../../components/AvatarRing';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
@@ -9,7 +9,7 @@ import {
   apiListBlockedUsers,
   apiUnblockUser,
 } from '../../features/safety/safetyApi';
-import { SETTINGS_HOME } from '../../lib/settingsNav';
+import { SETTINGS_HOME, exitToFromLocationState } from '../../lib/settingsNav';
 import { useSafetyStore } from '../../store/useSafetyStore';
 
 interface BlockedUser {
@@ -22,12 +22,16 @@ interface BlockedUser {
 
 export default function BlockedAccounts() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [blockedUsers, setBlockedUsers] = useState<BlockedUser[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   useEffect(() => {
     loadCurrentUser();

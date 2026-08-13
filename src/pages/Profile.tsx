@@ -33,7 +33,7 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
-import { PROFILE_EXIT_TO, returnToFromLocationState } from '../lib/settingsNav';
+import { PROFILE_EXIT_TO, returnToFromLocationState, containerReturnState } from '../lib/settingsNav';
 import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { mapProfileGridVideoRows, mapProfileRepostItemsToGrid } from '../lib/mapProfileGridVideoRows';
@@ -144,17 +144,22 @@ export default function Profile() {
     setShowAccountMenu(false);
   }, []);
 
+  const profileContainerPath = useCallback(() => {
+    if (routeUserId) return `/profile/${routeUserId}`;
+    return '/profile';
+  }, [routeUserId]);
+
   const goAiStudio = useCallback(() => {
-    navigate('/ai-studio');
-  }, [navigate]);
+    navigate('/ai-studio', { state: containerReturnState(profileContainerPath()) });
+  }, [navigate, profileContainerPath]);
 
   const goCreatorLoginDetails = useCallback(() => {
-    navigate('/creator/login-details');
-  }, [navigate]);
+    navigate('/creator/login-details', { state: containerReturnState(profileContainerPath()) });
+  }, [navigate, profileContainerPath]);
 
   const goShop = useCallback(() => {
-    navigate('/shop');
-  }, [navigate]);
+    navigate('/shop', { state: containerReturnState(profileContainerPath()) });
+  }, [navigate, profileContainerPath]);
 
   const goUploadStory = useCallback(() => {
     navigate('/upload?type=story');
@@ -170,26 +175,38 @@ export default function Profile() {
 
   const goVideo = useCallback(
     (video: Video) => {
+      const returnState = {
+        ...containerReturnState(profileContainerPath()),
+        fromProfile: true,
+      };
       if (video.content_kind === 'live' && video.stream_key) {
         navigate(`/watch/${encodeURIComponent(video.stream_key)}`, {
-          state: { fromProfile: true },
+          state: returnState,
         });
         return;
       }
-      navigate(`/video/${video.id}`, { state: { fromProfile: true } });
+      navigate(`/video/${video.id}`, { state: returnState });
     },
-    [navigate],
+    [navigate, profileContainerPath],
   );
 
   const goFollowingList = useCallback(() => {
     const id = resolvedUserId || routeUserId || user?.id;
-    if (id) navigate(`/profile/${id}/following`);
-  }, [navigate, resolvedUserId, routeUserId, user?.id]);
+    if (id) {
+      navigate(`/profile/${id}/following`, {
+        state: containerReturnState(profileContainerPath()),
+      });
+    }
+  }, [navigate, resolvedUserId, routeUserId, user?.id, profileContainerPath]);
 
   const goFollowersList = useCallback(() => {
     const id = resolvedUserId || routeUserId || user?.id;
-    if (id) navigate(`/profile/${id}/followers`);
-  }, [navigate, resolvedUserId, routeUserId, user?.id]);
+    if (id) {
+      navigate(`/profile/${id}/followers`, {
+        state: containerReturnState(profileContainerPath()),
+      });
+    }
+  }, [navigate, resolvedUserId, routeUserId, user?.id, profileContainerPath]);
 
   const tabVideos = useCallback(() => setActiveTab('videos'), []);
   const tabShop = useCallback(() => setActiveTab('shop'), []);
