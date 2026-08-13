@@ -70,6 +70,10 @@ export const LIVE_BOTTOM_ACTION_PADDING = 'max(2px, env(safe-area-inset-bottom, 
 export const LIVE_BOTTOM_ACTION_RESERVE =
   'calc(52px + max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
+/** Top edge of solo chat — gift cards sit here (above chat, not over messages). */
+export const LIVE_SOLO_CHAT_TOP_FROM_BOTTOM =
+  'calc(52px + max(2px, env(safe-area-inset-bottom, 0px)) + 25dvh + 2cm + 4mm)' as const;
+
 /** Main host avatar in live top bar (next to name pill). */
 export const LIVE_TOP_AVATAR_RING_PX = 48;
 

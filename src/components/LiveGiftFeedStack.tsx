@@ -5,7 +5,7 @@ import {
   ELIX_GIFT_PILL_EVENT,
   type ElixGiftPillDetail,
 } from './GiftAnimationOverlay';
-import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
+import { LIVE_BATTLE_STAGE_BOTTOM, LIVE_SOLO_CHAT_TOP_FROM_BOTTOM } from '../lib/profileFrame';
 
 /**
  * Separate live gift-feed stack (photo: cards + xN).
@@ -185,7 +185,12 @@ export function LiveGiftFeedStack({
                     transform: 'translateY(-100%)',
                     maxWidth: '220px',
                   }
-                : { top: 'calc(22dvh + 6mm)', maxWidth: '220px' }
+                : {
+                    // Solo: top of chat (middle of screen). Red banner stays on Weekly Ranking.
+                    bottom: LIVE_SOLO_CHAT_TOP_FROM_BOTTOM,
+                    transform: 'translateY(-100%)',
+                    maxWidth: '220px',
+                  }
           }
         >
           {stack.map((g) => {
