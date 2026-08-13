@@ -350,7 +350,7 @@ function CreatorRankingBody({
           <div className="flex flex-col items-center gap-1 w-1/3 order-2 -mt-4 z-10">
             <div className="relative">
               <div className="absolute -top-5 left-1/2 -translate-x-1/2 animate-bounce-slow">
-                <Trophy className="w-6 h-6 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.25)]" fill="currentColor" />
+                <Trophy className="w-6 h-6 text-white" fill="currentColor" />
               </div>
               <AvatarRing src={rankings[0].avatar_url || ''} alt={rankings[0].display_name} size={64} />
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#E6E9EE] text-white elix-accent text-xs font-black px-2 py-0.5 rounded-full border border-white">

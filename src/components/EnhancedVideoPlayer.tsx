@@ -1142,12 +1142,10 @@ export default function EnhancedVideoPlayer({
               className="h-full rounded-full bg-gradient-to-r from-[#D8D9DD] via-[#00c2be] to-[#D8D9DD] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
-                boxShadow: scrubbing ? '0 0 10px rgba(255,255,255,0.25)' : 'none',
+                boxShadow: 'none',
               }}
             >
-              {scrubbing ? (
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent animate-shimmer" />
-              ) : null}
+              {null}
             </div>
           </div>
         </div>

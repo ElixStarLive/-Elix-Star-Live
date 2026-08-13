@@ -66,21 +66,17 @@
     --elix-icon-active: #FFFFFF;
     --elix-icon-glow-soft: rgba(230, 233, 238, 0.22);
     --elix-icon-glow-active: rgba(230, 233, 238, 0.32);
-    --elix-icon-glow:
-      drop-shadow(0 0 3px rgba(230, 233, 238, 0.22))
-      drop-shadow(0 0 6px rgba(230, 233, 238, 0.10));
-    --elix-icon-glow-on:
-      drop-shadow(0 0 4px rgba(230, 233, 238, 0.32))
-      drop-shadow(0 0 8px rgba(230, 233, 238, 0.14));
+    --elix-icon-glow: none;
+    --elix-icon-glow-on: none;
     /* Shared icon disc — transparent fundal behind every line icon (icons stay opaque) */
     --elix-icon-disc-bg: transparent;
     --elix-icon-disc-border: rgba(230, 233, 238, 0.22);
-    --elix-icon-disc-shadow: 0 0 8px rgba(230, 233, 238, 0.14);
+    --elix-icon-disc-shadow: none;
     --elix-icon-disc-pad: 6px;
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
     --elix-avatar-ring: #E6E9EE;
-    --elix-avatar-glow: 0 0 3px 0 rgba(230, 233, 238, 0.30);
+    --elix-avatar-glow: none;
     --elix-glass-blur: none;
     --elix-fundal-deep: #080A0E;
     --elix-divider: rgba(255, 255, 255, 0.09);
@@ -108,8 +104,8 @@
     --elix-fundal-size: 100% auto;
     --elix-fundal-position: top center;
     --elix-fundal-attachment: scroll;
-    --elix-elevated-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    --elix-elevated-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --elix-elevated-inset: none;
+    --elix-elevated-shadow: none;
 
     /* Legacy token compatibility — all wired to the theme above. */
     --color-primary: var(--elix-icon-primary);
@@ -751,14 +747,14 @@ video::-webkit-media-controls-overlay-enclosure,
    Uses box-shadow + border-color only (never size), so it never shifts layout. */
 @keyframes elix-speaking-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(216, 217, 221, 0);
+    box-shadow: none;
     border-color: rgba(216, 217, 221, 0.45);
-    filter: drop-shadow(0 0 0 rgba(229, 229, 231, 0));
+    filter: none;
   }
   50% {
-    box-shadow: 0 0 12px 2px rgba(229, 229, 231, 0.85), 0 0 18px 4px rgba(216, 217, 221, 0.4);
-    border-color: rgba(245, 245, 247, 0.95);
-    filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.9)) drop-shadow(0 0 12px rgba(216, 217, 221, 0.55));
+    box-shadow: none;
+    border-color: rgba(245, 245, 247, 0.75);
+    filter: none;
   }
 }
 
@@ -778,7 +774,7 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 .elix-cohost-pill.elix-speaking-pulse {
   box-shadow: none !important;
-  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.55));
+  filter: none;
 }
 
 /* Layout picker thumbs — square FRAME only (transparent, video shows through) */
@@ -812,37 +808,28 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 .elix-cohost-cut-corner.elix-speaking-pulse {
   box-shadow: none !important;
-  filter: drop-shadow(0 0 6px rgba(229, 229, 231, 0.55));
+  filter: none;
 }
 
-/* Premium Glow Pulse */
+/* Premium Glow Pulse — disabled (no white flush behind containers) */
 @keyframes premium-glow {
-  0%, 100% {
-    filter: drop-shadow(0 0 8px rgba(255,255,255,0.25)) drop-shadow(0 0 16px rgba(255,255,255,0.25));
-  }
-  50% {
-    filter: drop-shadow(0 0 16px rgba(255,255,255,0.25)) drop-shadow(0 0 24px rgba(255,255,255,0.25));
-  }
+  0%, 100% { filter: none; }
+  50% { filter: none; }
 }
 
 .animate-premium-glow {
-  animation: premium-glow 2s ease-in-out infinite;
+  animation: none;
 }
 
-/* Shimmer Effect */
+/* Shimmer Effect — disabled */
 @keyframes shimmer {
-  0% {
-    background-position: -200% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
 }
 
 .animate-shimmer {
-  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
-  background-size: 200% 100%;
-  animation: shimmer 3s ease-in-out infinite;
+  background: none;
+  animation: none;
 }
 
 /* Luxury Scale Pulse */
@@ -879,16 +866,12 @@ video::-webkit-media-controls-overlay-enclosure,
 
 /* Glowing Border */
 @keyframes glow-border {
-  0%, 100% {
-    box-shadow: 0 0 10px rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.25), inset 0 0 10px rgba(255,255,255,0.25);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(255,255,255,0.25), 0 0 40px rgba(255,255,255,0.25), inset 0 0 20px rgba(255,255,255,0.25);
-  }
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: none; }
 }
 
 .animate-glow-border {
-  animation: glow-border 3s ease-in-out infinite;
+  animation: none;
 }
 
 /* Luxury Fade In */
@@ -1451,9 +1434,7 @@ video::-webkit-media-controls-overlay-enclosure,
   border: 1px solid var(--elix-border);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  box-shadow: none;
 }
 
 .elix-panel {
@@ -1466,9 +1447,7 @@ video::-webkit-media-controls-overlay-enclosure,
   border: 1px solid var(--elix-border);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  box-shadow: none;
 }
 
 /* Full-page settings/legal sheets only — component heights for Share/More/Comments stay untouched */
@@ -1549,9 +1528,7 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
   border: 1px solid var(--elix-border);
   backdrop-filter: var(--elix-glass-blur);
   -webkit-backdrop-filter: var(--elix-glass-blur);
-  box-shadow:
-    var(--elix-elevated-inset),
-    var(--elix-elevated-shadow);
+  box-shadow: none;
 }
 
 /* Silver CTA — dark text on silver */
@@ -1564,7 +1541,7 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
   color: #080A0E !important;
   -webkit-text-fill-color: #080A0E !important;
   border: 1px solid rgba(255, 255, 255, 0.40);
-  box-shadow: 0 0 12px rgba(230, 233, 238, 0.18);
+  box-shadow: none;
 }
 
 /* Live room dimmers — shared glass tokens (not per-screen colour hacks) */
@@ -1572,6 +1549,15 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
 .elix-live-room .bg-\[\#09090B\]\/40 {
   background-color: var(--elix-bg-glass) !important;
   border-color: var(--elix-border) !important;
+}
+
+/* Video overlays must not paint white flush frames around the stream */
+.elix-live-room .video-zone .elix-panel,
+.elix-live-room .elix-battle-slot.elix-panel,
+.elix-live-room .elix-panel.absolute {
+  border: none !important;
+  box-shadow: none !important;
+  filter: none !important;
 }
 
 .border-gold-metallic {
@@ -1796,7 +1782,7 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   user-select: none;
 }
 
-/* User circles — sharp #E6E9EE ring + subtle halo (NOT large white bloom) */
+/* User circles — sharp #E6E9EE ring only (no halo bloom) */
 .elix-profile-ring,
 .royce-avatar-glow {
   box-sizing: border-box;
@@ -1804,7 +1790,7 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   border: 2px solid var(--elix-avatar-ring, #E6E9EE) !important;
   background: #121419 !important;
   overflow: hidden;
-  box-shadow: var(--elix-avatar-glow) !important;
+  box-shadow: none !important;
 }
 
 /* Story / suggestion / share / For You circle when that user is LIVE — red ring + pulse */

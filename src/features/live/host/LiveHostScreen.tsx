@@ -704,7 +704,6 @@ export default function LiveHostScreen() {
                       <span className="w-2 h-2 rounded-full bg-white/20 animate-pulse" />
                       <span className="text-white/50 text-xs font-semibold">LIVE</span>
                     </div>
-                    <div className="absolute inset-0 pointer-events-none" style={{background: 'radial-gradient(circle at center 40%, rgba(255,255,255,0.25) 0%, transparent 60%)'}} />
                   </div>
                 )}
               </>
