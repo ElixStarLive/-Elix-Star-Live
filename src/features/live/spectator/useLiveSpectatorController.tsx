@@ -75,6 +75,7 @@ import {
 } from '../cohost/cohostLayoutPresets';
 import {
   normalizeBattleGiftTarget,
+  resolveBattleMvpSide,
   resolveBattleSlotForCreatorId,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
@@ -364,11 +365,10 @@ export function useLiveSpectatorController() {
     const withPoints = (scores: Record<string, number>, list: MvpSlotRow[]) =>
       list.map((s) => ({ ...s, points: scores[s.id] ?? 0 }));
 
-    // Battle sides: scorers exclusive to that side, then fill remaining of 3 from viewers.
-    const pickSide = (side: 'host' | 'opponent', excludeIds?: Set<string>) => {
+    // Battle sides: only gifters for that creator (max 3). No shared filler pool.
+    const pickSide = (side: 'host' | 'opponent') => {
       const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
       const other = side === 'host' ? mvpGiftScoresOpponentRef.current : mvpGiftScoresHostRef.current;
-      const globalScores = mvpGiftScoresRef.current;
       const exclusive = base.filter((s) => {
         const mine = scores[s.id] ?? 0;
         if (mine <= 0) return false;
@@ -376,29 +376,11 @@ export function useLiveSpectatorController() {
         if (side === 'host') return mine >= theirs;
         return mine > theirs;
       });
-      const rankedExclusive = withPoints(globalScores, [...exclusive].sort(sortBy(globalScores))).slice(0, 3);
-      if (rankedExclusive.length >= 3) return rankedExclusive;
-      const seen = new Set(rankedExclusive.map((s) => s.id));
-      const fillers = [...base]
-        .filter((s) => {
-          if (seen.has(s.id) || excludeIds?.has(s.id)) return false;
-          const mine = scores[s.id] ?? 0;
-          const theirs = other[s.id] ?? 0;
-          if (side === 'host') return theirs <= mine;
-          return mine >= theirs;
-        })
-        .sort(sortBy(globalScores));
-      const out = [...rankedExclusive];
-      for (const s of fillers) {
-        if (out.length >= 3) break;
-        out.push({ ...s, points: globalScores[s.id] ?? 0 });
-        seen.add(s.id);
-      }
-      return out;
+      return withPoints(scores, [...exclusive].sort(sortBy(scores))).slice(0, 3);
     };
 
     const hostSlots = pickSide('host');
-    const oppSlots = pickSide('opponent', new Set(hostSlots.map((s) => s.id)));
+    const oppSlots = pickSide('opponent');
     const globalScores = mvpGiftScoresRef.current;
     // Top-bar + battle rows: 1 joined viewer = 1 circle. No empty placeholder rings.
     setMvpSlots({
@@ -406,8 +388,8 @@ export function useLiveSpectatorController() {
         globalScores,
         [...base].sort(sortBy(globalScores)).slice(0, 3),
       ),
-      host: withPoints(globalScores, hostSlots.slice(0, 3)),
-      opponent: withPoints(globalScores, oppSlots.slice(0, 3)),
+      host: hostSlots.slice(0, 3),
+      opponent: oppSlots.slice(0, 3),
     });
   }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 
@@ -2178,6 +2160,7 @@ export function useLiveSpectatorController() {
         cohostTarget,
         giftIconRaw,
         battleTarget,
+        targetCreatorId,
         isFlowerOrRose,
       } = opened;
 
@@ -2216,7 +2199,15 @@ export function useLiveSpectatorController() {
             });
             mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
             if (spectatorBattleRef.current?.active) {
-              const side = normalizeBattleGiftTarget(battleTarget);
+              const ids = battleStreamIds;
+              const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
+                hostUserId: ids?.hostUserId || hostUserIdRef.current || hostUserId,
+                opponentUserId: ids?.opponentUserId,
+                player3UserId: ids?.player3UserId,
+                player4UserId: ids?.player4UserId,
+                hostRoomId: ids?.hostRoomId,
+                opponentRoomId: ids?.opponentRoomId,
+              });
               if (side === 'host') {
                 mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
               } else if (side === 'opponent') {

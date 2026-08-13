@@ -1062,12 +1062,12 @@ export default function LiveHostScreen() {
                 </div>
               ) : null}
               <div
-                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
+                className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersHost}
                 title="Top gifters — red side"
               >
                 {topMvpHostBattle.filter((v) => !String(v.id).startsWith('__mvp-empty-')).map((viewer, i) => {
-                  const gifted = mvpGiftScores[viewer.id] ?? 0;
+                  const gifted = mvpGiftScoresHost[viewer.id] ?? 0;
                   const isMvp = i === 0 && gifted > 0;
                   const label = liveViewerLabel(viewer);
                   const pts = formatCountShort(gifted);
@@ -1108,12 +1108,12 @@ export default function LiveHostScreen() {
                 })}
               </div>
               <div
-                className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
+                className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersOpponent}
                 title="Top gifters — blue side"
               >
                 {topMvpOpponentBattle.filter((v) => !String(v.id).startsWith('__mvp-empty-')).map((viewer, i) => {
-                  const gifted = mvpGiftScores[viewer.id] ?? 0;
+                  const gifted = mvpGiftScoresOpponent[viewer.id] ?? 0;
                   const isMvp = i === 0 && gifted > 0;
                   const label = liveViewerLabel(viewer);
                   const pts = formatCountShort(gifted);

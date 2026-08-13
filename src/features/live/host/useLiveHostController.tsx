@@ -158,6 +158,7 @@ import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
+  resolveBattleMvpSide,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
@@ -2924,66 +2925,22 @@ export function useLiveHostController() {
   }, []);
 
   const topMvpHostBattle = useMemo(() => {
-    // Scorers exclusive to host side, then fill remaining of 3 from viewers by host score.
-    const exclusive = buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true }).filter((v) => {
+    // Left 3: only spectators who gifted the host. Do not fill from the other creator.
+    return buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true }).filter((v) => {
       const h = mvpGiftScoresHost[v.id] ?? 0;
       const o = mvpGiftScoresOpponent[v.id] ?? 0;
       return h > 0 && h >= o;
-    });
-    if (exclusive.length >= 3) return exclusive.slice(0, 3);
-    const seen = new Set(exclusive.map((v) => v.id));
-    const fillers = buildMvpRanked(mvpGiftScores, 6);
-    const out = [...exclusive];
-    for (const v of fillers) {
-      if (out.length >= 3) break;
-      if (seen.has(v.id)) continue;
-      const h = mvpGiftScoresHost[v.id] ?? 0;
-      const o = mvpGiftScoresOpponent[v.id] ?? 0;
-      if (o > h) continue;
-      out.push(v);
-      seen.add(v.id);
-    }
-    out.sort((a, b) => {
-      const sa = mvpGiftScores[a.id] ?? 0;
-      const sb = mvpGiftScores[b.id] ?? 0;
-      if (sb !== sa) return sb - sa;
-      return b.level - a.level;
-    });
-    return out.slice(0, 3);
-  }, [buildMvpRanked, mvpGiftScores, mvpGiftScoresHost, mvpGiftScoresOpponent]);
+    }).slice(0, 3);
+  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
   const topMvpOpponentBattle = useMemo(() => {
-    const exclusive = buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true }).filter((v) => {
+    // Right 3: only spectators who gifted the opponent.
+    return buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true }).filter((v) => {
       const h = mvpGiftScoresHost[v.id] ?? 0;
       const o = mvpGiftScoresOpponent[v.id] ?? 0;
       return o > 0 && o > h;
-    });
-    if (exclusive.length >= 3) {
-      /* continue to pad below */
-    }
-    const hostIds = new Set(topMvpHostBattle.map((v) => v.id).filter((id) => !id.startsWith('__mvp-empty-')));
-    const seen = new Set(exclusive.map((v) => v.id));
-    const fillers = buildMvpRanked(mvpGiftScores, 6);
-    const out = exclusive.length >= 3 ? exclusive.slice(0, 3) : [...exclusive];
-    if (out.length < 3) {
-      for (const v of fillers) {
-        if (out.length >= 3) break;
-        if (seen.has(v.id) || hostIds.has(v.id)) continue;
-        const h = mvpGiftScoresHost[v.id] ?? 0;
-        const o = mvpGiftScoresOpponent[v.id] ?? 0;
-        if (h > o) continue;
-        out.push(v);
-        seen.add(v.id);
-      }
-    }
-    out.sort((a, b) => {
-      const sa = mvpGiftScores[a.id] ?? 0;
-      const sb = mvpGiftScores[b.id] ?? 0;
-      if (sb !== sa) return sb - sa;
-      return b.level - a.level;
-    });
-    return out.slice(0, 3);
-  }, [buildMvpRanked, mvpGiftScores, mvpGiftScoresHost, mvpGiftScoresOpponent, topMvpHostBattle]);
+    }).slice(0, 3);
+  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
 
   useEffect(() => {
     if (!isBattleMode) {
@@ -3276,6 +3233,7 @@ export function useLiveHostController() {
         cohostTarget,
         giftIconRaw,
         battleTarget,
+        targetCreatorId,
         isFlowerOrRose,
       } = opened;
 
@@ -3308,7 +3266,15 @@ export function useLiveHostController() {
             [gifterId]: (prev[gifterId] || 0) + giftCoins,
           }));
           if (isBattleModeRef.current) {
-            const side = normalizeBattleGiftTarget(battleTarget);
+            const ids = battleStreamIdsRef.current;
+            const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
+              hostUserId: ids?.hostUserId,
+              opponentUserId: ids?.opponentUserId,
+              player3UserId: ids?.player3UserId,
+              player4UserId: ids?.player4UserId,
+              hostRoomId: ids?.hostRoomId,
+              opponentRoomId: ids?.opponentRoomId,
+            });
             if (side === 'host') {
               setMvpGiftScoresHost((prev) => ({
                 ...prev,

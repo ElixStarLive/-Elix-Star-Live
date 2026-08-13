@@ -1587,7 +1587,7 @@ export default function SpectatorLiveScreen() {
                     </div>
                   ) : null}
                   <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
+                    className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
                     title="Top gifters — red side"
                     onClick={() => {
                       const ranked = [...mvpSlots.host]
@@ -1654,7 +1654,7 @@ export default function SpectatorLiveScreen() {
                     })}
                   </div>
                   <div
-                    className="flex items-end gap-[0mm] min-w-0 flex-1 justify-end pointer-events-auto overflow-hidden"
+                    className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
                     title="Top gifters — blue side"
                     onClick={() => {
                       const ranked = [...mvpSlots.opponent]
