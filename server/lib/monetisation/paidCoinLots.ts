@@ -5,7 +5,7 @@ import type { PoolClient } from "pg";
 import { randomUUID } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
-import { allocateProportionalPence, catalogGbpNumberToPence } from "./moneyMath";
+import { allocateProportionalPence } from "./moneyMath";
 
 export async function createPaidCoinLot(
   client: PoolClient,
@@ -183,22 +183,6 @@ export async function consumeSettledNetForGift(
     lotIds,
     settled: true,
   };
-}
-
-export async function lookupPackageGrossPence(productId: string): Promise<number> {
-  const pool = getPool();
-  if (!pool) return 0;
-  try {
-    const r = await pool.query(
-      `SELECT price FROM elix_coin_packages WHERE product_id = $1 OR id = $1 LIMIT 1`,
-      [productId],
-    );
-    if (!r.rowCount) return 0;
-    return catalogGbpNumberToPence(Number(r.rows[0].price));
-  } catch (err) {
-    logger.warn({ err, productId }, "lookupPackageGrossPence failed");
-    return 0;
-  }
 }
 
 export function newLotId(): string {

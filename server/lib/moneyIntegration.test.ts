@@ -124,7 +124,7 @@ describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
     );
   }
 
-  /** Mirrors neonDebitGift transactional contract (purchased coins). */
+  /** Mirrors neonDebitGiftWithCreatorCredit debit contract (purchased coins). */
   async function debitPaidGiftOnce(input: {
     userId: string;
     coins: number;
