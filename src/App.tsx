@@ -47,6 +47,7 @@ const FollowingFeed = lazy(() => import("./pages/FollowingFeed"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
 const VideoView = lazy(() => import("./pages/VideoView"));
 const Inbox = lazy(() => import("./pages/Inbox"));
+const AlertsPage = lazy(() => import("./pages/alerts/AlertsPage"));
 const ChatThread = lazy(() => import("./pages/ChatThread"));
 const FriendsFeed = lazy(() => import("./pages/FriendsFeed"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
@@ -501,6 +502,7 @@ function App() {
                   element={<CreatorLoginDetails />}
                 />
                 <Route path="/inbox" element={<Inbox />} />
+                <Route path="/alerts" element={<AlertsPage />} />
                 <Route path="/inbox/:threadId" element={<ChatThread />} />
                 <Route path="/upload" element={<Upload />} />
                 <Route path="/edit-profile" element={<EditProfile />} />

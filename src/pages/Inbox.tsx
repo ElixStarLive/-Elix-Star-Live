@@ -6,7 +6,7 @@ import { apiDeleteChatThread, apiListChatThreads } from '../features/chat/chatAp
 import { useAuthStore } from '../store/useAuthStore';
 import { useVideoStore } from '../store/useVideoStore';
 import { nativeConfirm } from '../components/NativeDialog';
-import { Heart, UserPlus, Search, ShoppingBag, Archive, ChevronRight, Trash2, Gift } from 'lucide-react';
+import { Heart, UserPlus, Search, ShoppingBag, Bell, ChevronRight, Trash2, Gift } from 'lucide-react';
 import { AvatarRing } from '../components/AvatarRing';
 import { LevelBadge } from '../components/LevelBadge';
 import { StoryGoldRingAvatar } from '../components/StoryGoldRingAvatar';
@@ -141,11 +141,6 @@ function isLegacyAnonymousGiftNotification(n: {
     return true;
   }
   return false;
-}
-
-function isLiveStartedNotification(n: Notification): boolean {
-  if (n.type === 'live_started') return true;
-  return /\bis live\b/i.test(n.title || '');
 }
 
 function toStringRecord(input?: Record<string, unknown>): Record<string, string | undefined> {
@@ -735,34 +730,6 @@ export default function Inbox() {
   const isRealUser = (f: FollowerProfile) =>
     isGenuineAppUser(f.username || '', f.user_id || '', f.display_name || '');
 
-  /** Avatars for live_started inbox rows (resolve host from /live/:id). */
-  const avatarByUserId = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const u of suggestedUsers) {
-      if (u.id && u.avatar_url) m.set(u.id, u.avatar_url);
-    }
-    for (const f of followers) {
-      if (f.user_id && f.avatar_url) m.set(f.user_id, f.avatar_url);
-    }
-    return m;
-  }, [suggestedUsers, followers]);
-
-  const resolveLiveNotifAvatar = useCallback(
-    (n: Notification): string => {
-      if (n.image_url) return n.image_url;
-      const fromData =
-        n.rawData?.avatar_url ||
-        n.rawData?.host_avatar ||
-        n.rawData?.image_url ||
-        '';
-      if (fromData) return fromData;
-      const hostId = liveHostIdFromActionUrl(n.action_url);
-      if (hostId && avatarByUserId.has(hostId)) return avatarByUserId.get(hostId) || '';
-      return '';
-    },
-    [avatarByUserId],
-  );
-
   const myNewFollowers = followers.filter(
     (f) =>
       f.user_id !== user?.id &&
@@ -786,6 +753,21 @@ export default function Inbox() {
   const giftNotifications = useMemo(
     () => notifications.filter((n) => n.type === 'gift'),
     [notifications],
+  );
+  const alertNotifications = useMemo(
+    () =>
+      notifications
+        .filter((n) => !isFollowNotification(n))
+        .filter((n) => n.type !== 'like' && n.type !== 'comment' && n.type !== 'gift')
+        .filter(
+          (n) =>
+            (n.type === 'system' || n.type === 'live_started') &&
+            !(
+              n.body?.toLowerCase?.().includes('check out this profile') ||
+              n.action_url?.includes('/profile/' + currentUserId)
+            ),
+        ),
+    [notifications, currentUserId],
   );
 
   const activityLine = (a: ActivityItem): string => {
@@ -985,6 +967,26 @@ export default function Inbox() {
                 <ChevronRight className="w-5 h-5 text-[#F5F5F7]/70 flex-shrink-0" />
             </button>
 
+            {/* Alerts — separate page (Bell icon, not Archive/bin) */}
+            <button
+              type="button"
+              onClick={() => navigate('/alerts')}
+              className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent"
+            >
+              <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
+                <Bell className="w-6 h-6 text-[#F5F5F7] relative z-10" strokeWidth={2.25} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm text-gold-metallic">Alerts</h3>
+                <p className="text-gold-bright text-xs truncate">
+                  {alertNotifications.length > 0
+                    ? `${alertNotifications.length} alert${alertNotifications.length === 1 ? '' : 's'}`
+                    : 'No alerts yet'}
+                </p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#F5F5F7]/70 flex-shrink-0" />
+            </button>
+
             {/* Messages — chat threads only (no gifts, no live shares, no system alerts) */}
             <div className="space-y-1 pt-2" style={{ marginTop: '-5mm' }}>
                 <h3 className="font-bold text-sm text-gold-metallic px-1 pb-2">Messages</h3>
@@ -1109,52 +1111,6 @@ export default function Inbox() {
                 )}
             </div>
             )}
-
-            {/* Live / system alerts — own container, never inside Messages */}
-            {(activeFilter === 'main') && (() => {
-              const alertRows = notifications
-                .filter(n => !isFollowNotification(n))
-                .filter(n => n.type !== 'like' && n.type !== 'comment' && n.type !== 'gift')
-                .filter(n => (n.type === 'system' || n.type === 'live_started') && !(n.body?.toLowerCase?.().includes('check out this profile') || n.action_url?.includes('/profile/' + currentUserId)));
-              if (alertRows.length === 0) return null;
-              return (
-                <div className="rounded-2xl border border-[#D8D9DD]/25 overflow-hidden mt-1">
-                  <div className="px-3 py-2 border-b border-[#D8D9DD]/15">
-                    <h3 className="font-bold text-sm text-gold-metallic">Alerts</h3>
-                  </div>
-                  <div className="px-1 py-1 space-y-0.5">
-                    {alertRows.map((notif) => {
-                      const liveNotif = isLiveStartedNotification(notif);
-                      const liveAvatar = liveNotif ? resolveLiveNotifAvatar(notif) : '';
-                      const liveInitial = (notif.title || '?').replace(/\s+is live.*$/i, '').trim().charAt(0).toUpperCase() || '?';
-                      return (
-                        <button key={notif.id} onClick={() => { if (notif.action_url) openActionUrl(notif.action_url); }} className="flex items-center gap-3 w-full text-left py-2 px-2">
-                          {liveNotif ? (
-                            <div className="flex-shrink-0">
-                              <StoryGoldRingAvatar
-                                size={48}
-                                src={liveAvatar}
-                                alt={liveInitial}
-                                live
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 flex items-center justify-center flex-shrink-0">
-                              <Archive className="w-6 h-6 stroke-gold-metallic" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-bold text-sm text-gold-metallic">{notif.title}</h3>
-                            <p className="text-gold-bright text-xs truncate">{notif.body}</p>
-                          </div>
-                          <span className="text-[10px] text-gold-bright">{notif.created_at ? formatTimeAgo(notif.created_at) : ''}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
 
              {/* Starred empty state */}
              {activeFilter === 'starred' && (

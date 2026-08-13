@@ -55,7 +55,7 @@ export function namedExitForPath(pathname: string): string {
   if (path.startsWith('/ai-studio')) return AI_STUDIO_EXIT_TO;
   if (path.startsWith('/search')) return SEARCH_EXIT_TO;
   if (path.startsWith('/discover')) return DISCOVER_HOME;
-  if (path.startsWith('/inbox/') || path.startsWith('/chat/')) return '/inbox';
+  if (path.startsWith('/inbox/') || path.startsWith('/chat/') || path === '/alerts') return '/inbox';
   if (path.startsWith('/live/') || path.startsWith('/go-live')) return FEED_HOME;
   if (path.startsWith('/create') || path.startsWith('/upload')) return FEED_HOME;
   return FEED_HOME;
