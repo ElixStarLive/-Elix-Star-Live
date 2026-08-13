@@ -1987,7 +1987,13 @@ export default function LiveHostScreen() {
               }}
             >
               <div
-                className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${hasCoHostLowerFundal ? 'elix-live-chat-fundal' : 'bg-transparent'}`}
+                className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${
+                  isBattleMode
+                    ? 'bg-transparent'
+                    : hasCoHostLowerFundal
+                      ? 'elix-live-chat-fundal'
+                      : 'bg-transparent'
+                }`}
                 style={{
                   height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
                   maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',

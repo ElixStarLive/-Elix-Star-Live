@@ -49,7 +49,7 @@ export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 export const LIVE_BATTLE_STAGE_BOTTOM =
   'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 3mm)' as const;
 
-/** Battle list/chat fundal — 3mm above stage bottom so it covers the battle bar edge. */
+/** Battle list fundal only — 3mm above stage bottom (does not move chat or battle UI). */
 export const LIVE_BATTLE_LOWER_FUNDAL_TOP =
   'calc(var(--safe-top) + 112px - 0.5mm + 44dvh - 6mm)' as const;
 
@@ -60,7 +60,7 @@ export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 export const LIVE_BATTLE_CHAT_HEIGHT =
   'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 56px - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
-/** Keep chat/battle UI in place — only the lower fundal layer moves via LIVE_BATTLE_LOWER_FUNDAL_TOP. */
+/** Keep chat below MVP rings (bottom anchor unchanged). */
 export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;
 
 /** Chat LV green pill — compact capsule beside the avatar circle (app-wide standard). */

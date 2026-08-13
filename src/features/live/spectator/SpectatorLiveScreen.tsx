@@ -1933,7 +1933,13 @@ export default function SpectatorLiveScreen() {
           }}
         >
           <div
-            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${hasCoHostLowerFundal ? 'elix-live-chat-fundal' : 'bg-transparent'}`}
+            className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${
+              spectatorBattle?.active
+                ? 'bg-transparent'
+                : hasCoHostLowerFundal
+                  ? 'elix-live-chat-fundal'
+                  : 'bg-transparent'
+            }`}
             style={{
               height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
               maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
