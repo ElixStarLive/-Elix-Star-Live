@@ -1136,7 +1136,7 @@ export default function LiveHostScreen() {
                     ) : (
                       <div className="w-full h-0" aria-hidden />
                     )}
-                    {/* Match timer â€” flush under battle score bar (0mm gap); SPEED beside timer when active */}
+                    {/* Match timer — flush under battle score bar (0mm gap) */}
                     <div className={`absolute left-0 right-0 z-30 flex justify-center m-0 p-0 ${battleScoreBarHidden ? 'top-0 pointer-events-auto' : 'top-full pointer-events-none'}`}>
                       <button
                         type="button"
@@ -1161,15 +1161,6 @@ export default function LiveHostScreen() {
                           <span className="relative z-10 text-white text-[7px] font-black italic drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">VS</span>
                         </div>
                         <span className="text-white text-[11px] font-black tabular-nums drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">{formatTime(battleTime)}</span>
-                        {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
-                          <span className="flex items-center gap-1 ml-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
-                            <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
-                            <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
-                            {speedMultiplier > 1 && (
-                              <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
-                            )}
-                          </span>
-                        )}
                       </button>
                     </div>
                   </div>
@@ -1590,7 +1581,18 @@ export default function LiveHostScreen() {
               className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
               style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
             >
-              <div className="elix-battle-mvp-fundal w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+              <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+              {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
+                <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
+                    <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
+                    <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
+                    {speedMultiplier > 1 ? (
+                      <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
+                    ) : null}
+                  </span>
+                </div>
+              ) : null}
               <div
                 className="flex items-end gap-[0mm] min-w-0 flex-1 justify-start pointer-events-auto overflow-hidden"
                 onClick={openTopGiftersHost}
@@ -1713,18 +1715,6 @@ export default function LiveHostScreen() {
               </div>
               </div>
             </div>
-
-            {SPEED_CHALLENGE_ENABLED && speedChallengeActive && (
-              <div className="w-full px-3 py-2 flex items-center justify-center flex-none pointer-events-none mt-1 relative z-30" style={{ transform: 'translateY(-6mm)' }}>
-                <div className="flex items-center gap-3 px-5 py-1 rounded-full bg-[#B91C1C]/90 backdrop-blur-md border border-white/20 shadow-[0_0_15px_rgba(185,28,28,0.45)] animate-luxury-fade-in">
-                  <span className="text-white text-[9px] font-bold uppercase tracking-[0.1em]">âš¡ Speed</span>
-                  <span className="text-white text-[14px] font-black tabular-nums">{speedChallengeTime}s</span>
-                  {speedMultiplier > 1 && (
-                    <span className="text-white text-[11px] font-black animate-pulse">x{speedMultiplier}</span>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>

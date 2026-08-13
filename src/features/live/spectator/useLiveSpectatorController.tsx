@@ -75,6 +75,7 @@ import {
 } from '../cohost/cohostLayoutPresets';
 import {
   normalizeBattleGiftTarget,
+  resolveBattleMvpSide,
   resolveBattleSlotForCreatorId,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
@@ -2191,6 +2192,7 @@ export function useLiveSpectatorController() {
         cohostTarget,
         giftIconRaw,
         battleTarget,
+        targetCreatorId,
         isFlowerOrRose,
       } = opened;
 
@@ -2207,37 +2209,46 @@ export function useLiveSpectatorController() {
           });
         }
 
-        // Skip echo chat/MVP for our own gift — sender already queued locally.
-        if (!(gifterId && user?.id && gifterId === user.id)) {
-          if (gifterId && giftCoins > 0) {
-            const gifterName =
-              (typeof data.username === 'string' && data.username.trim()) ||
-              mvpIdentityRef.current.get(gifterId)?.name ||
-              'User';
-            const gifterAvatar =
-              (typeof data.avatar === 'string' && data.avatar) ||
-              mvpIdentityRef.current.get(gifterId)?.avatar ||
-              '';
-            const gifterLevel =
-              (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
-              mvpIdentityRef.current.get(gifterId)?.level ??
-              1;
-            mvpIdentityRef.current.set(gifterId, {
-              name: gifterName,
-              avatar: gifterAvatar,
-              level: gifterLevel,
+        if (gifterId && giftCoins > 0) {
+          const gifterName =
+            (typeof data.username === 'string' && data.username.trim()) ||
+            mvpIdentityRef.current.get(gifterId)?.name ||
+            'User';
+          const gifterAvatar =
+            (typeof data.avatar === 'string' && data.avatar) ||
+            mvpIdentityRef.current.get(gifterId)?.avatar ||
+            '';
+          const gifterLevel =
+            (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
+            mvpIdentityRef.current.get(gifterId)?.level ??
+            1;
+          mvpIdentityRef.current.set(gifterId, {
+            name: gifterName,
+            avatar: gifterAvatar,
+            level: gifterLevel,
+          });
+          mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
+          if (spectatorBattleRef.current?.active) {
+            const ids = battleStreamIds;
+            const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
+              hostUserId: ids?.hostUserId || hostUserIdRef.current || hostUserId,
+              opponentUserId: ids?.opponentUserId,
+              player3UserId: ids?.player3UserId,
+              player4UserId: ids?.player4UserId,
+              hostRoomId: ids?.hostRoomId,
+              opponentRoomId: ids?.opponentRoomId,
             });
-            mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
-            if (spectatorBattleRef.current?.active) {
-              const side = normalizeBattleGiftTarget(battleTarget);
-              if (side === 'host') {
-                mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
-              } else if (side === 'opponent') {
-                mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
-              }
+            if (side === 'host') {
+              mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
+            } else {
+              mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
             }
-            syncMvpSlots();
           }
+          syncMvpSlots();
+        }
+
+        // Skip echo chat for our own gift — sender already queued locally.
+        if (!(gifterId && user?.id && gifterId === user.id)) {
           const msg = buildLiveGiftChatMessage({
             txnId,
             giftName,

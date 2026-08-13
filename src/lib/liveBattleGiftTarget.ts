@@ -93,6 +93,21 @@ export function resolveBattleSlotForCreatorId(
   return null;
 }
 
+/** Battle MVP column: seat from payload, else target creator, else host (red). */
+export function resolveBattleMvpSide(
+  battleTarget: unknown,
+  targetCreatorId: string | null | undefined,
+  ids: BattleCreatorIds | null | undefined,
+): BattleGiftSide {
+  const fromTarget = normalizeBattleGiftTarget(battleTarget);
+  if (fromTarget) return fromTarget;
+  const fromCreator = normalizeBattleGiftTarget(
+    resolveBattleSlotForCreatorId(targetCreatorId, ids),
+  );
+  if (fromCreator) return fromCreator;
+  return "host";
+}
+
 /**
  * Full gift video plays only for the target creator + that creator's audience.
  * Server routes gift_sent by targetCreatorId — other creators and their

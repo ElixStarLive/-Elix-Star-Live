@@ -22,6 +22,7 @@ export type ParsedLiveGiftSentEvent = {
   /** Raw icon path/url before resolveBattleGiftIconUrl. */
   giftIconRaw: string;
   battleTarget: unknown;
+  targetCreatorId: string;
   isFlowerOrRose: boolean;
 };
 
@@ -44,7 +45,14 @@ export function parseLiveGiftSentEvent(
   const giftDef = wsGiftId
     ? catalog.find((g) => g.id === wsGiftId)
     : undefined;
-  const gifterId = typeof payload.user_id === 'string' ? payload.user_id : '';
+  const gifterId =
+    (typeof payload.user_id === 'string' && payload.user_id.trim()) ||
+    (typeof payload.userId === 'string' && payload.userId.trim()) ||
+    '';
+  const targetCreatorId =
+    (typeof payload.targetCreatorId === 'string' && payload.targetCreatorId.trim()) ||
+    (typeof payload.target_creator_id === 'string' && payload.target_creator_id.trim()) ||
+    '';
   const giftCoins =
     giftDef?.coins ??
     (typeof payload.coins === 'number' && Number.isFinite(payload.coins)
@@ -78,7 +86,8 @@ export function parseLiveGiftSentEvent(
     giftIconRaw:
       (typeof payload.gift_icon === 'string' && payload.gift_icon) ||
       (typeof giftDef?.icon === 'string' ? giftDef.icon : ''),
-    battleTarget: payload.battleTarget,
+    battleTarget: payload.battleTarget ?? payload.battle_target,
+    targetCreatorId,
     isFlowerOrRose:
       flowerKey.includes('rose') || flowerKey.includes('flower'),
   };
