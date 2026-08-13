@@ -57,7 +57,6 @@ import {
   LIVE_MVP_PROFILE_RING_PX,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
-  LIVE_BATTLE_CHAT_HEIGHT_SETUP,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_BATTLE_STAGE_BOTTOM,
   LIVE_TOP_AVATAR_RING_PX,
@@ -1566,7 +1565,7 @@ export default function SpectatorLiveScreen() {
           </div>
         )}
 
-        {spectatorBattle?.active && spectatorBattle.status === 'ACTIVE' && (
+        {spectatorBattle?.active && (
                 <div
                   className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
                   style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
@@ -1879,12 +1878,8 @@ export default function SpectatorLiveScreen() {
           <div
             className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${hasCoHostLowerFundal ? 'elix-live-chat-fundal' : 'bg-transparent'}`}
             style={{
-              height: spectatorBattle?.active
-                ? (spectatorBattle.status === 'ACTIVE' ? LIVE_BATTLE_CHAT_HEIGHT : LIVE_BATTLE_CHAT_HEIGHT_SETUP)
-                : 'calc(25dvh + 2cm + 4mm)',
-              maxHeight: spectatorBattle?.active
-                ? (spectatorBattle.status === 'ACTIVE' ? LIVE_BATTLE_CHAT_HEIGHT : LIVE_BATTLE_CHAT_HEIGHT_SETUP)
-                : 'calc(25dvh + 2cm + 4mm)',
+              height: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+              maxHeight: spectatorBattle?.active ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
             }}
           >
             <div

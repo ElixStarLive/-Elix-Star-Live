@@ -51,7 +51,6 @@ import {
   LIVE_MVP_PROFILE_RING_PX,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
-  LIVE_BATTLE_CHAT_HEIGHT_SETUP,
   LIVE_BATTLE_CHAT_SHIFT_Y,
   LIVE_BATTLE_STAGE_BOTTOM,
   LIVE_TOP_AVATAR_RING_PX,
@@ -1044,7 +1043,7 @@ export default function LiveHostScreen() {
           </div>
         )}
 
-        {isBattleMode && battleState === 'IN_BATTLE' && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
+        {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
             <div
               className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
               style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
@@ -1941,12 +1940,8 @@ export default function LiveHostScreen() {
               <div
                 className={`w-full max-w-[480px] relative min-w-0 overflow-x-hidden ${hasCoHostLowerFundal ? 'elix-live-chat-fundal' : 'bg-transparent'}`}
                 style={{
-                  height: isBattleMode
-                    ? (battleState === 'IN_BATTLE' ? LIVE_BATTLE_CHAT_HEIGHT : LIVE_BATTLE_CHAT_HEIGHT_SETUP)
-                    : 'calc(25dvh + 2cm + 4mm)',
-                  maxHeight: isBattleMode
-                    ? (battleState === 'IN_BATTLE' ? LIVE_BATTLE_CHAT_HEIGHT : LIVE_BATTLE_CHAT_HEIGHT_SETUP)
-                    : 'calc(25dvh + 2cm + 4mm)',
+                  height: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
+                  maxHeight: isBattleMode ? LIVE_BATTLE_CHAT_HEIGHT : 'calc(25dvh + 2cm + 4mm)',
                 }}
               >
                 <div
