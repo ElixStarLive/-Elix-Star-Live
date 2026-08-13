@@ -928,36 +928,6 @@ export default function Inbox() {
                 <ChevronRight className="w-5 h-5 text-[#F5F5F7]/70 flex-shrink-0" />
             </button>
 
-            {activityItems.length > 0 && (
-              <div className="space-y-0.5 pl-2">
-                {activityItems.slice(0, 5).map((a) => {
-                  const actorName = (a.actor_display_name?.trim() || a.actor_username || 'Someone').trim();
-                  return (
-                    <button
-                      key={a.id}
-                      type="button"
-                      onClick={() => { if (a.video_id) openVideo(a.video_id); }}
-                      className="flex items-center gap-2.5 w-full text-left py-1.5 px-2 bg-transparent"
-                    >
-                      <AvatarRing
-                        src={a.actor_avatar_url || ''}
-                        alt={actorName}
-                        size={36}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gold-bright truncate"><span className="font-semibold">{actorName}</span> <span className="text-gold-bright/60">{activityLine(a)}</span></p>
-                      </div>
-                    </button>
-                  );
-                })}
-                {activityItems.length > 5 && (
-                  <button type="button" onClick={filterActivity} className="text-[11px] text-[#F5F5F7]/70 font-medium pl-2 py-1">
-                    View all activity →
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* Gift received — same hub as Activity: tap to open full list */}
             <button onClick={filterGifts} className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent">
                 <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">
