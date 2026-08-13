@@ -1129,24 +1129,16 @@ export default function EnhancedVideoPlayer({
           }}
         >
           <div
-            className={`w-full rounded-full bg-white/10 overflow-hidden pointer-events-none transition-[height,box-shadow] duration-150 ease-out ${
-              scrubbing ? 'h-3.5 shadow-inner' : 'h-[3px]'
+            className={`w-full rounded-full bg-white/10 overflow-hidden pointer-events-none transition-[height] duration-150 ease-out ${
+              scrubbing ? 'h-3.5' : 'h-[3px]'
             }`}
-            style={
-              scrubbing
-                ? { boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.15)' }
-                : undefined
-            }
           >
             <div
               className="h-full rounded-full bg-gradient-to-r from-[#D8D9DD] via-[#00c2be] to-[#D8D9DD] relative overflow-hidden"
               style={{
                 width: `${duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0}%`,
-                boxShadow: 'none',
               }}
-            >
-              {null}
-            </div>
+            />
           </div>
         </div>
 
