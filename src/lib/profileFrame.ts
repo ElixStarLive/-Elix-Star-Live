@@ -39,12 +39,12 @@ export const CHAT_PROFILE_RING_PX = LEVEL_BADGE_RING_PX;
 /** Spectator top bar MVP row. */
 export const SPECTATOR_MVP_PROFILE_RING_PX = 28;
 
-/** Battle video column height — 3mm shorter so chat does not cover MVP circles. */
+/** Battle video column height. */
 export const LIVE_BATTLE_VIDEO_HEIGHT = 'calc(44dvh - 3mm)' as const;
 
 /**
- * Bottom edge of battle cameras / top of MVP row.
- * Matches host/spectator battle stage + lower fundal.
+ * Bottom edge of battle cameras / top of lower fundal + gift stack.
+ * Matches host/spectator battle stage.
  */
 export const LIVE_BATTLE_STAGE_BOTTOM =
   'calc(var(--safe-top) + 112px - 2.5mm + 44dvh - 3mm)' as const;
@@ -52,9 +52,9 @@ export const LIVE_BATTLE_STAGE_BOTTOM =
 /** Duet record/playback stage — battle height + 3cm taller. */
 export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 
-/** Battle chat — 56px reserved under cameras for the MVP circle row. */
+/** Battle chat sits flush under the cameras (join circles overlay the video stage). */
 export const LIVE_BATTLE_CHAT_HEIGHT =
-  'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 56px - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
+  'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
 /** Keep chat below MVP rings (bottom anchor unchanged). */
 export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;
