@@ -126,7 +126,6 @@ export default function VideoCall() {
       cancelled = true;
       stopLocalMedia();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial capture only; switchCamera replaces stream
   }, [callId, remoteUser?.id, stopLocalMedia]);
 
   useEffect(() => {

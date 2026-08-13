@@ -105,7 +105,6 @@ export default function GiftAnimationOverlay({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const onWs = (data: any) => ingest(data);
     const onLocal = (ev: Event) => {
       const detail = (ev as CustomEvent<ElixGiftPillDetail>).detail;

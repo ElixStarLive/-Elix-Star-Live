@@ -92,7 +92,6 @@ export default function RisingStars() {
   useEffect(() => {
     if (!season?.id) return;
     void loadChallenges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [season?.id, categoryId, regionId]);
 
   const loadHub = async () => {

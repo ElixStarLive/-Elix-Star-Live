@@ -59,7 +59,6 @@ export default function FriendsFeed() {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [friendVideoIds.join(',')]);
 
   const handleVideoEnd = useCallback(

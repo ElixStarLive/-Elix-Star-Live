@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { logger } from "../lib/logger";
 import { getPool } from "../lib/postgres";

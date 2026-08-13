@@ -80,7 +80,6 @@ function applyUserFollowing(
 
 function mapRawVideoRowToClientVideo(
   // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   v: any,
   likedSet: Set<string>,
   savedSet: Set<string>,

@@ -22,7 +22,7 @@ type Registration = {
 
 let managerRefCount = 0;
 let listenerRemove: (() => void) | null = null;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
+let pollTimer: number | null = null;
 const registrations = new Set<Registration>();
 let lastAppliedTier: ThermalTier | null = null;
 
@@ -121,7 +121,7 @@ export function releaseThermalQualityManager(): void {
   listenerRemove?.();
   listenerRemove = null;
   if (pollTimer != null) {
-    clearInterval(pollTimer);
+    window.clearInterval(pollTimer);
     pollTimer = null;
   }
   registrations.clear();

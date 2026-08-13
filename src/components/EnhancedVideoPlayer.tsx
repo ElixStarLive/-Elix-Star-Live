@@ -203,7 +203,6 @@ export default function EnhancedVideoPlayer({
       } catch { /* duet video unavailable */ }
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video?.duetWithVideoId, originalVideo]);
 
   useEffect(() => {
@@ -648,7 +647,6 @@ export default function EnhancedVideoPlayer({
       if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
       stopThisSlide();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, stopThisSlide, _hasMusicTrack, musicVolume, videoVolume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)

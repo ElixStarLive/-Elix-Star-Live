@@ -257,7 +257,6 @@ export default function Shop() {
     };
   }, [clearCart]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchItems(); }, [activeFilter]);
   useEffect(() => {
     let cancelled = false;

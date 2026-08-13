@@ -1,0 +1,22 @@
+{
+  "minLines": 20,
+  "reporters": ["json", "console"],
+  "ignore": [
+    "**/*.test.ts",
+    "**/migrations/**",
+    "src/features/live/host/**",
+    "src/features/live/spectator/**",
+    "src/pages/**",
+    "src/components/FaceARGift.tsx",
+    "src/components/LiveFaceEffectsLayer.tsx",
+    "src/lib/storeProductCatalogs.ts",
+    "server/lib/monetisation/storeProductCatalogs.ts",
+    "server/lib/walletNeon.ts",
+    "server/routes/adminActions.ts",
+    "server/routes/payout.ts",
+    "server/routes/shopItems.ts",
+    "server/routes/testCoins.ts",
+    "src/lib/liveEngagement.ts",
+    "server/websocket/engagement.ts"
+  ]
+}

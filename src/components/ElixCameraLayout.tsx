@@ -178,11 +178,9 @@ export default function ElixCameraLayout({
     const track = stream.getVideoTracks()[0];
     if (!track) return;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const caps = track.getCapabilities?.() as any;
       if (caps?.focusMode) {
         const newLocked = !focusLocked;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await track.applyConstraints({ advanced: [{ focusMode: newLocked ? 'manual' : 'continuous' } as any] });
         setFocusLocked(newLocked);
       } else {
@@ -262,12 +260,10 @@ export default function ElixCameraLayout({
         videoEl.style.filter = 'none';
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beautyEnabled, beautyLevel, activeFilter, enhanceEnabled, videoRef]);
 
   useEffect(() => {
     if (videoRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (videoRef.current as any).setZoom?.(zoomLevel);
       }
   }, [zoomLevel, videoRef]);
@@ -488,7 +484,6 @@ export default function ElixCameraLayout({
               title="Beauty level"
               className="w-5 h-12 appearance-none cursor-pointer"
               style={{
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 writingMode: 'vertical-lr' as any,
                 direction: 'rtl',
                 accentColor: '#FFFFFF',

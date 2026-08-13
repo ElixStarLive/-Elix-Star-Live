@@ -58,6 +58,12 @@ import { getGiftCdnOrigin } from "./lib/giftAssets";
 import { isEmailConfigured } from "./lib/email";
 import helmet from "helmet";
 
+declare module "express-serve-static-core" {
+  interface Request {
+    requestId?: string;
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 

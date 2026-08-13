@@ -90,7 +90,6 @@ export default function CreatorLoginDetails() {
     if (user && !email) {
       setEmail(user.email ?? '');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]); // We removed 'email' dependency so it doesn't loop or reset when user clears it manually
   const [username, setUsername] = useState(() => {
     try {

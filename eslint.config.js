@@ -63,7 +63,7 @@ export default [
     },
   },
   {
-    files: ["server/middleware/auth.ts", "server/middleware/rbac.ts", "server/middleware/requestId.ts"],
+    files: ["server/middleware/auth.ts", "server/middleware/rbac.ts"],
     rules: {
       "@typescript-eslint/no-namespace": "off",
     },

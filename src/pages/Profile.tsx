@@ -329,7 +329,6 @@ export default function Profile() {
         showToast('Could not load rising badges');
         /* keep prior risingBadges — do not soft-empty on failure */
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId, activeTab]);
 
   useEffect(() => {
@@ -381,7 +380,6 @@ export default function Profile() {
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, activeTab]);
 
   const loadProfile = async () => {

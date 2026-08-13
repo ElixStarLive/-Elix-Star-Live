@@ -1,0 +1,6 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "ignoreFiles": [
+    "vitest.money.config.ts"
+  ]
+}

@@ -1,0 +1,166 @@
+---
+description: Non-negotiable production engineering rules
+alwaysApply: true
+---
+
+# Non-negotiable production engineering rules
+
+1. Never patch, hack, bypass, or workaround a defect.
+
+2. Always fix the actual root cause with a proper production implementation.
+
+3. Never introduce temporary fixes, temporary compatibility code, or “fix for now” logic.
+
+4. Never modify anything outside the explicitly authorised scope.
+
+5. Never change UI, layout, styling, positioning, icons, colours, navigation, or user-visible behaviour unless explicitly authorised.
+
+6. Never modify working functionality unless it is proven necessary for the authorised task.
+
+7. Never replace working architecture with a different, simplified, temporary, or duplicate architecture.
+
+8. Never create duplicate implementations of existing functionality.
+
+9. Every subsystem must have one clear production owner and one source of truth.
+
+10. Never create duplicate API clients, WebSockets, LiveKit owners, authentication owners, stores, services, hooks, wallet logic, IAP logic, gift logic, navigation logic, timers, listeners, or state owners.
+
+11. Never silently swallow production errors.
+
+12. Never use empty `catch` blocks or `.catch(() => {})` unless the error is proven harmless and intentionally ignored.
+
+13. Never return fake success when an operation actually failed.
+
+14. Never invent fallback data, balances, responses, API results, events, routes, database fields, environment variables, or server behaviour.
+
+15. Never hide server, database, payment, authentication, or network failures by returning empty/default data unless that behaviour is intentionally required.
+
+16. Never delete code simply because it looks unused.
+
+17. Never delete a file, function, service, route, script, dependency, export, or feature without proving it is genuinely unused.
+
+18. Disconnected functionality is not automatically dead functionality.
+
+19. Never remove intended functionality instead of properly reconnecting or repairing it.
+
+20. Never replace one patch or workaround with another patch or workaround.
+
+21. Existing patches and workarounds must not be considered permanent architecture.
+
+22. When a patch or workaround is encountered, identify the underlying reason it exists and preserve required functionality while replacing it with the correct production implementation.
+
+23. The final production code must not contain unnecessary patches, workarounds, hacks, temporary fixes, compatibility shims, emergency fallbacks, or bypasses.
+
+24. The final production code must not contain unnecessary dead code, abandoned code, stale experiments, commented-out implementations, duplicate implementations, or obsolete files.
+
+25. Never leave TODO, FIXME, HACK, TEMP, temporary, workaround, fallback, or placeholder production logic unresolved when it represents unfinished production work.
+
+26. Never leave production stubs pretending to be completed functionality.
+
+27. Never present placeholder functionality as production-ready functionality.
+
+28. Never leave test-only behaviour accessible in production.
+
+29. Never expose development-only routes, debug controls, test credentials, test transactions, test coins, mocks, or fake data in production.
+
+30. Never mix test or promotional value with real financial value.
+
+31. Never mix separate payment systems or transaction paths unless the architecture explicitly requires it.
+
+32. Never locally invent or adjust financial balances to compensate for failed server operations.
+
+33. Never bypass proper server verification for purchases, subscriptions, gifts, payouts, wallets, or financial transactions.
+
+34. Never weaken authentication, authorization, rate limiting, fraud prevention, validation, or production security merely to prevent an error.
+
+35. Never use fail-open security behaviour unless it is explicitly intentional, documented, and required by the production architecture.
+
+36. Never add a new dependency when the existing production architecture already provides the required capability.
+
+37. Never introduce an external SaaS, CDN, API, database, storage service, payment provider, analytics provider, or infrastructure dependency without explicit authorisation.
+
+38. Never fabricate or change frontend/backend contracts to make one side compile.
+
+39. Client and server contracts must remain consistent with the real production implementation.
+
+40. Never create raw string event names when an existing canonical event/constants contract exists.
+
+41. Never create a second network path to bypass the application's existing transport owner.
+
+42. Never create a second state source merely to solve a local problem.
+
+43. Never use local storage as an unnecessary second source of truth when authoritative server/application state already exists.
+
+44. Never introduce unnecessary polling, duplicate listeners, duplicate loops, duplicate subscriptions, or duplicate lifecycle ownership.
+
+45. Never leave race conditions knowingly unresolved.
+
+46. Never leave resource leaks, stale listeners, abandoned timers, unclosed sockets, uncleaned media tracks, or unhandled subscriptions.
+
+47. Never make broad refactors while performing a narrowly authorised fix.
+
+48. Never rename, move, reorganise, or reformat unrelated code merely because it looks cleaner.
+
+49. Never perform opportunistic changes outside the authorised requirement.
+
+50. Never make assumptions about code ownership or runtime behaviour without inspecting the existing implementation.
+
+51. Before modifying code, understand its callers, dependencies, contracts, state ownership, runtime lifecycle, and side effects.
+
+52. Never claim something is fixed merely because TypeScript compiles.
+
+53. Never claim something is clean merely because lint passes.
+
+54. Never claim something is unused merely because a static-analysis tool reports it.
+
+55. Scanner findings are evidence to investigate, not automatic permission to delete or rewrite code.
+
+56. Never suppress compiler, lint, test, security, or scanner findings simply to make a gate green.
+
+57. Never weaken tests to make broken code pass.
+
+58. Never remove tests because implementation changes caused them to fail unless the tested behaviour itself has been explicitly removed.
+
+59. Never disable validation, checks, rules, or safeguards merely to complete a task.
+
+60. Never commit code with known unresolved failures in required validation gates.
+
+61. Never work directly on the protected release branch or `main` when an isolated working branch can be used.
+
+62. Never merge AI-generated changes automatically into the release branch.
+
+63. Every change must remain reviewable through Git diff and Git history.
+
+64. Never rewrite or destroy Git history to hide mistakes or previous changes.
+
+65. Never delete evidence, logs, reports, tests, or history simply because they expose previous defects.
+
+66. Never modify protected files or protected areas without explicit authorisation.
+
+67. If a correct implementation requires changing a protected area, stop editing that area and report the dependency instead of bypassing the rule.
+
+68. Never interpret “make it work” as permission to ignore architecture, security, production quality, or scope restrictions.
+
+69. Never interpret “clean the code” as permission to redesign the application.
+
+70. Never interpret “remove leftovers” as permission to remove real functionality.
+
+71. Never interpret “release-ready” as permission to hide unresolved problems.
+
+72. Never mark a known stub, workaround, placeholder, architecture risk, or unresolved production dependency as complete.
+
+73. Never state that the codebase is patch-free, workaround-free, clean, or release-ready unless that statement is supported by the actual current codebase.
+
+74. Never hide remaining risks or unresolved findings from the final status.
+
+75. Never falsely report a test, build, scanner, native build, server check, deployment check, or runtime check as passed if it was not actually run successfully.
+
+76. Never infer runtime success solely from static code inspection.
+
+77. Never change production behaviour merely to satisfy a test when the test exposes a genuine defect.
+
+78. Never sacrifice maintainability, correctness, security, data integrity, or architecture for speed.
+
+79. Never prioritise completing the task over preserving working functionality.
+
+80. The required standard is clean production engineering — not patches, not workarounds, not temporary code, not hidden failures, and not unfinished implementations.

@@ -249,7 +249,6 @@ export function FeedStoryCirclesOverlay({
     return () => {
       disposePresence();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, followingFirst, (followingIds || []).join(','), token]);
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;

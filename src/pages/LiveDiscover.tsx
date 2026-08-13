@@ -166,7 +166,6 @@ export default function LiveDiscover() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}:${c.avatar ?? ''}`).join(',')]);
 
   const removeLiveStream = useCallback((key: string) => {

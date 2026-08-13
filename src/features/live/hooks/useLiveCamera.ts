@@ -188,7 +188,6 @@ export function useLiveCamera(opts: {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.enabled, autoAcquire, cameraFacing]);
 
   useEffect(() => {

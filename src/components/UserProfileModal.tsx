@@ -198,7 +198,6 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
       }
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user.id, isLiveHint]);
 
   /* Hide home TopNav while this profile is open (stacking keeps TopNav visible otherwise). */

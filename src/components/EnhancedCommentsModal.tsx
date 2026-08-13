@@ -60,7 +60,6 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     if (isOpen && videoId) {
       fetchComments();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, videoId, sortBy]);
 
   const fetchComments = async () => {

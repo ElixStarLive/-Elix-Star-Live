@@ -1,0 +1,10 @@
+# third-party vendored dependencies
+node_modules/
+
+# non-production utility scripts and evidence
+server/scripts/
+docs/
+
+# test fixtures and test-only harnesses
+**/*.test.ts
+**/*.test.tsx

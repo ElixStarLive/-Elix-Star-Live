@@ -187,7 +187,6 @@ async function webRequest<T>(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- default `any` preserves the loose public `api.*` return contract relied on by consumers
 export async function request<T = any>(
   path: string,
   init: RequestInit = {},

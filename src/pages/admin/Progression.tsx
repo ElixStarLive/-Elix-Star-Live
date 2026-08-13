@@ -158,7 +158,6 @@ export default function AdminProgression() {
   useEffect(() => {
     void loadConfig();
     void loadEngagementAdmin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-once admin bootstrap; reload is explicit via UI actions
   }, []);
 
   const loadConfig = async () => {

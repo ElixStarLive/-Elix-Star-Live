@@ -130,7 +130,6 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, durationMs]);
   return <span className={className}>{fmt(display)}</span>;
 }

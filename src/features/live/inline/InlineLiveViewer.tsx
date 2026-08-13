@@ -211,10 +211,8 @@ export default function InlineLiveViewer({
           : t;
       });
     });
-    if (modeRef.current !== "battle") {
-      setMode("cohost");
-      modeRef.current = "cohost";
-    }
+    setMode("cohost");
+    modeRef.current = "cohost";
   }, [streamKey]);
   const syncCohostTilesFromRoomRef = useRef(syncCohostTilesFromRoom);
   syncCohostTilesFromRoomRef.current = syncCohostTilesFromRoom;

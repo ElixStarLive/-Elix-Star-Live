@@ -87,7 +87,6 @@ export default function Discover() {
       return () => clearTimeout(timer);
     }
     setSearchResults({ videos: [], users: [] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery]);
 
   const loadTrending = async () => {

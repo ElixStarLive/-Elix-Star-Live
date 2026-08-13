@@ -51,6 +51,6 @@ export async function apiFetchUserReposts(
     hasMore?: boolean;
   }>(`/api/reposts/list?${qs.toString()}`);
   if (error) return { items: [], error: error.message, hasMore: false };
-  const items = Array.isArray(data?.items) ? data!.items! : [];
+  const items = Array.isArray(data?.items) ? data.items : [];
   return { items, error: null, hasMore: Boolean(data?.hasMore) };
 }

@@ -631,7 +631,6 @@ export default function Upload() {
         cancelled = true;
         killBg();
       };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
 
   // Live-update the preview song volume while dragging the mix slider (no restart).

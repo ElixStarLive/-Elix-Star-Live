@@ -28,7 +28,6 @@ import { pushLocalGiftPill } from '../../../components/GiftAnimationOverlay';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
-import { getLiveKitUrl } from '../../../lib/api';
 import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
@@ -672,7 +671,6 @@ export function useLiveSpectatorController() {
     if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
     if (tryUnlock(1000, 3, 3, 40, [200])) return;
     tryUnlock(200, 2, 1, 15, []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on score/status fields only; full spectatorBattle would re-run on unrelated battle metadata changes
   }, [
     spectatorBattle?.hostScore,
     spectatorBattle?.opponentScore,
@@ -2869,7 +2867,6 @@ export function useLiveSpectatorController() {
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, user?.id, streamIsLive]);
 
   // Disconnect WS only when leaving this stream page entirely.

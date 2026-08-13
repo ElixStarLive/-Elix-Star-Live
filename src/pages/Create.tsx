@@ -259,7 +259,6 @@ export default function Create() {
       cancelled = true;
       killBg();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewUrl, selectedSound?.id, selectedSound?.url]);
 
   useEffect(() => {

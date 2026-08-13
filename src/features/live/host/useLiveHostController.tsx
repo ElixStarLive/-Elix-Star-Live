@@ -275,7 +275,6 @@ export function useLiveHostController() {
     if (!isCreatorParticipant && streamId && streamId !== 'broadcast' && streamId !== 'start' && streamId !== 'watch') {
       navigate(`/watch/${streamId}`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isCreatorParticipant, streamId]);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [engagementOpen, setEngagementOpen] = useState(false);
@@ -1182,7 +1181,6 @@ export function useLiveHostController() {
     if (inv.streamKey) {
       navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isBattleMode is declared later in this hook; adding it here TDZs. Runtime reads the binding after init; isBattleModeRef is also declared later.
   }, [pendingCohostInvite, user?.id, user?.username, user?.name, user?.avatar, effectiveStreamId, navigate, closeAllBottomPanels]);
 
   // ─── JOIN REQUEST: creator receives when someone asked to join (from viewer) ───
@@ -1451,7 +1449,6 @@ export function useLiveHostController() {
 
   useEffect(() => {
     return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       coHostTimersRef.current.forEach(t => clearTimeout(t));
     };
   }, []);
@@ -1671,7 +1668,6 @@ export function useLiveHostController() {
     return () => {
       cancelled = true;
       // Intentional: skip teardown if a newer battle join replaced this connectId.
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
       if (battleJoinerConnectIdRef.current !== connectId) return;
       battleLifecycle.liveKit?.disconnect();
       battleLkRoomRef.current = null;
@@ -1679,7 +1675,6 @@ export function useLiveHostController() {
       // useLiveCamera stopCamera runs on enabled teardown; clear battle stream state here.
       setBattleParticipantStream(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleJoiner, user?.id, effectiveStreamId]);
 
   // Battle state driven by WebSocket backend.
@@ -2042,7 +2037,6 @@ export function useLiveHostController() {
     return () => {
       mounted = false;
       // Intentional: skip teardown if a newer opponent connect replaced this id.
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
       if (opponentLkConnectIdRef.current !== connectId) return;
       const raw = opponentLifecycle.rawRoom;
       opponentLifecycle.liveKit?.disconnect();
@@ -2420,7 +2414,6 @@ export function useLiveHostController() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [miniProfile?.id, user?.id]);
 
   const uploadSticker = useCallback(() => {
@@ -2488,7 +2481,6 @@ export function useLiveHostController() {
     } else {
       setShowFanClub(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closeMembershipBar, isBroadcast]);
   const [sessionContribution, setSessionContribution] = useState(0); // total coins gifted this session
   const [universeQueue, setUniverseQueue] = useState<UniverseTickerMessage[]>([]);
@@ -2744,7 +2736,6 @@ export function useLiveHostController() {
     // Creators panel stays closed — host opens it via Add creator / Explore only.
     setIsFindCreatorsOpen(false);
     battleCreate({ hostName: creatorName });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores]);
 
   /** X on a battle participant — leave battle split view entirely (not just clear one slot). */
@@ -2992,7 +2983,6 @@ export function useLiveHostController() {
     }
     const t = setTimeout(() => setSpeedChallengeTime(prev => prev - 1), 1000);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speedChallengeActive, speedChallengeTime]);
 
 
@@ -3031,7 +3021,6 @@ export function useLiveHostController() {
     if (tryUnlock(5000, 5, 5, 80, [1000, 200])) return;
     if (tryUnlock(1000, 3, 3, 40, [200])) return;
     tryUnlock(200, 2, 1, 15, []);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, roseCount, battleScreenTapCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
   useEffect(() => {
@@ -4413,7 +4402,6 @@ export function useLiveHostController() {
       // Do NOT disconnect here — unstable handler deps were dropping the host WS
       // mid-battle and server treated that as "host left" → stream_ended.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveStreamId, user?.id]);
 
   // Disconnect WS only when leaving the LiveStream page entirely.
@@ -5080,7 +5068,6 @@ export function useLiveHostController() {
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     void handleComboClick();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleComboClick is a large gift-send path; wrapping it in useCallback would churn wallet/battle deps every render without UI benefit
   }, []);
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -5121,7 +5108,6 @@ export function useLiveHostController() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const stopBroadcast = async () => {
     const roomId = effectiveStreamId;
     setIsMyStreamLive(false);
