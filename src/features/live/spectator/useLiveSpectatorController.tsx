@@ -2431,6 +2431,7 @@ export function useLiveSpectatorController() {
       // spectators must mirror battle UI. Only ENDED returns them to normal live.
       const inBattleLayout =
         rawStatus === 'WAITING' ||
+        rawStatus === 'COUNTDOWN' ||
         rawStatus === 'ACTIVE' ||
         rawStatus === 'IN_BATTLE';
       if (rawStatus === 'ENDED') {
@@ -2441,7 +2442,7 @@ export function useLiveSpectatorController() {
       if (inBattleLayout) {
         const labels = battleTeamLabelsFromPayload(data);
         const status: 'WAITING' | 'ACTIVE' =
-          rawStatus === 'WAITING' ? 'WAITING' : 'ACTIVE';
+          rawStatus === 'WAITING' || rawStatus === 'COUNTDOWN' ? 'WAITING' : 'ACTIVE';
         const prevBattle = spectatorBattleRef.current;
         if (!prevBattle?.active || prevBattle.status === 'ENDED') {
           resetSpectatorSpeed();

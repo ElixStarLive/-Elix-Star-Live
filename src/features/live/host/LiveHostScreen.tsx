@@ -1045,7 +1045,7 @@ export default function LiveHostScreen() {
 
         {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
             <div
-              className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+              className="elix-battle-mvp-row absolute left-0 right-0 z-[120] flex justify-center pointer-events-none"
               style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
             >
               <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">

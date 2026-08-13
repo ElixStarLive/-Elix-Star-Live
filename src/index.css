@@ -2358,7 +2358,7 @@ body {
 /* Battle MVP row — layout space between cameras and chat */
 .elix-battle-mvp-row,
 #root .elix-live-room .elix-battle-mvp-row {
-  position: fixed !important;
+  position: absolute !important;
   isolation: isolate;
   min-height: 56px;
   background: none !important;
