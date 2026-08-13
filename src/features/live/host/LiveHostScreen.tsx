@@ -40,7 +40,6 @@ import { GIFT_COMBO_MAX } from '../../../lib/giftsCatalog';
 import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCaps';
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
-import { BattleCreatorTileScore } from '../battle/BattleCreatorTileScore';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
@@ -1357,7 +1356,6 @@ export default function LiveHostScreen() {
                             : <Camera className="h-3 w-3 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)]" strokeWidth={2.2} />}
                         </button>
                       </div>
-                      <BattleCreatorTileScore score={battleServerTotals.h} format={formatCountShort} />
                     </div>
                     <div
                       className={`flex-1 basis-0 min-w-0 h-full overflow-hidden relative pointer-events-auto ${
@@ -1487,7 +1485,6 @@ export default function LiveHostScreen() {
                           {battleSlots[0].status !== 'empty' ? battleSlots[0].name : 'P2'}
                         </div>
                       </div>
-                      <BattleCreatorTileScore score={battleServerTotals.o} format={formatCountShort} />
                     </div>
                   </div>
 
@@ -1572,7 +1569,6 @@ export default function LiveHostScreen() {
                           {battleSlots[1].status !== 'empty' ? battleSlots[1].name : 'P3'}
                         </div>
                       </div>
-                      <BattleCreatorTileScore score={battleServerTotals.p3} format={formatCountShort} />
 
                       {battleWinner && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
@@ -1667,7 +1663,6 @@ export default function LiveHostScreen() {
                           {battleSlots[2].status !== 'empty' ? battleSlots[2].name : 'P4'}
                         </div>
                       </div>
-                      <BattleCreatorTileScore score={battleServerTotals.p4} format={formatCountShort} />
 
                       {battleWinner && (
                           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none gap-0.5">
