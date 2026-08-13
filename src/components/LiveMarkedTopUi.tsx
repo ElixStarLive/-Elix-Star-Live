@@ -1,5 +1,5 @@
 import React from 'react';
-import { BadgeCheck, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 import { resolveGiftAssetUrl } from '../lib/giftsCatalog';
 import type { LiveGiftGoal } from '../lib/liveGiftGoal';
@@ -202,14 +202,6 @@ export function LiveHostProfileHeader({
           >
             {displayName}
           </span>
-          <BadgeCheck
-            size={14}
-            data-elix-live-verified="true"
-            className="text-[#F5F5F7] flex-shrink-0 drop-shadow-none"
-            fill="none"
-            stroke="#F5F5F7"
-            strokeWidth={2}
-          />
           {/* Follow + Join inside profile capsule (original layout). */}
           {(showFollow || joinSlot) ? (
             <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">

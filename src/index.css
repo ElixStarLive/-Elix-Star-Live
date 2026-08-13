@@ -1996,18 +1996,6 @@ svg.lucide,
   -webkit-text-fill-color: #FF6A3D !important;
   background-image: none !important;
 }
-/* Live verified badge — no black oval / icon disc fundal */
-#root svg.lucide[data-elix-live-verified='true'] {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  filter: none !important;
-  color: #F5F5F7 !important;
-  stroke: #F5F5F7 !important;
-  fill: none !important;
-}
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
 #root .feed-column-width.min-h-\[var\(--topnav-bar-height\)\] button[title="LIVE"] svg.lucide,
 #root .feed-column-width.h-\[var\(--topnav-bar-height\)\] button[aria-label="LIVE"] svg.lucide,
