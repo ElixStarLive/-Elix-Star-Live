@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RoyceCloseIcon } from '../../../components/royce';
 import { showToast } from '../../../lib/toast';
+import { returnToFromLocationState } from '../../../lib/settingsNav';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -454,7 +455,10 @@ export default function SpectatorLiveScreen() {
               )}
               <button
                 type="button"
-                onClick={() => navigate('/feed', { replace: true })}
+                onClick={() => {
+                  const exitTo = returnToFromLocationState(location.state) || '/feed';
+                  navigate(exitTo, { replace: true });
+                }}
                 className="w-full py-3 rounded-xl bg-transparent border border-[#D8D9DD]/55 text-[#F5F5F7] text-sm font-bold active:scale-[0.98] transition-transform"
               >
                 Back to For You

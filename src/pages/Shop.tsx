@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { RoyceBackIcon, ShopBasketIcon } from '../components/royce';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../lib/apiClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { Camera, Tag, MessageCircle, MoreVertical, ChevronLeft, ChevronRight, Trash2, Pencil } from 'lucide-react';
@@ -12,7 +12,7 @@ import { useCartStore } from '../store/useCartStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiShopCheckout, apiShopCheckoutSessionStatus } from '../features/shop/shopApi';
-import { SHOP_EXIT_TO } from '../lib/settingsNav';
+import { returnToFromLocationState, SHOP_EXIT_TO } from '../lib/settingsNav';
 import { reportFailure } from '../lib/reportFailure';
 
 const SHOP_LIVE_RING = 56;
@@ -35,6 +35,7 @@ interface ShopItem {
 
 export default function Shop() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const token = useAuthStore((s) => s.session?.access_token) ?? '';
   const [items, setItems] = useState<ShopItem[]>([]);
@@ -88,8 +89,9 @@ export default function Shop() {
   );
 
   const goBack = useCallback(() => {
-    navigate(SHOP_EXIT_TO, { replace: true });
-  }, [navigate]);
+    const returnTo = returnToFromLocationState(location.state);
+    navigate(returnTo || SHOP_EXIT_TO, { replace: true });
+  }, [navigate, location.state]);
 
   const goSearch = useCallback(() => {
     navigate('/search');

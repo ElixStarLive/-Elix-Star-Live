@@ -6,6 +6,7 @@ import { StoryGoldRingAvatar } from '../../components/StoryGoldRingAvatar';
 import { showToast } from '../../lib/toast';
 import { apiListNotifications } from '../../features/notifications/notificationsApi';
 import { apiLiveStreams } from '../../lib/live/liveApi';
+import { inboxReturnState, INBOX_HOME } from '../../lib/settingsNav';
 import { apiFetchProfiles } from '../../features/feed/feedApi';
 
 interface AlertItem {
@@ -74,12 +75,12 @@ export default function AlertsPage() {
   const [liveAvatarByHost, setLiveAvatarByHost] = useState<Record<string, string>>({});
 
   const goInbox = useCallback(() => {
-    navigate('/inbox');
+    navigate(INBOX_HOME, { replace: true });
   }, [navigate]);
 
   const openActionUrl = useCallback(
     (actionUrl: string) => {
-      navigate(actionUrl);
+      navigate(actionUrl, { state: inboxReturnState() });
     },
     [navigate],
   );

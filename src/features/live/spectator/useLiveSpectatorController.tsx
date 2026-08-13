@@ -102,6 +102,7 @@ import {
 } from '../engagement/liveEngagementApi';
 import { sendLiveDailyMembershipHeart } from '../engagement/sendLiveDailyMembershipHeart';
 import { reportFailure } from '../../../lib/reportFailure';
+import { returnToFromLocationState, FEED_HOME } from '../../../lib/settingsNav';
 import {
   apiFetchFollowingIds,
   apiFetchProfileById,
@@ -2357,7 +2358,11 @@ export function useLiveSpectatorController() {
       setStreamIsLive(false);
       websocket.disconnect();
       clearMessagesForStream(effectiveStreamId);
-      setTimeout(() => { if (mounted) navigate('/feed', { replace: true }); }, 2000);
+      setTimeout(() => {
+        if (mounted) {
+          navigate(returnToFromLocationState(location.state) || FEED_HOME, { replace: true });
+        }
+      }, 2000);
     };
 
     const handleBattleStateSync = (data) => {
@@ -2714,7 +2719,11 @@ export function useLiveSpectatorController() {
       showToast('Stream is offline');
       setStreamIsLive(false);
       websocket.disconnect();
-      setTimeout(() => { if (mounted) navigate('/feed', { replace: true }); }, 2000);
+      setTimeout(() => {
+        if (mounted) {
+          navigate(returnToFromLocationState(location.state) || FEED_HOME, { replace: true });
+        }
+      }, 2000);
     };
 
     const connectTimeout = setTimeout(() => {
@@ -3305,12 +3314,13 @@ export function useLiveSpectatorController() {
       return;
     }
     setPageExiting(true);
+    const exitTo = returnToFromLocationState(location.state) || FEED_HOME;
     window.setTimeout(() => {
       websocket.disconnect();
       stopCamera();
-      navigate('/feed', { replace: true });
+      navigate(exitTo, { replace: true });
     }, 250);
-  }, [pageExiting, isCoHosting, exitCohostStayWatching, stopCamera, navigate]);
+  }, [pageExiting, isCoHosting, exitCohostStayWatching, stopCamera, navigate, location.state]);
 
 
   const spectatorGate =

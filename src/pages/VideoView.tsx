@@ -1,20 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { RoyceBackIcon, RoyceCloseIcon } from '../components/royce';
 
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import { VideoViewChromeShell } from '../components/VideoViewChromeShell';
 import { useVideoStore } from '../store/useVideoStore';
-import { VIDEO_EXIT_TO } from '../lib/settingsNav';
+import { returnToFromLocationState, VIDEO_EXIT_TO } from '../lib/settingsNav';
 
 export default function VideoView() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { videoId } = useParams<{ videoId: string }>();
   const fetchVideoById = useVideoStore((s) => s.fetchVideoById);
   const video = useVideoStore((s) => (videoId ? s.getVideoById(videoId) : undefined));
   const [loadPhase, setLoadPhase] = useState<'idle' | 'loading' | 'done'>('idle');
 
-  const goBack = useCallback(() => navigate(VIDEO_EXIT_TO, { replace: true }), [navigate]);
+  const goBack = useCallback(() => {
+    const returnTo = returnToFromLocationState(location.state);
+    navigate(returnTo || VIDEO_EXIT_TO, { replace: true });
+  }, [navigate, location.state]);
 
   useEffect(() => {
     if (!videoId) return;

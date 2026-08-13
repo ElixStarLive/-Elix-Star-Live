@@ -26,6 +26,7 @@ import {
 import { apiFetchProfiles } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live/liveApi';
 import { isGenuineAppUser } from '../lib/genuineUser';
+import { inboxReturnState } from '../lib/settingsNav';
 
 interface Notification {
   id: string;
@@ -309,7 +310,7 @@ export default function Inbox() {
   );
 
   const goSearch = useCallback(() => {
-    navigate('/search');
+    navigate('/search', { state: inboxReturnState() });
   }, [navigate]);
 
   const goFeedBack = useCallback(() => {
@@ -317,7 +318,7 @@ export default function Inbox() {
   }, [navigate]);
 
   const goShop = useCallback(() => {
-    navigate('/shop');
+    navigate('/shop', { state: inboxReturnState() });
   }, [navigate]);
 
   const openNewFollowersPanel = useCallback(() => {
@@ -352,28 +353,34 @@ export default function Inbox() {
 
   const openUserOrLive = useCallback(
     (userId: string, isLive: boolean) => {
-      navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`);
+      navigate(isLive ? `/watch/${userId}` : `/profile/${userId}`, {
+        state: inboxReturnState(),
+      });
     },
     [navigate],
   );
 
   const openVideo = useCallback(
     (videoId: string) => {
-      navigate(`/video/${encodeURIComponent(videoId)}`);
+      navigate(`/video/${encodeURIComponent(videoId)}`, {
+        state: inboxReturnState(),
+      });
     },
     [navigate],
   );
 
   const openWatchStream = useCallback(
     (streamKey: string) => {
-      navigate(`/watch/${encodeURIComponent(streamKey)}`);
+      navigate(`/watch/${encodeURIComponent(streamKey)}`, {
+        state: inboxReturnState(),
+      });
     },
     [navigate],
   );
 
   const openActionUrl = useCallback(
     (actionUrl: string) => {
-      navigate(actionUrl);
+      navigate(actionUrl, { state: inboxReturnState() });
     },
     [navigate],
   );
@@ -381,7 +388,7 @@ export default function Inbox() {
   const openFollowerProfile = useCallback(
     (userId: string) => {
       setShowNewFollowersPanel(false);
-      navigate(`/profile/${userId}`);
+      navigate(`/profile/${userId}`, { state: inboxReturnState() });
     },
     [navigate],
   );
@@ -970,7 +977,7 @@ export default function Inbox() {
             {/* Alerts — separate page (Bell icon, not Archive/bin) */}
             <button
               type="button"
-              onClick={() => navigate('/alerts')}
+              onClick={() => navigate('/alerts', { state: inboxReturnState() })}
               className="flex items-center gap-3 w-full text-left py-2 px-2 bg-transparent"
             >
               <div className="relative w-12 h-12 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 royce-tile">

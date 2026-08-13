@@ -1,0 +1,32 @@
+---
+description: Inbox named exit — anything opened from Inbox closes back to Inbox
+alwaysApply: true
+---
+
+# Inbox exit contract — land back in Inbox
+
+Owner standing order (2026-08-13):
+
+When the user opens **anything from Inbox** (or from Alerts opened via Inbox), closing that screen must return to **Inbox** (`/inbox`).
+
+## Required
+
+- Pass React Router state `{ returnTo: '/inbox' }` via `inboxReturnState()` from `src/lib/settingsNav.ts` on every navigate that leaves Inbox / Alerts for another screen (profile, video, watch/live, search, shop, action URLs).
+- Destination close/back handlers must honor `returnToFromLocationState(location.state)` before their default exit (`/feed`, etc.).
+- Hardware back / edge swipe must use `namedExitForLocation(pathname, state)` (not path-only).
+- Chat threads (`/inbox/:id`) and Alerts (`/alerts`) close to Inbox by named path (`INBOX_HOME`).
+- Use `navigate(…, { replace: true })` for exits.
+
+## Forbidden
+
+- `history.back()` / `navigate(-1)` to “get back to Inbox”
+- Soft patches, leftovers, or workarounds that hide bad stacking
+- Sending the user to For You (`/feed`) after an Inbox-origin open when `returnTo: '/inbox'` was set
+- Inventing a second parallel exit system — extend `settingsNav.ts` helpers
+
+## Defaults
+
+- Inbox hub close (X on Inbox itself) → For You (`/feed`) remains correct
+- Screens **not** opened from Inbox keep their existing named exits (usually For You)
+
+Default: **from Inbox → open → close → Inbox. Named exit only. No patches.**

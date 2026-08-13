@@ -8,6 +8,8 @@
  * - Engagement subpages → Engagement home
  * - Edit Profile → Settings home
  * - Following / Friends / Stem / Music feeds → For You
+ * - Anything opened from Inbox closes → Inbox (`returnTo: '/inbox'` in location.state;
+ *   never history.back() / never land on For You by accident)
  */
 export const SETTINGS_HOME = '/settings';
 export const SETTINGS_EXIT_TO = '/profile';
@@ -23,6 +25,26 @@ export const RISING_STARS_EXIT_TO = FEED_HOME;
 export const RISING_STARS_HOME = '/rising-stars';
 export const AI_STUDIO_EXIT_TO = FEED_HOME;
 export const FOLLOW_LIST_EXIT_TO = SETTINGS_EXIT_TO;
+/** Inbox hub — named parent for chat threads, alerts, and screens opened from Inbox. */
+export const INBOX_HOME = '/inbox';
+
+/**
+ * Read a safe in-app returnTo from React Router location.state.
+ * Screens opened from Inbox must pass `{ returnTo: INBOX_HOME }` and honor this on close.
+ */
+export function returnToFromLocationState(state: unknown): string | null {
+  if (!state || typeof state !== 'object') return null;
+  const raw = (state as { returnTo?: unknown }).returnTo;
+  if (typeof raw !== 'string') return null;
+  const path = raw.trim().split('?')[0] || '';
+  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  return path;
+}
+
+/** Navigate state that pins close/back to Inbox. */
+export function inboxReturnState(): { returnTo: typeof INBOX_HOME } {
+  return { returnTo: INBOX_HOME };
+}
 
 /**
  * Named parent for hardware/edge back — never pop browser history / relative back.
@@ -55,8 +77,18 @@ export function namedExitForPath(pathname: string): string {
   if (path.startsWith('/ai-studio')) return AI_STUDIO_EXIT_TO;
   if (path.startsWith('/search')) return SEARCH_EXIT_TO;
   if (path.startsWith('/discover')) return DISCOVER_HOME;
-  if (path.startsWith('/inbox/') || path.startsWith('/chat/') || path === '/alerts') return '/inbox';
+  if (path.startsWith('/inbox/') || path.startsWith('/chat/') || path === '/alerts') return INBOX_HOME;
   if (path.startsWith('/live/') || path.startsWith('/go-live')) return FEED_HOME;
   if (path.startsWith('/create') || path.startsWith('/upload')) return FEED_HOME;
   return FEED_HOME;
+}
+
+/**
+ * Named exit using optional location.state.returnTo first, then path map.
+ * Use for hardware back / edge swipe when router state is available.
+ */
+export function namedExitForLocation(pathname: string, state?: unknown): string {
+  const returnTo = returnToFromLocationState(state);
+  if (returnTo) return returnTo;
+  return namedExitForPath(pathname);
 }

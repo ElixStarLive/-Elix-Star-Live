@@ -1,10 +1,10 @@
 // Deep Link & Back Button Handler
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
-import { namedExitForPath } from './settingsNav';
+import { namedExitForLocation } from './settingsNav';
 
 const ROOT_PATHS = new Set(['/', '/feed', '/friends', '/inbox', '/profile', '/login']);
 const WEB_HOSTS = new Set(['www.elixstarlive.co.uk', 'elixstarlive.co.uk']);
@@ -62,6 +62,7 @@ function navigateFromDeepLinkUrl(url: string, navigate: (path: string) => void):
 
 export const useDeepLinks = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     let urlHandle: { remove: () => Promise<void> } | null = null;
@@ -78,7 +79,7 @@ export const useDeepLinks = () => {
         if (handled) return;
 
         if (canGoBack && !ROOT_PATHS.has(window.location.pathname)) {
-          const exit = namedExitForPath(window.location.pathname);
+          const exit = namedExitForLocation(window.location.pathname, location.state);
           if (exit === window.location.pathname) {
             CapacitorApp.minimizeApp();
           } else {
@@ -94,7 +95,7 @@ export const useDeepLinks = () => {
       urlHandle?.remove().catch(() => {});
       backHandle?.remove().catch(() => {});
     };
-  }, [navigate]);
+  }, [navigate, location.state]);
 };
 
 // Generate web fallback link

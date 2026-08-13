@@ -7,7 +7,7 @@ import { TrendingSnapFeed } from '../components/TrendingSnapFeed';
 import { resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { useVideoStore } from '../store/useVideoStore';
 import { apiFetchProfiles } from '../features/feed/feedApi';
-import { SEARCH_EXIT_TO } from '../lib/settingsNav';
+import { returnToFromLocationState, SEARCH_EXIT_TO } from '../lib/settingsNav';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { pauseVideoAfterBriefPlay } from '../lib/pauseVideoAfterBriefPlay';
@@ -56,8 +56,9 @@ export default function SearchPage() {
 
   const closePanel = useCallback(() => {
     setVisible(false);
-    setTimeout(() => navigate(SEARCH_EXIT_TO, { replace: true }), 250);
-  }, [navigate]);
+    const returnTo = returnToFromLocationState(location.state);
+    setTimeout(() => navigate(returnTo || SEARCH_EXIT_TO, { replace: true }), 250);
+  }, [navigate, location.state]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -81,12 +82,14 @@ export default function SearchPage() {
   }, []);
 
   const openUserProfile = useCallback((userId: string) => {
-    navigate(`/profile/${userId}`);
-  }, [navigate]);
+    const returnTo = returnToFromLocationState(location.state);
+    navigate(`/profile/${userId}`, returnTo ? { state: { returnTo } } : undefined);
+  }, [navigate, location.state]);
 
   const openVideo = useCallback((videoId: string) => {
-    navigate(`/video/${videoId}`);
-  }, [navigate]);
+    const returnTo = returnToFromLocationState(location.state);
+    navigate(`/video/${videoId}`, returnTo ? { state: { returnTo } } : undefined);
+  }, [navigate, location.state]);
 
   const handleSearch = useCallback((e: React.FormEvent) => {
     e.preventDefault();

@@ -13,7 +13,7 @@ import { TopNav } from "./components/TopNav";
 import { useAuthStore } from "./store/useAuthStore";
 import { cn } from "./lib/utils";
 import { useDeepLinks } from "./lib/deepLinks";
-import { namedExitForPath } from "./lib/settingsNav";
+import { namedExitForLocation } from "./lib/settingsNav";
 import { analytics } from "./lib/analytics";
 import { notificationService } from "./lib/notifications";
 import { initializeIAP, reconcileOwnedCoinPurchases } from "./lib/iap";
@@ -170,11 +170,11 @@ function App() {
       const dx = endX - swipeStart.current.x;
       swipeStart.current = null;
       if (dx > SWIPE_THRESHOLD) {
-        const exit = namedExitForPath(location.pathname);
+        const exit = namedExitForLocation(location.pathname, location.state);
         if (exit !== location.pathname) navigate(exit, { replace: true });
       }
     },
-    [navigate, location.pathname],
+    [navigate, location.pathname, location.state],
   );
 
   // Initialize deep links

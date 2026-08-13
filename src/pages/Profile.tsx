@@ -33,7 +33,7 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
-import { PROFILE_EXIT_TO } from '../lib/settingsNav';
+import { PROFILE_EXIT_TO, returnToFromLocationState } from '../lib/settingsNav';
 import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { mapProfileGridVideoRows, mapProfileRepostItemsToGrid } from '../lib/mapProfileGridVideoRows';
@@ -120,13 +120,7 @@ export default function Profile() {
       navigate(liveReturn, { replace: true });
       return;
     }
-    const returnTo =
-      location.state &&
-      typeof location.state === 'object' &&
-      'returnTo' in location.state &&
-      typeof (location.state as { returnTo?: unknown }).returnTo === 'string'
-        ? (location.state as { returnTo: string }).returnTo.trim()
-        : '';
+    const returnTo = returnToFromLocationState(location.state);
     if (returnTo) {
       navigate(returnTo, { replace: true });
       return;
