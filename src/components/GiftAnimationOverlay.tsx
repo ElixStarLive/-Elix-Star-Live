@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
-import { LIVE_BATTLE_STAGE_BOTTOM } from '../lib/profileFrame';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
@@ -33,7 +32,7 @@ interface GiftAnimation {
 
 interface GiftAnimationOverlayProps {
   streamId: string;
-  /** Battle: banner sits at bottom of battle video stage. Solo: Weekly Ranking top row. */
+  /** Kept for callers; red banner always plays on the Weekly Ranking row (solo + battle). */
   isBattleMode?: boolean;
 }
 
@@ -42,7 +41,6 @@ const DISPLAY_DURATION_MS = 4000;
 
 export default function GiftAnimationOverlay({
   streamId,
-  isBattleMode = false,
 }: GiftAnimationOverlayProps) {
   const [currentGift, setCurrentGift] = useState<GiftAnimation | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -139,18 +137,10 @@ export default function GiftAnimationOverlay({
       <div className="w-full max-w-[480px] relative">
         <div
           className="absolute left-0 right-0"
-          style={
-            isBattleMode
-              ? {
-                  // Bottom edge of battle video panes (above MVP strip).
-                  top: LIVE_BATTLE_STAGE_BOTTOM,
-                  transform: 'translateY(calc(-100% - 2px))',
-                }
-              : {
-                  // Solo: vertically center on Weekly Ranking capsule row.
-                  top: 'calc(env(safe-area-inset-top, 0px) + 66px)',
-                }
-          }
+          style={{
+            // Solo + battle: top middle of Weekly Ranking capsule row (not battle stage bottom).
+            top: 'calc(env(safe-area-inset-top, 0px) + 66px)',
+          }}
         >
           {currentGift && (
             <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
