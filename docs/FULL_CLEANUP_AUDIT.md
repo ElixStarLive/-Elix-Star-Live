@@ -931,6 +931,14 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **131** clones / **1.70%** lines |
 | Android | 1.0.638 |
 
+### Continue 39 — auth password field + icon doc section
+| Item | Change |
+|------|--------|
+| Login/Register password field | `AuthPasswordField.tsx` |
+| Guidelines/HowItWorks section | `IconDocSection.tsx` |
+| jscpd | **129** clones / **1.66%** lines |
+| Android | 1.0.639 |
+
 
 
 

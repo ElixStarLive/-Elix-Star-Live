@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { Eye, EyeOff, Mail, User } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import { useIsMountedRef } from '../hooks/useIsMountedRef';
+import { AuthPasswordField } from '../components/AuthPasswordField';
+import { Mail, User } from 'lucide-react';
 export default function Register() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -169,49 +170,24 @@ export default function Register() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-fluid-sm text-white/70">Password</label>
-            <div className="relative">
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-3 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D8D9DD]/50 placeholder:text-white/40"
-                placeholder="Password"
-                autoComplete="new-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-              >
-                {showPassword ? <EyeOff className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" /> : <Eye className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" />}
-              </button>
-            </div>
-          </div>
+          <AuthPasswordField
+            label="Password"
+            value={password}
+            onChange={setPassword}
+            showPassword={showPassword}
+            onToggleShow={() => setShowPassword((v) => !v)}
+            autoComplete="new-password"
+          />
 
-          <div className="space-y-2">
-            <label className="text-fluid-sm text-white/70">Confirm Password</label>
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/10 border border-white/10 rounded-xl pl-3 pr-10 xs:pr-9 py-3 xs:py-2.5 text-fluid-sm text-white outline-none focus:border-[#D8D9DD]/50 placeholder:text-white/40"
-                placeholder="Confirm password"
-                autoComplete="new-password"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white"
-              >
-                {showConfirmPassword ? <EyeOff className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" /> : <Eye className="elix-auth-icon w-4 h-4 xs:w-3.5 xs:h-3.5" />}
-              </button>
-            </div>
-          </div>
+          <AuthPasswordField
+            label="Confirm Password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            showPassword={showConfirmPassword}
+            onToggleShow={() => setShowConfirmPassword((v) => !v)}
+            autoComplete="new-password"
+            placeholder="Confirm password"
+          />
 
           {/* Terms & Privacy acceptance — large touch target for mobile */}
           <div

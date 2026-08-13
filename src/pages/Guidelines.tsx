@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
+import { IconDocSection as Section } from '../components/IconDocSection';
 import { SETTINGS_HOME } from '../lib/settingsNav';
 
 export default function Guidelines() {
@@ -103,25 +104,5 @@ export default function Guidelines() {
           </div>
       </div>
     </SettingsOptionSheet>
-  );
-}
-
-function Section({
-  icon,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <h2 className="flex items-center gap-2 text-white font-semibold text-base mb-2">
-        <span className="text-[#E6E9EE] flex-shrink-0">{icon}</span>
-        {title}
-      </h2>
-      {children}
-    </div>
   );
 }
