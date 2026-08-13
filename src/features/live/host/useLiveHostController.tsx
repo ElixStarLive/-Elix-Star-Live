@@ -63,6 +63,7 @@ import { useLiveCamera } from '../hooks/useLiveCamera';
 import {
   apiLiveEnd,
   apiLiveToken,
+  apiLiveStreams,
   isLivePublishDenied,
   isLiveTokenTransient,
   LiveRoomLifecycle,
@@ -131,7 +132,7 @@ import {
   apiFetchProfileByUsername,
   apiToggleFollow,
 } from '../../feed/feedApi';
-import { isGenericLiveCreatorName, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
+import { isGenericLiveCreatorName, profileToLiveDisplay, sanitizeLiveAvatar, isPlaceholderLiveAvatar, parseRawLiveStreamCore, type RawLiveStreamFields } from '../../../lib/liveCreatorDisplay';
 import { useLiveEngagement } from '../../../hooks/useLiveEngagement';
 import { type LiveRankTab } from '../../../lib/liveRankTab';
 import { websocket } from '../../../lib/websocket';
@@ -624,8 +625,27 @@ export function useLiveHostController() {
   const [creatorQuery, setCreatorQuery] = useState('');
   const [creators, setCreators] = useState<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }[]>([]);
   const [creatorsLoadFailed, setCreatorsLoadFailed] = useState(false);
+  const [creatorsRosterSettled, setCreatorsRosterSettled] = useState(false);
+  const creatorsLenRef = useRef(0);
   const battleInviteRosterSeqRef = useRef(0);
   const battleInviteRosterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => { creatorsLenRef.current = creators.length; }, [creators]);
+
+  const mergeInviteCreators = useCallback((
+    rows: Array<{ id: string; streamKey: string; name: string; username: string; followers: string; avatar: string; isLive: boolean }>,
+  ) => {
+    if (rows.length === 0) return;
+    setCreators((prev) => {
+      const byId = new Map(prev.map((c) => [c.id, c]));
+      for (const row of rows) {
+        const old = byId.get(row.id);
+        byId.set(row.id, old ? { ...old, ...row, avatar: old.avatar || row.avatar } : row);
+      }
+      return [...byId.values()];
+    });
+    setCreatorsLoadFailed(false);
+    setCreatorsRosterSettled(true);
+  }, []);
 
   const requestBattleInviteRoster = useCallback(() => {
     if (!isBroadcast && !isBattleJoiner) return;
@@ -636,10 +656,33 @@ export function useLiveHostController() {
     }
     battleInviteRosterTimeoutRef.current = setTimeout(() => {
       if (battleInviteRosterSeqRef.current !== seq) return;
-      setCreatorsLoadFailed(true);
+      if (creatorsLenRef.current === 0) {
+        setCreatorsLoadFailed(true);
+        setCreatorsRosterSettled(true);
+      }
     }, 8000);
     battleInviteRosterGet({});
-  }, [isBroadcast, isBattleJoiner]);
+    void apiLiveStreams().then(({ streams, error }) => {
+      if (battleInviteRosterSeqRef.current !== seq) return;
+      if (error) return;
+      const mapped = streams.flatMap((raw) => {
+        if (!raw || typeof raw !== 'object') return [];
+        const core = parseRawLiveStreamCore(raw as RawLiveStreamFields);
+        const id = (core.userId || core.streamKey).trim();
+        if (!id) return [];
+        return [{
+          id,
+          streamKey: core.streamKey || id,
+          name: core.name || 'Creator',
+          username: core.name || 'Creator',
+          followers: '0',
+          avatar: '',
+          isLive: true,
+        }];
+      });
+      mergeInviteCreators(mapped);
+    });
+  }, [isBroadcast, isBattleJoiner, mergeInviteCreators]);
 
   useEffect(() => {
     return () => {
@@ -1854,7 +1897,9 @@ export function useLiveHostController() {
             isBattleModeRef.current &&
             slots[0]?.status === 'accepted' &&
             !hasOpponentStreamRef.current &&
-            opponentVideoRef.current
+            opponentVideoRef.current &&
+            slots[1]?.status === 'empty' &&
+            slots[2]?.status === 'empty'
           ) {
             battleRemoteCount += 1;
             pub.track.attach(opponentVideoRef.current);
@@ -3537,27 +3582,49 @@ export function useLiveHostController() {
         const paneName = selfIsOpponent
           ? (typeof data.hostName === 'string' ? data.hostName : '')
           : (typeof data.opponentName === 'string' ? data.opponentName : '');
-        if (paneName) {
-          next[0] = { userId: paneUserId || '', name: paneName, status: 'accepted', avatar: keepAvatar(0, paneUserId || '') };
-          if (paneUserId) seenIds.add(paneUserId);
+        if (paneUserId) {
+          next[0] = {
+            userId: paneUserId,
+            name: paneName || prev[0]?.name || 'Creator',
+            status: 'accepted',
+            avatar: keepAvatar(0, paneUserId),
+          };
+          seenIds.add(paneUserId);
+        } else if (prev[0]?.status === 'invited') {
+          next[0] = prev[0];
         } else {
-          // Authoritative empty seat — available for Invite Creator refill.
           next[0] = { userId: '', name: '', status: 'empty', avatar: '' };
           setHasOpponentStream(false);
         }
         if (selfId) seenIds.add(selfId);
 
-        // Player 3
-        if (data.player3Name && data.player3UserId && !seenIds.has(data.player3UserId)) {
-          next[1] = { userId: data.player3UserId || '', name: data.player3Name, status: 'accepted', avatar: keepAvatar(1, data.player3UserId) };
-          seenIds.add(data.player3UserId);
+        const p3Id = typeof data.player3UserId === 'string' ? data.player3UserId.trim() : '';
+        const p3Name = typeof data.player3Name === 'string' ? data.player3Name.trim() : '';
+        if (p3Id && !seenIds.has(p3Id)) {
+          next[1] = {
+            userId: p3Id,
+            name: p3Name || prev[1]?.name || 'Creator',
+            status: 'accepted',
+            avatar: keepAvatar(1, p3Id),
+          };
+          seenIds.add(p3Id);
+        } else if (prev[1]?.status === 'invited') {
+          next[1] = prev[1];
         } else {
           next[1] = { userId: '', name: '', status: 'empty', avatar: '' };
         }
 
-        // Player 4
-        if (data.player4Name && data.player4UserId && !seenIds.has(data.player4UserId)) {
-          next[2] = { userId: data.player4UserId || '', name: data.player4Name, status: 'accepted', avatar: keepAvatar(2, data.player4UserId) };
+        const p4Id = typeof data.player4UserId === 'string' ? data.player4UserId.trim() : '';
+        const p4Name = typeof data.player4Name === 'string' ? data.player4Name.trim() : '';
+        if (p4Id && !seenIds.has(p4Id)) {
+          next[2] = {
+            userId: p4Id,
+            name: p4Name || prev[2]?.name || 'Creator',
+            status: 'accepted',
+            avatar: keepAvatar(2, p4Id),
+          };
+        } else if (prev[2]?.status === 'invited') {
+          next[2] = prev[2];
         } else {
           next[2] = { userId: '', name: '', status: 'empty', avatar: '' };
         }
@@ -3703,9 +3770,10 @@ export function useLiveHostController() {
       // Host and battle-playing creators all update slots when someone joins.
       if (!isBroadcast && !isBattleJoiner) return;
       const requesterId = data.requesterUserId as string | undefined;
-      const requesterName = data.requesterName as string | undefined;
+      const requesterName =
+        (typeof data.requesterName === 'string' && data.requesterName.trim()) || 'Creator';
       const requesterAvatar = data.requesterAvatar as string | undefined;
-      if (!requesterId || !requesterName) return;
+      if (!requesterId) return;
       clearBattleInviteTimer(requesterId);
       // Invite accepted → bottom panel comes down alone; battle screen stays up.
       setIsFindCreatorsOpen(false);
@@ -3714,33 +3782,30 @@ export function useLiveHostController() {
       setShowSharePanel(false);
       setShowRankingPanel(false);
       setShowFanClub(false);
-      setHasOpponentStream(false);
       setIsBattleMode(true);
       setBattleState('INVITING');
-      setOpponentCreatorName(requesterName);
-      // Opponent publishes into this host room after accept — do not chase solo stream key.
-      setOpponentStreamKey(null);
+      const slotsNow = battleSlotsRef.current;
+      const existingIdx = slotsNow.findIndex((s) => s.userId === requesterId);
+      const emptyIdx = slotsNow.findIndex((s) => s.status === 'empty');
+      const targetIdx = existingIdx !== -1 ? existingIdx : emptyIdx;
+      // Only the P2 accept owns the opponent pane. A 3rd/4th accept must not
+      // clear P2's stream or rename the opponent.
+      if (targetIdx === 0) {
+        setHasOpponentStream(false);
+        setOpponentCreatorName(requesterName);
+        setOpponentStreamKey(null);
+      }
       setBattleSlots(prev => {
         const next = [...prev];
-        const existingIdx = next.findIndex((s) => s.userId === requesterId);
-        if (existingIdx !== -1) {
-          next[existingIdx] = {
-            userId: requesterId,
-            name: requesterName,
-            status: 'accepted',
-            avatar: requesterAvatar || next[existingIdx].avatar,
-          };
-        } else {
-          const emptyIdx = next.findIndex((s) => s.status === 'empty');
-          if (emptyIdx !== -1) {
-            next[emptyIdx] = {
-              userId: requesterId,
-              name: requesterName,
-              status: 'accepted',
-              avatar: requesterAvatar || '',
-            };
-          }
-        }
+        const idx = next.findIndex((s) => s.userId === requesterId);
+        const dest = idx !== -1 ? idx : next.findIndex((s) => s.status === 'empty');
+        if (dest === -1) return prev;
+        next[dest] = {
+          userId: requesterId,
+          name: requesterName,
+          status: 'accepted',
+          avatar: requesterAvatar || next[dest].avatar,
+        };
         return next;
       });
       // Do NOT battle_create here — each accept used to wipe the previous
@@ -3802,7 +3867,14 @@ export function useLiveHostController() {
       };
       const rows = Array.isArray(payload?.creators) ? payload.creators : [];
       if (payload?.error && rows.length === 0) {
-        setCreatorsLoadFailed(true);
+        if (creatorsLenRef.current === 0) {
+          setCreatorsLoadFailed(true);
+          setCreatorsRosterSettled(true);
+        }
+        return;
+      }
+      if (rows.length === 0) {
+        setCreatorsRosterSettled(true);
         return;
       }
       setCreators((prev) => {
@@ -3835,6 +3907,7 @@ export function useLiveHostController() {
           .filter((c): c is NonNullable<typeof c> => !!c);
       });
       setCreatorsLoadFailed(false);
+      setCreatorsRosterSettled(true);
     };
 
     const handleBattleInviteRosterInvalidate = () => {
@@ -5456,6 +5529,7 @@ export function useLiveHostController() {
     creatorStickers,
     creators,
     creatorsLoadFailed,
+    creatorsRosterSettled,
     creatorsToInvite,
     currentGift,
     currentUniverse,

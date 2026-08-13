@@ -298,6 +298,29 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
   return { streams };
 }
 
+/** Same live-creator list as GET /api/live/streams / For You — used by battle Invite. */
+export async function listActiveLiveStreams(): Promise<{
+  streams: Array<{ stream_key: string; user_id: string; display_name?: string }>;
+}> {
+  const result = await buildStreamsResult();
+  return {
+    streams: result.streams
+      .map((s) => {
+        const userId = typeof s.user_id === "string" ? s.user_id.trim() : "";
+        const streamKey = typeof s.stream_key === "string" && s.stream_key.trim()
+          ? s.stream_key.trim()
+          : userId;
+        if (!userId || !streamKey) return null;
+        const displayName =
+          (typeof s.display_name === "string" && s.display_name.trim()) ||
+          (typeof s.title === "string" && s.title.trim()) ||
+          undefined;
+        return { stream_key: streamKey, user_id: userId, display_name: displayName };
+      })
+      .filter((s): s is NonNullable<typeof s> => !!s),
+  };
+}
+
 function setStreamsCacheHeaders(res: Response): void {
   // Live cards must be fresh for every spectator. Public/shared caching made
   // some devices see an empty list while others still had the stream.

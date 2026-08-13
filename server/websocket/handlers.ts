@@ -22,7 +22,7 @@ import {
 import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
-import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost } from "../routes/livestream";
+import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost, listActiveLiveStreams } from "../routes/livestream";
 import { isLiveKitConfigured, isUserPublishingInRoom } from "../services/livekit";
 import {
   wsRateCheck,
@@ -80,12 +80,26 @@ async function publishBattleInviteRoster(
     const ownerId = await resolveStreamOwnerUserId(roomId);
     if (ownerId) seated.add(ownerId);
 
-    const rows = await dbGetLiveStreams();
-    const eligible = rows.filter((r) => {
+    const listed = await listActiveLiveStreams();
+    let dbRows: Array<{ stream_key: string; user_id: string; display_name?: string | null }> = [];
+    try {
+      dbRows = await dbGetLiveStreams();
+    } catch (err) {
+      logger.warn({ err, roomId }, "publishBattleInviteRoster: live_streams fallback failed");
+    }
+    const byUser = new Map<string, { stream_key: string; user_id: string; display_name?: string | null }>();
+    for (const r of [...listed.streams, ...dbRows]) {
       const uid = typeof r.user_id === "string" ? r.user_id.trim() : "";
-      if (!uid || seated.has(uid)) return false;
-      return true;
-    });
+      if (!uid || seated.has(uid)) continue;
+      if (!byUser.has(uid)) {
+        byUser.set(uid, {
+          stream_key: (r.stream_key && String(r.stream_key).trim()) || uid,
+          user_id: uid,
+          display_name: r.display_name,
+        });
+      }
+    }
+    const eligible = [...byUser.values()];
     const ids = eligible.map((r) => r.user_id).filter(Boolean);
     const profileById = new Map<
       string,
@@ -554,7 +568,7 @@ export async function handleMessage(
         }
         let seatsOk = true;
         for (const seat of seats) {
-          if (!seat.name) {
+          if (!seat.userId) {
             seatsOk = false;
             break;
           }
@@ -597,9 +611,9 @@ export async function handleMessage(
         );
         if (!session) break;
         if (seats.length > 0) {
-          if (opponentUserId && opponentName) {
+          if (opponentUserId) {
             session.opponentUserId = opponentUserId;
-            session.opponentName = opponentName;
+            session.opponentName = opponentName || "Creator";
             session.opponentRoomId = opponentRoomId || opponentUserId;
             await valkeySet(
               "ubr:" + opponentUserId,
@@ -608,9 +622,9 @@ export async function handleMessage(
             );
             await grantBattlePublish(client.roomId, opponentUserId);
           }
-          if (player3UserId && player3Name) {
+          if (player3UserId) {
             session.player3UserId = player3UserId;
-            session.player3Name = player3Name;
+            session.player3Name = player3Name || "Creator";
             await valkeySet(
               "ubr:" + player3UserId,
               client.roomId,
@@ -618,9 +632,9 @@ export async function handleMessage(
             );
             await grantBattlePublish(client.roomId, player3UserId);
           }
-          if (player4UserId && player4Name) {
+          if (player4UserId) {
             session.player4UserId = player4UserId;
-            session.player4Name = player4Name;
+            session.player4Name = player4Name || "Creator";
             await valkeySet(
               "ubr:" + player4UserId,
               client.roomId,

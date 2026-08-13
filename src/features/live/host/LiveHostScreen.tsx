@@ -244,6 +244,7 @@ export default function LiveHostScreen() {
     creatorName,
     creatorStickers,
     creatorsLoadFailed,
+    creatorsRosterSettled,
     creatorsToInvite,
     currentGift,
     currentUniverse,
@@ -2407,7 +2408,7 @@ export default function LiveHostScreen() {
                     </button>
                   </div>
                 ) : null}
-                {filteredCreators.length === 0 && !creatorsLoadFailed ? (
+                {filteredCreators.length === 0 && !creatorsLoadFailed && creatorsRosterSettled ? (
                   <div className="py-8 flex flex-col items-center gap-2 px-4">
                     <p className="text-white/70 text-[12px] font-semibold text-center">No other creators live</p>
                     <p className="text-white/40 text-[10px] text-center leading-snug">
