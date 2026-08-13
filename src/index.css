@@ -2641,7 +2641,8 @@ body,
   /* Paint into notch / status-bar band so live video never shows above the bar */
   padding-top: 0 !important;
   margin-top: 0 !important;
-  padding-bottom: 4mm;
+  /* Solo: fundal bottom edge UP 4mm (was 4mm padding). Profile + Join + Weekly Ranking stay. */
+  padding-bottom: 0;
 }
 
 /* Battle only: fundal bottom edge UP 2mm more (2mm → 0). Profile + Weekly Ranking stay. */
