@@ -921,6 +921,16 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **134** clones / **1.74%** lines |
 | Android | 1.0.637 |
 
+### Continue 38 — paid-gift wallet type, EditProfile field shell, reposts map, withdrawals btns
+| Item | Change |
+|------|--------|
+| Shared paid-gift wallet UI type | `LivePaidGiftWalletUiArgs` |
+| EditProfile field shell | `ProfileFieldShell` |
+| Profile reposts → grid | `mapProfileRepostItemsToGrid` |
+| Withdrawals decision buttons | `WithdrawalDecisionBtns` |
+| jscpd | **131** clones / **1.70%** lines |
+| Android | 1.0.638 |
+
 
 
 

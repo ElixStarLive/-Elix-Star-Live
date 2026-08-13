@@ -290,6 +290,21 @@ export default function EditProfile() {
   );
 }
 
+function ProfileFieldShell({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <div className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</div>
+      {children}
+    </div>
+  );
+}
+
 function InputField({
   label,
   value,
@@ -304,8 +319,7 @@ function InputField({
   maxLength?: number;
 }) {
   return (
-    <div>
-      <div className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</div>
+    <ProfileFieldShell label={label}>
       <input
         type="text"
         value={value}
@@ -314,7 +328,7 @@ function InputField({
         maxLength={maxLength}
         className="w-full elix-surface rounded-lg px-3 py-2.5 outline-none text-sm leading-tight text-white placeholder:text-[#8B9099] focus:border-[#E6E9EE]/50 focus:outline-none transition"
       />
-    </div>
+    </ProfileFieldShell>
   );
 }
 
@@ -332,8 +346,7 @@ function TextAreaField({
   maxLength?: number;
 }) {
   return (
-    <div>
-      <div className="block text-sm font-semibold text-[#C8CDD5] mb-1.5">{label}</div>
+    <ProfileFieldShell label={label}>
       <textarea
         value={value}
         onChange={e => onChange(e.target.value)}
@@ -347,7 +360,7 @@ function TextAreaField({
           {value.length}/{maxLength}
         </p>
       )}
-    </div>
+    </ProfileFieldShell>
   );
 }
 

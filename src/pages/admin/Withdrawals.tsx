@@ -176,41 +176,21 @@ export default function AdminWithdrawals() {
                         onClick={() => void act(p.id, "review")}
                         label="Under review"
                       />
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "approve")}
-                        label="Approve"
-                      />
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "reject")}
-                        label="Reject"
-                      />
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "cancel")}
-                        label="Cancel"
+                      <WithdrawalDecisionBtns
+                        id={p.id}
+                        busyId={busyId}
+                        act={act}
+                        includeCancel
                       />
                     </>
                   )}
                   {p.status === "under_review" && (
-                    <>
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "approve")}
-                        label="Approve"
-                      />
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "reject")}
-                        label="Reject"
-                      />
-                      <Btn
-                        disabled={busyId === p.id}
-                        onClick={() => void act(p.id, "cancel")}
-                        label="Cancel"
-                      />
-                    </>
+                    <WithdrawalDecisionBtns
+                      id={p.id}
+                      busyId={busyId}
+                      act={act}
+                      includeCancel
+                    />
                   )}
                   {p.status === "approved" && (
                     <Btn
@@ -226,6 +206,29 @@ export default function AdminWithdrawals() {
         )}
       </div>
     </div>
+  );
+}
+
+function WithdrawalDecisionBtns({
+  id,
+  busyId,
+  act,
+  includeCancel,
+}: {
+  id: string;
+  busyId: string | null;
+  act: (id: string, action: string) => Promise<void>;
+  includeCancel?: boolean;
+}) {
+  const busy = busyId === id;
+  return (
+    <>
+      <Btn disabled={busy} onClick={() => void act(id, "approve")} label="Approve" />
+      <Btn disabled={busy} onClick={() => void act(id, "reject")} label="Reject" />
+      {includeCancel ? (
+        <Btn disabled={busy} onClick={() => void act(id, "cancel")} label="Cancel" />
+      ) : null}
+    </>
   );
 }
 

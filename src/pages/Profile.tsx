@@ -36,7 +36,7 @@ import { PROFILE_PAGE_AVATAR_PX } from '../lib/profileFrame';
 import { PROFILE_EXIT_TO } from '../lib/settingsNav';
 import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
-import { mapProfileGridVideoRows } from '../lib/mapProfileGridVideoRows';
+import { mapProfileGridVideoRows, mapProfileRepostItemsToGrid } from '../lib/mapProfileGridVideoRows';
 import { openExternalLink } from '../lib/platform';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
@@ -611,30 +611,7 @@ export default function Profile() {
           return;
         }
         setVideosHasMore(hasMore);
-        setVideos(
-          items.map((item) => {
-            if (item.target_type === 'live') {
-              return {
-                id: `live:${item.target_id}`,
-                content_kind: 'live' as const,
-                stream_key: item.target_id,
-                is_live: item.is_live,
-                thumbnail_url: item.avatar_url || '',
-                url: '',
-                views: item.views || item.viewer_count || 0,
-                is_public: true,
-              };
-            }
-            return {
-              id: item.target_id,
-              content_kind: 'video' as const,
-              thumbnail_url: resolveGridThumbnailUrl(item.thumbnail_url, item.video_url),
-              url: item.video_url || '',
-              views: item.views || 0,
-              is_public: true,
-            };
-          }),
-        );
+        setVideos(mapProfileRepostItemsToGrid(items));
       } else {
         setVideosHasMore(false);
         setVideos([]);
@@ -664,31 +641,7 @@ export default function Profile() {
           return;
         }
         setVideosHasMore(hasMore);
-        setVideos((prev) => [
-          ...prev,
-          ...items.map((item) => {
-            if (item.target_type === 'live') {
-              return {
-                id: `live:${item.target_id}`,
-                content_kind: 'live' as const,
-                stream_key: item.target_id,
-                is_live: item.is_live,
-                thumbnail_url: item.avatar_url || '',
-                url: '',
-                views: item.views || item.viewer_count || 0,
-                is_public: true,
-              };
-            }
-            return {
-              id: item.target_id,
-              content_kind: 'video' as const,
-              thumbnail_url: resolveGridThumbnailUrl(item.thumbnail_url, item.video_url),
-              url: item.video_url || '',
-              views: item.views || 0,
-              is_public: true,
-            };
-          }),
-        ]);
+        setVideos((prev) => [...prev, ...mapProfileRepostItemsToGrid(items)]);
         return;
       }
 

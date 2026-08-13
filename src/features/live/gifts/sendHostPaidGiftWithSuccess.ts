@@ -3,29 +3,22 @@
  * Never uses test coins.
  */
 
-import { giftSendErrorToast, type GiftSource } from '../../../lib/giftSend';
+import { giftSendErrorToast } from '../../../lib/giftSend';
 import { resolvePlayableGiftVideoUrl } from './liveGiftIngest';
 import { sendLivePaidGift } from './sendLiveGift';
 import {
   applyLivePaidGiftSuccessEffects,
   type ApplyLivePaidGiftSuccessEffectsOutcome,
+  type LivePaidGiftWalletUiArgs,
 } from './applyLivePaidGiftSuccessEffects';
 
-export type SendHostPaidGiftWithSuccessArgs = {
+export type SendHostPaidGiftWithSuccessArgs = LivePaidGiftWalletUiArgs & {
   streamKey: string;
   giftId: string;
   giftVideo?: string | null;
-  giftSource: GiftSource;
   battleTarget?: 'host' | 'opponent' | 'player3' | 'player4';
   cohostTargetUserId?: string | null;
   isBattleMode: boolean;
-  currentLevel: number;
-  walletCoinBalanceRef: { current: number };
-  setGiftSource: (source: GiftSource) => void;
-  setUserLevel: (level: number) => void;
-  setUserXP: (xp: number) => void;
-  updateUserLevel: (level: number) => void;
-  showToast: (message: string) => void;
   onLeveledUp: (newLevel: number) => void;
   clearSelectedCohost: () => void;
 };

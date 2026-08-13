@@ -12,10 +12,9 @@ export function formatInsufficientCoinsToast(have: number, need: number): string
   return `Not enough coins (have ${have.toLocaleString()}, need ${need.toLocaleString()})`;
 }
 
-export type ApplyLivePaidGiftSuccessEffectsArgs = {
-  result: SendGiftResult;
+/** Shared wallet/level UI setters for paid gift success (host send + apply). */
+export type LivePaidGiftWalletUiArgs = {
   giftSource: GiftSource;
-  /** Fallback level when result.newLevel is absent. */
   currentLevel: number;
   walletCoinBalanceRef: { current: number };
   setGiftSource: (source: GiftSource) => void;
@@ -23,6 +22,10 @@ export type ApplyLivePaidGiftSuccessEffectsArgs = {
   setUserXP: (xp: number) => void;
   updateUserLevel: (level: number) => void;
   showToast: (message: string) => void;
+};
+
+export type ApplyLivePaidGiftSuccessEffectsArgs = LivePaidGiftWalletUiArgs & {
+  result: SendGiftResult;
   /** Banner + optional liveChatSend — role-specific identity. */
   onLeveledUp?: (newLevel: number) => void;
   /** Default: "Gift failed" */
