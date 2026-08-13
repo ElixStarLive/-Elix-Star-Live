@@ -2575,6 +2575,13 @@ body,
   background-repeat: no-repeat, no-repeat !important;
 }
 
+/* Photo circles keep solid fill. Fundal must not paint over faces. */
+#root .elix-profile-ring,
+#root .elix-live-room .elix-profile-ring {
+  background-color: #121419 !important;
+  background-image: none !important;
+}
+
 /* Auth forms — kill round disc on every field icon (last wins) */
 #root .elix-auth-form svg.lucide,
 #root .elix-auth-form svg.elix-auth-icon,
