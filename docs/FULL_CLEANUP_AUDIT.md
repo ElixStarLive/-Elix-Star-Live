@@ -939,6 +939,13 @@ Still OPEN (honest): locked gift-overlay dual listeners; remaining host↔specta
 | jscpd | **129** clones / **1.66%** lines |
 | Android | 1.0.639 |
 
+### Continue 40 — forgot/reset error+submit share
+| Item | Change |
+|------|--------|
+| Forgot/Reset error + submit | `AuthFormErrorAndSubmit.tsx` |
+| jscpd | **128** clones / **1.65%** lines |
+| Android | 1.0.640 |
+
 
 
 

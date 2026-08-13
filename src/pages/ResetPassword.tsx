@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, CheckCircle } from 'lucide-react';
 import { authResetPassword } from '../features/auth/authSession';
+import { AuthFormErrorAndSubmit } from '../components/AuthFormErrorAndSubmit';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -115,19 +116,12 @@ export default function ResetPassword() {
             </div>
           </div>
 
-          {error && (
-            <div className="text-sm text-rose-300 bg-white/20/10 border border-rose-500/20 rounded-xl p-3">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
-          >
-            {isSubmitting ? 'Updating...' : 'Reset Password'}
-          </button>
+          <AuthFormErrorAndSubmit
+            error={error}
+            isSubmitting={isSubmitting}
+            submittingLabel="Updating..."
+            idleLabel="Reset Password"
+          />
         </form>
       </div>
     </div>

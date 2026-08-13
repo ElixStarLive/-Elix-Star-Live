@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
 import { authForgotPassword } from '../features/auth/authSession';
 import { isPasswordResetEnabled } from '../lib/authFeatures';
+import { AuthFormErrorAndSubmit } from '../components/AuthFormErrorAndSubmit';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -86,19 +87,12 @@ export default function ForgotPassword() {
             </div>
           </div>
 
-          {error && (
-            <div className="text-sm text-rose-300 bg-white/20/10 border border-rose-500/20 rounded-xl p-3">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
-          >
-            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
-          </button>
+          <AuthFormErrorAndSubmit
+            error={error}
+            isSubmitting={isSubmitting}
+            submittingLabel="Sending..."
+            idleLabel="Send Reset Link"
+          />
         </form>
       </div>
     </div>
