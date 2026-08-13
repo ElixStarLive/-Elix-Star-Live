@@ -2355,6 +2355,40 @@ body {
   background-position: top center !important;
   background-repeat: no-repeat !important;
 }
+/* Battle MVP row — layout space between cameras and chat */
+.elix-battle-mvp-row,
+#root .elix-live-room .elix-battle-mvp-row {
+  position: absolute !important;
+  isolation: isolate;
+  min-height: 56px;
+  background: none !important;
+  background-image: none !important;
+}
+.elix-battle-mvp-row::before {
+  content: none !important;
+  display: none !important;
+}
+.elix-battle-mvp-fundal,
+#root .elix-live-room .elix-battle-mvp-fundal {
+  width: 100%;
+  max-width: 480px;
+  min-height: 56px;
+  background-color: transparent !important;
+  background-image: var(--elix-panel-fill) !important;
+  background-size: 100% auto, 100% auto !important;
+  background-position: top center, top center !important;
+  background-repeat: no-repeat, no-repeat !important;
+  background-attachment: scroll, scroll !important;
+}
+.elix-battle-mvp-row > * {
+  position: relative;
+  z-index: 1;
+}
+#root .elix-live-room .elix-battle-mvp-row .elix-profile-ring {
+  background-color: #121419 !important;
+  background-image: none !important;
+}
+
 .elix-battle-score-host {
   background-color: transparent !important;
   background-image: var(--elix-battle-fill) !important;

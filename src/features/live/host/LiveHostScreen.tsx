@@ -1043,6 +1043,89 @@ export default function LiveHostScreen() {
           </div>
         )}
 
+        {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
+            <div
+              className="elix-battle-mvp-row absolute left-0 right-0 z-[120] flex justify-center pointer-events-none"
+              style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
+            >
+              <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+              {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
+                <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                  <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
+                    <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
+                    <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
+                    {speedMultiplier > 1 ? (
+                      <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
+                    ) : null}
+                  </span>
+                </div>
+              ) : null}
+              <div
+                className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
+                onClick={openTopGiftersHost}
+                title="Top viewers & gifters"
+              >
+                {topMvpHostBattle.slice(0, 3).map((viewer, i) => {
+                  const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
+                  const label = liveViewerLabel(viewer);
+                  return (
+                    <div
+                      key={`mvp-l-${viewer.id}`}
+                      className="relative"
+                      style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                    >
+                      <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                        <AvatarRing
+                          src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                          alt={label || 'MVP'}
+                          size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
+                        />
+                      </div>
+                      {isMvp && (
+                        <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                          MVP
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div
+                className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
+                onClick={openTopGiftersOpponent}
+                title="Top viewers & gifters"
+              >
+                {topMvpOpponentBattle.slice(0, 3).map((viewer, i) => {
+                  const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
+                  const label = liveViewerLabel(viewer);
+                  return (
+                    <div
+                      key={`mvp-r-${viewer.id}`}
+                      className="relative"
+                      style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                    >
+                      <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                        <AvatarRing
+                          src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
+                          alt={label || 'MVP'}
+                          size={LIVE_MVP_PROFILE_RING_PX}
+                          ringColor={isMvp ? MVP_GOLD : undefined}
+                        />
+                      </div>
+                      {isMvp && (
+                        <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                          MVP
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              </div>
+            </div>
+        )}
+
         {/* Battle Split Screen Overlay â€” shown whenever in battle mode */}
         {isBattleMode && (location.pathname.startsWith('/live') || location.pathname.startsWith('/watch')) && (
           <div
@@ -1567,81 +1650,6 @@ export default function LiveHostScreen() {
                     </div>
                   )}
                 </div>
-                    <div className="absolute bottom-0 left-0 right-0 z-40 px-3 pb-1.5 pt-1 flex items-end justify-between pointer-events-none">
-                      {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
-                        <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
-                            <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
-                            <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
-                            {speedMultiplier > 1 ? (
-                              <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
-                            ) : null}
-                          </span>
-                        </div>
-                      ) : null}
-                      <div
-                        className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
-                        onClick={openTopGiftersHost}
-                        title="Top viewers & gifters"
-                      >
-                        {topMvpHostBattle.slice(0, 3).map((viewer, i) => {
-                          const isMvp = i === 0 && (mvpGiftScoresHost[viewer.id] ?? 0) > 0;
-                          const label = liveViewerLabel(viewer);
-                          return (
-                            <div
-                              key={`mvp-l-${viewer.id}`}
-                              className="relative"
-                              style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                            >
-                              <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                                <AvatarRing
-                                  src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                  alt={label || 'MVP'}
-                                  size={LIVE_MVP_PROFILE_RING_PX}
-                                  ringColor={isMvp ? MVP_GOLD : undefined}
-                                />
-                              </div>
-                              {isMvp && (
-                                <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                                  MVP
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div
-                        className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
-                        onClick={openTopGiftersOpponent}
-                        title="Top viewers & gifters"
-                      >
-                        {topMvpOpponentBattle.slice(0, 3).map((viewer, i) => {
-                          const isMvp = i === 0 && (mvpGiftScoresOpponent[viewer.id] ?? 0) > 0;
-                          const label = liveViewerLabel(viewer);
-                          return (
-                            <div
-                              key={`mvp-r-${viewer.id}`}
-                              className="relative"
-                              style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                            >
-                              <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                                <AvatarRing
-                                  src={resolveCircleAvatar(viewer.avatar, viewer.displayName || viewer.username)}
-                                  alt={label || 'MVP'}
-                                  size={LIVE_MVP_PROFILE_RING_PX}
-                                  ringColor={isMvp ? MVP_GOLD : undefined}
-                                />
-                              </div>
-                              {isMvp && (
-                                <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                                  MVP
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
               </div>
             );
           })()}
