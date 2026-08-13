@@ -60,8 +60,8 @@ export const DUET_STAGE_HEIGHT = 'calc(44dvh - 3mm + 3cm)' as const;
 export const LIVE_BATTLE_CHAT_HEIGHT =
   'calc(56dvh - env(safe-area-inset-top, 0px) - 164px + 3.5mm - 56px - 4mm - max(2px, env(safe-area-inset-bottom, 0px)))' as const;
 
-/** Battle list/chat panel — lift 3mm with lower fundal to cover battle bar edge. */
-export const LIVE_BATTLE_CHAT_SHIFT_Y = '-3mm' as const;
+/** Keep chat/battle UI in place — only the lower fundal layer moves via LIVE_BATTLE_LOWER_FUNDAL_TOP. */
+export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;
 
 /** Chat LV green pill — compact capsule beside the avatar circle (app-wide standard). */
 export const LEVEL_BADGE_PILL_PX = 22;
