@@ -2656,10 +2656,9 @@ body,
   padding-bottom: 4mm;
 }
 
-/* Battle only: fundal hangs 2mm less below Weekly Ranking (bottom edge UP 2mm).
-   Profile + Weekly Ranking stay. No clip. No background-position shift. */
+/* Battle only: fundal bottom edge UP 2mm more (2mm → 0). Profile + Weekly Ranking stay. */
 #root .elix-live-room .elix-live-top-chrome.elix-battle-top-fundal {
-  padding-bottom: 2mm !important;
+  padding-bottom: 0 !important;
   clip-path: none !important;
   transform: none !important;
   background-position: top center !important;
