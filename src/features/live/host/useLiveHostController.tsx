@@ -158,7 +158,6 @@ import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
-  resolveBattleMvpSide,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
@@ -3299,7 +3298,6 @@ export function useLiveHostController() {
         cohostTarget,
         giftIconRaw,
         battleTarget,
-        targetCreatorId,
         isFlowerOrRose,
       } = opened;
 
@@ -3332,21 +3330,13 @@ export function useLiveHostController() {
             [gifterId]: (prev[gifterId] || 0) + giftCoins,
           }));
           if (isBattleModeRef.current) {
-            const ids = battleStreamIdsRef.current;
-            const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
-              hostUserId: ids?.hostUserId,
-              opponentUserId: ids?.opponentUserId,
-              player3UserId: ids?.player3UserId,
-              player4UserId: ids?.player4UserId,
-              hostRoomId: ids?.hostRoomId,
-              opponentRoomId: ids?.opponentRoomId,
-            });
+            const side = normalizeBattleGiftTarget(battleTarget);
             if (side === 'host') {
               setMvpGiftScoresHost((prev) => ({
                 ...prev,
                 [gifterId]: (prev[gifterId] || 0) + giftCoins,
               }));
-            } else {
+            } else if (side === 'opponent') {
               setMvpGiftScoresOpponent((prev) => ({
                 ...prev,
                 [gifterId]: (prev[gifterId] || 0) + giftCoins,
