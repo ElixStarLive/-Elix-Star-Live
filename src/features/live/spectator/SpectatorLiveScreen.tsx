@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { RoyceCloseIcon } from '../../../components/royce';
 import { showToast } from '../../../lib/toast';
 import { returnToFromLocationState } from '../../../lib/settingsNav';
+import { formatCompactNumber } from '../../../lib/formatCompactNumber';
 import {
   prepareLiveVideoEl,
   LIVE_WEBRTC_VIDEO_CLASS,
@@ -1882,10 +1883,9 @@ export default function SpectatorLiveScreen() {
                     })}
                   </div>
                 ) : null}
-                {/* Viewer count */}
                 <button
                   type="button"
-                  className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform"
+                  className="flex items-center px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform"
                   onClick={() => {
                     const list: { id: string; name: string; avatar: string; level?: number }[] = [];
                     const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
@@ -1898,11 +1898,13 @@ export default function SpectatorLiveScreen() {
                     setShowViewersPanel(true);
                   }}
                   style={{ marginRight: '1mm' }}
+                  title="Spectators"
                 >
-                  <span className="text-white text-[9px] font-bold tabular-nums">
-                    {typeof viewerCount === 'number' && Number.isFinite(viewerCount) ? viewerCount.toLocaleString() : String(viewerCount)}
+                  <span className="text-white/50 text-[9px] font-bold tabular-nums">
+                    {formatCompactNumber(
+                      typeof viewerCount === 'number' && Number.isFinite(viewerCount) ? viewerCount : 0,
+                    )}
                   </span>
-                  <UserPlus size={16} className="text-[#F5F5F7]" strokeWidth={2.2} />
                 </button>
                 <button
                   type="button"

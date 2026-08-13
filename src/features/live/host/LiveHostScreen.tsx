@@ -91,6 +91,7 @@ import {
   LiveSideMissionStack,
 } from '../../../components/LiveSideMissionStack';
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
+import { formatCompactNumber } from '../../../lib/formatCompactNumber';
 import { engagementFlags } from '../../../config/engagementFlags';
 import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
 import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
@@ -1957,11 +1958,12 @@ export default function LiveHostScreen() {
                           type="button"
                           title="Spectators"
                           onClick={openSpectatorsPanel}
-                          className="flex items-center gap-1.5 px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
+                          className="flex items-center px-0 py-1 rounded-full bg-transparent border-0 active:scale-95 transition-transform pointer-events-auto"
                           style={{ marginRight: '1mm' }}
                         >
-                          <span className="text-white text-[9px] font-bold tabular-nums">{formatCountShort(viewerCount)}</span>
-                          <UserPlus size={16} className="text-[#F5F5F7]" strokeWidth={2.2} />
+                          <span className="text-white/50 text-[9px] font-bold tabular-nums">
+                            {formatCompactNumber(viewerCount)}
+                          </span>
                         </button>
                         <button
                           type="button"
