@@ -2,9 +2,11 @@
  * Global live top banners:
  * - stream_started: creator you follow went live
  * - live_share: someone shared an active live with you in-app
+ * - battle_invite / cohost_invite: Join/Reject when not already on a live surface
+ *   (on /live|/watch the host/spectator screens own those banners)
  *
  * Uses the shared websocket singleton (App keeps `/live/__feed__` connected while
- * browsing). User-global `live_share` is delivered via sendToUserGlobal on any open socket.
+ * browsing). User-global invites are delivered via sendToUserGlobal on any open socket.
  */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -21,6 +23,12 @@ import {
 import { apiFetchProfileById } from '../features/feed/feedApi';
 import { apiLiveStreams, apiLiveToken } from '../lib/live/liveApi';
 import { showToast } from '../lib/toast';
+import {
+  runBattleInviteAccept,
+  runBattleInviteDecline,
+  type PendingBattleInvite,
+} from '../features/live/battle/liveBattleInviteHandshake';
+import { cohostInviteAccept } from '../features/live/cohost/liveCohostActions';
 
 interface StartedBanner {
   kind: 'started';
@@ -36,6 +44,14 @@ interface ShareBanner {
   sharerAvatar: string;
   hostName: string;
   hostAvatar: string;
+}
+
+interface InviteBanner {
+  kind: 'battle' | 'cohost';
+  hostName: string;
+  hostAvatar: string;
+  streamKey: string;
+  hostUserId: string;
 }
 
 const SEEN_CAP = 80;
@@ -55,6 +71,20 @@ function parseSharePayload(data: unknown): ShareBanner | null {
     sharerAvatar: String(payload.sharerAvatar ?? payload.sharer_avatar ?? ''),
     hostName: hostName || 'a creator',
     hostAvatar: String(payload.hostAvatar ?? payload.host_avatar ?? ''),
+  };
+}
+
+function parseInvitePayload(data: unknown, kind: 'battle' | 'cohost'): InviteBanner | null {
+  const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const streamKey = String(payload.streamKey ?? payload.stream_key ?? '').trim();
+  const hostUserId = String(payload.hostUserId ?? payload.host_user_id ?? '').trim();
+  if (!streamKey || !hostUserId) return null;
+  return {
+    kind,
+    hostName: String(payload.hostName ?? payload.host_name ?? 'Creator').trim() || 'Creator',
+    hostAvatar: String(payload.hostAvatar ?? payload.host_avatar ?? ''),
+    streamKey,
+    hostUserId,
   };
 }
 
@@ -82,6 +112,8 @@ export function LiveNotifyBanner() {
 
   const [startedBanner, setStartedBanner] = useState<StartedBanner | null>(null);
   const [shareBanner, setShareBanner] = useState<ShareBanner | null>(null);
+  const [inviteBanner, setInviteBanner] = useState<InviteBanner | null>(null);
+  const [inviteJoining, setInviteJoining] = useState(false);
   const shareBannerRef = useRef<ShareBanner | null>(null);
   shareBannerRef.current = shareBanner;
 
@@ -105,7 +137,11 @@ export function LiveNotifyBanner() {
     setShareBanner(null);
   }, []);
 
-  // stream_started — follower live notifications (settings-gated)
+  const dismissInvite = useCallback(() => {
+    setInviteBanner(null);
+    setInviteJoining(false);
+  }, []);
+
   useEffect(() => {
     if (!token || !liveNotifications) return;
     let cancelled = false;
@@ -158,7 +194,6 @@ export function LiveNotifyBanner() {
     };
   }, [token, liveNotifications, user?.id]);
 
-  // live_share — in-app share from another user (always on when authenticated)
   useEffect(() => {
     if (!token || !user?.id) return;
 
@@ -194,6 +229,33 @@ export function LiveNotifyBanner() {
     };
   }, [token, user?.id, dismissShare]);
 
+  useEffect(() => {
+    if (!token || !user?.id) return;
+
+    const onBattleInvite = (data: unknown) => {
+      const parsed = parseInvitePayload(data, 'battle');
+      if (!parsed) return;
+      if (parsed.hostUserId === user.id) return;
+      setInviteBanner(parsed);
+      showToast(`@${parsed.hostName} invited you to battle — tap Join`);
+    };
+
+    const onCohostInvite = (data: unknown) => {
+      const parsed = parseInvitePayload(data, 'cohost');
+      if (!parsed) return;
+      if (parsed.hostUserId === user.id) return;
+      setInviteBanner(parsed);
+      showToast(`@${parsed.hostName} wants you to co-host — tap Join`);
+    };
+
+    websocket.on('battle_invite', onBattleInvite);
+    websocket.on('cohost_invite', onCohostInvite);
+    return () => {
+      websocket.off('battle_invite', onBattleInvite);
+      websocket.off('cohost_invite', onCohostInvite);
+    };
+  }, [token, user?.id]);
+
   const onLiveSurface =
     location.pathname.startsWith('/live') ||
     location.pathname.startsWith('/watch') ||
@@ -204,6 +266,7 @@ export function LiveNotifyBanner() {
     !!shareBanner &&
     (location.pathname === `/watch/${shareBanner.streamKey}` ||
       location.pathname.startsWith(`/watch/${shareBanner.streamKey}/`));
+  const inviteSuppressed = onLiveSurface;
 
   const openStartedLive = useCallback(() => {
     if (!startedBanner) return;
@@ -226,6 +289,124 @@ export function LiveNotifyBanner() {
       showToast('Could not join live');
     }
   }, [shareBanner, dismissShare, navigate]);
+
+  const rejectInvite = useCallback(() => {
+    if (!inviteBanner) return;
+    if (inviteBanner.kind === 'battle') {
+      runBattleInviteDecline({
+        hostName: inviteBanner.hostName,
+        hostAvatar: inviteBanner.hostAvatar,
+        streamKey: inviteBanner.streamKey,
+        hostUserId: inviteBanner.hostUserId,
+      });
+    }
+    dismissInvite();
+  }, [inviteBanner, dismissInvite]);
+
+  const acceptInvite = useCallback(async () => {
+    if (!inviteBanner || !user?.id || inviteJoining) return;
+    setInviteJoining(true);
+    try {
+      if (inviteBanner.kind === 'battle') {
+        const invite: PendingBattleInvite = {
+          hostName: inviteBanner.hostName,
+          hostAvatar: inviteBanner.hostAvatar,
+          streamKey: inviteBanner.streamKey,
+          hostUserId: inviteBanner.hostUserId,
+        };
+        const granted = await runBattleInviteAccept({
+          invite,
+          requesterName: user.username || user.name || 'User',
+          requesterAvatar: user.avatar || '',
+          streamKey: user.id,
+        });
+        if (!granted) {
+          showToast('Battle invite expired or was declined');
+          dismissInvite();
+          return;
+        }
+        dismissInvite();
+        // Match host/spectator accept: join as battle player on /live, not as spectator on /watch.
+        navigate(`/live/${encodeURIComponent(inviteBanner.streamKey)}?battle=1`, {
+          state: {
+            battleHost: {
+              userId: inviteBanner.hostUserId,
+              name: inviteBanner.hostName,
+              avatar: inviteBanner.hostAvatar,
+            },
+          },
+        });
+        return;
+      }
+
+      cohostInviteAccept({
+        hostUserId: inviteBanner.hostUserId,
+        cohostName: user.username || user.name || 'User',
+        cohostAvatar: user.avatar || '',
+        streamKey: user.id,
+      });
+      dismissInvite();
+      navigate(`/watch/${encodeURIComponent(inviteBanner.streamKey)}?cohost=1`, {
+        replace: true,
+        state: { fromCohostInvite: true },
+      });
+    } finally {
+      setInviteJoining(false);
+    }
+  }, [inviteBanner, user, inviteJoining, dismissInvite, navigate]);
+
+  if (inviteBanner && !inviteSuppressed) {
+    return (
+      <div
+        className="fixed left-0 right-0 top-0 z-[9999] flex justify-center px-3 pointer-events-none"
+        style={{ paddingTop: 'calc(var(--safe-top) + 8px)' }}
+      >
+        <div className="pointer-events-auto w-full max-w-[480px] flex items-center gap-2 rounded-full elix-panel border border-[#D8D9DD]/40 pl-1.5 pr-2 py-1 shadow-[0_8px_30px_rgba(0,0,0,0.55)]">
+          <div className="flex-1 min-w-0 flex items-center gap-2">
+            <StoryGoldRingAvatar
+              size={26}
+              src={inviteBanner.hostAvatar}
+              alt={inviteBanner.hostName}
+              live
+            />
+            <span className="flex-1 min-w-0 flex flex-col truncate">
+              <span className="text-white font-bold text-xs truncate">@{inviteBanner.hostName}</span>
+              <span className="text-[#F5F5F7] text-[10px] font-semibold truncate">
+                {inviteBanner.kind === 'battle' ? 'Battle invite' : 'Co-host invite'}
+              </span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={rejectInvite}
+            className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 shrink-0"
+          >
+            <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
+          </button>
+          <button
+            type="button"
+            disabled={inviteJoining}
+            onClick={() => {
+              void acceptInvite();
+            }}
+            className="h-6 px-3.5 rounded-full bg-green-500 inline-flex items-center justify-center active:scale-95 disabled:opacity-60 shrink-0"
+          >
+            <span className="text-black text-[10px] font-bold leading-none whitespace-nowrap">
+              {inviteJoining ? 'Joining…' : 'Join'}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={dismissInvite}
+            aria-label="Dismiss"
+            className="p-0.5 text-white/50 active:text-white/80 shrink-0"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const bannerShell = (
     label: string,
@@ -276,7 +457,9 @@ export function LiveNotifyBanner() {
       shareBanner.sharerName,
       shareBanner.sharerAvatar,
       'LIVE',
-      () => { void openSharedLive(); },
+      () => {
+        void openSharedLive();
+      },
       dismissShare,
       true,
     );
