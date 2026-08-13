@@ -106,7 +106,7 @@ export function shouldPlayFullBattleGiftVideo(
   return giftTarget === audienceSlot;
 }
 
-/** Resolve gift PNG/icon URL for battle tile stacks (icon only — never video). */
+/** Resolve gift PNG/icon URL for co-host tile icons (icon only — never video). */
 export function resolveBattleGiftIconUrl(
   icon: unknown,
   resolveAsset: (path: string) => string,
@@ -116,49 +116,4 @@ export function resolveBattleGiftIconUrl(
   if (!raw || raw === "🎁") return null;
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   return resolveAsset(raw.startsWith("/") ? raw : `/${raw}`);
-}
-
-/** Recent gift icons shown on battle half / slot tiles (oldest → newest, capped). */
-export type BattleTileGifts = {
-  host: string[];
-  opponent: string[];
-  player3: string[];
-  player4: string[];
-};
-
-export const EMPTY_BATTLE_TILE_GIFTS: BattleTileGifts = {
-  host: [],
-  opponent: [],
-  player3: [],
-  player4: [],
-};
-
-export const BATTLE_TILE_GIFT_STACK_CAP = 8;
-
-function appendBattleTileGift(
-  prev: BattleTileGifts,
-  slot: keyof BattleTileGifts,
-  iconUrl: string,
-): BattleTileGifts {
-  if (!iconUrl) return prev;
-  const next = [...prev[slot], iconUrl];
-  return {
-    ...prev,
-    [slot]:
-      next.length > BATTLE_TILE_GIFT_STACK_CAP
-        ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-        : next,
-  };
-}
-
-/** Append icon only on the recipient creator's tile (no team mirroring). */
-export function appendBattleTileGiftForTarget(
-  prev: BattleTileGifts,
-  target: unknown,
-  iconUrl: string,
-): BattleTileGifts {
-  if (!iconUrl) return prev;
-  const slot = resolveServerBattleGiftTarget(target);
-  if (!slot) return prev;
-  return appendBattleTileGift(prev, slot, iconUrl);
 }

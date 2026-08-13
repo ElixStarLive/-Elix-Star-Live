@@ -74,15 +74,10 @@ import {
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import {
-  appendBattleTileGiftForTarget,
-  BATTLE_TILE_GIFT_STACK_CAP,
-  EMPTY_BATTLE_TILE_GIFTS,
   normalizeBattleGiftTarget,
-  resolveBattleGiftIconUrl,
   resolveBattleSlotForCreatorId,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
-  type BattleTileGifts,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
@@ -834,10 +829,6 @@ export function useLiveSpectatorController() {
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
   /** Which battle half opened the bottom partner panel. */
   const [battleSidePanel, setBattleSidePanel] = useState<'host' | 'opponent' | null>(null);
-  const [lastOpponentGift, setLastOpponentGift] = useState<string[]>([]);
-  const [lastHostGift, setLastHostGift] = useState<string[]>([]);
-  /** Per-creator battle tile gift icons (small corner — not full video). */
-  const [lastGifts, setLastGifts] = useState<BattleTileGifts>(EMPTY_BATTLE_TILE_GIFTS);
   /**
    * Which creator's audience this spectator belongs to for full gift-video routing.
    * Preserved across battle-room redirect via location.state + in-memory ref.
@@ -2259,30 +2250,6 @@ export function useLiveSpectatorController() {
             roseCountRef.current += 1;
             setRoseCount(roseCountRef.current);
           }
-          if (spectatorBattleRef.current?.active) {
-            const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
-            const giftSlot = resolveServerBattleGiftTarget(battleTarget);
-            if (iconUrl && giftSlot) {
-              setLastGifts((prev) => appendBattleTileGiftForTarget(prev, giftSlot, iconUrl));
-            }
-            const side = normalizeBattleGiftTarget(battleTarget);
-            if (iconUrl && side === 'opponent') {
-              setLastOpponentGift((prev) => {
-                const next = [...prev, iconUrl];
-                return next.length > BATTLE_TILE_GIFT_STACK_CAP
-                  ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-                  : next;
-              });
-            }
-            if (iconUrl && side === 'host') {
-              setLastHostGift((prev) => {
-                const next = [...prev, iconUrl];
-                return next.length > BATTLE_TILE_GIFT_STACK_CAP
-                  ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-                  : next;
-              });
-            }
-          }
         }
       }
 
@@ -2292,8 +2259,7 @@ export function useLiveSpectatorController() {
       const giftSlot = spectatorBattleRef.current?.active
         ? resolveServerBattleGiftTarget(battleTarget)
         : null;
-      // Battle: full video only for the target creator's audience. Others keep
-      // the same gift event as a small tile icon (lastGifts) — never fullscreen.
+      // Battle: full video only for the target creator's audience.
       if (
         spectatorBattleRef.current?.active &&
         !shouldPlayFullBattleGiftVideo(giftSlot, battleAudienceSlotRef.current)
@@ -2425,9 +2391,6 @@ export function useLiveSpectatorController() {
         setTimeout(() => {
           setSpectatorBattle(null);
           resetScores();
-          setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
-          setLastHostGift([]);
-          setLastOpponentGift([]);
         }, 2500);
       }
     };
@@ -2511,9 +2474,6 @@ export function useLiveSpectatorController() {
       setTimeout(() => {
         setSpectatorBattle(null);
         resetScores();
-        setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
-        setLastHostGift([]);
-        setLastOpponentGift([]);
       }, 2500);
     };
 
@@ -3248,7 +3208,7 @@ export function useLiveSpectatorController() {
     }
     setShowComboButton(true);
     resetComboTimer();
-    const iconUrl = applyLocalGiftSendSideEffects({
+    applyLocalGiftSendSideEffects({
       pill: {
         username: viewerName,
         giftName: gift.name,
@@ -3260,14 +3220,6 @@ export function useLiveSpectatorController() {
       },
       giftIcon: gift.icon,
       resolveGiftAssetUrl,
-      ...(spectatorBattle?.active
-        ? {
-            battle: {
-              target: spectatorGiftBattleTarget,
-              setLastGifts,
-            },
-          }
-        : {}),
       // Co-host tile: score + real gift icon immediately (dedupe WS echo via txn).
       ...(!spectatorBattle?.active && selectedCohostGiftUserId
         ? {
@@ -3282,24 +3234,6 @@ export function useLiveSpectatorController() {
           }
         : {}),
     });
-    if (spectatorBattle?.active && iconUrl) {
-      if (spectatorGiftBattleTarget === 'opponent') {
-        setLastOpponentGift((prev) => {
-          const next = [...prev, iconUrl];
-          return next.length > BATTLE_TILE_GIFT_STACK_CAP
-            ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-            : next;
-        });
-      }
-      if (spectatorGiftBattleTarget === 'host') {
-        setLastHostGift((prev) => {
-          const next = [...prev, iconUrl];
-          return next.length > BATTLE_TILE_GIFT_STACK_CAP
-            ? next.slice(-BATTLE_TILE_GIFT_STACK_CAP)
-            : next;
-        });
-      }
-    }
   };
 
   const handleComboClick = () => {
@@ -3433,9 +3367,6 @@ export function useLiveSpectatorController() {
     isSpeakingUser,
     isSubscribing,
     joinRequested,
-    lastOpponentGift,
-    lastHostGift,
-    lastGifts,
     battleAudienceSlot,
     lastSentGift,
     leaveStreamWithSlide,
@@ -3533,7 +3464,6 @@ export function useLiveSpectatorController() {
     setIsMoreMenuOpen,
     setIsReportModalOpen,
     setJoinRequested,
-    setLastOpponentGift,
     setLastSentGift,
     setLiveConnectRetryKey,
     setMessages,

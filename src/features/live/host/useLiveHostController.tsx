@@ -156,14 +156,10 @@ import { apiToggleRepost } from '../../reposts/repostsApi';
 import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
 import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
-  appendBattleTileGiftForTarget,
-  EMPTY_BATTLE_TILE_GIFTS,
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
-  resolveBattleGiftIconUrl,
   resolveServerBattleGiftTarget,
   shouldPlayFullBattleGiftVideo,
-  type BattleTileGifts,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -1902,7 +1898,6 @@ export function useLiveHostController() {
 
   const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
-  const [lastGifts, setLastGifts] = useState<BattleTileGifts>(EMPTY_BATTLE_TILE_GIFTS);
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   /** Per co-host tile: gift totals + last gift icon (synced from gift_sent). */
@@ -2202,7 +2197,6 @@ export function useLiveHostController() {
     setOpponentIsReady(false);
     setOpponentCreatorName('');
     resetScores();
-    setLastGifts(EMPTY_BATTLE_TILE_GIFTS);
     setGiftTarget('me');
     setBattleUiRole(isBattleJoiner ? 'opponent' : 'host');
     setMutedPlayers({});
@@ -3362,12 +3356,6 @@ export function useLiveHostController() {
           level,
         });
         setMessages((prev) => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
-        if (isBattleModeRef.current) {
-          const iconUrl = resolveBattleGiftIconUrl(giftIconRaw, resolveGiftAssetUrl);
-          if (iconUrl) {
-            setLastGifts((prev) => appendBattleTileGiftForTarget(prev, battleTarget, iconUrl));
-          }
-        }
         if (cohostTarget && giftCoins > 0) {
           applyCohostGiftTileScore({
             targetUserId: cohostTarget,
@@ -3387,7 +3375,7 @@ export function useLiveHostController() {
       if (isOwnGift) return;
 
       // Battle: full gift video only for the recipient creator. Other creators
-      // still update score + small tile icon from this same gift_sent event.
+      // still update score from this same gift_sent event.
       const giftSlot = isBattleModeRef.current
         ? resolveServerBattleGiftTarget(battleTarget)
         : null;
@@ -4286,9 +4274,6 @@ export function useLiveHostController() {
         },
         giftIcon: gift.icon,
         resolveGiftAssetUrl,
-        ...(isBattleMode && serverBattleTarget
-          ? { battle: { target: serverBattleTarget, setLastGifts } }
-          : {}),
         // Co-host tile: show score + real gift icon immediately (mark txn so WS echo won't double-count).
         ...(!isBattleMode && selectedCohostGiftUserId
           ? {
@@ -4452,20 +4437,6 @@ export function useLiveHostController() {
         },
         giftIcon: lastSentGift.icon,
         resolveGiftAssetUrl,
-        ...(isBattleMode
-          ? {
-              battle: {
-                target: liveStreamUiGiftTargetToServerBattleTarget(giftTarget, {
-                  isBroadcast,
-                  isBattleJoiner,
-                  effectiveStreamId,
-                  hostRoomId: battleStreamIdsRef.current?.hostRoomId ?? '',
-                  opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
-                }),
-                setLastGifts,
-              },
-            }
-          : {}),
         ...(!isBattleMode && selectedCohostGiftUserId
           ? {
               cohost: {
@@ -5553,7 +5524,6 @@ export function useLiveHostController() {
     isSubscribing,
     isMember,
     membershipIsSelf,
-    lastGifts,
     lastScreenTapRef,
     lastSentGift,
     leftPct,
@@ -5733,7 +5703,6 @@ export function useLiveHostController() {
     setIsMoreMenuOpen,
     setIsMyStreamLive,
     setIsReportModalOpen,
-    setLastGifts,
     setLastSentGift,
     setLiveFilterCss,
     setLiveLikes,

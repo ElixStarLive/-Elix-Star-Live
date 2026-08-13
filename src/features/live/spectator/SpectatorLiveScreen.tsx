@@ -45,7 +45,6 @@ import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCap
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
 import { BattleCreatorTileScore } from '../battle/BattleCreatorTileScore';
-import { BattleTileGiftIcons } from '../battle/BattleTileGiftIcons';
 import { teamTotalsFromScores } from '../battle/liveBattleScore';
 import { areTestCoinsEnabled } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
@@ -283,7 +282,6 @@ export default function SpectatorLiveScreen() {
     isSubscribing,
     joinRequested,
     lastSentGift,
-    lastGifts,
     leaveStreamWithSlide,
     liveKitRoomRef,
     location,
@@ -672,7 +670,6 @@ export default function SpectatorLiveScreen() {
                               </div>
                             </div>
                           )}
-                          <BattleTileGiftIcons icons={lastGifts.host} />
                           <BattleCreatorTileScore score={hS} format={formatBattleScoreShort} />
                         </div>
                         {is4Player ? (
@@ -693,7 +690,6 @@ export default function SpectatorLiveScreen() {
                                 <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player3Name || 'Creator'}</span>
                               </div>
                             )}
-                            <BattleTileGiftIcons icons={lastGifts.player3} />
                             <BattleCreatorTileScore score={p3s} format={formatBattleScoreShort} />
                           </div>
                         ) : null}
@@ -730,7 +726,6 @@ export default function SpectatorLiveScreen() {
                               ) : null}
                             </div>
                           )}
-                          <BattleTileGiftIcons icons={lastGifts.opponent} />
                           <BattleCreatorTileScore score={oS} format={formatBattleScoreShort} />
                         </div>
                         {is4Player ? (
@@ -751,7 +746,6 @@ export default function SpectatorLiveScreen() {
                                 <span className="text-[#C8CDD5] text-[10px] font-bold truncate max-w-[90%]">{spectatorBattle.player4Name || 'Creator'}</span>
                               </div>
                             )}
-                            <BattleTileGiftIcons icons={lastGifts.player4} />
                             <BattleCreatorTileScore score={p4s} format={formatBattleScoreShort} />
                           </div>
                         ) : null}
