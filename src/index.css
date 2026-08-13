@@ -2359,18 +2359,13 @@ body {
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
 }
-/* Battle top chrome — fundal Weekly Ranking sits on.
-   Shrink that fundal from the BOTTOM only by 5mm (clip). Weekly Ranking stays put.
-   No translateY — do not move layout. */
+/* Battle top chrome — same fundal as creator column. No clip. */
 #root .elix-live-room .elix-battle-top-fundal {
   background-color: var(--elix-bg) !important;
   background-image: var(--elix-fundal-image) !important;
   background-size: 100% auto !important;
   background-position: top center !important;
   background-repeat: no-repeat !important;
-  padding-bottom: 4mm !important;
-  transform: none;
-  clip-path: inset(0 0 5mm 0);
 }
 /* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
 .elix-battle-mvp-row,
@@ -2659,6 +2654,15 @@ body,
   padding-top: 0 !important;
   margin-top: 0 !important;
   padding-bottom: 4mm;
+}
+
+/* Battle only: fundal hangs 2mm less below Weekly Ranking (bottom edge UP 2mm).
+   Profile + Weekly Ranking stay. No clip. No background-position shift. */
+#root .elix-live-room .elix-live-top-chrome.elix-battle-top-fundal {
+  padding-bottom: 2mm !important;
+  clip-path: none !important;
+  transform: none !important;
+  background-position: top center !important;
 }
 
 /* Live bottom icons bar — same fundal picture as top chrome (solo + co-host + battle) */
