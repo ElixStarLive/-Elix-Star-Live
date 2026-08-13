@@ -1111,7 +1111,15 @@ async function buildViewerList(
   const room = rooms.get(roomId);
   if (!room) return [];
   const seenUserIds = new Set<string>();
-  const viewers: { user_id: string; username: string; display_name: string; avatar_url: string; level: number; country: string }[] = [];
+  const viewers: {
+    user_id: string;
+    username: string;
+    display_name: string;
+    avatar_url: string;
+    level: number;
+    country: string;
+    audienceCreatorId: string;
+  }[] = [];
   for (const c of room) {
     if (seenUserIds.has(c.userId)) continue;
     seenUserIds.add(c.userId);
@@ -1122,6 +1130,7 @@ async function buildViewerList(
       avatar_url: c.avatarUrl,
       level: c.level,
       country: c.country,
+      audienceCreatorId: c.audienceCreatorId || "",
     });
   }
   return viewers;
@@ -1478,6 +1487,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             avatar_url: client.avatarUrl,
             level: client.level,
             country: client.country,
+            audienceCreatorId: client.audienceCreatorId || "",
           },
           client,
         );

@@ -52,6 +52,7 @@ import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemotePartici
 import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient';
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
 import { appendLiveViewerFromJoinPayload } from '../chat/appendLiveViewerFromJoinPayload';
+import { patchLiveViewerBattleSide } from '../chat/appendLiveViewerIfMissing';
 import { appendLiveLevelUpBanner } from '../chat/appendLiveLevelUpBanner';
 import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
@@ -156,10 +157,13 @@ import { apiToggleRepost } from '../../reposts/repostsApi';
 import { connectLiveFeedPresence } from '../../../lib/live/liveFeedPresence';
 import { type LiveGiftGoal } from '../../../lib/liveGiftGoal';
 import {
+  battleSideFromAudienceCreatorId,
   liveStreamUiGiftTargetToServerBattleTarget,
   normalizeBattleGiftTarget,
+  parseAudienceCreatorId,
   resolveBattleMvpSide,
   resolveServerBattleGiftTarget,
+  resolveViewerBattleSide,
   shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
@@ -2882,23 +2886,72 @@ export function useLiveHostController() {
     return buildMvpRanked(mvpGiftScores, 20);
   }, [buildMvpRanked, mvpGiftScores]);
 
+  const pickBattleSideViewers = useCallback(
+    (side: 'host' | 'opponent', limit: number): LiveViewer[] => {
+      const scores = side === 'host' ? mvpGiftScoresHost : mvpGiftScoresOpponent;
+      const byId = new Map<string, LiveViewer>();
+      for (const v of activeViewers) {
+        if (seatedBattleCreatorIds.has(v.id)) continue;
+        const cached = viewerIdentityCacheRef.current.get(v.id);
+        byId.set(v.id, {
+          ...v,
+          avatar: (v.avatar && v.avatar.trim()) || cached?.avatar || '',
+          username: (!isGenericViewerName(v.username) ? v.username : '') || cached?.username || v.username,
+          displayName:
+            (!isGenericViewerName(v.displayName) ? v.displayName : '') ||
+            cached?.displayName ||
+            v.displayName,
+          level: v.level || cached?.level || 1,
+        });
+      }
+      for (const id of Object.keys(scores)) {
+        if (!id || byId.has(id) || seatedBattleCreatorIds.has(id)) continue;
+        const cached = viewerIdentityCacheRef.current.get(id);
+        byId.set(id, {
+          id,
+          username: cached?.username || 'User',
+          displayName: cached?.displayName || cached?.username || 'User',
+          level: cached?.level || 1,
+          avatar: cached?.avatar || '',
+          country: '',
+          joinedAt: Date.now(),
+          isActive: true,
+          chatFrequency: 0,
+          supportDays: 0,
+          lastVisitDaysAgo: 0,
+          battleSide: side,
+        });
+      }
+      const pool = [...byId.values()].filter((v) => {
+        const resolved = resolveViewerBattleSide({
+          giftHost: mvpGiftScoresHost[v.id] ?? 0,
+          giftOpponent: mvpGiftScoresOpponent[v.id] ?? 0,
+          joinSide: v.battleSide ?? null,
+        });
+        return resolved === side;
+      });
+      const ranked = pool.sort((a, b) => {
+        const sa = scores[a.id] ?? 0;
+        const sb = scores[b.id] ?? 0;
+        if (sb !== sa) return sb - sa;
+        return b.level - a.level;
+      });
+      return ranked.slice(0, limit);
+    },
+    [
+      activeViewers,
+      isGenericViewerName,
+      mvpGiftScoresHost,
+      mvpGiftScoresOpponent,
+      seatedBattleCreatorIds,
+    ],
+  );
+
   const topGiftersForPanel = useMemo(() => {
-    if (topGiftersSide === 'host') {
-      const ranked = buildMvpRanked(mvpGiftScoresHost, 50, { requirePositiveScore: true });
-      return ranked.length > 0 ? ranked : buildMvpRanked(mvpGiftScoresHost, 20);
-    }
-    if (topGiftersSide === 'opponent') {
-      const ranked = buildMvpRanked(mvpGiftScoresOpponent, 50, { requirePositiveScore: true });
-      return ranked.length > 0 ? ranked : buildMvpRanked(mvpGiftScoresOpponent, 20);
-    }
+    if (topGiftersSide === 'host') return pickBattleSideViewers('host', 50);
+    if (topGiftersSide === 'opponent') return pickBattleSideViewers('opponent', 50);
     return topGiftersRanked;
-  }, [
-    topGiftersSide,
-    topGiftersRanked,
-    buildMvpRanked,
-    mvpGiftScoresHost,
-    mvpGiftScoresOpponent,
-  ]);
+  }, [topGiftersSide, topGiftersRanked, pickBattleSideViewers]);
 
   const liveViewerLabel = useCallback((v: { displayName?: string; username?: string }) => {
     const d = String(v.displayName || '').trim();
@@ -2924,23 +2977,15 @@ export function useLiveHostController() {
     setShowViewerList(true);
   }, []);
 
-  const topMvpHostBattle = useMemo(() => {
-    // Left 3: only spectators who gifted the host. Do not fill from the other creator.
-    return buildMvpRanked(mvpGiftScoresHost, 3, { requirePositiveScore: true }).filter((v) => {
-      const h = mvpGiftScoresHost[v.id] ?? 0;
-      const o = mvpGiftScoresOpponent[v.id] ?? 0;
-      return h > 0 && h >= o;
-    }).slice(0, 3);
-  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
+  const topMvpHostBattle = useMemo(
+    () => pickBattleSideViewers('host', 3),
+    [pickBattleSideViewers],
+  );
 
-  const topMvpOpponentBattle = useMemo(() => {
-    // Right 3: only spectators who gifted the opponent.
-    return buildMvpRanked(mvpGiftScoresOpponent, 3, { requirePositiveScore: true }).filter((v) => {
-      const h = mvpGiftScoresHost[v.id] ?? 0;
-      const o = mvpGiftScoresOpponent[v.id] ?? 0;
-      return o > 0 && o > h;
-    }).slice(0, 3);
-  }, [buildMvpRanked, mvpGiftScoresHost, mvpGiftScoresOpponent]);
+  const topMvpOpponentBattle = useMemo(
+    () => pickBattleSideViewers('opponent', 3),
+    [pickBattleSideViewers],
+  );
 
   useEffect(() => {
     if (!isBattleMode) {
@@ -2989,11 +3034,25 @@ export function useLiveHostController() {
       });
     };
 
+    const battleCreatorIdsForJoin = () => {
+      const ids = battleStreamIdsRef.current;
+      const slots = battleSlotsRef.current;
+      return {
+        hostUserId: ids?.hostUserId || user?.id,
+        opponentUserId: ids?.opponentUserId || slots[0]?.userId,
+        player3UserId: ids?.player3UserId || slots[1]?.userId,
+        player4UserId: ids?.player4UserId || slots[2]?.userId,
+        hostRoomId: ids?.hostRoomId,
+        opponentRoomId: ids?.opponentRoomId,
+      };
+    };
+
     const handleRoomState = (data) => {
       if (!mounted) return;
       const seen = new Set<string>();
       const viewers: LiveViewer[] = [];
       const needsIdentityLookup: string[] = [];
+      const battleIds = battleCreatorIdsForJoin();
       for (const v of (data.viewers || [])) {
         const uid = typeof v.user_id === 'string' ? v.user_id : String(v.user_id ?? '');
         if (!uid || uid === user?.id || seen.has(uid)) continue;
@@ -3020,6 +3079,7 @@ export function useLiveHostController() {
           chatFrequency: 0,
           supportDays: 0,
           lastVisitDaysAgo: 0,
+          battleSide: battleSideFromAudienceCreatorId(parseAudienceCreatorId(v), battleIds),
         });
         const socketAvatar =
           (typeof v.avatar_url === 'string' ? v.avatar_url.trim() : '') ||
@@ -3091,13 +3151,19 @@ export function useLiveHostController() {
         level: initialLevel,
         country: data.country || '',
         cached,
+        battleSide: battleSideFromAudienceCreatorId(
+          parseAudienceCreatorId(data),
+          battleCreatorIdsForJoin(),
+        ),
       };
       if (joinAnnouncedRef.current.has(uid)) {
         appendLiveViewerFromJoinPayload(joinViewerPayload);
+        patchLiveViewerBattleSide(setActiveViewers, uid, joinViewerPayload.battleSide, false);
         return;
       }
       joinAnnouncedRef.current.add(uid);
       appendLiveViewerFromJoinPayload(joinViewerPayload);
+      patchLiveViewerBattleSide(setActiveViewers, uid, joinViewerPayload.battleSide, false);
       const joinMsgId = `join-${uid}`;
       appendLiveJoinStreamBanner({
         setMessages,
@@ -3280,11 +3346,13 @@ export function useLiveHostController() {
                 ...prev,
                 [gifterId]: (prev[gifterId] || 0) + giftCoins,
               }));
+              patchLiveViewerBattleSide(setActiveViewers, gifterId, 'host', true);
             } else if (side === 'opponent') {
               setMvpGiftScoresOpponent((prev) => ({
                 ...prev,
                 [gifterId]: (prev[gifterId] || 0) + giftCoins,
               }));
+              patchLiveViewerBattleSide(setActiveViewers, gifterId, 'opponent', true);
             }
           }
         }

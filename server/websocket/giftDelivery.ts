@@ -26,6 +26,7 @@ import {
 import {
   isActiveBattleSession,
   resolveGiftTargetCreatorId,
+  seatedBattleCreatorIds,
 } from "./giftAudience";
 import { incrementGiftGoal } from "./giftGoal";
 import { addBattleScoreForTarget, getBattleFromStore } from "./battle";
@@ -181,6 +182,11 @@ export async function emitGiftSentToTargetAudience(opts: {
   const battleActive = isActiveBattleSession(battle);
   if (battleActive && targetCreatorId) {
     broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent", payload);
+    for (const seatedId of seatedBattleCreatorIds(battle)) {
+      if (seatedId && seatedId !== targetCreatorId) {
+        broadcastToCreatorAudience(roomId, seatedId, "gift_sent", payload);
+      }
+    }
     if (opts.boosterCaught) {
       broadcastToCreatorAudience(
         roomId,

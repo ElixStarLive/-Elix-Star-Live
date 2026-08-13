@@ -141,6 +141,7 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(giftDelivery).toContain(
       'broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent"',
     );
+    expect(giftDelivery).toContain("seatedBattleCreatorIds(battle)");
     expect(giftDelivery).toContain("if (battleActive && targetCreatorId)");
     expect(handlers).toContain("emitGiftSentToTargetAudience");
     expect(handlers).toContain("transferLiveAudienceToBattleRoom");

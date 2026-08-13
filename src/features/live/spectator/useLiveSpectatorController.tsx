@@ -74,10 +74,13 @@ import {
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import {
+  battleSideFromAudienceCreatorId,
   normalizeBattleGiftTarget,
+  parseAudienceCreatorId,
   resolveBattleMvpSide,
   resolveBattleSlotForCreatorId,
   resolveServerBattleGiftTarget,
+  resolveViewerBattleSide,
   shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
@@ -294,7 +297,16 @@ export function useLiveSpectatorController() {
   const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
   const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number; points?: number }[]>([]);
-  const actualViewersRef = useRef<Map<string, { name: string; avatar: string; level: number }>>(new Map());
+  const actualViewersRef = useRef<Map<string, { name: string; avatar: string; level: number; side?: 'host' | 'opponent' | null }>>(new Map());
+  /** Seated battle creators — map join audienceCreatorId to host vs opponent. */
+  const battleCreatorIdsRef = useRef<{
+    hostUserId?: string | null;
+    opponentUserId?: string | null;
+    player3UserId?: string | null;
+    player4UserId?: string | null;
+    hostRoomId?: string | null;
+    opponentRoomId?: string | null;
+  }>({});
   /** One "joined the stream" banner per user for the whole live session (not per reconnect). */
   const joinAnnouncedRef = useRef<Set<string>>(new Set());
   /** Gift coins — global (top bar #1–3), host team, opponent team (battle rows). */
@@ -320,17 +332,23 @@ export function useLiveSpectatorController() {
 
   const syncMvpSlots = useCallback(() => {
     const hid = hostUserIdRef.current || hostUserId || effectiveStreamId || '';
+    const ids = battleCreatorIdsRef.current;
+    const seated = new Set(
+      [hid, effectiveStreamId, ids.hostUserId, ids.opponentUserId, ids.player3UserId, ids.player4UserId]
+        .filter((v): v is string => typeof v === 'string' && !!v.trim())
+        .map((v) => v.trim()),
+    );
     const byId = new Map<string, MvpSlotRow>();
 
     actualViewersRef.current.forEach((v, id) => {
-      if (!id || id === hid || id === effectiveStreamId) return;
+      if (!id || seated.has(id)) return;
       byId.set(id, { id, name: v.name, avatar: v.avatar, level: v.level, points: 0 });
       mvpIdentityRef.current.set(id, v);
     });
 
     // Include self so top MVP circles match what the creator sees for this spectator.
     const selfId = user?.id || '';
-    if (selfId && selfId !== hid && selfId !== effectiveStreamId && !byId.has(selfId)) {
+    if (selfId && !seated.has(selfId) && !byId.has(selfId)) {
       const selfName = user?.username || user?.name || 'You';
       const selfAvatar = user?.avatar || '';
       const selfLevel = Math.max(1, Number(user?.level) || 1);
@@ -340,7 +358,7 @@ export function useLiveSpectatorController() {
 
     const addFromScores = (scores: Record<string, number>) => {
       for (const id of Object.keys(scores)) {
-        if (!id || id === hid || id === effectiveStreamId || byId.has(id)) continue;
+        if (!id || seated.has(id) || byId.has(id)) continue;
         const cached = mvpIdentityRef.current.get(id);
         byId.set(id, {
           id,
@@ -365,22 +383,24 @@ export function useLiveSpectatorController() {
     const withPoints = (scores: Record<string, number>, list: MvpSlotRow[]) =>
       list.map((s) => ({ ...s, points: scores[s.id] ?? 0 }));
 
-    // Battle sides: only gifters for that creator (max 3). No shared filler pool.
-    const pickSide = (side: 'host' | 'opponent') => {
+    const selfJoinSide = normalizeBattleGiftTarget(battleAudienceSlotRef.current);
+    const pickSide = (side: 'host' | 'opponent', limit: number) => {
       const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
-      const other = side === 'host' ? mvpGiftScoresOpponentRef.current : mvpGiftScoresHostRef.current;
       const exclusive = base.filter((s) => {
-        const mine = scores[s.id] ?? 0;
-        if (mine <= 0) return false;
-        const theirs = other[s.id] ?? 0;
-        if (side === 'host') return mine >= theirs;
-        return mine > theirs;
+        const cachedSide = actualViewersRef.current.get(s.id)?.side;
+        const joinSide = cachedSide ?? (s.id === selfId ? selfJoinSide : null);
+        const resolved = resolveViewerBattleSide({
+          giftHost: mvpGiftScoresHostRef.current[s.id] ?? 0,
+          giftOpponent: mvpGiftScoresOpponentRef.current[s.id] ?? 0,
+          joinSide,
+        });
+        return resolved === side;
       });
-      return withPoints(scores, [...exclusive].sort(sortBy(scores))).slice(0, 3);
+      return withPoints(scores, [...exclusive].sort(sortBy(scores))).slice(0, limit);
     };
 
-    const hostSlots = pickSide('host');
-    const oppSlots = pickSide('opponent');
+    const hostSlots = pickSide('host', 3);
+    const oppSlots = pickSide('opponent', 3);
     const globalScores = mvpGiftScoresRef.current;
     // Top-bar + battle rows: 1 joined viewer = 1 circle. No empty placeholder rings.
     setMvpSlots({
@@ -388,13 +408,57 @@ export function useLiveSpectatorController() {
         globalScores,
         [...base].sort(sortBy(globalScores)).slice(0, 3),
       ),
-      host: hostSlots.slice(0, 3),
-      opponent: oppSlots.slice(0, 3),
+      host: hostSlots,
+      opponent: oppSlots,
     });
   }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 
   const syncMvpSlotsRef = useRef(syncMvpSlots);
   syncMvpSlotsRef.current = syncMvpSlots;
+
+  const listBattleSideMembers = useCallback((side: 'host' | 'opponent') => {
+    const hid = hostUserIdRef.current || hostUserId || effectiveStreamId || '';
+    const ids = battleCreatorIdsRef.current;
+    const seated = new Set(
+      [hid, effectiveStreamId, ids.hostUserId, ids.opponentUserId, ids.player3UserId, ids.player4UserId]
+        .filter((v): v is string => typeof v === 'string' && !!v.trim())
+        .map((v) => v.trim()),
+    );
+    const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
+    const selfId = user?.id || '';
+    const selfJoinSide = normalizeBattleGiftTarget(battleAudienceSlotRef.current);
+    const rows: MvpSlotRow[] = [];
+    const seen = new Set<string>();
+    const consider = (id: string, name: string, avatar: string, level: number, joinSide: 'host' | 'opponent' | null) => {
+      if (!id || seated.has(id) || seen.has(id)) return;
+      const resolved = resolveViewerBattleSide({
+        giftHost: mvpGiftScoresHostRef.current[id] ?? 0,
+        giftOpponent: mvpGiftScoresOpponentRef.current[id] ?? 0,
+        joinSide,
+      });
+      if (resolved !== side) return;
+      seen.add(id);
+      rows.push({ id, name, avatar, level, points: scores[id] ?? 0 });
+    };
+    actualViewersRef.current.forEach((v, id) => {
+      consider(id, v.name, v.avatar, v.level, v.side ?? null);
+    });
+    if (selfId) {
+      consider(
+        selfId,
+        user?.username || user?.name || 'You',
+        user?.avatar || '',
+        Math.max(1, Number(user?.level) || 1),
+        actualViewersRef.current.get(selfId)?.side ?? selfJoinSide,
+      );
+    }
+    for (const id of Object.keys(scores)) {
+      const cached = mvpIdentityRef.current.get(id);
+      consider(id, cached?.name || 'User', cached?.avatar || '', cached?.level || 1, actualViewersRef.current.get(id)?.side ?? null);
+    }
+    rows.sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || (b.level ?? 0) - (a.level ?? 0));
+    return rows;
+  }, [effectiveStreamId, hostUserId, user?.id, user?.username, user?.name, user?.avatar, user?.level]);
 
   useEffect(() => {
     mvpGiftScoresRef.current = {};
@@ -654,6 +718,19 @@ export function useLiveSpectatorController() {
     player4UserId: string;
   } | null>(null);
 
+  battleCreatorIdsRef.current = {
+    hostUserId: battleStreamIds?.hostUserId || hostUserId,
+    opponentUserId: battleStreamIds?.opponentUserId,
+    player3UserId: battleStreamIds?.player3UserId || spectatorBattle?.player3UserId,
+    player4UserId: battleStreamIds?.player4UserId || spectatorBattle?.player4UserId,
+    hostRoomId: battleStreamIds?.hostRoomId,
+    opponentRoomId: battleStreamIds?.opponentRoomId || spectatorBattle?.opponentRoomId,
+  };
+
+  useEffect(() => {
+    syncMvpSlotsRef.current();
+  }, [battleStreamIds, spectatorBattle?.player3UserId, spectatorBattle?.player4UserId, spectatorBattle?.opponentRoomId]);
+
   // No Left/Right picker — gift + mist target follows the stream room you're watching.
   useEffect(() => {
     if (!spectatorBattle?.active) {
@@ -805,6 +882,10 @@ export function useLiveSpectatorController() {
   const [battleAudienceSlot, setBattleAudienceSlot] = useState<ServerBattleGiftTarget>('host');
   const battleAudienceSlotRef = useRef<ServerBattleGiftTarget>('host');
   battleAudienceSlotRef.current = battleAudienceSlot;
+
+  useEffect(() => {
+    syncMvpSlotsRef.current();
+  }, [battleAudienceSlot]);
   const battleAudienceCreatorIdRef = useRef<string>('');
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
@@ -2027,6 +2108,10 @@ export function useLiveSpectatorController() {
               name: v.display_name || v.username || 'User',
               avatar: v.avatar_url || '',
               level: v.level || 1,
+              side: battleSideFromAudienceCreatorId(
+                parseAudienceCreatorId(v),
+                battleCreatorIdsRef.current,
+              ),
             });
             joinAnnouncedRef.current.add(String(v.user_id));
           }
@@ -2054,10 +2139,17 @@ export function useLiveSpectatorController() {
       const uid = typeof data.user_id === 'string' ? data.user_id : String(data.user_id ?? '');
       if (!uid) return;
       const alreadyAnnounced = joinAnnouncedRef.current.has(uid);
+      const existing = actualViewersRef.current.get(uid);
+      const joinSide =
+        battleSideFromAudienceCreatorId(
+          parseAudienceCreatorId(data),
+          battleCreatorIdsRef.current,
+        ) || existing?.side || null;
       actualViewersRef.current.set(uid, {
         name: data.display_name || data.username || 'User',
         avatar: data.avatar_url || '',
         level: initialLevel,
+        side: joinSide,
       });
       if (alreadyAnnounced) {
         syncMvpSlots();
@@ -2128,6 +2220,7 @@ export function useLiveSpectatorController() {
           name: username,
           avatar,
           level: existing?.level || level,
+          side: existing?.side ?? null,
         });
       }
       const msg = buildLiveWsChatMessage({
@@ -2177,45 +2270,55 @@ export function useLiveSpectatorController() {
           });
         }
 
-        // Skip echo chat/MVP for our own gift — sender already queued locally.
-        if (!(gifterId && user?.id && gifterId === user.id)) {
-          if (gifterId && giftCoins > 0) {
-            const gifterName =
-              (typeof data.username === 'string' && data.username.trim()) ||
-              mvpIdentityRef.current.get(gifterId)?.name ||
-              'User';
-            const gifterAvatar =
-              (typeof data.avatar === 'string' && data.avatar) ||
-              mvpIdentityRef.current.get(gifterId)?.avatar ||
-              '';
-            const gifterLevel =
-              (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
-              mvpIdentityRef.current.get(gifterId)?.level ??
-              1;
-            mvpIdentityRef.current.set(gifterId, {
-              name: gifterName,
-              avatar: gifterAvatar,
-              level: gifterLevel,
+        // Skip echo chat for our own gift — sender already queued locally.
+        // Still credit battle MVP so the sender sees their own circle like the top 3.
+        if (gifterId && giftCoins > 0) {
+          const gifterName =
+            (typeof data.username === 'string' && data.username.trim()) ||
+            mvpIdentityRef.current.get(gifterId)?.name ||
+            'User';
+          const gifterAvatar =
+            (typeof data.avatar === 'string' && data.avatar) ||
+            mvpIdentityRef.current.get(gifterId)?.avatar ||
+            '';
+          const gifterLevel =
+            (Number.isFinite(Number(data.level)) && Number(data.level) >= 0 ? Math.floor(Number(data.level)) : null) ??
+            mvpIdentityRef.current.get(gifterId)?.level ??
+            1;
+          mvpIdentityRef.current.set(gifterId, {
+            name: gifterName,
+            avatar: gifterAvatar,
+            level: gifterLevel,
+          });
+          mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
+          if (spectatorBattleRef.current?.active) {
+            const ids = battleCreatorIdsRef.current;
+            const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
+              hostUserId: ids?.hostUserId || hostUserIdRef.current || hostUserId,
+              opponentUserId: ids?.opponentUserId,
+              player3UserId: ids?.player3UserId,
+              player4UserId: ids?.player4UserId,
+              hostRoomId: ids?.hostRoomId,
+              opponentRoomId: ids?.opponentRoomId,
             });
-            mvpGiftScoresRef.current[gifterId] = (mvpGiftScoresRef.current[gifterId] || 0) + giftCoins;
-            if (spectatorBattleRef.current?.active) {
-              const ids = battleStreamIds;
-              const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
-                hostUserId: ids?.hostUserId || hostUserIdRef.current || hostUserId,
-                opponentUserId: ids?.opponentUserId,
-                player3UserId: ids?.player3UserId,
-                player4UserId: ids?.player4UserId,
-                hostRoomId: ids?.hostRoomId,
-                opponentRoomId: ids?.opponentRoomId,
-              });
-              if (side === 'host') {
-                mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
-              } else if (side === 'opponent') {
-                mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
-              }
+            if (side === 'host') {
+              mvpGiftScoresHostRef.current[gifterId] = (mvpGiftScoresHostRef.current[gifterId] || 0) + giftCoins;
+            } else if (side === 'opponent') {
+              mvpGiftScoresOpponentRef.current[gifterId] = (mvpGiftScoresOpponentRef.current[gifterId] || 0) + giftCoins;
             }
-            syncMvpSlots();
+            if (side) {
+              const prev = actualViewersRef.current.get(gifterId);
+              actualViewersRef.current.set(gifterId, {
+                name: prev?.name || gifterName,
+                avatar: prev?.avatar || gifterAvatar,
+                level: prev?.level || gifterLevel,
+                side,
+              });
+            }
           }
+          syncMvpSlots();
+        }
+        if (!(gifterId && user?.id && gifterId === user.id)) {
           const msg = buildLiveGiftChatMessage({
             txnId,
             giftName,
@@ -3367,6 +3470,7 @@ export function useLiveSpectatorController() {
     mvpGiftScoresRef,
     mvpIdentityRef,
     mvpSlots,
+    listBattleSideMembers,
     myVideoRef,
     navigate,
     opponentProfile,

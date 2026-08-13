@@ -106,6 +106,38 @@ export function resolveBattleMvpSide(
   );
 }
 
+export function parseAudienceCreatorId(raw: unknown): string {
+  if (!raw || typeof raw !== "object") return "";
+  const o = raw as Record<string, unknown>;
+  const camel =
+    typeof o.audienceCreatorId === "string" ? o.audienceCreatorId.trim() : "";
+  const snake =
+    typeof o.audience_creator_id === "string" ? o.audience_creator_id.trim() : "";
+  return camel || snake;
+}
+
+export function battleSideFromAudienceCreatorId(
+  audienceCreatorId: string | null | undefined,
+  ids: BattleCreatorIds | null | undefined,
+): BattleGiftSide | null {
+  return normalizeBattleGiftTarget(
+    resolveBattleSlotForCreatorId(audienceCreatorId, ids),
+  );
+}
+
+/** Gift side wins when they scored; otherwise the creator they joined. Never default to host. */
+export function resolveViewerBattleSide(opts: {
+  giftHost?: number;
+  giftOpponent?: number;
+  joinSide?: BattleGiftSide | null;
+}): BattleGiftSide | null {
+  const h = Number(opts.giftHost) || 0;
+  const o = Number(opts.giftOpponent) || 0;
+  if (h > 0 && h >= o) return "host";
+  if (o > 0 && o > h) return "opponent";
+  return opts.joinSide ?? null;
+}
+
 /**
  * Full gift video plays only for the target creator + that creator's audience.
  * Server routes gift_sent by targetCreatorId — other creators and their

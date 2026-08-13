@@ -300,6 +300,7 @@ export default function SpectatorLiveScreen() {
     mvpGiftScoresRef,
     mvpIdentityRef,
     mvpSlots,
+    listBattleSideMembers,
     myVideoRef,
     navigate,
     opponentProfile,
@@ -1586,10 +1587,7 @@ export default function SpectatorLiveScreen() {
                     className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
                     title="Top gifters — red side"
                     onClick={() => {
-                      const ranked = [...mvpSlots.host]
-                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
-                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
+                      const list = listBattleSideMembers('host').map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,
@@ -1653,10 +1651,7 @@ export default function SpectatorLiveScreen() {
                     className="flex items-end gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
                     title="Top gifters — blue side"
                     onClick={() => {
-                      const ranked = [...mvpSlots.opponent]
-                        .filter((s) => (s.points ?? 0) > 0 && !String(s.id).startsWith('__mvp-empty-'))
-                        .sort((a, b) => (b.points ?? 0) - (a.points ?? 0));
-                      const list = (ranked.length > 0 ? ranked : mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-'))).map((s) => ({
+                      const list = listBattleSideMembers('opponent').map((s) => ({
                         id: s.id,
                         name: s.name,
                         avatar: s.avatar,

@@ -20,6 +20,22 @@ export function appendLiveViewerIfMissing(
   });
 }
 
+export function patchLiveViewerBattleSide(
+  setActiveViewers: SetViewers,
+  uid: string,
+  battleSide: 'host' | 'opponent' | null,
+  overwrite = false,
+): void {
+  if (!uid || !battleSide) return;
+  setActiveViewers((prev) =>
+    prev.map((v) => {
+      if (String(v.id) !== String(uid)) return v;
+      if (!overwrite && v.battleSide) return v;
+      return { ...v, battleSide };
+    }),
+  );
+}
+
 export function buildLiveViewerFromJoin(opts: {
   uid: string;
   joinName: string;
@@ -28,6 +44,7 @@ export function buildLiveViewerFromJoin(opts: {
   avatar?: string;
   level: number;
   country?: string;
+  battleSide?: 'host' | 'opponent' | null;
 }): LiveViewer {
   return {
     id: opts.uid,
@@ -41,5 +58,6 @@ export function buildLiveViewerFromJoin(opts: {
     chatFrequency: 0,
     supportDays: 0,
     lastVisitDaysAgo: 0,
+    battleSide: opts.battleSide ?? null,
   };
 }

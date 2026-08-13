@@ -31,6 +31,8 @@ export type LiveViewer = {
   chatFrequency: number;
   supportDays: number;
   lastVisitDaysAgo: number;
+  /** Which battle creator this spectator joined (host vs opponent). */
+  battleSide?: 'host' | 'opponent' | null;
 };
 
 export type BattleState = 'LIVE_SOLO' | 'INVITING' | 'IN_BATTLE' | 'ENDED';

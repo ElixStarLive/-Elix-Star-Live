@@ -23,6 +23,7 @@ export function appendLiveViewerFromJoinPayload(args: {
     username?: string;
     avatar?: string;
   };
+  battleSide?: 'host' | 'opponent' | null;
 }): void {
   const { setActiveViewers, uid, joinName, level, cached } = args;
   appendLiveViewerIfMissing(
@@ -35,6 +36,7 @@ export function appendLiveViewerFromJoinPayload(args: {
       avatar: cached?.avatar || args.avatar || '',
       level,
       country: args.country || '',
+      battleSide: args.battleSide ?? null,
     }),
   );
 }
