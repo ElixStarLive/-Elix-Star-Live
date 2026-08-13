@@ -2920,7 +2920,9 @@ export function useLiveHostController() {
           giftOpponent: mvpGiftScoresOpponent[v.id] ?? 0,
           joinSide: v.battleSide ?? null,
         });
-        return resolved === side;
+        // Same as top 3: a joiner in this live gets a circle. This room is host.
+        // Gift / audience still wins. Do not put an opponent-sided joiner on host.
+        return (resolved ?? 'host') === side;
       });
       const ranked = pool.sort((a, b) => {
         const sa = scores[a.id] ?? 0;
@@ -2985,7 +2987,7 @@ export function useLiveHostController() {
       prevMvpOpponentIdRef.current = null;
       return;
     }
-    const hostMvp = topMvpHostBattle.find((v) => !String(v.id).startsWith('__mvp-empty-'));
+    const hostMvp = topMvpHostBattle[0];
     if (hostMvp?.id) {
       if (prevMvpHostIdRef.current && prevMvpHostIdRef.current !== hostMvp.id) {
         announceMvpName(hostMvp.displayName || hostMvp.username, 'host');
@@ -2993,7 +2995,7 @@ export function useLiveHostController() {
       }
       prevMvpHostIdRef.current = hostMvp.id;
     }
-    const oppMvp = topMvpOpponentBattle.find((v) => !String(v.id).startsWith('__mvp-empty-'));
+    const oppMvp = topMvpOpponentBattle[0];
     if (oppMvp?.id) {
       if (prevMvpOpponentIdRef.current && prevMvpOpponentIdRef.current !== oppMvp.id) {
         announceMvpName(oppMvp.displayName || oppMvp.username, 'opponent');

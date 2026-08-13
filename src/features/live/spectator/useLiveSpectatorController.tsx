@@ -384,6 +384,7 @@ export function useLiveSpectatorController() {
       list.map((s) => ({ ...s, points: scores[s.id] ?? 0 }));
 
     const selfJoinSide = normalizeBattleGiftTarget(battleAudienceSlotRef.current);
+    const roomSide = selfJoinSide ?? 'host';
     const pickSide = (side: 'host' | 'opponent', limit: number) => {
       const scores = side === 'host' ? mvpGiftScoresHostRef.current : mvpGiftScoresOpponentRef.current;
       const exclusive = base.filter((s) => {
@@ -394,7 +395,8 @@ export function useLiveSpectatorController() {
           giftOpponent: mvpGiftScoresOpponentRef.current[s.id] ?? 0,
           joinSide,
         });
-        return resolved === side;
+        // Same as top 3: joiner in this live gets a circle on this live's side.
+        return (resolved ?? roomSide) === side;
       });
       return withPoints(scores, [...exclusive].sort(sortBy(scores))).slice(0, limit);
     };
@@ -436,7 +438,8 @@ export function useLiveSpectatorController() {
         giftOpponent: mvpGiftScoresOpponentRef.current[id] ?? 0,
         joinSide,
       });
-      if (resolved !== side) return;
+      const roomSide = selfJoinSide ?? 'host';
+      if ((resolved ?? roomSide) !== side) return;
       seen.add(id);
       rows.push({ id, name, avatar, level, points: scores[id] ?? 0 });
     };
