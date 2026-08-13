@@ -2368,7 +2368,7 @@ body {
   background-size: 100% auto !important;
   background-position: top center !important;
   background-repeat: no-repeat !important;
-  padding-bottom: 1mm !important;
+  padding-bottom: 0 !important;
 }
 /* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
 .elix-battle-mvp-row,
