@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RoyceCloseIcon } from './royce';
-import { Ban, Play, MoreHorizontal, Flag, Search } from 'lucide-react';
+import { Ban, Play, MoreHorizontal, Flag, Search, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -17,6 +17,7 @@ import { apiLiveStreams, findLiveWatchTarget } from '../lib/live';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
+import { initiateCall } from '../lib/callService';
 
 interface User {
   id: string;
@@ -241,6 +242,25 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
     await navigateToDmWithUser(user.id, navigate, token);
   };
 
+  const handleVideoCall = async () => {
+    if (!user?.id || isOwnProfile) return;
+    try {
+      const callId = await initiateCall({
+        id: user.id,
+        username: displayUser.username || displayUser.name || 'User',
+        avatar: displayUser.avatar || '',
+      });
+      if (callId) {
+        onClose();
+        navigate('/call');
+      } else {
+        showToast('Could not start video call');
+      }
+    } catch {
+      showToast('Could not start video call');
+    }
+  };
+
   const handleReportUser = () => {
     setShowMoreOptions(false);
     setShowReportModal(true);
@@ -435,6 +455,15 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
                       Watch Live
                     </button>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={() => { void handleVideoCall(); }}
+                    className="h-9 w-9 flex items-center justify-center rounded-xl bg-white/10 text-white hover:bg-white/15 transition-colors flex-shrink-0 active:scale-95"
+                    aria-label="Video call"
+                    title="Video call"
+                  >
+                    <Video size={18} strokeWidth={2} className="text-[#F5F5F7]" />
+                  </button>
                   {isFollowingUser ? (
                     <button
                       type="button"
