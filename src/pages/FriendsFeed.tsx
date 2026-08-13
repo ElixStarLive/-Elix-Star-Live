@@ -60,7 +60,7 @@ export default function FriendsFeed() {
               <button
                 type="button"
                 onClick={goUploadStory}
-                className="px-5 py-2 bg-[#E6E9EE] text-white rounded-full text-sm font-bold mb-3"
+                className="px-5 py-2 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] rounded-full text-sm font-bold mb-3"
               >
                 Add story
               </button>

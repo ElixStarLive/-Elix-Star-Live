@@ -69,7 +69,7 @@ function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-[#E6E9EE] shadow-[0_0_10px_rgba(111,63,245,0.45)] active:scale-95 transition-transform flex-shrink-0 elix-solid-accent"
+        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-transparent border border-[#D8D9DD]/40 active:scale-95 transition-transform flex-shrink-0"
         onClick={onFollow}
         aria-label={label}
       >
@@ -81,7 +81,7 @@ function LiveFollowPill({
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-[#E6E9EE] w-full elix-solid-accent"
+      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-transparent border border-[#D8D9DD]/40 w-full"
       onClick={onFollow}
       aria-label={label}
     >

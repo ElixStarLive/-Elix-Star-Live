@@ -241,7 +241,7 @@ export default function ReportModal({ isOpen, onClose, videoId, contentType, con
             type="button"
             onClick={() => { void handleSubmit(); }}
             disabled={isSubmitting || !selectedReason}
-            className="flex-1 py-2.5 bg-[#E6E9EE] text-white font-bold text-xs rounded-lg hover:brightness-110 disabled:opacity-40 transition"
+            className="flex-1 py-2.5 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold text-xs rounded-lg hover:bg-white/10 disabled:opacity-40 transition"
           >
             {isSubmitting ? 'Submitting...' : 'Submit'}
           </button>

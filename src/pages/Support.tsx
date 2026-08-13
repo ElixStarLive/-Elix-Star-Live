@@ -161,7 +161,7 @@ export default function Support() {
               type="button"
               onClick={() => { void handleSubmitTicket(); }}
               disabled={loading || !subject.trim() || !message.trim() || !email.trim()}
-              className="w-full py-3 bg-[#E6E9EE] text-white text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed active:opacity-90 transition"
+              className="w-full py-3 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] text-sm rounded-lg font-bold disabled:opacity-40 disabled:cursor-not-allowed active:opacity-90 transition"
             >
               {loading ? 'Sending...' : 'Send Message'}
             </button>

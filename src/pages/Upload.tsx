@@ -1208,7 +1208,7 @@ export default function Upload() {
                          type="button"
                          onClick={handlePost}
                          disabled={isPosting}
-                         className="flex-1 h-12 rounded-full bg-white flex items-center justify-center gap-2 px-3 active:scale-[0.98] transition-transform disabled:opacity-60"
+                         className="flex-1 h-12 rounded-full bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] flex items-center justify-center gap-2 px-3 active:scale-[0.98] transition-transform disabled:opacity-60"
                        >
                          <span className="w-8 h-8 rounded-full overflow-hidden border-2 border-[#00c2be] flex-shrink-0 bg-[#7B5CFF] flex items-center justify-center">
                            {authUser?.avatar ? (

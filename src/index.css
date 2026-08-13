@@ -1256,58 +1256,94 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /*
- * Purple fills only for opt-in accents (Follow / Live / selected tabs / toggles).
- * Other bg-[#E6E9EE] buttons become silver chrome (no purple wash).
+ * All action buttons — transparent fill + light border (never solid white/silver).
+ * Applies app-wide including portals outside #root (Report / sheets / overlays).
  */
-#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']),
-#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
-  background-color: #1B1E24 !important;
+:is(button, a[role='button'], [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red),
+:is(button, a[role='button'], [role='button']).bg-primary:not(.elix-solid-red),
+:is(button, a[role='button'], [role='button']).elix-solid-accent,
+:is(button, a[role='button'], [role='button']).elix-accent,
+:is(button, a[role='button'], [role='button'])[data-elix-accent='true'],
+:is(button, a[role='button'], [role='button']).elix-silver-cta,
+:is(button, a[role='button'], [role='button'])[class*='bg-white']:not([class*='bg-white/']):not(.elix-solid-red),
+:is(button, a[role='button'], [role='button'])[class*='bg-[#FFFFFF]']:not(.elix-solid-red),
+:is(button, a[role='button'], [role='button'])[class*='bg-[#F5F5F7]']:not([class*='bg-[#F5F5F7]/']):not(.elix-solid-red) {
+  background-color: transparent !important;
   background-image: none !important;
-  border: 1px solid #313845 !important;
+  border: 1px solid rgba(216, 217, 221, 0.40) !important;
   box-shadow: none !important;
+  color: #F5F5F7 !important;
+  -webkit-text-fill-color: #F5F5F7 !important;
 }
-#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) :where(span, p, small, strong, b, label) {
+:is(button, a[role='button'], [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red) :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button']).bg-primary:not(.elix-solid-red) :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button']).elix-accent :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button']).elix-silver-cta :where(span, p, small, strong, b, label),
+:is(button, a[role='button'], [role='button'])[class*='bg-white']:not([class*='bg-white/']):not(.elix-solid-red) :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-background-clip: unset !important;
   background-clip: unset !important;
-  -webkit-text-fill-color: #FFFFFF !important;
-  color: #FFFFFF !important;
+  -webkit-text-fill-color: #F5F5F7 !important;
+  color: #F5F5F7 !important;
 }
 
-/* Soft purple tints on non-accent controls — strip wash */
-#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]/']:not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
+/* Soft tints on non-red controls — keep translucent, never solid white */
+:is(button, a[role='button'], [role='button'])[class*='bg-[#E6E9EE]/']:not(.elix-solid-red) {
   background-color: rgba(255, 255, 255, 0.06) !important;
   box-shadow: none !important;
 }
 
-/* Interactive solid accent capsules (Follow / Live / selected tab / toggle ON) */
-#root :is(button, a, [role='button']).elix-solid-red,
+/* Legacy #root aliases — same transparent contract */
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red),
 #root :is(button, a, [role='button']).elix-solid-accent,
 #root :is(button, a, [role='button']).elix-accent,
 #root :is(button, a, [role='button'])[data-elix-accent='true'] {
-  background-color: var(--color-primary) !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: 1px solid rgba(216, 217, 221, 0.40) !important;
+  box-shadow: none !important;
+  color: #F5F5F7 !important;
+  -webkit-text-fill-color: #F5F5F7 !important;
+}
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]']:not([class*='bg-[#E6E9EE]/']):not(.elix-solid-red) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).bg-primary:not(.elix-solid-red) :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button']).elix-accent :where(span, p, small, strong, b, label),
+#root :is(button, a, [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label) {
+  background-image: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: #F5F5F7 !important;
+  color: #F5F5F7 !important;
+}
+
+#root :is(button, a, [role='button'])[class*='bg-[#E6E9EE]/']:not(.elix-solid-red) {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  box-shadow: none !important;
+}
+
+/* Red semantic only (End call / decline) — keep solid red when opted in */
+#root :is(button, a, [role='button']).elix-solid-red,
+:is(button, a[role='button'], [role='button']).elix-solid-red {
+  background-color: #EF4444 !important;
   background-image: none !important;
   border-color: transparent !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }
 #root :is(button, a, [role='button']).elix-solid-red:hover,
-#root :is(button, a, [role='button']).elix-solid-accent:hover,
-#root :is(button, a, [role='button']).elix-accent:hover,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:hover {
-  background-color: var(--color-purple-hover) !important;
+:is(button, a[role='button'], [role='button']).elix-solid-red:hover {
+  background-color: #DC2626 !important;
 }
 #root :is(button, a, [role='button']).elix-solid-red:active,
-#root :is(button, a, [role='button']).elix-solid-accent:active,
-#root :is(button, a, [role='button']).elix-accent:active,
-#root :is(button, a, [role='button'])[data-elix-accent='true']:active {
-  background-color: var(--color-purple-pressed) !important;
+:is(button, a[role='button'], [role='button']).elix-solid-red:active {
+  background-color: #B91C1C !important;
 }
 #root :is(button, a, [role='button']).elix-solid-red :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).elix-solid-accent :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button']).elix-accent :where(span, p, small, strong, b, label),
-#root :is(button, a, [role='button'])[data-elix-accent='true'] :where(span, p, small, strong, b, label) {
+:is(button, a[role='button'], [role='button']).elix-solid-red :where(span, p, small, strong, b, label) {
   background-image: none !important;
   -webkit-text-fill-color: #ffffff !important;
   color: #ffffff !important;
@@ -1397,7 +1433,7 @@ video::-webkit-media-controls-overlay-enclosure,
   -webkit-text-fill-color: unset !important;
 }
 
-/* Kept solid accent fills (Follow / Join / Live) — white text on violet */
+/* Kept accent class names — text stays light on transparent buttons */
 #root .elix-solid-red,
 #root .elix-solid-accent,
 #root .elix-solid-red :where(span, p, small, strong, b, label),
@@ -1531,16 +1567,16 @@ body > .elix-fundal-glass .elix-full-page-panel.elix-engagement-fundal {
   box-shadow: none;
 }
 
-/* Silver CTA — dark text on silver */
+/* Silver CTA — transparent outlined (never solid white fill) */
 .elix-silver-cta,
 #root .elix-settings-write .elix-silver-cta,
 #root .elix-full-page-panel .elix-silver-cta,
 #root button.elix-silver-cta {
-  background-color: #E6E9EE !important;
-  background-image: var(--elix-silver-write) !important;
-  color: #080A0E !important;
-  -webkit-text-fill-color: #080A0E !important;
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #F5F5F7 !important;
+  -webkit-text-fill-color: #F5F5F7 !important;
+  border: 1px solid rgba(216, 217, 221, 0.40) !important;
   box-shadow: none;
 }
 

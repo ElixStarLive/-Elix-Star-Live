@@ -60,7 +60,7 @@ export default function FollowingFeed() {
               <p className="text-xs text-white/30 mb-4">Follow people to see their videos here</p>
               <button
                 onClick={goDiscover}
-                className="px-5 py-2 bg-[#E6E9EE] text-white rounded-full text-sm font-bold"
+                className="px-5 py-2 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] rounded-full text-sm font-bold"
               >
                 Discover people
               </button>

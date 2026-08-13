@@ -48,7 +48,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/login"
-            className="inline-block w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm text-center"
+            className="inline-block w-full bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold rounded-xl py-3 text-sm text-center"
           >
             Back to Login
           </Link>

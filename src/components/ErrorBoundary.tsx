@@ -90,7 +90,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReload}
-                className="flex items-center gap-2 px-6 py-3 bg-[#E6E9EE] text-white rounded-full font-bold hover:opacity-90 transition"
+                className="flex items-center gap-2 px-6 py-3 bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] rounded-full font-bold hover:bg-white/10 transition"
               >
                 <RefreshCw className="w-5 h-5" />
                 Reload

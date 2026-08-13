@@ -27,7 +27,7 @@ export function AuthFormErrorAndSubmit({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full bg-[#E6E9EE] text-white font-bold rounded-xl py-3 text-sm disabled:opacity-60"
+        className="w-full bg-transparent border border-[#D8D9DD]/40 text-[#F5F5F7] font-bold rounded-xl py-3 text-sm disabled:opacity-60"
       >
         {isSubmitting ? submittingLabel : idleLabel}
       </button>
