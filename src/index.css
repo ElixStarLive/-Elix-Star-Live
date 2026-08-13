@@ -2359,9 +2359,9 @@ body {
   background-repeat: no-repeat, no-repeat !important;
   background-attachment: scroll, scroll !important;
 }
-/* Battle top chrome — fundal strip Weekly Ranking sits on.
-   Lift the strip UP (translateY) so it clears the battle score bar.
-   Do not shrink padding — that pulled the fundal the wrong way. */
+/* Battle top chrome — fundal Weekly Ranking sits on.
+   Shrink that fundal from the BOTTOM only by 5mm (clip). Weekly Ranking stays put.
+   No translateY — do not move layout. */
 #root .elix-live-room .elix-battle-top-fundal {
   background-color: var(--elix-bg) !important;
   background-image: var(--elix-fundal-image) !important;
@@ -2369,7 +2369,8 @@ body {
   background-position: top center !important;
   background-repeat: no-repeat !important;
   padding-bottom: 4mm !important;
-  transform: translateY(-4mm);
+  transform: none;
+  clip-path: inset(0 0 5mm 0);
 }
 /* Battle MVP strip — fixed under cameras; fundal is full app-container width only */
 .elix-battle-mvp-row,
