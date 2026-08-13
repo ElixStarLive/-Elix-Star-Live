@@ -1490,115 +1490,6 @@ export default function SpectatorLiveScreen() {
                 </>
               ))}
               </div>
-                {(() => {
-                  const hostJoiners = mvpSlots.host.filter((s) => !String(s.id).startsWith('__mvp-empty-'));
-                  const oppJoiners = mvpSlots.opponent.filter((s) => !String(s.id).startsWith('__mvp-empty-'));
-                  const showSpeed = SPEED_CHALLENGE_ENABLED && speedChallengeActive;
-                  if (hostJoiners.length === 0 && oppJoiners.length === 0 && !showSpeed) return null;
-                  return (
-                    <div className="absolute bottom-0 left-0 right-0 z-40 flex items-center justify-between px-3 pointer-events-none">
-                      {showSpeed ? (
-                        <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
-                            <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
-                            <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
-                            {speedMultiplier > 1 ? (
-                              <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
-                            ) : null}
-                          </span>
-                        </div>
-                      ) : null}
-                      {hostJoiners.length > 0 ? (
-                        <div
-                          className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                          title="Top viewers & gifters"
-                          onClick={() => {
-                            const list = listBattleSideMembers('host').map((s) => ({
-                              id: s.id,
-                              name: s.name,
-                              avatar: s.avatar,
-                              level: s.level,
-                              points: s.points ?? 0,
-                            }));
-                            setViewersList(list);
-                            setShowViewersPanel(true);
-                          }}
-                        >
-                          {hostJoiners.slice(0, 3).map((slot, i) => {
-                            const isMvp = i === 0 && (slot.points ?? 0) > 0;
-                            return (
-                              <div
-                                key={`battle-join-l-${slot.id}`}
-                                className="relative"
-                                style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                              >
-                                <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                                  <AvatarRing
-                                    src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                    alt={slot.name || 'MVP'}
-                                    size={LIVE_MVP_PROFILE_RING_PX}
-                                    ringColor={isMvp ? MVP_GOLD : undefined}
-                                  />
-                                </div>
-                                {isMvp && (
-                                  <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                                    MVP
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div />
-                      )}
-                      {oppJoiners.length > 0 ? (
-                        <div
-                          className="flex items-center gap-[0mm] pointer-events-auto flex-shrink-0"
-                          title="Top viewers & gifters"
-                          onClick={() => {
-                            const list = listBattleSideMembers('opponent').map((s) => ({
-                              id: s.id,
-                              name: s.name,
-                              avatar: s.avatar,
-                              level: s.level,
-                              points: s.points ?? 0,
-                            }));
-                            setViewersList(list);
-                            setShowViewersPanel(true);
-                          }}
-                        >
-                          {oppJoiners.slice(0, 3).map((slot, i) => {
-                            const isMvp = i === 0 && (slot.points ?? 0) > 0;
-                            return (
-                              <div
-                                key={`battle-join-r-${slot.id}`}
-                                className="relative"
-                                style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                              >
-                                <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
-                                  <AvatarRing
-                                    src={resolveCircleAvatar(slot.avatar, slot.name)}
-                                    alt={slot.name || 'MVP'}
-                                    size={LIVE_MVP_PROFILE_RING_PX}
-                                    ringColor={isMvp ? MVP_GOLD : undefined}
-                                  />
-                                </div>
-                                {isMvp && (
-                                  <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
-                                    MVP
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div />
-                      )}
-                    </div>
-                  );
-                })()}
             </div>
           );
         })()}
@@ -1672,6 +1563,107 @@ export default function SpectatorLiveScreen() {
               })}
             </div>
           </div>
+        )}
+
+        {spectatorBattle?.active && (
+                <div
+                  className="elix-battle-mvp-row fixed left-0 right-0 z-[120] flex justify-center pointer-events-none"
+                  style={{ top: LIVE_BATTLE_STAGE_BOTTOM }}
+                >
+                  <div className="elix-battle-mvp-fundal relative w-full max-w-[480px] px-3 py-1.5 flex items-end justify-between overflow-x-hidden">
+                  {SPEED_CHALLENGE_ENABLED && speedChallengeActive ? (
+                    <div className="absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-[#B91C1C]/90 shadow-[0_0_10px_rgba(185,28,28,0.55)]">
+                        <span className="text-white text-[8px] font-black uppercase tracking-wide">Speed</span>
+                        <span className="text-white text-[11px] font-black tabular-nums">{speedChallengeTime}s</span>
+                        {speedMultiplier > 1 ? (
+                          <span className="text-white text-[9px] font-black">x{speedMultiplier}</span>
+                        ) : null}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div
+                    className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
+                    title="Top viewers & gifters"
+                    onClick={() => {
+                      const list = listBattleSideMembers('host').map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
+                  >
+                    {mvpSlots.host.slice(0, 3).map((slot, i) => {
+                      const isMvp = i === 0 && (slot.points ?? 0) > 0;
+                      return (
+                        <div
+                          key={`mvp-l-${slot.id}`}
+                          className="relative"
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                        >
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || 'MVP'}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                              MVP
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div
+                    className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
+                    title="Top viewers & gifters"
+                    onClick={() => {
+                      const list = listBattleSideMembers('opponent').map((s) => ({
+                        id: s.id,
+                        name: s.name,
+                        avatar: s.avatar,
+                        level: s.level,
+                        points: s.points ?? 0,
+                      }));
+                      setViewersList(list);
+                      setShowViewersPanel(true);
+                    }}
+                  >
+                    {mvpSlots.opponent.slice(0, 3).map((slot, i) => {
+                      const isMvp = i === 0 && (slot.points ?? 0) > 0;
+                      return (
+                        <div
+                          key={`mvp-r-${slot.id}`}
+                          className="relative"
+                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
+                        >
+                          <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
+                            <AvatarRing
+                              src={resolveCircleAvatar(slot.avatar, slot.name)}
+                              alt={slot.name || 'MVP'}
+                              size={LIVE_MVP_PROFILE_RING_PX}
+                              ringColor={isMvp ? MVP_GOLD : undefined}
+                            />
+                          </div>
+                          {isMvp && (
+                            <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 z-[2] ${MVP_BADGE_CLASS}`}>
+                              MVP
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  </div>
+                </div>
         )}
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
