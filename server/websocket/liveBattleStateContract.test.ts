@@ -17,6 +17,7 @@ const read = (relative: string) =>
  */
 describe("LIVE + battle server state-machine contracts", () => {
   const wsIndex = read("./index.ts");
+  const wsHandlers = read("./handlers.ts");
   const battle = read("./battle.ts");
   const liveStream = read("../../src/features/live/host/useLiveHostController.tsx");
   const spectator = read("../../src/features/live/spectator/useLiveSpectatorController.tsx");
@@ -37,6 +38,20 @@ describe("LIVE + battle server state-machine contracts", () => {
       "../../src/features/live/chat/createLiveGiftGoalAndViewerCountHandlers.ts",
     );
     expect(viewerCountHelper).toContain("applyServerViewerCount");
+  });
+
+  it("recounts spectators after a connected user becomes a battle creator", () => {
+    expect(wsIndex).toContain("export async function updateViewerCount");
+    const battleStart = wsHandlers.slice(
+      wsHandlers.indexOf('case "battle_create"'),
+      wsHandlers.indexOf('case "battle_join"'),
+    );
+    const battleJoin = wsHandlers.slice(
+      wsHandlers.indexOf('case "battle_join"'),
+      wsHandlers.indexOf('case "battle_spectator_vote"'),
+    );
+    expect(battleStart).toContain("await updateViewerCount(client.roomId)");
+    expect(battleJoin).toContain("await updateViewerCount(client.roomId)");
   });
 
   it("a normal viewer leaving only ends the stream when they are the host", () => {

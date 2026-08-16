@@ -1,4 +1,11 @@
-import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes } from "./index";
+import {
+  Client,
+  broadcastToRoom,
+  sendToClient,
+  sendToUserGlobal,
+  incrementRoomLiveLikes,
+  updateViewerCount,
+} from "./index";
 import { logger } from "../lib/logger";
 import { setCreatorCohostRoom } from "./liveCreatorRole";
 import {
@@ -674,6 +681,7 @@ export async function handleMessage(
           }
           await saveBattleToStore(client.roomId, session);
           await startBattleTimer(client.roomId);
+          await updateViewerCount(client.roomId);
         } else {
           sendToClient(client, "battle_created", {
             battleId: session.id,
@@ -710,6 +718,9 @@ export async function handleMessage(
         } else if (invited) {
           await clearBattleInvite(client.roomId, client.userId);
           await untrackPendingBattleInvite(client.roomId, client.userId);
+        }
+        if (battleSession) {
+          await updateViewerCount(client.roomId);
         }
         break;
       }

@@ -903,7 +903,7 @@ async function computeSpectatorViewerCount(roomId: string): Promise<number> {
   return Math.max(0, count);
 }
 
-async function updateViewerCount(roomId: string): Promise<void> {
+export async function updateViewerCount(roomId: string): Promise<void> {
   const count = await computeSpectatorViewerCount(roomId);
   broadcastToRoom(roomId, "viewer_count", { count });
   viewerCountDbWriter.schedule(roomId, count);
