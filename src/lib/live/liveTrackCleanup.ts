@@ -17,7 +17,15 @@ export function detachParticipantTracks(participant: RemoteParticipant | null | 
   }
 }
 
-/** Release a gift / URL video element decoder. */
+/**
+ * Release a gift / URL video element at teardown.
+ *
+ * Must never clear the `src` attribute: React declares it in JSX and only
+ * writes it during a render commit, so removing it from an element React keeps
+ * mounted (every StrictMode effect remount) leaves a source-less element that
+ * fires no media events at all. Pausing stops decoding immediately; the media
+ * resource is freed when React unmounts the element.
+ */
 export function releaseVideoElement(el: HTMLVideoElement | null | undefined): void {
   if (!el) return;
   try {
@@ -25,13 +33,7 @@ export function releaseVideoElement(el: HTMLVideoElement | null | undefined): vo
   } catch {
     /* ignore */
   }
-  el.removeAttribute('src');
   if (el.srcObject) {
     el.srcObject = null;
-  }
-  try {
-    el.load();
-  } catch {
-    /* ignore */
   }
 }

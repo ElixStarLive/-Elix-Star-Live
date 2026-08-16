@@ -7,7 +7,6 @@ export const LIVE_WEBRTC_VIDEO_CLASS = 'live-webrtc-video';
 
 type HideUntilPlayingEl = HTMLVideoElement & {
   __elixRevealOnPlaying?: () => void;
-  __elixRevealTimer?: ReturnType<typeof setTimeout>;
 };
 
 /**
@@ -28,17 +27,9 @@ function hideVideoUntilPlaying(el: HTMLVideoElement | null | undefined): void {
     el.removeEventListener('loadedmetadata', flagged.__elixRevealOnPlaying);
     flagged.__elixRevealOnPlaying = undefined;
   }
-  if (flagged.__elixRevealTimer != null) {
-    clearTimeout(flagged.__elixRevealTimer);
-    flagged.__elixRevealTimer = undefined;
-  }
 
   const reveal = () => {
     el.style.visibility = 'visible';
-    if (flagged.__elixRevealTimer != null) {
-      clearTimeout(flagged.__elixRevealTimer);
-      flagged.__elixRevealTimer = undefined;
-    }
     flagged.__elixRevealOnPlaying = undefined;
   };
 
