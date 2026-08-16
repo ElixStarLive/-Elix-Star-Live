@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { websocket } from '../lib/websocket';
-import { formatGiftDisplayName } from '../lib/giftsCatalog';
 import {
   ELIX_GIFT_PILL_EVENT,
   type ElixGiftPillDetail,
@@ -9,7 +8,7 @@ import { LIVE_BATTLE_STAGE_BOTTOM, LIVE_SOLO_CHAT_TOP_FROM_BOTTOM } from '../lib
 import { useAuthStore } from '../store/useAuthStore';
 
 /**
- * Separate live gift-feed stack (photo: cards + xN).
+ * Live gift combo counters (xN only). Sender chip lives in GiftAnimationOverlay.
  * Listens to the same gift events as the existing pill overlay.
  * Does not modify GiftAnimationOverlay, GiftPanel, or gift send/pay logic.
  */
@@ -17,35 +16,14 @@ import { useAuthStore } from '../store/useAuthStore';
 type FeedCard = {
   id: string;
   username: string;
-  giftIcon: string;
   giftName: string;
   quantity: number;
-  avatar: string;
-  badge: 'top_gifter' | 'vip' | 'elite';
   timestamp: number;
 };
 
 const MERGE_MS = 8000;
 const CLEAR_MS = 8000;
 const MAX_CARDS = 3;
-
-function badgeForQty(q: number): FeedCard['badge'] {
-  if (q >= 25) return 'top_gifter';
-  if (q >= 10) return 'vip';
-  return 'elite';
-}
-
-const BADGE: Record<FeedCard['badge'], { glow: string }> = {
-  top_gifter: {
-    glow: 'border-[#D8D9DD]/50 shadow-[0_0_10px_rgba(229, 229, 231,0.45)]',
-  },
-  vip: {
-    glow: 'border-[#C9CCD1]/45 shadow-[0_0_10px_rgba(201, 204, 209,0.35)]',
-  },
-  elite: {
-    glow: 'border-[#2A2D33]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
-  },
-};
 
 function formatXn(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
@@ -99,8 +77,6 @@ export function LiveGiftFeedStack({
     const username = data.username ?? 'Someone';
     const giftName = data.giftName ?? data.gift_name ?? 'Gift';
     const quantity = typeof data.quantity === 'number' && data.quantity > 0 ? data.quantity : 1;
-    const giftIcon = data.giftIcon ?? data.gift_icon ?? '🎁';
-    const avatar = typeof data.avatar === 'string' ? data.avatar : '';
     const now = Date.now();
 
     setStack((prev) => {
@@ -114,8 +90,6 @@ export function LiveGiftFeedStack({
           ...next[idx],
           quantity: qty,
           timestamp: now,
-          badge: badgeForQty(qty),
-          avatar: avatar || next[idx].avatar,
         };
         const [item] = next.splice(idx, 1);
         return [...next, item].slice(-MAX_CARDS);
@@ -125,11 +99,8 @@ export function LiveGiftFeedStack({
         {
           id: `${now}-${Math.random()}`,
           username,
-          giftIcon,
           giftName,
           quantity,
-          avatar,
-          badge: badgeForQty(quantity),
           timestamp: now,
         },
       ].slice(-MAX_CARDS);
@@ -192,42 +163,14 @@ export function LiveGiftFeedStack({
                   }
           }
         >
-          {stack.map((g) => {
-            const style = BADGE[g.badge];
-            return (
-              <div key={g.id} className="flex items-center gap-1.5 animate-slide-in-right">
-                <div
-                  className={`flex-1 min-w-0 rounded-full bg-black/75 backdrop-blur-sm border px-1.5 py-1 flex items-center gap-1.5 ${style.glow}`}
-                >
-                  <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-white/10 border border-white/20">
-                    {g.avatar && (g.avatar.startsWith('http') || g.avatar.startsWith('/')) ? (
-                      <img src={g.avatar} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="w-full h-full flex items-center justify-center text-[10px] text-white/80">
-                        {(g.username || '?')[0]}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1 leading-none">
-                    <p className="text-[10px] font-bold text-white truncate">{g.username}</p>
-                    <p className="text-[8px] text-white/75 truncate">
-                      sent {formatGiftDisplayName(g.giftName)}
-                    </p>
-                  </div>
-                  <div className="w-6 h-6 flex-shrink-0">
-                    {g.giftIcon && (g.giftIcon.startsWith('http') || g.giftIcon.startsWith('/')) ? (
-                      <img src={g.giftIcon} alt="" className="w-full h-full object-contain" />
-                    ) : (
-                      <span className="text-sm">{g.giftIcon || '🎁'}</span>
-                    )}
-                  </div>
-                </div>
-                <span className="font-black italic text-white text-[20px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] flex-shrink-0">
-                  x{formatXn(g.quantity)}
-                </span>
-              </div>
-            );
-          })}
+          {stack.map((g) => (
+            <span
+              key={g.id}
+              className="font-black italic text-white text-[16px] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] flex-shrink-0 animate-slide-in-right"
+            >
+              x{formatXn(g.quantity)}
+            </span>
+          ))}
         </div>
       </div>
     </div>
