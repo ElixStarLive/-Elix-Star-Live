@@ -34,23 +34,14 @@ function badgeForQty(q: number): FeedCard['badge'] {
   return 'elite';
 }
 
-const BADGE: Record<
-  FeedCard['badge'],
-  { label: string; chip: string; glow: string }
-> = {
+const BADGE: Record<FeedCard['badge'], { glow: string }> = {
   top_gifter: {
-    label: 'Top Gifter',
-    chip: 'bg-[#E6E9EE] text-white',
     glow: 'border-[#D8D9DD]/50 shadow-[0_0_10px_rgba(229, 229, 231,0.45)]',
   },
   vip: {
-    label: 'VIP',
-    chip: 'bg-[#C9CCD1] text-white',
     glow: 'border-[#C9CCD1]/45 shadow-[0_0_10px_rgba(201, 204, 209,0.35)]',
   },
   elite: {
-    label: 'Elite',
-    chip: 'bg-[rgba(255,255,255,0.06)] text-[#FFFFFF] border border-[#2A2D33]',
     glow: 'border-[#2A2D33]/80 shadow-[0_0_10px_rgba(0,0,0,0.35)]',
   },
 };
@@ -186,8 +177,8 @@ export function LiveGiftFeedStack({
                     maxWidth: '220px',
                   }
                 : {
-                    // Solo: top of chat (middle of screen). Red banner stays on Weekly Ranking.
-                    bottom: LIVE_SOLO_CHAT_TOP_FROM_BOTTOM,
+                    // Solo: top of chat (middle of screen), shifted 33mm down. Red banner stays on Weekly Ranking.
+                    bottom: `calc(${LIVE_SOLO_CHAT_TOP_FROM_BOTTOM} - 33mm)`,
                     transform: 'translateY(-100%)',
                     maxWidth: '220px',
                   }
@@ -210,11 +201,6 @@ export function LiveGiftFeedStack({
                     )}
                   </div>
                   <div className="min-w-0 flex-1 leading-none">
-                    <span
-                      className={`inline-block text-[7px] font-black px-1 py-[1px] rounded-sm mb-0.5 ${style.chip}`}
-                    >
-                      {style.label}
-                    </span>
                     <p className="text-[10px] font-bold text-white truncate">{g.username}</p>
                     <p className="text-[8px] text-white/75 truncate">
                       sent {formatGiftDisplayName(g.giftName)}
