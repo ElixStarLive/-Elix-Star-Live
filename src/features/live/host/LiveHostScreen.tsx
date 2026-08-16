@@ -489,7 +489,7 @@ export default function LiveHostScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center z-[9990] transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden border-none ${isBattleMode ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
+      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden border-none ${isBattleMode ? 'elix-battle-room-fundal' : 'elix-live-room-fundal'}`}>
         <div className="h-full w-full relative">
         {isBattleMode ? (
           <div
@@ -2003,9 +2003,9 @@ export default function LiveHostScreen() {
                 type="button"
                 onClick={onComboButtonClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[56px] h-[56px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
-                <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+                <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-xs' : 'text-base'}`}>
                   x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
                 </span>
               </button>

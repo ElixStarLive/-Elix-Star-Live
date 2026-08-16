@@ -490,7 +490,7 @@ export default function SpectatorLiveScreen() {
       className="elix-live-room elix-fundal-glass fixed inset-0 flex justify-center transition-transform duration-[250ms] ease-out"
       style={{ transform: pageExiting ? 'translateX(100%)' : undefined }}
     >
-      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${spectatorBattle?.active ? 'elix-battle-room-fundal' : 'elix-fundal-glass'}`}>
+      <div className={`relative w-full max-w-[480px] h-full overflow-hidden overflow-x-hidden flex flex-col ${spectatorBattle?.active ? 'elix-battle-room-fundal' : 'elix-live-room-fundal'}`}>
         <audio ref={hostRemoteAudioRef} autoPlay playsInline className="hidden" />
 
         {spectatorBattle?.active ? (
@@ -1952,9 +1952,9 @@ export default function SpectatorLiveScreen() {
                 type="button"
                 onClick={handleComboClick}
                 disabled={comboCount >= GIFT_COMBO_MAX}
-                className="w-[72px] h-[72px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
+                className="w-[56px] h-[56px] rounded-full bg-transparent flex flex-col items-center justify-center active:scale-90 transition-transform shadow-[0_0_18px_rgba(111,63,245,0.55)] border-2 border-white/30 disabled:opacity-50"
               >
-                <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-sm' : 'text-xl'}`}>
+                <span className={`font-black italic text-white drop-shadow-md leading-none ${comboCount >= 1000 ? 'text-xs' : 'text-base'}`}>
                   x{comboCount >= 1000 ? `${(comboCount / 1000).toFixed(comboCount % 1000 === 0 ? 0 : 1)}K` : comboCount}
                 </span>
               </button>

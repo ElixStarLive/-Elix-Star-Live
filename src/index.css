@@ -2333,6 +2333,7 @@ body {
 .elix-battle-chat-fundal,
 .elix-battle-room-fundal,
 .elix-battle-lower-fundal,
+.elix-live-room-fundal,
 .elix-live-chat-fundal,
 .elix-live-lower-fundal {
   background-color: transparent;
@@ -2350,6 +2351,7 @@ body {
 #root .elix-live-room .elix-battle-chat-fundal,
 #root .elix-live-room .elix-battle-stage-fundal,
 #root .elix-live-room .elix-battle-slot,
+#root .elix-live-room .elix-live-room-fundal,
 #root .elix-live-room .elix-live-chat-fundal,
 #root .elix-live-room .elix-live-lower-fundal {
   background-color: transparent !important;
