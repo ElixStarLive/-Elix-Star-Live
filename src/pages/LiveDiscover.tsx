@@ -1,6 +1,6 @@
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { RoyceBackIcon } from '../components/royce';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Radio, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
@@ -16,6 +16,7 @@ import {
   type RawLiveStreamFields,
 } from '../lib/liveCreatorDisplay';
 import { apiFetchProfileById } from '../features/feed/feedApi';
+import { exitToFromLocationState, FEED_HOME } from '../lib/settingsNav';
 
 const InlineLiveViewer = React.lazy(() => import('../components/InlineLiveViewer'));
 
@@ -55,10 +56,11 @@ async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
 
 export default function LiveDiscover() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const goFeed = useCallback(() => {
-    navigate('/feed');
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, FEED_HOME), { replace: true });
+  }, [navigate, location.state]);
 
   const [creators, setCreators] = useState<LiveCreator[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { CaptureShutterButton } from '../components/CaptureShutterButton';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { setCachedCameraStream } from '../lib/cameraStream';
 import { RefreshCw, Zap, Clock, Music, Check, RotateCcw, ZoomIn, ZoomOut, Wand2, ChevronLeft, Image as ImageIcon, Type, Sparkles, X, LayoutGrid, Upload as UploadIcon, Share2, Smile, Blend, ChevronDown } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
@@ -29,9 +29,11 @@ import { takeCachedRecordedMedia } from '../lib/recordedMediaCache';
 import { DUET_STAGE_HEIGHT } from '../lib/profileFrame';
 import { nativeShareMedia } from '../lib/platform';
 import { bakeImage, bakeVideo, canBakeVideo, type EditOverlay } from '../lib/mediaBake';
+import { exitToFromLocationState, returnToFromLocationState } from '../lib/settingsNav';
 
 export default function Upload() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { muteAllSounds } = useSettingsStore();
   const authUser = useAuthStore((s) => s.user);
@@ -112,20 +114,21 @@ export default function Upload() {
   }, [navigate]);
 
   const goCreate = useCallback(() => {
-    navigate('/create');
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, '/create'), { replace: true });
+  }, [navigate, location.state]);
 
   const goFeed = useCallback(() => {
-    navigate('/feed');
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, '/feed'), { replace: true });
+  }, [navigate, location.state]);
 
   const goFriends = useCallback(() => {
     navigate('/friends');
   }, [navigate]);
 
   const goAiStudio = useCallback(() => {
-    navigate('/ai-studio');
-  }, [navigate]);
+    const returnTo = returnToFromLocationState(location.state);
+    navigate('/ai-studio', returnTo ? { state: { returnTo } } : undefined);
+  }, [navigate, location.state]);
 
   const openMusicModal = useCallback(() => {
     setShowSoundMix(false);

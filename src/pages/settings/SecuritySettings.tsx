@@ -1,10 +1,15 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { KeyRound, Shield, ShieldCheck } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { SettingsOptionRow as R } from "../../components/settings/SettingsOptionRow";
 import { isPasswordResetEnabled } from "../../lib/authFeatures";
-import { SETTINGS_HOME, containerReturnState } from "../../lib/settingsNav";
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from "../../lib/settingsNav";
 import { request } from "../../lib/apiClient";
 import { showToast } from "../../lib/toast";
 
@@ -12,15 +17,25 @@ const SECURITY_HOME = "/settings/security";
 
 export default function SecuritySettings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const showReset = isPasswordResetEnabled();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [twoFactorLoading, setTwoFactorLoading] = useState(true);
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goForgotPassword = useCallback(() => navigate("/forgot-password"), [navigate]);
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || SECURITY_HOME,
+  );
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goForgotPassword = useCallback(
+    () => navigate("/forgot-password", { state: childReturnState }),
+    [navigate, childReturnState],
+  );
   const goBlocked = useCallback(
-    () => navigate("/settings/blocked", { state: containerReturnState(SECURITY_HOME) }),
-    [navigate],
+    () => navigate("/settings/blocked", { state: childReturnState }),
+    [navigate, childReturnState],
   );
 
   const refreshTwoFactor = useCallback(async () => {

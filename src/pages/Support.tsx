@@ -6,7 +6,12 @@ import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { SettingsSectionLabel as S } from '../components/settings/SettingsSectionLabel';
 import { apiCreateReport, apiGetCurrentUserId } from '../features/safety/safetyApi';
-import { SETTINGS_HOME, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from '../lib/settingsNav';
 
 const FAQ_ITEMS = [
   {
@@ -59,14 +64,17 @@ export default function Support() {
     () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
     [navigate, location.state],
   );
-  const goSafety = useCallback(
-    () => navigate('/settings/safety', { state: containerReturnState('/support') }),
-    [navigate],
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || '/support',
   );
-  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
-  const goTerms = useCallback(() => navigate('/terms'), [navigate]);
-  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
-  const goCopyright = useCallback(() => navigate('/copyright'), [navigate]);
+  const goSafety = useCallback(
+    () => navigate('/settings/safety', { state: childReturnState }),
+    [navigate, childReturnState],
+  );
+  const goGuidelines = useCallback(() => navigate('/guidelines', { state: childReturnState }), [navigate, childReturnState]);
+  const goTerms = useCallback(() => navigate('/terms', { state: childReturnState }), [navigate, childReturnState]);
+  const goPrivacy = useCallback(() => navigate('/privacy', { state: childReturnState }), [navigate, childReturnState]);
+  const goCopyright = useCallback(() => navigate('/copyright', { state: childReturnState }), [navigate, childReturnState]);
   const openContactForm = useCallback(() => setShowContactForm(true), []);
   const closeContactForm = useCallback(() => setShowContactForm(false), []);
 

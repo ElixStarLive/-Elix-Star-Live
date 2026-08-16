@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { RoyceCloseIcon } from '../../../components/royce';
 import { showToast } from '../../../lib/toast';
-import { returnToFromLocationState } from '../../../lib/settingsNav';
+import { liveReturnState, returnToFromLocationState } from '../../../lib/settingsNav';
 import { formatCompactNumber } from '../../../lib/formatCompactNumber';
 import {
   prepareLiveVideoEl,
@@ -956,7 +956,9 @@ export default function SpectatorLiveScreen() {
                                 e.stopPropagation();
                                 setShowOpponentPanel(false);
                                 setBattleSidePanel(null);
-                                navigate(watchLiveProfilePath(effectiveStreamId, profileUid));
+                                navigate(watchLiveProfilePath(effectiveStreamId, profileUid), {
+                                  state: liveReturnState(location.pathname, location.search),
+                                });
                               }}
                             >
                               <span className="text-[#F5F5F7] font-bold text-[11px]">Profile</span>
@@ -1681,7 +1683,11 @@ export default function SpectatorLiveScreen() {
                   showFollow={!user?.id || !hostUserId || user.id !== hostUserId}
                   isFollowing={isFollowing}
                   isLivePro={isLiveProFromGiftReach(hostTotalGiftCoins)}
-                  onAvatarClick={() => navigate(watchLiveProfilePath(effectiveStreamId, hostUserId))}
+                  onAvatarClick={() =>
+                    navigate(watchLiveProfilePath(effectiveStreamId, hostUserId), {
+                      state: liveReturnState(location.pathname, location.search),
+                    })
+                  }
                   onLike={(e) => {
                     handleLikeTap(e);
                   }}
@@ -1801,7 +1807,9 @@ export default function SpectatorLiveScreen() {
                 setShowRankingPanel(true);
               }}
               onExplore={() => {
-                navigate('/live');
+                navigate('/live', {
+                  state: liveReturnState(location.pathname, location.search),
+                });
               }}
               showGiftGoal
               giftGoal={giftGoal}
@@ -2591,7 +2599,12 @@ export default function SpectatorLiveScreen() {
                         key={v.id}
                         type="button"
                         className="flex items-center gap-3 w-full py-2.5 active:bg-white/5 rounded-xl transition-colors"
-                        onClick={() => { setShowViewersPanel(false); navigate(watchLiveProfilePath(effectiveStreamId, v.id)); }}
+                        onClick={() => {
+                          setShowViewersPanel(false);
+                          navigate(watchLiveProfilePath(effectiveStreamId, v.id), {
+                            state: liveReturnState(location.pathname, location.search),
+                          });
+                        }}
                       >
                         <span className="text-white/30 text-xs font-bold w-5 text-right">{i + 1}</span>
                         <div className="relative flex-shrink-0">

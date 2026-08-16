@@ -1,8 +1,8 @@
 import React, { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { RoyceBackIcon } from "../../components/royce";
 import type { LucideIcon } from "lucide-react";
-import { ENGAGEMENT_HOME } from "../../lib/settingsNav";
+import { ENGAGEMENT_HOME, exitToFromLocationState } from "../../lib/settingsNav";
 
 export function EngagementShell({
   title,
@@ -16,9 +16,10 @@ export function EngagementShell({
   backTo?: string;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const exit = useCallback(() => {
-    navigate(backTo, { replace: true });
-  }, [navigate, backTo]);
+    navigate(exitToFromLocationState(location.state, backTo), { replace: true });
+  }, [navigate, location.state, backTo]);
 
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">

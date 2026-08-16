@@ -4,7 +4,12 @@ import { Lock, Eye, AlertTriangle, Ban, Flag, HelpCircle } from 'lucide-react';
 import SettingsOptionSheet from '../../components/SettingsOptionSheet';
 import { SettingsOptionRow as R } from '../../components/settings/SettingsOptionRow';
 import { SettingsSectionLabel as S } from '../../components/settings/SettingsSectionLabel';
-import { SETTINGS_HOME, containerReturnState, exitToFromLocationState } from '../../lib/settingsNav';
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from '../../lib/settingsNav';
 
 const SAFETY_HOME = '/settings/safety';
 
@@ -16,20 +21,23 @@ export default function SafetyCenter() {
     () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
     [navigate, location.state],
   );
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || SAFETY_HOME,
+  );
   const goBlocked = useCallback(
-    () => navigate('/settings/blocked', { state: containerReturnState(SAFETY_HOME) }),
-    [navigate],
+    () => navigate('/settings/blocked', { state: childReturnState }),
+    [navigate, childReturnState],
   );
   const goReport = useCallback(
-    () => navigate('/report?type=support&id=support_ticket', { state: containerReturnState(SAFETY_HOME) }),
-    [navigate],
+    () => navigate('/report?type=support&id=support_ticket', { state: childReturnState }),
+    [navigate, childReturnState],
   );
-  const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
-  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
-  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const goEditProfile = useCallback(() => navigate('/edit-profile', { state: childReturnState }), [navigate, childReturnState]);
+  const goPrivacy = useCallback(() => navigate('/privacy', { state: childReturnState }), [navigate, childReturnState]);
+  const goGuidelines = useCallback(() => navigate('/guidelines', { state: childReturnState }), [navigate, childReturnState]);
   const goSupport = useCallback(
-    () => navigate('/support', { state: containerReturnState(SAFETY_HOME) }),
-    [navigate],
+    () => navigate('/support', { state: childReturnState }),
+    [navigate, childReturnState],
   );
 
   return (

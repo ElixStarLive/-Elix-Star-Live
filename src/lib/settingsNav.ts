@@ -39,16 +39,34 @@ export function returnToFromLocationState(state: unknown): string | null {
   if (!state || typeof state !== 'object') return null;
   const raw = (state as { returnTo?: unknown }).returnTo;
   if (typeof raw !== 'string') return null;
-  const path = raw.trim().split('?')[0] || '';
-  if (!path.startsWith('/') || path.startsWith('//')) return null;
+  const path = raw.trim().split('#')[0] || '';
+  if (
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    /[\u0000-\u001F\u007F\\]/.test(path)
+  ) {
+    return null;
+  }
   return path;
 }
 
 /** Navigate state that pins close/back to a container path. */
 export function containerReturnState(path: string): { returnTo: string } {
-  const trimmed = path.trim().split('?')[0] || '';
-  const safe = trimmed.startsWith('/') && !trimmed.startsWith('//') ? trimmed : FEED_HOME;
+  const trimmed = path.trim().split('#')[0] || '';
+  const safe =
+    trimmed.startsWith('/') &&
+    !trimmed.startsWith('//') &&
+    !/[\u0000-\u001F\u007F\\]/.test(trimmed)
+      ? trimmed
+      : FEED_HOME;
   return { returnTo: safe };
+}
+
+/** Exact spectator watch URL to retain while opening a nested screen. */
+export function liveReturnState(pathname: string, search = ''): { returnTo: string } {
+  const match = pathname.match(/^\/watch\/([^/]+)/);
+  const watchPath = match?.[1] ? `/watch/${match[1]}${search}` : FEED_HOME;
+  return containerReturnState(watchPath);
 }
 
 /** Navigate state that pins close/back to Inbox. */

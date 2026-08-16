@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Trophy,
   Target,
@@ -14,7 +14,12 @@ import {
 import { showToast } from "../../lib/toast";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { apiEngagementHub } from "../../features/live/engagement/liveEngagementApi";
-import { SETTINGS_HOME } from "../../lib/settingsNav";
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from "../../lib/settingsNav";
 
 type Hub = {
   promotional_coins: number;
@@ -82,14 +87,24 @@ const LINKS: {
 
 export default function EngagementHub() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [hub, setHub] = useState<Hub | null>(null);
   const [loading, setLoading] = useState(true);
 
   const exit = useCallback(() => {
-    navigate(SETTINGS_HOME, { replace: true });
-  }, [navigate]);
-  const goDailyLogin = useCallback(() => navigate("/engagement/daily-login"), [navigate]);
-  const openEngagementPath = useCallback((path: string) => navigate(path), [navigate]);
+    navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true });
+  }, [navigate, location.state]);
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || "/engagement",
+  );
+  const goDailyLogin = useCallback(
+    () => navigate("/engagement/daily-login", { state: childReturnState }),
+    [navigate, childReturnState],
+  );
+  const openEngagementPath = useCallback(
+    (path: string) => navigate(path, { state: childReturnState }),
+    [navigate, childReturnState],
+  );
 
   useEffect(() => {
     void (async () => {

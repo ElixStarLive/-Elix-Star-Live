@@ -1,12 +1,13 @@
 import React, { useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import SettingsOptionSheet from "../../components/SettingsOptionSheet";
 import { useSettingsStore } from "../../store/useSettingsStore";
-import { SETTINGS_HOME } from "../../lib/settingsNav";
+import { SETTINGS_HOME, exitToFromLocationState } from "../../lib/settingsNav";
 
 export default function NotificationSettings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const notificationsEnabled = useSettingsStore((s) => s.notificationsEnabled);
   const liveNotifications = useSettingsStore((s) => s.liveNotifications);
   const setNotificationsEnabled = useSettingsStore(
@@ -14,7 +15,10 @@ export default function NotificationSettings() {
   );
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   return (
     <SettingsOptionSheet onClose={exit} title="Notifications">

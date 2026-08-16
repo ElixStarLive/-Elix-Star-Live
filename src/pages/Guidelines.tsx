@@ -1,16 +1,31 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Shield, Users, Heart, AlertTriangle, Eye, Ban } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { IconDocSection as Section } from '../components/IconDocSection';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from '../lib/settingsNav';
 
 export default function Guidelines() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || '/guidelines',
+  );
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goReport = useCallback(() => navigate('/report'), [navigate]);
-  const goSettings = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goReport = useCallback(() => navigate('/report', { state: childReturnState }), [navigate, childReturnState]);
+  const goSettings = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   return (
     <SettingsOptionSheet onClose={exit} title="Community Guidelines">

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Banknote,
   BookOpen,
@@ -16,7 +16,12 @@ import {
 } from 'lucide-react';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { IconDocSection as Section } from '../components/IconDocSection';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import {
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from '../lib/settingsNav';
 
 /**
  * In-app product guide — explains how Elix Star Live works for creators and fans.
@@ -24,11 +29,18 @@ import { SETTINGS_HOME } from '../lib/settingsNav';
  */
 export default function HowItWorks() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goEngagement = useCallback(() => navigate('/engagement'), [navigate]);
-  const goSupport = useCallback(() => navigate('/support'), [navigate]);
-  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || '/how-it-works',
+  );
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goEngagement = useCallback(() => navigate('/engagement', { state: childReturnState }), [navigate, childReturnState]);
+  const goSupport = useCallback(() => navigate('/support', { state: childReturnState }), [navigate, childReturnState]);
+  const goGuidelines = useCallback(() => navigate('/guidelines', { state: childReturnState }), [navigate, childReturnState]);
 
   return (
     <SettingsOptionSheet onClose={exit} title="How the app works">

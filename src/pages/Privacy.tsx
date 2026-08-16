@@ -1,13 +1,20 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import { SETTINGS_HOME, exitToFromLocationState } from '../lib/settingsNav';
 
 export default function Privacy() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const goBack = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
-  const goSettings = useCallback(() => navigate('/settings'), [navigate]);
+  const goBack = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
+  const goSettings = useCallback(
+    () => navigate('/settings', { state: location.state }),
+    [navigate, location.state],
+  );
 
   return (
     <SettingsOptionSheet onClose={goBack} title="Privacy Policy">

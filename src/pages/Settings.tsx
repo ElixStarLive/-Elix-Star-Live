@@ -26,16 +26,24 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
 import { useSettingsStore } from '../store/useSettingsStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { engagementFlags } from '../config/engagementFlags';
-import { SETTINGS_EXIT_TO, ENGAGEMENT_HOME, SETTINGS_HOME, containerReturnState } from '../lib/settingsNav';
+import {
+  SETTINGS_EXIT_TO,
+  ENGAGEMENT_HOME,
+  SETTINGS_HOME,
+  containerReturnState,
+  exitToFromLocationState,
+  returnToFromLocationState,
+} from '../lib/settingsNav';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t, lang } = useT();
   const [langOpen, setLangOpen] = useState(false);
   const signOut = useAuthStore((s) => s.signOut);
@@ -44,32 +52,35 @@ export default function Settings() {
   const setLiveNotifications = useSettingsStore((s) => s.setLiveNotifications);
   const muteAllSounds = useSettingsStore((s) => s.muteAllSounds);
   const setMuteAllSounds = useSettingsStore((s) => s.setMuteAllSounds);
+  const childReturnState = containerReturnState(
+    returnToFromLocationState(location.state) || SETTINGS_HOME,
+  );
 
   const exitSettings = useCallback(() => {
-    navigate(SETTINGS_EXIT_TO, { replace: true });
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, SETTINGS_EXIT_TO), { replace: true });
+  }, [navigate, location.state]);
 
-  const goEditProfile = useCallback(() => navigate('/edit-profile'), [navigate]);
-  const goSafety = useCallback(() => navigate('/settings/safety'), [navigate]);
-  const goSecurity = useCallback(() => navigate('/settings/security'), [navigate]);
-  const goPayout = useCallback(() => navigate('/settings/payout'), [navigate]);
-  const goEngagement = useCallback(() => navigate(ENGAGEMENT_HOME), [navigate]);
-  const goAdmin = useCallback(() => navigate('/admin'), [navigate]);
-  const goNotifications = useCallback(() => navigate('/settings/notifications'), [navigate]);
+  const goEditProfile = useCallback(() => navigate('/edit-profile', { state: childReturnState }), [navigate, childReturnState]);
+  const goSafety = useCallback(() => navigate('/settings/safety', { state: childReturnState }), [navigate, childReturnState]);
+  const goSecurity = useCallback(() => navigate('/settings/security', { state: childReturnState }), [navigate, childReturnState]);
+  const goPayout = useCallback(() => navigate('/settings/payout', { state: childReturnState }), [navigate, childReturnState]);
+  const goEngagement = useCallback(() => navigate(ENGAGEMENT_HOME, { state: childReturnState }), [navigate, childReturnState]);
+  const goAdmin = useCallback(() => navigate('/admin', { state: childReturnState }), [navigate, childReturnState]);
+  const goNotifications = useCallback(() => navigate('/settings/notifications', { state: childReturnState }), [navigate, childReturnState]);
   const goLikedVideos = useCallback(
-    () => navigate('/profile?tab=liked', { state: containerReturnState(SETTINGS_HOME) }),
-    [navigate],
+    () => navigate('/profile?tab=liked', { state: childReturnState }),
+    [navigate, childReturnState],
   );
   const goSaved = useCallback(
-    () => navigate('/saved', { state: containerReturnState(SETTINGS_HOME) }),
-    [navigate],
+    () => navigate('/saved', { state: childReturnState }),
+    [navigate, childReturnState],
   );
-  const goBlocked = useCallback(() => navigate('/settings/blocked'), [navigate]);
-  const goHowItWorks = useCallback(() => navigate('/how-it-works'), [navigate]);
-  const goSupport = useCallback(() => navigate('/support'), [navigate]);
-  const goTerms = useCallback(() => navigate('/terms'), [navigate]);
-  const goPrivacy = useCallback(() => navigate('/privacy'), [navigate]);
-  const goGuidelines = useCallback(() => navigate('/guidelines'), [navigate]);
+  const goBlocked = useCallback(() => navigate('/settings/blocked', { state: childReturnState }), [navigate, childReturnState]);
+  const goHowItWorks = useCallback(() => navigate('/how-it-works', { state: childReturnState }), [navigate, childReturnState]);
+  const goSupport = useCallback(() => navigate('/support', { state: childReturnState }), [navigate, childReturnState]);
+  const goTerms = useCallback(() => navigate('/terms', { state: childReturnState }), [navigate, childReturnState]);
+  const goPrivacy = useCallback(() => navigate('/privacy', { state: childReturnState }), [navigate, childReturnState]);
+  const goGuidelines = useCallback(() => navigate('/guidelines', { state: childReturnState }), [navigate, childReturnState]);
   const goLogin = useCallback(() => navigate('/login'), [navigate]);
 
   const handleLogout = async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Camera } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
 import { AvatarRing } from '../components/AvatarRing';
 import { avatarUploadService } from '../lib/avatarUpload';
@@ -8,7 +8,7 @@ import { showToast } from '../lib/toast';
 import { useAuthStore } from '../store/useAuthStore';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { apiFetchProfileById, apiPatchProfile } from '../features/feed/feedApi';
-import { EDIT_PROFILE_EXIT_TO } from '../lib/settingsNav';
+import { EDIT_PROFILE_EXIT_TO, exitToFromLocationState } from '../lib/settingsNav';
 
 interface Profile {
   username: string;
@@ -23,6 +23,7 @@ interface Profile {
 
 export default function EditProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const [profile, setProfile] = useState<Profile>({
@@ -40,8 +41,8 @@ export default function EditProfile() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const goBack = useCallback(() => {
-    navigate(EDIT_PROFILE_EXIT_TO, { replace: true });
-  }, [navigate]);
+    navigate(exitToFromLocationState(location.state, EDIT_PROFILE_EXIT_TO), { replace: true });
+  }, [navigate, location.state]);
 
   const openAvatarPicker = useCallback(() => {
     document.getElementById('avatar-upload')?.click();

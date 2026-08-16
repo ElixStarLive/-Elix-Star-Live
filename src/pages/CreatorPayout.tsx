@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Wallet, Landmark, Banknote } from 'lucide-react';
 import { showToast } from '../lib/toast';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
@@ -13,7 +13,7 @@ import {
   apiCreatorPayoutAccount,
   apiCreatorPayoutOnboard,
 } from '../features/creator/creatorPayoutApi';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import { SETTINGS_HOME, exitToFromLocationState } from '../lib/settingsNav';
 
 type Balance = {
   pending_coins: number;
@@ -100,6 +100,7 @@ function Metric({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function CreatorPayout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [balance, setBalance] = useState<Balance | null>(null);
   const [methods, setMethods] = useState<PayoutMethod[]>([]);
   const [gbpWithdrawals, setGbpWithdrawals] = useState<GbpWithdrawal[]>([]);
@@ -146,7 +147,10 @@ export default function CreatorPayout() {
     void reload();
   }, [reload]);
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   const startConnectOnboard = async () => {
     setOnboarding(true);

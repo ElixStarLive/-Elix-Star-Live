@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { platform } from '../lib/platform';
 import SettingsOptionSheet from '../components/SettingsOptionSheet';
 import { LegalDocSection as Section } from '../components/LegalDocSection';
-import { SETTINGS_HOME } from '../lib/settingsNav';
+import { SETTINGS_HOME, exitToFromLocationState } from '../lib/settingsNav';
 
 /**
  * In-app Terms of Service for Elix Star Live.
@@ -13,8 +13,12 @@ import { SETTINGS_HOME } from '../lib/settingsNav';
  */
 export default function Terms() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const exit = useCallback(() => navigate(SETTINGS_HOME, { replace: true }), [navigate]);
+  const exit = useCallback(
+    () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
+    [navigate, location.state],
+  );
 
   return (
     <SettingsOptionSheet onClose={exit} title="Terms of Service">

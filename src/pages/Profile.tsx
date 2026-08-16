@@ -115,24 +115,19 @@ export default function Profile() {
   const registeredViewOwnerRef = useRef<string | null>(null);
 
   const goBack = useCallback(() => {
-    const liveReturn = resolveLiveProfileReturnPath(location.pathname, location.search);
-    if (liveReturn) {
-      navigate(liveReturn, { replace: true });
-      return;
-    }
     const returnTo = returnToFromLocationState(location.state);
     if (returnTo) {
       navigate(returnTo, { replace: true });
       return;
     }
+    const liveReturn = resolveLiveProfileReturnPath(location.pathname, location.search);
+    if (liveReturn) {
+      navigate(liveReturn, { replace: true });
+      return;
+    }
     // Named exit only — no browser history pop (reopens Settings after Settings→Profile).
     navigate(PROFILE_EXIT_TO, { replace: true });
   }, [navigate, location.pathname, location.search, location.state]);
-
-  const goSettings = useCallback(() => {
-    setShowAccountMenu(false);
-    navigate('/settings');
-  }, [navigate]);
 
   const goLoginAfterSignOut = useCallback(async () => {
     setShowAccountMenu(false);
@@ -149,21 +144,34 @@ export default function Profile() {
     return '/profile';
   }, [routeUserId]);
 
+  const nestedReturnPath = useCallback(
+    () =>
+      returnToFromLocationState(location.state) ||
+      resolveLiveProfileReturnPath(location.pathname, location.search) ||
+      profileContainerPath(),
+    [location.pathname, location.search, location.state, profileContainerPath],
+  );
+
+  const goSettings = useCallback(() => {
+    setShowAccountMenu(false);
+    navigate('/settings', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
+
   const goAiStudio = useCallback(() => {
-    navigate('/ai-studio', { state: containerReturnState(profileContainerPath()) });
-  }, [navigate, profileContainerPath]);
+    navigate('/ai-studio', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
 
   const goCreatorLoginDetails = useCallback(() => {
-    navigate('/creator/login-details', { state: containerReturnState(profileContainerPath()) });
-  }, [navigate, profileContainerPath]);
+    navigate('/creator/login-details', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
 
   const goShop = useCallback(() => {
-    navigate('/shop', { state: containerReturnState(profileContainerPath()) });
-  }, [navigate, profileContainerPath]);
+    navigate('/shop', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
 
   const goUploadStory = useCallback(() => {
-    navigate('/upload?type=story');
-  }, [navigate]);
+    navigate('/upload?type=story', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
 
   const goUploadStoryFromRing = useCallback(
     (e: React.MouseEvent) => {
@@ -176,7 +184,7 @@ export default function Profile() {
   const goVideo = useCallback(
     (video: Video) => {
       const returnState = {
-        ...containerReturnState(profileContainerPath()),
+        ...containerReturnState(nestedReturnPath()),
         fromProfile: true,
       };
       if (video.content_kind === 'live' && video.stream_key) {
@@ -187,26 +195,26 @@ export default function Profile() {
       }
       navigate(`/video/${video.id}`, { state: returnState });
     },
-    [navigate, profileContainerPath],
+    [navigate, nestedReturnPath],
   );
 
   const goFollowingList = useCallback(() => {
     const id = resolvedUserId || routeUserId || user?.id;
     if (id) {
       navigate(`/profile/${id}/following`, {
-        state: containerReturnState(profileContainerPath()),
+        state: containerReturnState(nestedReturnPath()),
       });
     }
-  }, [navigate, resolvedUserId, routeUserId, user?.id, profileContainerPath]);
+  }, [navigate, resolvedUserId, routeUserId, user?.id, nestedReturnPath]);
 
   const goFollowersList = useCallback(() => {
     const id = resolvedUserId || routeUserId || user?.id;
     if (id) {
       navigate(`/profile/${id}/followers`, {
-        state: containerReturnState(profileContainerPath()),
+        state: containerReturnState(nestedReturnPath()),
       });
     }
-  }, [navigate, resolvedUserId, routeUserId, user?.id, profileContainerPath]);
+  }, [navigate, resolvedUserId, routeUserId, user?.id, nestedReturnPath]);
 
   const tabVideos = useCallback(() => setActiveTab('videos'), []);
   const tabShop = useCallback(() => setActiveTab('shop'), []);
@@ -221,8 +229,8 @@ export default function Profile() {
   const effectiveUserId = resolvedUserId ?? displayUserId;
 
   const goInbox = useCallback(() => {
-    navigate('/inbox');
-  }, [navigate]);
+    navigate('/inbox', { state: containerReturnState(nestedReturnPath()) });
+  }, [navigate, nestedReturnPath]);
 
   const openThread = useCallback(async () => {
     if (!effectiveUserId) {
@@ -233,7 +241,7 @@ export default function Profile() {
       const { apiEnsureDmThread } = await import('../features/chat/chatApi');
       const { threadId, error: threadErr } = await apiEnsureDmThread(effectiveUserId);
       if (!threadErr && threadId) {
-        navigate(`/inbox/${threadId}`);
+        navigate(`/inbox/${threadId}`, { state: containerReturnState(nestedReturnPath()) });
         return;
       }
       showToast(threadErr || 'Could not open chat');
@@ -241,7 +249,7 @@ export default function Profile() {
       showToast('Could not open chat');
     }
     goInbox();
-  }, [navigate, effectiveUserId, goInbox]);
+  }, [navigate, effectiveUserId, goInbox, nestedReturnPath]);
 
   const openSharePanel = async () => {
     setShowSharePanel(true);
