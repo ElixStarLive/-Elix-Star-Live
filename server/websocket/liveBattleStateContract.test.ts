@@ -146,7 +146,21 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(giftDelivery).toContain("seatedBattleCreatorIds(battle)");
     expect(giftDelivery).toContain("if (battleActive && targetCreatorId)");
     expect(handlers).toContain("emitGiftSentToTargetAudience");
-    expect(handlers).toContain("transferLiveAudienceToBattleRoom");
+    // Audience ownership now follows the creator's ROLE transition, owned by the
+    // WS layer (getCreatorLiveRoleRoom + battle room), not by handlers.ts.
+    // `stream_end` is a deliberate End Live only and must never redirect an
+    // audience into a battle room — see hostLiveLifecycleContract.test.ts.
+    expect(wsIndex).toContain(
+      "export async function transferLiveAudienceToBattleRoom",
+    );
+    expect(wsIndex).toContain(
+      "await transferLiveAudienceToBattleRoom(roomId, userId, roleRoom)",
+    );
+    const streamEndStart = handlers.indexOf('case "stream_end"');
+    expect(streamEndStart).toBeGreaterThan(-1);
+    expect(handlers.slice(streamEndStart, streamEndStart + 900)).not.toContain(
+      "transferLiveAudienceToBattleRoom",
+    );
     expect(wsIndex).toContain("export function broadcastToCreatorAudience");
     expect(wsIndex).toContain("targetCreatorId");
     expect(wsIndex).toContain("audienceCreatorId");

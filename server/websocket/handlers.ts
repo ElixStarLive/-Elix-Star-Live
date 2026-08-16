@@ -13,7 +13,6 @@ import {
   getBattleFromStore,
   getBattleScores,
   saveBattleToStore,
-  getUserBattleRoom,
   battleOpenSeatCount,
   battleSeatedUserIds,
   trackPendingBattleInvite,
@@ -1109,8 +1108,10 @@ export async function handleMessage(
           hostUserId: authoritativeHostUserId,
           hostStreamKey: hostRoomForInvite,
         });
-        // Record where the accepter is heading BEFORE their solo stream ends,
-        // so stream_end can redirect their spectators into the battle room.
+        // Record the battle room as this creator's live role room. It keeps
+        // their own live registration alive across the navigation and lets the
+        // WS role-transition path move their spectators' audience ownership
+        // into the battle room.
         if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
           await setUserBattleRoom(client.userId, hostStreamKeyRaw, BATTLE_USER_ROOM_TTL_MS);
         }
