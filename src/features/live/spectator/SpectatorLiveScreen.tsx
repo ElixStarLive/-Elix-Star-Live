@@ -1501,7 +1501,7 @@ export default function SpectatorLiveScreen() {
             style={{ top: 'calc(var(--safe-top) + 90px + 9mm + 30dvh + 6mm + 2mm)' }}
           >
             <div
-            className="w-full max-w-[480px] px-3 py-1 flex items-end justify-center gap-[1.5mm] pointer-events-auto"
+            className="w-full max-w-[480px] pl-[1mm] pr-3 py-1 flex items-end justify-start gap-[1.5mm] pointer-events-auto"
               title="Top gifters — MVP"
               onClick={() => {
                 const ranked = [...mvpSlots.global]
