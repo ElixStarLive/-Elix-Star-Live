@@ -24,10 +24,10 @@ export const MVP_RING_EMPTY_CLASS =
   'border-[#D9A62E] shadow-[0_0_6px_0_rgba(217,166,46,0.55)]' as const;
 /** Photo MVP circle wrapper (stage / battle rows). */
 export const MVP_RING_PHOTO_CLASS =
-  'rounded-full shadow-[0_0_6px_0_rgba(217,166,46,0.55)] ring-2 ring-[#D9A62E]' as const;
+  'rounded-full shadow-[0_0_6px_0_rgba(217,166,46,0.55)] ring-1 ring-[#D9A62E]' as const;
 /** Compact top-bar / list MVP circle wrapper. */
 export const MVP_RING_PHOTO_SOFT_CLASS =
-  'rounded-full shadow-[0_0_3px_0_rgba(217,166,46,0.30)] ring-2 ring-[#D9A62E]' as const;
+  'rounded-full shadow-[0_0_3px_0_rgba(217,166,46,0.30)] ring-1 ring-[#D9A62E]' as const;
 /** Tiny “MVP” pill on the circle — gold fill, same size/placement as before. */
 export const MVP_BADGE_CLASS =
   'px-1 rounded-full bg-[#D9A62E] text-white text-[6px] font-black leading-none tracking-wide' as const;

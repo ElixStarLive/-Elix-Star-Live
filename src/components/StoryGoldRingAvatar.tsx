@@ -2,7 +2,7 @@ import React from 'react';
 import { isPlaceholderLiveAvatar } from '../lib/liveCreatorDisplay';
 
 /** Live badge + live ring (red) when on-air; silver ring otherwise. */
-const SILVER_RING = '#E6E9EE';
+const SILVER_RING = '#D8D9DD';
 const LIVE_RING = '#FF2D55';
 
 /**
@@ -51,7 +51,7 @@ export function StoryGoldRingAvatar({
         className={`elix-profile-ring absolute inset-0 rounded-full overflow-hidden ${live ? 'elix-story-live-ring' : ''}`}
         style={{
           boxSizing: 'border-box',
-          border: `2.5px solid ${ringColor}`,
+          border: `1px solid ${ringColor}`,
           background: '#121419',
         }}
       >

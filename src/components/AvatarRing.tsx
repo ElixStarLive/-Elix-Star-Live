@@ -10,7 +10,7 @@ interface AvatarRingProps {
   onClick?: (e: React.MouseEvent) => void;
 }
 
-const SILVER_RING = '#E6E9EE';
+const SILVER_RING = '#D8D9DD';
 
 /**
  * User avatar circle — silver ring flush on the photo (same as story circles).
@@ -37,7 +37,7 @@ export function AvatarRing({
         width: safeSize,
         height: safeSize,
         boxSizing: 'border-box',
-        border: `2px solid ${stroke}`,
+        border: `1px solid ${stroke}`,
         background: '#121419',
       }}
       onClick={onClick}

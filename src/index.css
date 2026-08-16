@@ -75,7 +75,7 @@
     --elix-icon-disc-pad: 6px;
     --elix-accent: #E6E9EE;
     --elix-accent-light: #FFFFFF;
-    --elix-avatar-ring: #E6E9EE;
+    --elix-avatar-ring: #D8D9DD;
     --elix-avatar-glow: none;
     --elix-glass-blur: none;
     --elix-fundal-deep: #080A0E;
@@ -1856,12 +1856,12 @@ nav[aria-label="Main navigation"] button:not([aria-current="page"]) .elix-silver
   user-select: none;
 }
 
-/* User circles — sharp #E6E9EE ring only (no halo bloom) */
+/* User circles — thin silver ring only (no halo bloom) */
 .elix-profile-ring,
 .royce-avatar-glow {
   box-sizing: border-box;
   border-radius: 9999px;
-  border: 2px solid var(--elix-avatar-ring, #E6E9EE) !important;
+  border: 1px solid var(--elix-avatar-ring, #D8D9DD) !important;
   background: #121419 !important;
   overflow: hidden;
   box-shadow: none !important;

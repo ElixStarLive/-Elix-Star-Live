@@ -1337,9 +1337,9 @@ export default function SpectatorLiveScreen() {
                 {hostCamOff && !featuredLive && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {hostAvatar ? (
-                      <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border-2 border-[#D8D9DD]/40" />
+                      <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border border-[#D8D9DD]/70" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border-2 border-[#D8D9DD]/40">
+                      <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center border border-[#D8D9DD]/70">
                         <span className="text-[#F5F5F7] font-bold text-2xl">{hostName.slice(0, 1).toUpperCase()}</span>
                       </div>
                     )}
@@ -1535,8 +1535,8 @@ export default function SpectatorLiveScreen() {
                   >
                     {!photo ? (
                       <div
-                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
+                        className={`rounded-full flex items-center justify-center bg-[#121419] border ${
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#D8D9DD]/70'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       />

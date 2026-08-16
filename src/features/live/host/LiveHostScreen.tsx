@@ -643,9 +643,9 @@ export default function LiveHostScreen() {
                 {isCamOff && !featuredHost && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {(user?.avatar || myAvatar) ? (
-                      <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 object-cover object-center" />
+                      <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border border-[#D8D9DD]/70 object-cover object-center" />
                     ) : (
-                      <div className="w-16 h-16 rounded-full border-2 border-[#D8D9DD]/40 bg-[rgba(0,0,0,0.35)]" />
+                      <div className="w-16 h-16 rounded-full border border-[#D8D9DD]/70 bg-[rgba(0,0,0,0.35)]" />
                     )}
                     <span className="text-white font-bold text-xs">{creatorName || user?.username || user?.name || 'Me'}</span>
                   </div>
@@ -1013,8 +1013,8 @@ export default function LiveHostScreen() {
                   >
                     {!photo ? (
                       <div
-                        className={`rounded-full flex items-center justify-center bg-[#121419] border-2 ${
-                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#E6E9EE]/45'
+                        className={`rounded-full flex items-center justify-center bg-[#121419] border ${
+                          isMvp ? MVP_RING_EMPTY_CLASS : 'border-[#D8D9DD]/70'
                         }`}
                         style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
                       />
