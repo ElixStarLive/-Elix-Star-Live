@@ -586,6 +586,22 @@ export async function handleMessage(
         const player4Name =
           typeof data.player4Name === "string" ? data.player4Name.trim() : "";
 
+        // A battle is 1v1 (host vs opponent) or 2v2 (host + P3 vs opponent + P4).
+        // Slots are fixed positions, so P3/P4 without an opponent — or one of
+        // them alone — would build a match with an empty side.
+        if ((player3UserId || player4UserId) && !opponentUserId) {
+          sendToClient(client, "battle_error", {
+            message: "Opponent must accept before starting",
+          });
+          break;
+        }
+        if (Boolean(player3UserId) !== Boolean(player4UserId)) {
+          sendToClient(client, "battle_error", {
+            message: "2v2 needs four creators",
+          });
+          break;
+        }
+
         // Every creator seat must have accepted a real invite. Never trust
         // client-supplied ids alone — host, opponent, P3, and P4 all play.
         const seats: { userId: string; name: string }[] = [];
@@ -822,6 +838,7 @@ export async function handleMessage(
         if (!wasSeated) break;
 
         await revokeBattlePublish(client.roomId, targetUserId);
+        await revokeParticipantPublish(client.roomId, targetUserId);
         const removed = await removeBattleParticipant(client.roomId, targetUserId);
         if (!removed) break;
 

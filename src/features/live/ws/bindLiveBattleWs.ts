@@ -11,6 +11,8 @@ export type LiveBattleWsHandlers = {
   onTick?: (data: { timeLeft?: number }) => void;
   onScore?: (data: unknown) => void;
   onEnded?: (data: unknown) => void;
+  /** Server rejected a battle action (e.g. battle_create) — must not fail silently. */
+  onError?: (data: { message?: string }) => void;
   onBoosterActivated?: (data: unknown) => void;
   onBoosterCaught?: (data: unknown) => void;
   onMistActivated?: (data: unknown) => void;
@@ -33,6 +35,12 @@ export function bindLiveBattleWs(handlers: LiveBattleWsHandlers): () => void {
   }
   if (handlers.onEnded) {
     pairs.push([LIVE_WS_IN.battle_ended, handlers.onEnded]);
+  }
+  if (handlers.onError) {
+    pairs.push([
+      LIVE_WS_IN.battle_error,
+      handlers.onError as (data: unknown) => void,
+    ]);
   }
   if (handlers.onBoosterActivated) {
     pairs.push([LIVE_WS_IN.booster_activated, handlers.onBoosterActivated]);

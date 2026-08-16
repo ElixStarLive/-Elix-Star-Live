@@ -1733,21 +1733,37 @@ export function useLiveHostController() {
     };
   }, [user?.id, isBroadcast, effectiveStreamId, isBattleMode, opponentStreamKey, battleSlots]);
 
-  /** Start / rematch with EVERY accepted creator seat (opponent + P3 + P4). */
+  /**
+   * Start / rematch with the accepted creators, each in the pane they were
+   * invited into: slot 0 is the opponent (P2), slot 1 is P3, slot 2 is P4.
+   * The pane index IS the battle slot — never re-derive it from a filtered
+   * list, or a creator ends up playing a different slot than their tile shows.
+   *
+   * A match is 1v1 (host vs opponent) or 2v2 (host + P3 vs opponent + P4).
+   */
   const startBattleWithAcceptedCreators = useCallback(() => {
-    const accepted = battleSlots.filter((s) => s.status === 'accepted' && s.userId);
-    if (accepted.length === 0) {
-      showToast('Invite a creator first');
+    const acceptedAt = (index: number) => {
+      const slot = battleSlots[index];
+      return slot && slot.status === 'accepted' && slot.userId ? slot : null;
+    };
+    const opp = acceptedAt(0);
+    const p3 = acceptedAt(1);
+    const p4 = acceptedAt(2);
+    if (!opp) {
+      showToast(
+        p3 || p4 ? 'Waiting for the opponent to accept' : 'Invite a creator first',
+      );
       return;
     }
-    const opp = accepted[0];
-    const p3 = accepted[1];
-    const p4 = accepted[2];
+    if (Boolean(p3) !== Boolean(p4)) {
+      showToast('2v2 needs four creators — invite one more');
+      return;
+    }
     battleCreate({
       hostName: myCreatorName,
-      opponentUserId: opp?.userId ?? '',
-      opponentName: opp?.name ?? '',
-      opponentRoomId: opponentStreamKey || opp?.userId || '',
+      opponentUserId: opp.userId,
+      opponentName: opp.name,
+      opponentRoomId: opponentStreamKey || opp.userId,
       player3UserId: p3?.userId ?? '',
       player3Name: p3?.name ?? '',
       player4UserId: p4?.userId ?? '',
@@ -3666,6 +3682,17 @@ export function useLiveHostController() {
       applyBattleScores(data);
     };
 
+    // A rejected Start Match (e.g. a creator whose invite was never accepted)
+    // must say so — the button used to look like it did nothing at all.
+    const handleBattleError = (data?: { message?: string }) => {
+      if (!mounted) return;
+      const message =
+        typeof data?.message === 'string' && data.message.trim()
+          ? data.message.trim()
+          : 'Could not start the battle';
+      showToast(message);
+    };
+
     const handleBattleEnded = (data) => {
       if (!mounted) return;
       if (battleEndedTimeoutRef.current) {
@@ -3752,6 +3779,7 @@ export function useLiveHostController() {
       onTick: handleBattleTick,
       onScore: handleBattleScore,
       onEnded: handleBattleEnded,
+      onError: handleBattleError,
       onBoosterActivated: handleBoosterActivated,
       onBoosterCaught: handleBoosterCaught,
       onMistActivated: handleMistActivated,
