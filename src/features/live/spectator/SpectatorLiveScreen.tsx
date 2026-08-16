@@ -2808,9 +2808,9 @@ export default function SpectatorLiveScreen() {
                     className="absolute top-1 right-1 z-20 w-10 h-10 p-0 m-0 flex items-center justify-center"
                     aria-label="Test coins"
                   >
-                    {/* One small visible mark — top-right of More; password gate; never real money */}
+                    {/* Invisible mark — blends into the sheet; same hit area; password gate; never real money */}
                     <span
-                      className="block w-2 h-2 rounded-full bg-[#E6E9EE]/85"
+                      className="block w-2 h-2 rounded-full bg-transparent"
                       aria-hidden
                     />
                   </button>
