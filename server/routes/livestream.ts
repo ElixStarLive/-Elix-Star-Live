@@ -13,6 +13,7 @@ import {
   listActiveRoomsFromLiveKit,
   isUserPublishingInRoom,
   roomHasActivePublisher,
+  getRoomOccupancy,
 } from '../services/livekit';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
 import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams, dbGetStreamOwnerUserId } from '../lib/postgres';
@@ -181,6 +182,49 @@ type StreamsListPayload = {
 
 let streamsMemFallback: { etag: string; payload: StreamsListPayload; ts: number } | null = null;
 
+/**
+ * /api/live/start writes the Neon row + Valkey session before the creator has
+ * finished connecting to LiveKit, so a just-started stream legitimately has no
+ * room yet. Rows younger than this are never treated as stale.
+ */
+const LIVE_START_CONNECT_WINDOW_MS = 60_000;
+
+type LiveStreamRow = Awaited<ReturnType<typeof dbGetLiveStreams>>[number];
+
+/**
+ * End Neon rows still flagged is_live whose LiveKit room is provably gone.
+ *
+ * The normal end paths (creator End Live, host WS disconnect grace, LiveKit
+ * room_finished webhook) all depend on a single delivery: a redeploy inside the
+ * grace window, or a webhook that never arrives, leaves is_live = TRUE forever
+ * and the creator keeps being reported as live. This reconciles the flag
+ * against LiveKit every time the authoritative list is rebuilt, so the row
+ * cannot outlive the broadcast.
+ */
+async function endStaleLiveRows(
+  dbRows: LiveStreamRow[],
+  roomsByName: Map<string, unknown>,
+  listedStreamKeys: Set<string>,
+): Promise<void> {
+  const now = Date.now();
+  const stale: string[] = [];
+
+  for (const row of dbRows) {
+    const key = row.stream_key;
+    if (!key || listedStreamKeys.has(key) || roomsByName.has(key)) continue;
+    const startedAt = Date.parse(row.started_at);
+    if (Number.isFinite(startedAt) && now - startedAt < LIVE_START_CONNECT_WINDOW_MS) continue;
+    if ((await getRoomOccupancy(key)) !== 'empty') continue;
+    stale.push(key);
+  }
+
+  for (const key of stale) {
+    if (!(await removeActiveStream(key))) continue;
+    broadcastToFeedSubscribers('stream_ended', { stream_key: key });
+    logger.info({ streamKey: key }, 'live state reconciled: LiveKit room gone, stream marked ended');
+  }
+}
+
 export async function invalidateLiveStreamsListCache(): Promise<void> {
   streamsMemFallback = null;
   await valkeyDel(STREAMS_HTTP_CACHE_KEY);
@@ -279,12 +323,23 @@ async function buildStreamsResult(): Promise<StreamsListPayload> {
           return null;
         }),
       );
-      return { streams: verified.filter((s): s is NonNullable<typeof s> => s !== null) };
+      const listed = verified.filter((s): s is NonNullable<typeof s> => s !== null);
+      await endStaleLiveRows(
+        dbRows,
+        roomsByName,
+        new Set(listed.map((s) => s.stream_key).filter((k): k is string => !!k)),
+      );
+      return { streams: listed };
     } catch (err) {
-      logger.error({ err }, "LiveKit list streams failed, falling back to DB registry");
+      // LiveKit is the authority for who is actually broadcasting. Listing the
+      // raw is_live rows here reported creators as live with no media behind
+      // them (a stale row stayed on For You for days). Fail loudly instead.
+      logger.error({ err }, "LiveKit list streams failed — live state unavailable");
+      throw new Error("LIVE_STATE_UNAVAILABLE");
     }
   }
 
+  // LiveKit not configured at all: the DB registry is the only authority.
   const streams = dbRows.map((row) => ({
     room_id: row.stream_key,
     stream_key: row.stream_key,
@@ -392,6 +447,9 @@ export async function handleGetStreams(req: Request, res: Response) {
     if (msg.includes("Postgres pool is not initialized")) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE", streams: null });
     }
+    if (msg.includes("LIVE_STATE_UNAVAILABLE")) {
+      return res.status(503).json({ error: "LIVE_STATE_UNAVAILABLE", streams: null });
+    }
     return res.status(500).json({ error: "Failed to load streams", streams: null });
   }
 }
@@ -430,6 +488,15 @@ export async function handleLiveStart(req: Request, res: Response) {
       await dbInsertLiveStream(roomName, auth.userId, safeDisplayName);
     } catch (err) {
       logger.error({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
+      try {
+        await removeActiveStream(roomName, auth.userId);
+      } catch (cleanupErr) {
+        logger.warn(
+          { err: cleanupErr, roomName, userId: auth.userId },
+          "handleLiveStart: removeActiveStream cleanup failed after DB insert error",
+        );
+      }
+      return res.status(500).json({ error: "Failed to start live stream." });
     }
 
     broadcastToFeedSubscribers('stream_started', {
@@ -536,6 +603,113 @@ export async function handleLiveEnd(req: Request, res: Response) {
   return res.status(200).json({ ok: true, room: roomName });
 }
 
+type LiveViewerAvailability = {
+  streamExists: boolean;
+  liveKitLookupFailed: boolean;
+  ownerUserId: string | null;
+};
+
+async function resolveLiveViewerAvailability(roomName: string): Promise<LiveViewerAvailability> {
+  let streamExists = await isStreamActive(roomName);
+  let liveKitLookupFailed = false;
+
+  let ownerUserId: string | null = null;
+  try {
+    const dbRows = await dbGetLiveStreams();
+    const dbRow = dbRows.find((row) => row.stream_key === roomName);
+    if (dbRow) {
+      streamExists = true;
+      ownerUserId = dbRow.user_id || null;
+    }
+  } catch (err) {
+    logger.warn({ err, roomName }, "resolveLiveViewerAvailability: dbGetLiveStreams failed");
+    throw new Error("DATABASE_UNAVAILABLE");
+  }
+
+  if (!ownerUserId) {
+    try {
+      ownerUserId = await resolveStreamOwnerUserId(roomName);
+    } catch {
+      ownerUserId = null;
+    }
+  }
+
+  if (!streamExists) {
+    try {
+      const rooms = await listActiveRoomsFromLiveKit();
+      streamExists = rooms.some((r) => r.name === roomName);
+    } catch (err) {
+      liveKitLookupFailed = true;
+      logger.warn({ err, roomName }, "resolveLiveViewerAvailability: listActiveRoomsFromLiveKit failed");
+    }
+  }
+
+  if (!streamExists && isLiveKitConfigured()) {
+    try {
+      // LiveKit publisher presence is the final authority when caches/listing lag.
+      streamExists = await roomHasActivePublisher(roomName);
+    } catch (err) {
+      liveKitLookupFailed = true;
+      logger.warn({ err, roomName }, "resolveLiveViewerAvailability: roomHasActivePublisher probe failed");
+    }
+  }
+
+  return {
+    streamExists,
+    liveKitLookupFailed,
+    ownerUserId,
+  };
+}
+
+/** GET /api/live/status?room=... — authoritative live status for spectators. */
+export async function handleGetLiveStatus(req: Request, res: Response) {
+  const auth = requireAuth(req, res);
+  if (!auth) return;
+  res.setHeader("Cache-Control", "private, no-store");
+
+  const room = req.query.room as string | undefined;
+  const raw = typeof room === "string" ? room.trim() : "";
+  const roomName = raw.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128) || null;
+  if (!roomName) {
+    return res.status(400).json({ error: 'Query parameter "room" is required and must be alphanumeric.' });
+  }
+
+  if (!isLiveKitConfigured()) {
+    return res.status(503).json({ error: "Live streaming is not configured." });
+  }
+
+  try {
+    const availability = await resolveLiveViewerAvailability(roomName);
+    if (!availability.streamExists) {
+      if (availability.liveKitLookupFailed) {
+        return res.status(503).json({ room: roomName, active: false, error: "LIVE_LOOKUP_UNAVAILABLE" });
+      }
+      return res.status(200).json({ room: roomName, active: false });
+    }
+
+    const ownerId = availability.ownerUserId;
+    if (ownerId && ownerId !== auth.userId) {
+      const { dbIsBlockedEitherWay } = await import('../lib/postgres');
+      if (await dbIsBlockedEitherWay(auth.userId, ownerId)) {
+        return res.status(403).json({ error: 'You cannot view this stream.' });
+      }
+    }
+
+    return res.status(200).json({
+      room: roomName,
+      active: true,
+      host_user_id: ownerId || undefined,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err || "");
+    if (msg.includes("DATABASE_UNAVAILABLE")) {
+      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
+    }
+    logger.error({ err, roomName }, "handleGetLiveStatus failed");
+    return res.status(500).json({ error: "Failed to resolve live status." });
+  }
+}
+
 /** GET /api/live/token?room=... — viewer gets token */
 export async function handleGetLiveToken(req: Request, res: Response) {
   const auth = requireAuth(req, res);
@@ -588,31 +762,27 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   }
 
   if (!publish && !isCallRoom) {
-    let streamExists = await isStreamActive(roomName);
-    if (!streamExists) {
-      try {
-        const dbRows = await dbGetLiveStreams();
-        streamExists = dbRows.some((row) => row.stream_key === roomName);
-      } catch (err) {
-        logger.warn({ err, roomName }, "handleGetLiveToken: dbGetLiveStreams failed");
+    let availability: LiveViewerAvailability;
+    try {
+      availability = await resolveLiveViewerAvailability(roomName);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err || "");
+      if (msg.includes("DATABASE_UNAVAILABLE")) {
         return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
       }
+      logger.error({ err, roomName }, "handleGetLiveToken: resolveLiveViewerAvailability failed");
+      return res.status(500).json({ error: "Failed to resolve live status." });
     }
-    if (!streamExists) {
-      try {
-        const rooms = await listActiveRoomsFromLiveKit();
-        streamExists = rooms.some((r) => r.name === roomName);
-      } catch (err) {
-        logger.warn({ err, roomName }, "handleGetLiveToken: listActiveRoomsFromLiveKit failed");
+    if (!availability.streamExists) {
+      if (availability.liveKitLookupFailed) {
+        return res.status(503).json({ error: "LIVE_LOOKUP_UNAVAILABLE" });
       }
-    }
-    if (!streamExists) {
       return res.status(404).json({ error: 'Stream not found or already ended.' });
     }
 
     // A blocked user must not obtain a subscribe token and watch the host's
     // media (block is otherwise only enforced on the WS/chat channel).
-    const ownerId = await resolveStreamOwnerUserId(roomName);
+    const ownerId = availability.ownerUserId || await resolveStreamOwnerUserId(roomName);
     if (ownerId && ownerId !== auth.userId) {
       const { dbIsBlockedEitherWay } = await import('../lib/postgres');
       if (await dbIsBlockedEitherWay(auth.userId, ownerId)) {

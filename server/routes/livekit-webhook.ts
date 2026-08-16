@@ -1,7 +1,11 @@
 /**
  * LiveKit webhook: receives room/participant events from LiveKit Cloud.
- * URL: https://www.anberlive.co.uk/api/livekit/webhook
+ * URL: https://www.elixstarlive.co.uk/api/livekit/webhook
  * In LiveKit Cloud: create webhook with this URL and sign with the same API key used for tokens.
+ *
+ * Delivery is best-effort: if this never arrives (webhook misconfigured, or a
+ * redeploy inside the grace window below), the live list rebuild in
+ * routes/livestream.ts reconciles the stale is_live row against LiveKit.
  */
 
 import { Request, Response } from 'express';

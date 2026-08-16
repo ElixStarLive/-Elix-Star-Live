@@ -97,6 +97,32 @@ export async function roomHasActivePublisher(roomName: string): Promise<boolean>
   }
 }
 
+export type RoomOccupancy = 'occupied' | 'empty' | 'unknown';
+
+/**
+ * Occupancy of a room, for authoritative live-state cleanup.
+ *
+ * Deliberately stricter than roomHasActivePublisher: that helper stays
+ * permissive so a transient LiveKit API error cannot hide a real card, which
+ * means it must never be used to decide a stream is over. This returns 'empty'
+ * only on proof (room gone, or room present with nobody connected) and
+ * 'unknown' when LiveKit could not answer, so a live is never ended on a guess.
+ * A host with camera muted still counts as occupied.
+ */
+export async function getRoomOccupancy(roomName: string): Promise<RoomOccupancy> {
+  const client = getRoomService();
+  if (!client) return 'unknown';
+  try {
+    const participants = await client.listParticipants(roomName);
+    return participants.length > 0 ? 'occupied' : 'empty';
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/not found|does not exist|404/i.test(msg)) return 'empty';
+    logger.warn({ err, roomName }, 'getRoomOccupancy could not resolve room');
+    return 'unknown';
+  }
+}
+
 /** WebSocket URL for the LiveKit server (client connects here with token). */
 export function getLiveKitUrl(): string {
   return LIVEKIT_SIGNAL_URL;
