@@ -34,6 +34,7 @@ import {
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
 import { hasBattlePublishGrant, hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
+import { getCreatorLiveRoleRoom } from '../websocket/liveCreatorRole';
 import { insertNotification, deleteLiveStartedNotificationsForRoom } from '../lib/notifications';
 import { getFollowerIdsAsync } from './profiles';
 
@@ -214,6 +215,15 @@ async function endStaleLiveRows(
     if (!key || listedStreamKeys.has(key) || roomsByName.has(key)) continue;
     const startedAt = Date.parse(row.started_at);
     if (Number.isFinite(startedAt) && now - startedAt < LIVE_START_CONNECT_WINDOW_MS) continue;
+    const roleRoom = await getCreatorLiveRoleRoom(row.user_id);
+    if (
+      roleRoom &&
+      roleRoom !== key &&
+      (roomsByName.has(roleRoom) ||
+        (await isUserPublishingInRoom(roleRoom, row.user_id)))
+    ) {
+      continue;
+    }
     if ((await getRoomOccupancy(key)) !== 'empty') continue;
     stale.push(key);
   }
@@ -482,10 +492,12 @@ export async function handleLiveStart(req: Request, res: Response) {
     /** Reconnect / repeat /start while already live — do not spam followers again. */
     const isReconnect = !!(existing && existing.userId === auth.userId);
 
-    const startedAt = new Date().toISOString();
+    const startedAt = isReconnect
+      ? existing.startedAt
+      : new Date().toISOString();
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
     try {
-      await dbInsertLiveStream(roomName, auth.userId, safeDisplayName);
+      await dbInsertLiveStream(roomName, auth.userId, safeDisplayName, isReconnect);
     } catch (err) {
       logger.error({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
       try {

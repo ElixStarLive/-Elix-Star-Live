@@ -59,6 +59,10 @@ import {
   clearEngagementActiveRoom,
   getEngagementPublicState,
 } from "./engagement";
+import {
+  clearCreatorCohostRoom,
+  getCreatorLiveRoleRoom,
+} from "./liveCreatorRole";
 import { handleMessage } from "./handlers";
 
 export interface Client {
@@ -605,6 +609,7 @@ export async function revokeCohostPublish(roomId: string, userId: string): Promi
   if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost_grant:${roomId}:${userId}`);
   await valkeySrem(`cohost_grants:${roomId}`, userId);
+  await clearCreatorCohostRoom(userId, roomId);
 }
 
 export async function clearCohostPublishGrants(roomId: string): Promise<void> {
@@ -612,7 +617,7 @@ export async function clearCohostPublishGrants(roomId: string): Promise<void> {
   if (!isValkeyConfigured()) return;
   const members = await valkeySmembers(`cohost_grants:${roomId}`);
   for (const userId of members) {
-    await valkeyDel(`cohost_grant:${roomId}:${userId}`);
+    await revokeCohostPublish(roomId, userId);
   }
   await valkeyDel(`cohost_grants:${roomId}`);
 }
@@ -947,24 +952,24 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
         }
         const isHost = await isStreamHost(roomId, userId);
         if (!isHost) return;
+        const roleRoom = await getCreatorLiveRoleRoom(userId);
+        if (roleRoom && roleRoom !== roomId) {
+          const battleRoom = await getUserBattleRoom(userId);
+          if (battleRoom === roleRoom) {
+            await transferLiveAudienceToBattleRoom(roomId, userId, roleRoom);
+          }
+          logger.info(
+            { roomId, userId, roleRoom },
+            "Host moved to another live creator role; active stream registration retained",
+          );
+          return;
+        }
         await removeActiveStream(roomId, userId);
         await deleteCohostLayout(roomId);
-        // Host left for a battle room — send their spectators into the battle.
-        // Stamp this creator's spectators onto the battle room BEFORE redirect
-        // so gift_sent stays on this creator's audience, not the merged room.
-        let battleRedirect: string | null = null;
-        try {
-          const battleRoomId = await getUserBattleRoom(userId);
-          if (battleRoomId && battleRoomId !== roomId) battleRedirect = battleRoomId;
-        } catch { /* non-fatal */ }
-        if (battleRedirect) {
-          await transferLiveAudienceToBattleRoom(roomId, userId, battleRedirect);
-        }
         broadcastToRoom(roomId, "stream_ended", {
           stream_key: roomId,
           host_user_id: userId,
-          reason: battleRedirect ? "host_joined_battle" : "host_disconnected",
-          ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
+          reason: "host_disconnected",
         });
         broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
       } catch (err) {

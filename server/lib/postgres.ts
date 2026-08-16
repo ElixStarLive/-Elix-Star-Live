@@ -336,6 +336,7 @@ export async function dbInsertLiveStream(
   streamKey: string,
   userId: string,
   displayName?: string,
+  preserveActiveSession = false,
 ): Promise<void> {
   if (!pool) return;
   try {
@@ -343,8 +344,13 @@ export async function dbInsertLiveStream(
       `INSERT INTO live_streams (stream_key, user_id, display_name, started_at, is_live, viewer_count)
        VALUES ($1, $2, $3, NOW(), TRUE, 0)
        ON CONFLICT (stream_key) DO UPDATE
-         SET user_id = $2, display_name = $3, started_at = NOW(), ended_at = NULL, is_live = TRUE, viewer_count = 0`,
-      [streamKey, userId, displayName ?? null],
+         SET user_id = $2,
+             display_name = $3,
+             started_at = CASE WHEN $4 THEN live_streams.started_at ELSE NOW() END,
+             ended_at = NULL,
+             is_live = TRUE,
+             viewer_count = CASE WHEN $4 THEN live_streams.viewer_count ELSE 0 END`,
+      [streamKey, userId, displayName ?? null, preserveActiveSession],
     );
   } catch (err) {
     logger.error({ err }, "Postgres insert live_stream failed");

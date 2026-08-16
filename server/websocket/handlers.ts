@@ -1,5 +1,6 @@
-import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes, transferLiveAudienceToBattleRoom } from "./index";
+import { Client, broadcastToRoom, sendToClient, sendToUserGlobal, incrementRoomLiveLikes } from "./index";
 import { logger } from "../lib/logger";
+import { setCreatorCohostRoom } from "./liveCreatorRole";
 import {
   createBattle,
   joinBattle,
@@ -1158,27 +1159,10 @@ export async function handleMessage(
         const removed = await removeActiveStream(client.roomId, client.userId);
         if (removed) {
           await deleteCohostLayout(client.roomId);
-          // Host is moving into a battle room (accepted an invite): their
-          // spectators must transition into the battle, not get kicked to feed.
-          let battleRedirect: string | null = null;
-          try {
-            const battleRoomId = await getUserBattleRoom(client.userId);
-            if (battleRoomId && battleRoomId !== client.roomId) {
-              battleRedirect = battleRoomId;
-            }
-          } catch { /* non-fatal */ }
-          if (battleRedirect) {
-            await transferLiveAudienceToBattleRoom(
-              client.roomId,
-              client.userId,
-              battleRedirect,
-            );
-          }
           broadcastToRoom(client.roomId, "stream_ended", {
             stream_key: client.roomId,
             host_user_id: client.userId,
-            reason: battleRedirect ? "host_joined_battle" : "host_ended",
-            ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
+            reason: "host_ended",
           });
           broadcastToFeedSubscribers("stream_ended", {
             stream_key: client.roomId,
@@ -1305,6 +1289,7 @@ export async function handleMessage(
         const hostStreamKey =
           typeof data.streamKey === "string" ? data.streamKey.trim() : "";
         if (hostStreamKey) {
+          await setCreatorCohostRoom(client.userId, hostStreamKey);
           await deleteCohostJoinRequest(hostStreamKey, client.userId);
           const currentLayout = await getCohostLayout(hostStreamKey);
           const normalizedSlots = normalizeCohostSlots(
@@ -1455,7 +1440,10 @@ export async function handleMessage(
           break;
         }
         // Host accepted this viewer's co-host request → grant publish for the room.
-        if (client.roomId) await grantCohostPublish(client.roomId, requesterUserId);
+        if (client.roomId) {
+          await grantCohostPublish(client.roomId, requesterUserId);
+          await setCreatorCohostRoom(requesterUserId, client.roomId);
+        }
         if (upserted.changed) {
           await setCohostLayout(
             client.roomId,

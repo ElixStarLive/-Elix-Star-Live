@@ -14,6 +14,7 @@ import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
 import { listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
 import { logger } from '../lib/logger';
+import { getCreatorLiveRoleRoom } from '../websocket/liveCreatorRole';
 
 const API_KEY = (process.env.LIVEKIT_API_KEY || '').trim();
 const API_SECRET = (process.env.LIVEKIT_API_SECRET || '').trim();
@@ -35,6 +36,19 @@ async function finalizeRoomFinished(roomName: string): Promise<void> {
     const ownerId = await resolveStreamOwnerUserId(roomName);
     if (ownerId && (await isUserPublishingInRoom(roomName, ownerId))) {
       logger.info({ roomName, ownerId }, '[livekit-webhook] room_finished ignored — host still publishing');
+      return;
+    }
+    const roleRoom = ownerId ? await getCreatorLiveRoleRoom(ownerId) : null;
+    if (
+      ownerId &&
+      roleRoom &&
+      roleRoom !== roomName &&
+      (await isUserPublishingInRoom(roleRoom, ownerId))
+    ) {
+      logger.info(
+        { roomName, ownerId, roleRoom },
+        '[livekit-webhook] room_finished ignored — creator publishing in another live role',
+      );
       return;
     }
     await removeActiveStream(roomName);
