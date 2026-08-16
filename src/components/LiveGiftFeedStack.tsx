@@ -6,6 +6,7 @@ import {
   type ElixGiftPillDetail,
 } from './GiftAnimationOverlay';
 import { LIVE_BATTLE_STAGE_BOTTOM, LIVE_SOLO_CHAT_TOP_FROM_BOTTOM } from '../lib/profileFrame';
+import { useAuthStore } from '../store/useAuthStore';
 
 /**
  * Separate live gift-feed stack (photo: cards + xN).
@@ -77,6 +78,7 @@ export function LiveGiftFeedStack({
     gift_name?: string;
     gift_icon?: string;
     creator_name?: string;
+    user_id?: string;
   }) => {
     const eventStreamId = data.streamId ?? data.stream_id;
     if (
@@ -87,6 +89,12 @@ export function LiveGiftFeedStack({
     ) {
       return;
     }
+
+    // The sender already renders their gift from the local pill, so the room
+    // echo of that same gift must be ignored here — same own-echo rule the live
+    // controllers use for gift chat and gift video. Local pills carry no user_id.
+    const gifterId = typeof data.user_id === 'string' ? data.user_id.trim() : '';
+    if (gifterId && gifterId === useAuthStore.getState().user?.id) return;
 
     const username = data.username ?? 'Someone';
     const giftName = data.giftName ?? data.gift_name ?? 'Gift';

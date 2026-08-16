@@ -3443,14 +3443,17 @@ export function useLiveHostController() {
           roseCountRef.current += 1;
           setRoseCount(roseCountRef.current);
         }
-        const msg = buildLiveGiftChatMessage({
-          txnId,
-          giftName,
-          username,
-          avatar,
-          level,
-        });
-        setMessages((prev) => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
+        // Skip echo chat for our own gift — sender already added it locally.
+        if (!(gifterId && selfUserIdRef.current && gifterId === selfUserIdRef.current)) {
+          const msg = buildLiveGiftChatMessage({
+            txnId,
+            giftName,
+            username,
+            avatar,
+            level,
+          });
+          setMessages((prev) => appendCapped(prev, msg, LIVE_CHAT_MESSAGE_CAP));
+        }
         if (cohostTarget && giftCoins > 0) {
           applyCohostGiftTileScore({
             targetUserId: cohostTarget,
@@ -4326,6 +4329,7 @@ export function useLiveHostController() {
     return fromMvp.length > 0 ? fromMvp : [];
   }, [topGifters, topMvpViewers, mvpGiftScores]);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const giftSendInFlightRef = useRef(false);
 
   const hostPaidGiftSuccessHandlers = {
     walletCoinBalanceRef,
@@ -4363,7 +4367,7 @@ export function useLiveHostController() {
       ...hostPaidGiftSuccessHandlers,
     });
 
-  const handleSendGift = async (gift: GiftUiItem) => {
+  const performSendGift = async (gift: GiftUiItem) => {
     // Creators normally don't gift on their own live; exception: gifting a selected co-host tile.
     if (!gift) return;
     if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
@@ -4496,6 +4500,16 @@ export function useLiveHostController() {
     }
   };
 
+  const handleSendGift = async (gift: GiftUiItem) => {
+    if (giftSendInFlightRef.current) return;
+    giftSendInFlightRef.current = true;
+    try {
+      await performSendGift(gift);
+    } finally {
+      giftSendInFlightRef.current = false;
+    }
+  };
+
   const toggleMic = useCallback(() => {
     const nextMuted = !isMicMuted;
     void (async () => {
@@ -4526,7 +4540,7 @@ export function useLiveHostController() {
       }, 8000); // keep combo on screen while gift video plays
   };
 
-  const handleComboClick = async () => {
+  const performComboGiftSend = async () => {
       if (!lastSentGift) return;
       if (isCreatorParticipant && (!selectedCohostGiftUserId || isBattleMode)) return;
       if (comboCount >= GIFT_COMBO_MAX) return;
@@ -4653,6 +4667,16 @@ export function useLiveHostController() {
             }
           : {}),
       });
+  };
+
+  const handleComboClick = async () => {
+    if (giftSendInFlightRef.current) return;
+    giftSendInFlightRef.current = true;
+    try {
+      await performComboGiftSend();
+    } finally {
+      giftSendInFlightRef.current = false;
+    }
   };
 
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {

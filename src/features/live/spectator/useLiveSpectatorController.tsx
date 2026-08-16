@@ -289,6 +289,7 @@ export function useLiveSpectatorController() {
   const missionsUi = useLiveEngagementMissionsUi(user?.id, engagementOpen, engagementPanel);
   const [userXP, setUserXP] = useState(0);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const giftSendInFlightRef = useRef(false);
   const resetComboTimer = () => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
     comboTimerRef.current = setTimeout(() => {
@@ -3053,7 +3054,7 @@ export function useLiveSpectatorController() {
   };
 
   // Spectator gift → creator: send to creator's room (broadcast so creator sees it and gets credit)
-  const handleSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
+  const performSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
     if (!gift) return;
     if (opts?.fromCombo && comboCount >= GIFT_COMBO_MAX) return;
     const usedTestCoins = Boolean(user?.id && shouldUseTestCoinsForGifts(user.id));
@@ -3272,6 +3273,16 @@ export function useLiveSpectatorController() {
           }
         : {}),
     });
+  };
+
+  const handleSendGift = async (gift: GiftUiItem, opts?: { fromCombo?: boolean }) => {
+    if (giftSendInFlightRef.current) return;
+    giftSendInFlightRef.current = true;
+    try {
+      await performSendGift(gift, opts);
+    } finally {
+      giftSendInFlightRef.current = false;
+    }
   };
 
   const handleComboClick = () => {

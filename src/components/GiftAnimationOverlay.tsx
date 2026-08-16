@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
+import { useAuthStore } from '../store/useAuthStore';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
 
@@ -55,6 +56,7 @@ export default function GiftAnimationOverlay({
     creator_name?: string;
     transactionId?: string;
     transaction_id?: string;
+    user_id?: string;
   }) => {
     const eventStreamId = data.streamId ?? data.stream_id;
     if (
@@ -65,6 +67,12 @@ export default function GiftAnimationOverlay({
     ) {
       return;
     }
+
+    // The sender already renders their gift from the local pill, so the room
+    // echo of that same gift must be ignored here — same own-echo rule the live
+    // controllers use for gift chat and gift video. Local pills carry no user_id.
+    const gifterId = typeof data.user_id === 'string' ? data.user_id.trim() : '';
+    if (gifterId && gifterId === useAuthStore.getState().user?.id) return;
 
     const txnId =
       (typeof data.transactionId === 'string' && data.transactionId) ||
