@@ -1,50 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { platform } from '../lib/platform';
 import {
   GIFT_OVERLAY_VIDEO_CLASS,
   LIVE_VIDEO_TRANSPARENT_POSTER,
   prepareGiftVideoEl,
-  stripVideoMediaChrome,
 } from '../lib/prepareLiveVideoEl';
 import { preferPlayableGiftVideoUrl } from '../lib/giftsCatalog';
 import { releaseVideoElement } from '../lib/live/liveTrackCleanup';
 import type { BattleGiftSide } from '../lib/liveBattleGiftTarget';
 
-const MAX_CACHE = 20;
-const videoCache = new Map<string, string>();
 /** Fallback only — real end uses video duration so long gifts match wand play-through. */
 const GIFT_SAFETY_MAX_MS = 30_000;
-
-function preloadVideo(src: string): Promise<string> {
-  if (videoCache.has(src)) return Promise.resolve(videoCache.get(src) as NonNullable<ReturnType<typeof videoCache.get>>);
-  return new Promise((resolve, reject) => {
-    const vid = document.createElement('video');
-    vid.preload = 'auto';
-    vid.muted = true;
-    vid.playsInline = true;
-    stripVideoMediaChrome(vid);
-    vid.oncanplaythrough = () => {
-      vid.oncanplaythrough = null;
-      vid.onerror = null;
-      vid.src = '';
-      vid.load();
-      if (videoCache.size >= MAX_CACHE) {
-        const first = videoCache.keys().next().value;
-        if (first) videoCache.delete(first);
-      }
-      videoCache.set(src, src);
-      resolve(src);
-    };
-    vid.onerror = () => {
-      vid.oncanplaythrough = null;
-      vid.onerror = null;
-      vid.src = '';
-      reject(new Error('preload failed'));
-    };
-    vid.src = src;
-    vid.load();
-  });
-}
 
 function isGiftVideoUrl(src: string): boolean {
   const path = src.split('?')[0].toLowerCase();
@@ -176,9 +142,9 @@ export function GiftOverlay({
   const onEndedRef = useRef(onEnded);
   onEndedRef.current = onEnded;
 
-  const [videoReady, setVideoReady] = useState(false);
   /** Same MP4 preference as Celestial Star Wand catalog path — every gift. */
-  const playSrc = videoSrc ? preferPlayableGiftVideoUrl(videoSrc) : null;
+  const rawPlaySrc = videoSrc ? preferPlayableGiftVideoUrl(videoSrc) : null;
+  const playSrc = rawPlaySrc && isGiftVideoUrl(rawPlaySrc) ? rawPlaySrc : null;
 
   const armSafety = useCallback((ms: number) => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -188,26 +154,24 @@ export function GiftOverlay({
     }, Math.max(1000, Math.min(ms, GIFT_SAFETY_MAX_MS)));
   }, []);
 
+  // Non-video assets (icon-only gifts) have nothing to play — release the slot
+  // so the queue advances instead of stalling on the safety timer.
+  useEffect(() => {
+    if (!rawPlaySrc || playSrc) return;
+    onEndedRef.current();
+  }, [rawPlaySrc, playSrc]);
+
+  /**
+   * The <video> element owns readiness: it mounts immediately and plays on
+   * `loadeddata`. Gating the mount on a full `canplaythrough` preload dropped
+   * every gift on spectators, whose downlink is already carrying the live
+   * stream, because the safety timer fired before the clip finished buffering.
+   */
   useEffect(() => {
     if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
     if (!playSrc) return;
 
-    setVideoReady(false);
     armSafety(8000);
-
-    if (!isGiftVideoUrl(playSrc)) {
-      if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
-      onEndedRef.current();
-      return;
-    }
-
-    if (videoCache.has(playSrc)) {
-      setVideoReady(true);
-    } else {
-      preloadVideo(playSrc)
-        .then(() => setVideoReady(true))
-        .catch(() => setVideoReady(true));
-    }
 
     return () => {
       if (safetyTimerRef.current) clearTimeout(safetyTimerRef.current);
@@ -219,7 +183,7 @@ export function GiftOverlay({
     onEndedRef.current();
   }, []);
 
-  if (!playSrc || !videoReady) return null;
+  if (!playSrc) return null;
 
   // Solo + battle: identical Celestial Star Wand frame — over chat / MVP / lower battle.
   return (
