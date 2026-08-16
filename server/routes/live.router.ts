@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { handleGetStreams, handleLiveStart, handleLiveEnd, handleGetLiveToken } from "./livestream";
+import { handleGetStreams, handleLiveStart, handleLiveEnd, handleGetLiveStatus, handleGetLiveToken } from "./livestream";
 import {
   handleListLiveModerators,
   handleAddLiveModerator,
@@ -12,6 +12,7 @@ const router = Router();
 router.get("/streams", handleGetStreams);
 router.post("/start", validateBody(liveStartSchema), handleLiveStart);
 router.post("/end", validateBody(liveEndSchema), handleLiveEnd);
+router.get("/status", handleGetLiveStatus);
 router.get("/token", handleGetLiveToken);
 router.get("/:streamKey/moderators", handleListLiveModerators);
 router.post("/:streamKey/moderators", handleAddLiveModerator);

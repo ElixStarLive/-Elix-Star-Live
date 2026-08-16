@@ -2215,7 +2215,7 @@ export default function SpectatorLiveScreen() {
                             const inv = pendingCoHostInvite;
                             setPendingCoHostInvite(null);
                             setShowCoHostPanel(false);
-                            cohostInviteAccept({ hostUserId: inv.hostUserId, cohostName: user?.username || user?.name || 'User', cohostAvatar: user?.avatar || '', streamKey: user?.id || effectiveStreamId });
+                            cohostInviteAccept({ hostUserId: inv.hostUserId, cohostName: user?.username || user?.name || 'User', cohostAvatar: user?.avatar || '', streamKey: inv.streamKey || effectiveStreamId });
                             showToast(`Joining @${inv.hostName}'s live as co-host`);
                             if (inv.streamKey) {
                               navigate(`/watch/${inv.streamKey}?cohost=1`, {

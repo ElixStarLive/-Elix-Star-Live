@@ -251,7 +251,10 @@ function App() {
           const currentRoom = websocket.getCurrentRoomId();
           if (currentRoom && currentRoom !== "__feed__") return;
           if (!websocket.isConnected() || currentRoom !== "__feed__") {
-            websocket.connect("__feed__", token, { persistent: true });
+            websocket.connect("__feed__", token, {
+              persistent: true,
+              ownerId: "app-feed-presence",
+            });
           }
         } catch (err) {
           const error = err instanceof Error ? err : new Error(String(err || "feed_presence_failed"));

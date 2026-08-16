@@ -3,12 +3,15 @@ export {
   apiLiveEnd,
   apiLiveToken,
   apiLiveTokenWithIdentity,
+  apiLiveStatus,
   apiLiveStreams,
   collectLiveUserIds,
   isLivePublishDenied,
+  isLiveTokenOffline,
   isLiveTokenTransient,
   isUserLive,
   findLiveWatchTarget,
+  type LiveStatus,
   type LiveKitCreds,
 } from './liveApi';
 export { LiveRoomLifecycle } from './liveRoomLifecycle';

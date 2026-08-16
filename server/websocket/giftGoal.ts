@@ -9,7 +9,12 @@ export type StoredGiftGoal = {
 };
 
 const GIFT_GOAL_TTL_MS = 24 * 60 * 60 * 1000;
-const memGoals = new Map<string, StoredGiftGoal>();
+
+function requireValkey(): void {
+  if (!isValkeyConfigured()) {
+    throw new Error("gift_goal_backend_unavailable");
+  }
+}
 
 function key(roomId: string): string {
   return `gift_goal:${roomId}`;
@@ -33,34 +38,26 @@ function normalizeGoal(raw: Record<string, unknown>): StoredGiftGoal | null {
 }
 
 export async function getGiftGoal(roomId: string): Promise<StoredGiftGoal | null> {
-  if (isValkeyConfigured()) {
-    const raw = await valkeyGet(key(roomId));
-    if (!raw) return null;
-    try {
-      return normalizeGoal(JSON.parse(raw) as Record<string, unknown>);
-    } catch {
-      return null;
-    }
+  requireValkey();
+  const raw = await valkeyGet(key(roomId));
+  if (!raw) return null;
+  try {
+    return normalizeGoal(JSON.parse(raw) as Record<string, unknown>);
+  } catch {
+    return null;
   }
-  return memGoals.get(roomId) ?? null;
 }
 
 export async function setGiftGoal(roomId: string, goal: StoredGiftGoal): Promise<void> {
+  requireValkey();
   const normalized = normalizeGoal(goal as unknown as Record<string, unknown>);
   if (!normalized) return;
-  if (isValkeyConfigured()) {
-    await valkeySet(key(roomId), JSON.stringify(normalized), GIFT_GOAL_TTL_MS);
-  } else {
-    memGoals.set(roomId, normalized);
-  }
+  await valkeySet(key(roomId), JSON.stringify(normalized), GIFT_GOAL_TTL_MS);
 }
 
 export async function clearGiftGoal(roomId: string): Promise<void> {
-  if (isValkeyConfigured()) {
-    await valkeyDel(key(roomId));
-  } else {
-    memGoals.delete(roomId);
-  }
+  requireValkey();
+  await valkeyDel(key(roomId));
 }
 
 export async function incrementGiftGoal(

@@ -108,7 +108,7 @@ import {
   apiToggleFollow,
 } from '../../feed/feedApi';
 import { RoomEvent, ConnectionState } from 'livekit-client';
-import { apiLiveStreams, apiLiveToken } from '../../../lib/live';
+import { apiLiveStatus, apiLiveStreams } from '../../../lib/live';
 import { sendLivePaidGift } from '../gifts/sendLiveGift';
 import {
   applyLivePaidGiftSuccessEffects,
@@ -215,6 +215,9 @@ export function useLiveSpectatorController() {
   const [streamRetryKey, setStreamRetryKey] = useState(0);
   const [viewerCount, setViewerCount] = useState(0);
   const [activeLikes, setActiveLikes] = useState(0);
+  const wsOwnerIdRef = useRef(
+    `watch-live-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`,
+  );
 
   const { messages, setMessages, clearMessagesForStream } =
     useLiveStreamChatMessages(effectiveStreamId);
@@ -1528,22 +1531,24 @@ export function useLiveSpectatorController() {
           return;
         }
 
-        // List miss or list-fetch error — token issuance is the join owner.
-        const { creds, error: tokenErr } = await apiLiveToken(effectiveStreamId, false);
+        // Server owns active/ended status; client must not infer from local timing.
+        const { status: liveStatus, error: liveStatusErr } = await apiLiveStatus(effectiveStreamId);
         if (cancelled) return;
-        if (tokenErr || !creds?.token) {
+        if (liveStatusErr) {
+          setStreamIsLive(null);
+          setTimeout(() => {
+            if (!cancelled) setStreamRetryKey((k) => k + 1);
+          }, 1200);
+          return;
+        }
+        if (!liveStatus?.active) {
           setStreamIsLive(false);
-          const transient =
-            String(tokenErr || '').includes('503') ||
-            String(tokenErr || '').toLowerCase().includes('database_unavailable') ||
-            String(tokenErr || '').toLowerCase().includes('failed to fetch');
-          showToast(transient ? 'Could not connect to stream' : 'Stream is offline');
+          showToast('Stream is offline');
           return;
         }
         setStreamIsLive(true);
-        // Authoritative count arrives on WS connect (viewer_count / connected).
         syncMvpSlotsRef.current();
-        await applyHostMeta(effectiveStreamId);
+        await applyHostMeta(liveStatus.hostUserId || effectiveStreamId);
       } catch {
         if (!cancelled) {
           setStreamIsLive(false);
@@ -1662,7 +1667,8 @@ export function useLiveSpectatorController() {
             return;
           }
           if (attachCoHostVideo(track, identity)) return;
-          if (!mainVideoAttachedRef.current) {
+          // Never infer battle slot ownership from arbitrary remote order.
+          if (!spectatorBattleRef.current?.active && !mainVideoAttachedRef.current) {
             track.attach(videoRef.current);
             prepareLiveVideoEl(videoRef.current);
             currentMainTrackRef.current = track;
@@ -2087,10 +2093,9 @@ export function useLiveSpectatorController() {
       websocket.connect(effectiveStreamId, token, {
         persistent: true,
         ...(audienceCreatorId ? { audienceCreatorId } : {}),
+        ownerId: wsOwnerIdRef.current,
       });
     };
-
-    let hostFoundInRoom = false;
 
     const handleRoomState = (data) => {
       if (!mounted) return;
@@ -2120,7 +2125,8 @@ export function useLiveSpectatorController() {
           }
         }
         if (foundHostInList || hasStreamRef.current || !hid) {
-          hostFoundInRoom = true;
+          // Host may be omitted from room_state viewers snapshots; keep spectator
+          // roster updates independent from host media presence.
         }
         // Viewer count: server-authoritative viewer_count only.
         syncMvpSlots();
@@ -2134,7 +2140,6 @@ export function useLiveSpectatorController() {
       if (!mounted) return;
       if (data.user_id === user?.id) return;
       if (data.user_id === hostUserIdRef.current || data.user_id === effectiveStreamId) {
-        hostFoundInRoom = true;
         return;
       }
       const wsLevel = Number(data.level);
@@ -2367,7 +2372,14 @@ export function useLiveSpectatorController() {
       if (!mounted) return;
       // Ignore end events for other rooms (feed broadcasts / stale listeners).
       const endedKey =
-        data && typeof data.stream_key === 'string' ? data.stream_key.trim() : '';
+        data && typeof data.stream_key === 'string'
+          ? data.stream_key.trim()
+          : data && typeof data.room_id === 'string'
+            ? data.room_id.trim()
+            : '';
+      // Guard: only authoritative keyed stream end events can close this watch.
+      // Unkeyed payloads are treated as non-authoritative/noise.
+      if (!endedKey) return;
       if (endedKey && endedKey !== effectiveStreamId) return;
       const reason =
         data && typeof data.reason === 'string' ? data.reason : '';
@@ -2409,15 +2421,27 @@ export function useLiveSpectatorController() {
         if (lkRoom?.state === ConnectionState.Connected) return;
         if (hasStreamRef.current) return;
       }
-      setStreamEndedReceived(true);
-      setStreamIsLive(false);
-      websocket.disconnect();
-      clearMessagesForStream(effectiveStreamId);
-      setTimeout(() => {
-        if (mounted) {
-          navigate(returnToFromLocationState(location.state) || FEED_HOME, { replace: true });
-        }
-      }, 2000);
+      void (async () => {
+        // Final confirmation gate: never force-close if the room is still
+        // joinable (prevents false "ended" on stale ws events/handoffs).
+        try {
+          const { status: liveStatus, error: liveStatusErr } = await apiLiveStatus(effectiveStreamId);
+          if (liveStatusErr) return;
+          if (liveStatus?.active) return;
+        } catch { return; }
+        if (!mounted) return;
+        setStreamEndedReceived(true);
+        setStreamIsLive(false);
+        websocket.disconnectIfOwner(wsOwnerIdRef.current);
+        clearMessagesForStream(effectiveStreamId);
+        setTimeout(() => {
+          if (mounted) {
+            navigate(returnToFromLocationState(location.state) || FEED_HOME, {
+              replace: true,
+            });
+          }
+        }, 2000);
+      })();
     };
 
     const handleBattleStateSync = (data) => {
@@ -2620,9 +2644,14 @@ export function useLiveSpectatorController() {
       });
     };
 
-    const handleCohostRequestDeclined = () => {
+    const handleCohostRequestDeclined = (data?: { reason?: string; max?: number }) => {
       if (!mounted) return;
       setJoinRequested(false);
+      if (data?.reason === 'cohost_full') {
+        const max = Number(data?.max) || 8;
+        showToast(`Co-host stage is full (max ${max})`);
+        return;
+      }
       showToast('Creator declined your co-host request');
     };
 
@@ -2723,96 +2752,8 @@ export function useLiveSpectatorController() {
 
     connect();
 
-    const goOffline = async (_reason: string) => {
-      if (!mounted) return;
-      // Never eject while the same-room WS or LiveKit session is recovering.
-      if (
-        websocket.getCurrentRoomId() === effectiveStreamId &&
-        (websocket.isConnected() || websocket.isReconnecting())
-      ) {
-        return;
-      }
-      const lkReconnecting = liveKitRoomRef.current;
-      if (lkReconnecting?.state === ConnectionState.Reconnecting) return;
-      // Already watching host video — another spectator joining must never tear this down.
-      if (hasStreamRef.current) return;
-      // Battle layout active — do not synthesize offline while PK is running.
-      if (spectatorBattleRef.current?.active) return;
-      const lkRoom = liveKitRoomRef.current;
-      if (lkRoom?.state === ConnectionState.Connected) {
-        const hid = hostUserIdRef.current || effectiveStreamId;
-        for (const [, p] of lkRoom.remoteParticipants) {
-          if (p.identity === hid || p.identity === effectiveStreamId) {
-            for (const [, pub] of p.videoTrackPublications) {
-              if (pub.track) return;
-            }
-          }
-        }
-      }
-      // Fail open: streams list can lag / omit an active room under load.
-      // Only leave if the API succeeds AND the room is confirmed absent.
-      try {
-        const { streams, error: goOfflineErr } = await apiLiveStreams();
-        if (goOfflineErr) return;
-        const streamRows = (Array.isArray(streams) ? streams : []) as Array<{
-          stream_key?: string;
-          room_id?: string;
-        }>;
-        const stillLive = streamRows.some(
-          (s) => s.stream_key === effectiveStreamId || s.room_id === effectiveStreamId,
-        );
-        if (stillLive) return;
-      } catch {
-        return;
-      }
-      if (!mounted || hasStreamRef.current) return;
-      showToast('Stream is offline');
-      setStreamIsLive(false);
-      websocket.disconnect();
-      setTimeout(() => {
-        if (mounted) {
-          navigate(returnToFromLocationState(location.state) || FEED_HOME, { replace: true });
-        }
-      }, 2000);
-    };
-
-    const connectTimeout = setTimeout(() => {
-      if (!mounted || hasStreamRef.current) return;
-      if (
-        websocket.getCurrentRoomId() === effectiveStreamId &&
-        (websocket.isConnected() || websocket.isReconnecting())
-      ) {
-        return;
-      }
-      // Host is often not listed in WS viewers — do NOT force hostFoundInRoom=false
-      // from roomUsers alone (that falsely ends watch when another spectator joins).
-      if (!hostFoundInRoom) goOffline('host_not_found_after_connect_timeout');
-    }, 45000);
-
-    const videoTimeout = setTimeout(() => {
-      if (!mounted || hasStreamRef.current) return;
-      if (
-        websocket.getCurrentRoomId() === effectiveStreamId &&
-        (websocket.isConnected() || websocket.isReconnecting())
-      ) {
-        return;
-      }
-      const lkRoom = liveKitRoomRef.current;
-      if (
-        lkRoom?.state === ConnectionState.Connected ||
-        lkRoom?.state === ConnectionState.Reconnecting
-      ) {
-        return;
-      }
-      const vid = videoRef.current;
-      const hasTrack = vid?.srcObject && (vid.srcObject as MediaStream).getVideoTracks().length > 0;
-      if (!hasTrack && !hostFoundInRoom) goOffline('no_video_track_and_host_not_found_after_video_timeout');
-    }, 60000);
-
     return () => {
       mounted = false;
-      clearTimeout(connectTimeout);
-      clearTimeout(videoTimeout);
       unbindRoomWs();
       unbindBattleWs();
       unbindBattleInviteWs();
@@ -2827,8 +2768,9 @@ export function useLiveSpectatorController() {
 
   // Disconnect WS only when leaving this stream page entirely.
   useEffect(() => {
+    const wsOwnerId = wsOwnerIdRef.current;
     return () => {
-      websocket.disconnect();
+      websocket.disconnectIfOwner(wsOwnerId);
     };
   }, []);
 
@@ -3340,7 +3282,7 @@ export function useLiveSpectatorController() {
     setPageExiting(true);
     const exitTo = returnToFromLocationState(location.state) || FEED_HOME;
     window.setTimeout(() => {
-      websocket.disconnect();
+      websocket.disconnectIfOwner(wsOwnerIdRef.current);
       stopCamera();
       navigate(exitTo, { replace: true });
     }, 250);

@@ -80,8 +80,7 @@ describe("Money and economy safety contracts", () => {
     const end = handlers.indexOf('case "battle_end"', start);
     expect(end).toBeGreaterThan(start);
     const voteBranch = handlers.slice(start, end);
-    expect(voteBranch).toContain("battle_vote_once:");
-    expect(voteBranch).toContain("valkeySetNx");
+    expect(voteBranch).toContain("claimBattleVoteOnce");
     expect(voteBranch).toContain("already_awarded");
     expect(voteBranch).toContain("addBattleScoreForTarget");
     expect(voteBranch).toContain("financialValueGbp: 0");

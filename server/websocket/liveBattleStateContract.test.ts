@@ -52,6 +52,8 @@ describe("LIVE + battle server state-machine contracts", () => {
   it("host WS blips get a grace window before the stream is ended", () => {
     expect(wsIndex).toContain("HOST_DISCONNECT_GRACE_MS");
     expect(wsIndex).toContain("scheduleHostDisconnectStreamEnd");
+    expect(wsIndex).toContain("isUserPublishingInRoom(roomId, userId)");
+    expect(wsIndex).toContain("roomHasActivePublisher(roomId)");
   });
 
   it("non-host battle creator disconnect is resolved after a grace (never stuck)", () => {

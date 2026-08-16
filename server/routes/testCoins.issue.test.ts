@@ -44,6 +44,15 @@ function mockReq(body: Record<string, unknown> = {}, ip = "127.0.0.1"): Request 
   } as unknown as Request;
 }
 
+function mockAdminQuery(isAdmin = true) {
+  dbMocks.query.mockImplementation(async (sql: string) => {
+    if (sql.includes("SELECT COALESCE(is_admin, false) AS is_admin FROM profiles")) {
+      return { rows: [{ is_admin: isAdmin }] };
+    }
+    return { rows: [] };
+  });
+}
+
 describe("test-coin ISSUE access control", () => {
   const PASSWORD = "unit-test-issue-password-only";
 
@@ -53,7 +62,7 @@ describe("test-coin ISSUE access control", () => {
     delete process.env.TEST_COINS_ISSUE_PASSWORD_HASH;
     authMocks.getTokenFromRequest.mockReturnValue("tok");
     dbMocks.getPool.mockReturnValue({ query: dbMocks.query });
-    dbMocks.query.mockResolvedValue({ rows: [] });
+    mockAdminQuery(true);
   });
 
   it("unauthenticated mint → 401", async () => {
@@ -63,7 +72,7 @@ describe("test-coin ISSUE access control", () => {
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
-  it("logged-in user with correct password → mints with origin test_coins", async () => {
+  it("logged-in admin with correct password → mints with origin test_coins", async () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-ok-mint" });
     const res = mockRes();
     await handleMintTestCoins(
@@ -81,7 +90,19 @@ describe("test-coin ISSUE access control", () => {
     );
   });
 
-  it("logged-in user authorize with correct password → ok", async () => {
+  it("non-admin with correct password → 403 Admin only", async () => {
+    mockAdminQuery(false);
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-not-admin" });
+    const res = mockRes();
+    await handleMintTestCoins(
+      mockReq({ password: PASSWORD, amount: 5 }),
+      res.value,
+    );
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.json).toHaveBeenCalledWith({ error: "Admin only" });
+  });
+
+  it("logged-in admin authorize with correct password → ok", async () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-ok-authz" });
     const res = mockRes();
     await handleAuthorizeTestCoins(mockReq({ password: PASSWORD }), res.value);
@@ -90,7 +111,7 @@ describe("test-coin ISSUE access control", () => {
     );
   });
 
-  it("logged-in user with wrong password → 403 FORBIDDEN", async () => {
+  it("logged-in admin with wrong password → 403 FORBIDDEN", async () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-wrong-pwd" });
     const res = mockRes();
     await handleMintTestCoins(
@@ -101,7 +122,7 @@ describe("test-coin ISSUE access control", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "FORBIDDEN" });
   });
 
-  it("accepts TEST_COINS_ISSUE_PASSWORD_HASH (sha256) instead of plain env", async () => {
+  it("admin accepts TEST_COINS_ISSUE_PASSWORD_HASH (sha256) instead of plain env", async () => {
     delete process.env.TEST_COINS_ISSUE_PASSWORD;
     process.env.TEST_COINS_ISSUE_PASSWORD_HASH = sha256Hex(PASSWORD);
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-hash-mint" });

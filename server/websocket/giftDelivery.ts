@@ -214,10 +214,9 @@ export async function emitGiftSentToTargetAudience(opts: {
 
 async function resolveSenderProfile(
   userId: string,
-): Promise<{ username: string; avatar: string; level: number }> {
-  const fallback = { username: "User", avatar: "", level: 1 };
+): Promise<{ username: string; avatar: string; level: number } | null> {
   const db = getPool();
-  if (!db || !userId) return fallback;
+  if (!db || !userId) return null;
   try {
     const r = await db.query(
       `SELECT username, display_name, avatar_url, level
@@ -234,18 +233,19 @@ async function resolveSenderProfile(
           level?: number;
         }
       | undefined;
-    if (!row) return fallback;
+    if (!row) return null;
     const username =
       (typeof row.display_name === "string" && row.display_name.trim()) ||
       (typeof row.username === "string" && row.username.trim()) ||
-      "User";
+      "";
     return {
       username,
       avatar: typeof row.avatar_url === "string" ? row.avatar_url : "",
       level: Number(row.level) || 1,
     };
-  } catch {
-    return fallback;
+  } catch (err) {
+    logger.warn({ err, userId }, "resolveSenderProfile failed");
+    return null;
   }
 }
 
@@ -270,15 +270,19 @@ export async function deliverVerifiedGift(
   }
 
   const profile = await resolveSenderProfile(userId);
+  if (!profile) {
+    logger.warn({ roomId, userId, transactionId }, "deliverVerifiedGift: sender profile missing");
+  }
   const username =
     (typeof input.username === "string" && input.username.trim()) ||
-    profile.username;
+    profile?.username ||
+    userId;
   const avatar =
-    (typeof input.avatar === "string" && input.avatar) || profile.avatar;
+    (typeof input.avatar === "string" && input.avatar) || profile?.avatar || "";
   const level =
     typeof input.level === "number" && Number.isFinite(input.level)
       ? input.level
-      : profile.level;
+      : profile?.level || 1;
 
   // Creator gift video play REQUIRES a real mp4/webm URL in the payload.
   // Resolve from REST gift row first, then cache/DB — never broadcast null when

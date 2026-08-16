@@ -23,6 +23,7 @@ import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
 import { isStreamHost, removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
+import { isLiveKitConfigured, isUserPublishingInRoom, roomHasActivePublisher } from "../services/livekit";
 import { dbIsBlockedEitherWay, dbUpdateViewerCount } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { checkSessionState, verifyAuthToken } from "../routes/auth";
@@ -43,6 +44,8 @@ import {
   valkeyHincrby,
   valkeyHget,
   valkeyHset,
+  valkeyHdel,
+  valkeyHgetall,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
@@ -93,10 +96,10 @@ export async function wsRateCheck(
       _warnedWsRateCheckNoValkey = true;
       logger.warn(
         { userId, event },
-        "wsRateCheck: Valkey not configured — allowing WS event (no rate limit available)",
+        "wsRateCheck: Valkey not configured — denying WS event",
       );
     }
-    return true;
+    return false;
   }
   try {
     return await valkeyRateCheckFn(`wsrl:${userId}:${event}`, windowMs, maxPerWindow);
@@ -389,11 +392,7 @@ async function readStampedAudienceOwner(
 /**
  * Atomic claim: SET NX ensures only one worker/request can claim a transaction.
  * Returns { claimed: true } on first call, { claimed: false } on duplicates.
- * When Valkey is not configured, uses process-local memory so single-instance
- * deploys still broadcast verified gifts (creator gift video play).
  */
-const localTxnClaims = new Map<string, number>();
-
 export async function tryClaimTransaction(
   transactionId: string,
   timestamp: number,
@@ -402,21 +401,10 @@ export async function tryClaimTransaction(
     if (!_warnedTryClaimNoValkey) {
       _warnedTryClaimNoValkey = true;
       logger.warn(
-        "tryClaimTransaction: Valkey not configured — using in-memory claim (single instance).",
+        "tryClaimTransaction: Valkey not configured — dedupe unavailable.",
       );
     }
-    const existing = localTxnClaims.get(transactionId);
-    if (existing != null) {
-      return { claimed: false, existingTimestamp: existing };
-    }
-    localTxnClaims.set(transactionId, timestamp);
-    if (localTxnClaims.size > 5_000) {
-      const cutoff = timestamp - 300_000;
-      for (const [k, ts] of localTxnClaims) {
-        if (ts < cutoff) localTxnClaims.delete(k);
-      }
-    }
-    return { claimed: true };
+    return { claimed: false };
   }
   const key = `txn:${transactionId}`;
   const claimed = await valkeySetNx(key, String(timestamp), 300_000);
@@ -428,10 +416,7 @@ export async function tryClaimTransaction(
 export async function releaseTransactionClaim(transactionId: string): Promise<void> {
   const id = String(transactionId || "").trim();
   if (!id) return;
-  if (!isValkeyConfigured()) {
-    localTxnClaims.delete(id);
-    return;
-  }
+  if (!isValkeyConfigured()) return;
   await valkeyDel(`txn:${id}`);
 }
 
@@ -492,43 +477,104 @@ export async function setCohostLayout(
 export async function deleteCohostLayout(roomId: string): Promise<void> {
   if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost:${roomId}`);
+  await valkeyDel(`cohost:req:${roomId}`);
   await clearCohostPublishGrants(roomId);
+}
+
+export type CohostJoinRequest = {
+  requesterUserId: string;
+  requesterName: string;
+  requesterAvatar: string;
+  createdAt: number;
+};
+
+export async function upsertCohostJoinRequest(
+  roomId: string,
+  requesterUserId: string,
+  requesterName: string,
+  requesterAvatar: string,
+): Promise<void> {
+  if (!roomId || !requesterUserId) return;
+  if (!isValkeyConfigured()) return;
+  const now = Date.now();
+  const key = `cohost:req:${roomId}`;
+  await valkeyHset(
+    key,
+    requesterUserId,
+    JSON.stringify({
+      requesterUserId,
+      requesterName,
+      requesterAvatar,
+      createdAt: now,
+    } satisfies CohostJoinRequest),
+  );
+  await valkeyExpire(key, 6 * 60 * 60);
+}
+
+export async function deleteCohostJoinRequest(
+  roomId: string,
+  requesterUserId: string,
+): Promise<void> {
+  if (!roomId || !requesterUserId) return;
+  if (!isValkeyConfigured()) return;
+  await valkeyHdel(`cohost:req:${roomId}`, requesterUserId);
+}
+
+export async function listCohostJoinRequests(roomId: string): Promise<CohostJoinRequest[]> {
+  if (!roomId) return [];
+  if (!isValkeyConfigured()) return [];
+  const rows = await valkeyHgetall(`cohost:req:${roomId}`);
+  const requests: CohostJoinRequest[] = [];
+  for (const raw of Object.values(rows)) {
+    if (!raw) continue;
+    try {
+      const parsed = JSON.parse(raw) as Partial<CohostJoinRequest>;
+      const requesterUserId = String(parsed.requesterUserId || "").trim();
+      if (!requesterUserId) continue;
+      requests.push({
+        requesterUserId,
+        requesterName: String(parsed.requesterName || "User"),
+        requesterAvatar: String(parsed.requesterAvatar || ""),
+        createdAt: Number(parsed.createdAt) || 0,
+      });
+    } catch {
+      // ignore malformed rows
+    }
+  }
+  requests.sort((a, b) => a.createdAt - b.createdAt);
+  return requests;
 }
 
 // ── Room live likes (shared total for creator + all spectators) ───
 // One authoritative counter per room so every client shows the same number.
 const LIVE_LIKES_TTL_SEC = 6 * 3600;
-const localLiveLikes = new Map<string, number>();
 
 export async function getRoomLiveLikes(roomId: string): Promise<number> {
   if (!roomId) return 0;
+  if (!isValkeyConfigured()) return 0;
   if (isValkeyConfigured()) {
     const raw = await valkeyHget(`room:meta:${roomId}`, "live_likes");
     if (raw != null) {
       const n = Number(raw);
       if (Number.isFinite(n) && n >= 0) {
-        const v = Math.floor(n);
-        localLiveLikes.set(roomId, v);
-        return v;
+        return Math.floor(n);
       }
     }
   }
-  return localLiveLikes.get(roomId) || 0;
+  return 0;
 }
 
 export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
   if (!roomId) return 0;
+  if (!isValkeyConfigured()) return 0;
   if (isValkeyConfigured()) {
     const next = await valkeyHincrby(`room:meta:${roomId}`, "live_likes", 1);
     if (next > 0) {
       void valkeyExpire(`room:meta:${roomId}`, LIVE_LIKES_TTL_SEC);
-      localLiveLikes.set(roomId, next);
       return next;
     }
   }
-  const next = (localLiveLikes.get(roomId) || 0) + 1;
-  localLiveLikes.set(roomId, next);
-  return next;
+  return 0;
 }
 
 // ── Co-host publish grants (host-authorized) ─────────────────────
@@ -538,26 +584,30 @@ export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
 const COHOST_GRANT_TTL_MS = 6 * 60 * 60 * 1000; // matches LiveKit token TTL
 
 export async function grantCohostPublish(roomId: string, userId: string): Promise<void> {
-  if (!isValkeyConfigured() || !roomId || !userId) return;
+  if (!roomId || !userId) return;
+  if (!isValkeyConfigured()) return;
   await valkeySet(`cohost_grant:${roomId}:${userId}`, "1", COHOST_GRANT_TTL_MS);
   await valkeySadd(`cohost_grants:${roomId}`, userId);
   await valkeyExpire(`cohost_grants:${roomId}`, Math.ceil(COHOST_GRANT_TTL_MS / 1000));
 }
 
 export async function hasCohostPublishGrant(roomId: string, userId: string): Promise<boolean> {
-  if (!isValkeyConfigured() || !roomId || !userId) return false;
+  if (!roomId || !userId) return false;
+  if (!isValkeyConfigured()) return false;
   const v = await valkeyGet(`cohost_grant:${roomId}:${userId}`);
   return v === "1";
 }
 
 export async function revokeCohostPublish(roomId: string, userId: string): Promise<void> {
-  if (!isValkeyConfigured() || !roomId || !userId) return;
+  if (!roomId || !userId) return;
+  if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost_grant:${roomId}:${userId}`);
   await valkeySrem(`cohost_grants:${roomId}`, userId);
 }
 
 export async function clearCohostPublishGrants(roomId: string): Promise<void> {
-  if (!isValkeyConfigured() || !roomId) return;
+  if (!roomId) return;
+  if (!isValkeyConfigured()) return;
   const members = await valkeySmembers(`cohost_grants:${roomId}`);
   for (const userId of members) {
     await valkeyDel(`cohost_grant:${roomId}:${userId}`);
@@ -773,26 +823,14 @@ const viewerCountDbWriter = createCoalescedWriter<number>((roomId, count) => {
   });
 }, VIEWER_DB_WRITE_DEBOUNCE_MS);
 
-/** Unique WS member ids in this live room (Valkey SET or local fallback). */
+/** Unique WS member ids in this live room (Valkey SET). */
 async function listRoomMemberUserIds(roomId: string): Promise<string[]> {
-  if (isValkeyConfigured()) {
-    const ids = await valkeySmembers(`room:members:${roomId}`);
-    if (ids.length > 0) {
-      await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
-    }
-    return ids;
+  if (!isValkeyConfigured()) return [];
+  const ids = await valkeySmembers(`room:members:${roomId}`);
+  if (ids.length > 0) {
+    await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
   }
-  const room = rooms.get(roomId);
-  if (!room) return [];
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const c of room) {
-    if (!seen.has(c.userId)) {
-      seen.add(c.userId);
-      out.push(c.userId);
-    }
-  }
-  return out;
+  return ids;
 }
 
 /** Host, co-host publishers, and battle creators are not counted as spectators. */
@@ -897,6 +935,13 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
         if (isValkeyConfigured()) {
           const stillMember = await valkeySmembers(`room:members:${roomId}`);
           if (stillMember.includes(userId)) return;
+        }
+        // Do not end For You live presence while media is still up in LiveKit.
+        // WS can blip during route/device transitions while the creator keeps
+        // publishing tracks; ending here would remove a real live card.
+        if (isLiveKitConfigured()) {
+          if (await isUserPublishingInRoom(roomId, userId)) return;
+          if (await roomHasActivePublisher(roomId)) return;
         }
         const isHost = await isStreamHost(roomId, userId);
         if (!isHost) return;
@@ -1285,6 +1330,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         ws.close(1008, "Missing room or token");
         return;
       }
+      if (!isValkeyConfigured()) {
+        ws.close(1013, "Realtime backend unavailable");
+        return;
+      }
 
       const userId = verifyAndExtractUserId(token);
       if (!userId) {
@@ -1295,12 +1344,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       // Match HTTP sessionGuard: reject revoked sessions and banned users.
       const session = await checkSessionState(token);
       if (!session || session.state !== "ok") {
-        const reason =
-          session?.state === "banned"
-            ? "Banned"
-            : session?.state === "unavailable"
-              ? "Session validation unavailable"
-              : "Session revoked";
+        if (session?.state === "unavailable") {
+          // Temporary backend/state outage: use 1013 so client reconnect logic
+          // can retry instead of treating this as a permanent policy/auth failure.
+          ws.close(1013, "Session validation unavailable");
+          return;
+        }
+        const reason = session?.state === "banned" ? "Banned" : "Session revoked";
         ws.close(1008, reason);
         return;
       }
@@ -1468,6 +1518,20 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
             ? { layoutId: lastCohost.layoutId }
             : {}),
         });
+      }
+      try {
+        if (await isStreamHost(roomId, userId)) {
+          const queued = await listCohostJoinRequests(roomId);
+          for (const req of queued) {
+            sendToClient(client, "cohost_request", {
+              requesterUserId: req.requesterUserId,
+              requesterName: req.requesterName,
+              requesterAvatar: req.requesterAvatar,
+            });
+          }
+        }
+      } catch (queueErr) {
+        logger.warn({ err: queueErr, roomId, userId }, "ws: cohost request queue replay failed");
       }
 
       const userAlreadyPresent = Array.from(rooms.get(roomId) || []).some(

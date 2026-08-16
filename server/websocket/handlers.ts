@@ -18,6 +18,14 @@ import {
   trackPendingBattleInvite,
   untrackPendingBattleInvite,
   clearPendingBattleInvites,
+  setUserBattleRoom,
+  setBattleInvite,
+  hasBattleInvite,
+  clearBattleInvite,
+  setBattleAcceptedGrant,
+  hasBattleAcceptedGrant,
+  clearBattleRuntimeForRoom,
+  claimBattleVoteOnce,
 } from "./battle";
 import {
   broadcastToFeedSubscribers,
@@ -28,6 +36,9 @@ import {
   wsRateCheck,
   setCohostLayout,
   deleteCohostLayout,
+  upsertCohostJoinRequest,
+  deleteCohostJoinRequest,
+  listCohostJoinRequests,
   grantBattlePublish,
   hasBattlePublishGrant,
   grantCohostPublish,
@@ -35,7 +46,11 @@ import {
   revokeCohostPublish,
   getCohostLayout,
 } from "./index";
-import { valkeyDel, valkeySet, valkeySetNx, valkeyGet } from "../lib/valkey";
+import {
+  MAX_COHOST_SLOTS,
+  normalizeCohostSlots,
+  upsertCohostSlot,
+} from "./cohostSlots";
 import { randomUUID } from "crypto";
 import {
   clearGiftGoal,
@@ -54,6 +69,7 @@ import {
 import { awardLiveWatchXp } from "../lib/awardLiveWatchXp";
 import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres";
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
+import { isValkeyConfigured } from "../lib/valkey";
 import { deliverVerifiedGift, emitGiftSentToTargetAudience } from "./giftDelivery";
 import {
   isTestCoinsGiftSource,
@@ -62,8 +78,22 @@ import {
 
 const BATTLE_USER_ROOM_TTL_MS = 600_000;
 
-function battleAcceptedKey(roomId: string, userId: string): string {
-  return `battle_accept:${roomId}:${userId}`;
+function ensureBattleInfra(client: Client): boolean {
+  if (isValkeyConfigured()) return true;
+  sendToClient(client, "battle_error", {
+    message: "Realtime backend unavailable",
+    reason: "backend_unavailable",
+  });
+  return false;
+}
+
+function ensureCohostInfra(client: Client): boolean {
+  if (isValkeyConfigured()) return true;
+  sendToClient(client, "error", {
+    message: "Cohost realtime backend unavailable",
+    reason: "backend_unavailable",
+  });
+  return false;
 }
 
 /**
@@ -85,7 +115,7 @@ async function publishBattleInviteRoster(
     try {
       dbRows = await dbGetLiveStreams();
     } catch (err) {
-      logger.warn({ err, roomId }, "publishBattleInviteRoster: live_streams fallback failed");
+      logger.warn({ err, roomId }, "publishBattleInviteRoster: live_streams lookup failed");
     }
     const byUser = new Map<string, { stream_key: string; user_id: string; display_name?: string | null }>();
     for (const r of [...listed.streams, ...dbRows]) {
@@ -536,6 +566,7 @@ export async function handleMessage(
       }
 
       case "battle_create": {
+        if (!ensureBattleInfra(client)) break;
         if (!(await wsRateCheck(client.userId, "battle_create", 10, 60_000))) break;
         const ownerId = await resolveStreamOwnerUserId(client.roomId);
         if (!ownerId || ownerId !== client.userId) break;
@@ -572,9 +603,7 @@ export async function handleMessage(
             seatsOk = false;
             break;
           }
-          const accepted = await valkeyGet(
-            battleAcceptedKey(client.roomId, seat.userId),
-          );
+          const accepted = await hasBattleAcceptedGrant(client.roomId, seat.userId);
           if (!accepted) {
             seatsOk = false;
             break;
@@ -598,11 +627,7 @@ export async function handleMessage(
           if (existing.player4UserId) {
             await revokeBattlePublish(client.roomId, existing.player4UserId);
           }
-          await valkeyDel("battle:" + client.roomId);
-          await valkeyDel("ubr:" + existing.hostUserId);
-          if (existing.opponentUserId) await valkeyDel("ubr:" + existing.opponentUserId);
-          if (existing.player3UserId) await valkeyDel("ubr:" + existing.player3UserId);
-          if (existing.player4UserId) await valkeyDel("ubr:" + existing.player4UserId);
+          await clearBattleRuntimeForRoom(client.roomId, existing);
         }
         const session = await createBattle(
           client.roomId,
@@ -615,31 +640,19 @@ export async function handleMessage(
             session.opponentUserId = opponentUserId;
             session.opponentName = opponentName || "Creator";
             session.opponentRoomId = opponentRoomId || opponentUserId;
-            await valkeySet(
-              "ubr:" + opponentUserId,
-              client.roomId,
-              BATTLE_USER_ROOM_TTL_MS,
-            );
+            await setUserBattleRoom(opponentUserId, client.roomId, BATTLE_USER_ROOM_TTL_MS);
             await grantBattlePublish(client.roomId, opponentUserId);
           }
           if (player3UserId) {
             session.player3UserId = player3UserId;
             session.player3Name = player3Name || "Creator";
-            await valkeySet(
-              "ubr:" + player3UserId,
-              client.roomId,
-              BATTLE_USER_ROOM_TTL_MS,
-            );
+            await setUserBattleRoom(player3UserId, client.roomId, BATTLE_USER_ROOM_TTL_MS);
             await grantBattlePublish(client.roomId, player3UserId);
           }
           if (player4UserId) {
             session.player4UserId = player4UserId;
             session.player4Name = player4Name || "Creator";
-            await valkeySet(
-              "ubr:" + player4UserId,
-              client.roomId,
-              BATTLE_USER_ROOM_TTL_MS,
-            );
+            await setUserBattleRoom(player4UserId, client.roomId, BATTLE_USER_ROOM_TTL_MS);
             await grantBattlePublish(client.roomId, player4UserId);
           }
           await saveBattleToStore(client.roomId, session);
@@ -655,12 +668,10 @@ export async function handleMessage(
       }
 
       case "battle_join": {
+        if (!ensureBattleInfra(client)) break;
         if (!(await wsRateCheck(client.userId, "battle_join", 20, 60_000))) break;
-        const inviteKey = `battle_invite:${client.roomId}:${client.userId}`;
-        const invited = await valkeyGet(inviteKey);
-        const acceptedGrant = await valkeyGet(
-          battleAcceptedKey(client.roomId, client.userId),
-        );
+        const invited = await hasBattleInvite(client.roomId, client.userId);
+        const acceptedGrant = await hasBattleAcceptedGrant(client.roomId, client.userId);
         // Accept already deletes the invite key and claims a seat; battle_join
         // on room connect must honor the accepted grant so the joiner is not
         // rejected with "Battle invite required".
@@ -680,13 +691,14 @@ export async function handleMessage(
             message: invited || acceptedGrant ? "Battle is full" : "No battle to join",
           });
         } else if (invited) {
-          await valkeyDel(inviteKey);
+          await clearBattleInvite(client.roomId, client.userId);
           await untrackPendingBattleInvite(client.roomId, client.userId);
         }
         break;
       }
 
       case "battle_spectator_vote": {
+        if (!ensureBattleInfra(client)) break;
         // GAMEPLAY ONLY: +5 Battle points once per unique viewer per battle.
         // Same viewer cannot add another +5 by tapping again. £0 revenue.
         // Rate-limited; creators in the match cannot self-score via taps.
@@ -716,8 +728,12 @@ export async function handleMessage(
                   : null;
         if (!voteTarget) break;
         // One award per (battle, viewer). TTL covers the battle window.
-        const onceKey = `battle_vote_once:${voteBattle.id}:${client.userId}`;
-        const firstTap = await valkeySetNx(onceKey, voteTarget, 600_000);
+        const firstTap = await claimBattleVoteOnce(
+          voteBattle.id,
+          client.userId,
+          voteTarget,
+          600_000,
+        );
         if (!firstTap) {
           sendToClient(client, "battle_vote_ack", {
             target: voteTarget,
@@ -740,6 +756,7 @@ export async function handleMessage(
       }
 
       case "battle_end": {
+        if (!ensureBattleInfra(client)) break;
         const bSession = await getBattleFromStore(client.roomId);
         if (!bSession || bSession.status === "ENDED") break;
         if (bSession.hostUserId === client.userId) {
@@ -781,6 +798,7 @@ export async function handleMessage(
       }
 
       case "battle_remove_participant": {
+        if (!ensureBattleInfra(client)) break;
         // Host kick OR self-leave for one seat only. Must never call endBattle
         // for the whole room unless this was the last rival in an ACTIVE match.
         if (!(await wsRateCheck(client.userId, "battle_remove_participant", 40, 60_000))) {
@@ -826,6 +844,7 @@ export async function handleMessage(
       }
 
       case "battle_get_state": {
+        if (!ensureBattleInfra(client)) break;
         const currentBattle = await getBattleFromStore(client.roomId);
         if (!currentBattle) {
           // Creator is in normal live — force spectators out of battle layout.
@@ -870,6 +889,7 @@ export async function handleMessage(
       }
 
       case "battle_invite_send": {
+        if (!ensureBattleInfra(client)) break;
         if (!(await wsRateCheck(client.userId, "battle_invite_send", 100, 60_000)))
           break;
         // Battle room = the host's room. The room owner OR any accepted battle
@@ -946,11 +966,7 @@ export async function handleMessage(
         }
         // Always the battle room (host room) so accept joins the match, not a co-host live.
         const streamKey = client.roomId;
-        await valkeySet(
-          `battle_invite:${streamKey}:${targetUserId}`,
-          "1",
-          10 * 60 * 1000,
-        );
+        await setBattleInvite(streamKey, targetUserId, 10 * 60 * 1000);
         await trackPendingBattleInvite(streamKey, targetUserId);
         const invitePayload = {
           // Accept must authorize against the room owner — never the opponent inviter.
@@ -971,10 +987,11 @@ export async function handleMessage(
       }
 
       case "battle_invite_decline": {
+        if (!ensureBattleInfra(client)) break;
         const hostStreamKey =
           typeof data.hostStreamKey === "string" ? data.hostStreamKey.trim() : "";
         if (!hostStreamKey) break;
-        await valkeyDel(`battle_invite:${hostStreamKey}:${client.userId}`);
+        await clearBattleInvite(hostStreamKey, client.userId);
         await untrackPendingBattleInvite(hostStreamKey, client.userId);
         broadcastToRoom(hostStreamKey, "battle_invite_declined", {
           userId: client.userId,
@@ -984,6 +1001,7 @@ export async function handleMessage(
       }
 
       case "battle_invite_accept": {
+        if (!ensureBattleInfra(client)) break;
         if (
           !(await wsRateCheck(client.userId, "battle_invite_accept", 100, 60_000))
         )
@@ -1013,8 +1031,8 @@ export async function handleMessage(
           break;
         }
         const invitedKey = hostRoomForInvite
-          ? await valkeyGet(`battle_invite:${hostRoomForInvite}:${client.userId}`)
-          : null;
+          ? await hasBattleInvite(hostRoomForInvite, client.userId)
+          : false;
         if (!invitedKey) {
           sendToClient(client, "battle_error", {
             message: "Battle invite is no longer valid",
@@ -1035,7 +1053,7 @@ export async function handleMessage(
             data.requesterName || client.displayName,
           );
           if (!claimed) {
-            await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
+            await clearBattleInvite(hostRoomForInvite, client.userId);
             await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
             sendToClient(client, "battle_error", {
               message: "Battle is full",
@@ -1048,9 +1066,9 @@ export async function handleMessage(
         // Persist the accepted creator role before navigation. This is the
         // authority used by battle_create and by the LiveKit publish-token
         // check; a spectator never receives either grant.
-        await valkeySet(
-          battleAcceptedKey(hostRoomForInvite, client.userId),
-          "1",
+        await setBattleAcceptedGrant(
+          hostRoomForInvite,
+          client.userId,
           BATTLE_USER_ROOM_TTL_MS,
         );
         try {
@@ -1063,7 +1081,7 @@ export async function handleMessage(
           });
           break;
         }
-        await valkeyDel(`battle_invite:${hostRoomForInvite}:${client.userId}`);
+        await clearBattleInvite(hostRoomForInvite, client.userId);
         await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
         // Handshake with the accepter: the grant now exists, so their client
         // may navigate into the battle knowing the publish token will be
@@ -1075,11 +1093,7 @@ export async function handleMessage(
         // Record where the accepter is heading BEFORE their solo stream ends,
         // so stream_end can redirect their spectators into the battle room.
         if (hostStreamKeyRaw && hostStreamKeyRaw !== client.roomId) {
-          await valkeySet(
-            "ubr:" + client.userId,
-            hostStreamKeyRaw,
-            BATTLE_USER_ROOM_TTL_MS,
-          );
+          await setUserBattleRoom(client.userId, hostStreamKeyRaw, BATTLE_USER_ROOM_TTL_MS);
         }
         // Notify every creator already in the battle room (host + opponents)
         // so all of them show Joined — not only the room owner.
@@ -1094,6 +1108,7 @@ export async function handleMessage(
       }
 
       case "battle_invite_roster_get": {
+        if (!ensureBattleInfra(client)) break;
         const rosterDeny = (error: string) => {
           sendToClient(client, "battle_invite_roster", {
             streamKey: client.roomId,
@@ -1155,6 +1170,7 @@ export async function handleMessage(
       }
 
       case "cohost_invite_send": {
+        if (!ensureCohostInfra(client)) break;
         if (
           !(await wsRateCheck(client.userId, "cohost_invite_send", 200, 60_000))
         )
@@ -1186,9 +1202,60 @@ export async function handleMessage(
           typeof data.streamKey === "string" && data.streamKey.trim()
             ? data.streamKey.trim()
             : client.roomId;
+        const currentLayout = await getCohostLayout(client.roomId);
+        const normalizedSlots = normalizeCohostSlots(
+          currentLayout?.coHosts,
+          client.userId,
+          MAX_COHOST_SLOTS,
+        );
+        const upserted = upsertCohostSlot(
+          normalizedSlots,
+          {
+            userId: targetUserId,
+            name:
+              (typeof data.targetName === "string" && data.targetName.trim()) ||
+              "Co-host",
+            avatar:
+              (typeof data.targetAvatar === "string" && data.targetAvatar) || "",
+            status: "invited",
+          },
+          MAX_COHOST_SLOTS,
+        );
+        if (upserted.full) {
+          sendToClient(client, "cohost_invite_ack", {
+            targetUserId,
+            delivered: false,
+            reason: "cohost_full",
+            max: MAX_COHOST_SLOTS,
+          });
+          break;
+        }
         // Only the host of this room may authorize co-host publishing.
         if (streamKey && streamKey === client.roomId) {
           await grantCohostPublish(streamKey, targetUserId);
+        }
+        if (upserted.changed) {
+          await setCohostLayout(
+            client.roomId,
+            upserted.slots,
+            client.userId,
+            typeof currentLayout?.layoutId === "string" ? currentLayout.layoutId : null,
+            typeof currentLayout?.featuredUserId === "string"
+              ? currentLayout.featuredUserId
+              : null,
+          );
+          broadcastToRoom(client.roomId, "cohost_layout_sync", {
+            coHosts: upserted.slots,
+            hostUserId: client.userId,
+            featuredUserId:
+              typeof currentLayout?.featuredUserId === "string"
+                ? currentLayout.featuredUserId
+                : null,
+            ...(typeof currentLayout?.layoutId === "string" &&
+            currentLayout.layoutId.trim()
+              ? { layoutId: currentLayout.layoutId.trim() }
+              : {}),
+          });
         }
         const invitePayload = {
           hostUserId: client.userId,
@@ -1209,6 +1276,7 @@ export async function handleMessage(
       }
 
       case "cohost_invite_accept": {
+        if (!ensureCohostInfra(client)) break;
         if (
           !(await wsRateCheck(client.userId, "cohost_invite_accept", 200, 60_000))
         )
@@ -1216,6 +1284,58 @@ export async function handleMessage(
         const hostUserId =
           typeof data.hostUserId === "string" ? data.hostUserId : "";
         if (!hostUserId) break;
+        const hostStreamKey =
+          typeof data.streamKey === "string" ? data.streamKey.trim() : "";
+        if (hostStreamKey) {
+          await deleteCohostJoinRequest(hostStreamKey, client.userId);
+          const currentLayout = await getCohostLayout(hostStreamKey);
+          const normalizedSlots = normalizeCohostSlots(
+            currentLayout?.coHosts,
+            hostUserId,
+            MAX_COHOST_SLOTS,
+          );
+          const upserted = upsertCohostSlot(
+            normalizedSlots,
+            {
+              userId: client.userId,
+              name:
+                (typeof data.cohostName === "string" && data.cohostName.trim()) ||
+                client.displayName ||
+                "Co-host",
+              avatar:
+                (typeof data.cohostAvatar === "string" && data.cohostAvatar) ||
+                client.avatarUrl ||
+                "",
+              status: "live",
+            },
+            MAX_COHOST_SLOTS,
+          );
+          if (upserted.changed) {
+            await setCohostLayout(
+              hostStreamKey,
+              upserted.slots,
+              hostUserId,
+              typeof currentLayout?.layoutId === "string"
+                ? currentLayout.layoutId
+                : null,
+              typeof currentLayout?.featuredUserId === "string"
+                ? currentLayout.featuredUserId
+                : null,
+            );
+            broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
+              coHosts: upserted.slots,
+              hostUserId,
+              featuredUserId:
+                typeof currentLayout?.featuredUserId === "string"
+                  ? currentLayout.featuredUserId
+                  : null,
+              ...(typeof currentLayout?.layoutId === "string" &&
+              currentLayout.layoutId.trim()
+                ? { layoutId: currentLayout.layoutId.trim() }
+                : {}),
+            });
+          }
+        }
         sendToUserGlobal(hostUserId, "cohost_invite_accepted", {
           cohostUserId: client.userId,
           cohostName: data.cohostName || client.displayName,
@@ -1226,6 +1346,7 @@ export async function handleMessage(
       }
 
       case "cohost_request_send": {
+        if (!ensureCohostInfra(client)) break;
         if (
           !(await wsRateCheck(client.userId, "cohost_request_send", 100, 60_000))
         )
@@ -1247,6 +1368,15 @@ export async function handleMessage(
           requesterName: data.requesterName || client.displayName,
           requesterAvatar: data.requesterAvatar || client.avatarUrl || "",
         };
+        const requestRoomId = client.roomId || rawHost;
+        if (requestRoomId) {
+          await upsertCohostJoinRequest(
+            requestRoomId,
+            requestPayload.requesterUserId,
+            String(requestPayload.requesterName || "User"),
+            String(requestPayload.requesterAvatar || ""),
+          );
+        }
         let sent = sendToUserGlobal(hostUserId, "cohost_request", requestPayload);
         // Fallback: host may still be keyed by the raw stream/room id.
         if (sent === 0 && rawHost && rawHost !== hostUserId) {
@@ -1259,6 +1389,7 @@ export async function handleMessage(
       }
 
       case "cohost_request_accept": {
+        if (!ensureCohostInfra(client)) break;
         if (
           !(await wsRateCheck(
             client.userId,
@@ -1275,18 +1406,81 @@ export async function handleMessage(
             ? data.requesterUserId.trim()
             : "";
         if (!requesterUserId || requesterUserId === client.userId) break;
+        await deleteCohostJoinRequest(client.roomId, requesterUserId);
+        const currentLayout = await getCohostLayout(client.roomId);
+        const normalizedSlots = normalizeCohostSlots(
+          currentLayout?.coHosts,
+          client.userId,
+          MAX_COHOST_SLOTS,
+        );
+        const upserted = upsertCohostSlot(
+          normalizedSlots,
+          {
+            userId: requesterUserId,
+            name:
+              (typeof data.requesterName === "string" && data.requesterName.trim()) ||
+              "Co-host",
+            avatar:
+              (typeof data.requesterAvatar === "string" && data.requesterAvatar) ||
+              "",
+            status: "accepted",
+          },
+          MAX_COHOST_SLOTS,
+        );
+        if (upserted.full) {
+          sendToUserGlobal(requesterUserId, "cohost_request_declined", {
+            hostUserId: client.userId,
+            hostName: data.hostName || client.displayName,
+            reason: "cohost_full",
+            max: MAX_COHOST_SLOTS,
+          });
+          break;
+        }
         // Host accepted this viewer's co-host request → grant publish for the room.
         if (client.roomId) await grantCohostPublish(client.roomId, requesterUserId);
+        if (upserted.changed) {
+          await setCohostLayout(
+            client.roomId,
+            upserted.slots,
+            client.userId,
+            typeof currentLayout?.layoutId === "string" ? currentLayout.layoutId : null,
+            typeof currentLayout?.featuredUserId === "string"
+              ? currentLayout.featuredUserId
+              : null,
+          );
+          broadcastToRoom(client.roomId, "cohost_layout_sync", {
+            coHosts: upserted.slots,
+            hostUserId: client.userId,
+            featuredUserId:
+              typeof currentLayout?.featuredUserId === "string"
+                ? currentLayout.featuredUserId
+                : null,
+            ...(typeof currentLayout?.layoutId === "string" &&
+            currentLayout.layoutId.trim()
+              ? { layoutId: currentLayout.layoutId.trim() }
+              : {}),
+          });
+        }
         sendToUserGlobal(requesterUserId, "cohost_request_accepted", {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
           hostAvatar: data.hostAvatar || client.avatarUrl || "",
           streamKey: client.roomId,
         });
+        const queued = await listCohostJoinRequests(client.roomId);
+        const next = queued.find((r) => r.requesterUserId !== requesterUserId);
+        if (next) {
+          sendToUserGlobal(client.userId, "cohost_request", {
+            requesterUserId: next.requesterUserId,
+            requesterName: next.requesterName,
+            requesterAvatar: next.requesterAvatar,
+          });
+        }
         break;
       }
 
       case "cohost_request_decline": {
+        if (!ensureCohostInfra(client)) break;
         if (
           !(await wsRateCheck(
             client.userId,
@@ -1301,14 +1495,26 @@ export async function handleMessage(
             ? data.requesterUserId
             : "";
         if (!requesterUserId) break;
+        await deleteCohostJoinRequest(client.roomId, requesterUserId);
         sendToUserGlobal(requesterUserId, "cohost_request_declined", {
           hostUserId: client.userId,
           hostName: data.hostName || client.displayName,
         });
+        // Push next queued request to host immediately (if any).
+        const queued = await listCohostJoinRequests(client.roomId);
+        const next = queued.find((r) => r.requesterUserId !== requesterUserId);
+        if (next) {
+          sendToUserGlobal(client.userId, "cohost_request", {
+            requesterUserId: next.requesterUserId,
+            requesterName: next.requesterName,
+            requesterAvatar: next.requesterAvatar,
+          });
+        }
         break;
       }
 
       case "cohost_layout_sync": {
+        if (!ensureCohostInfra(client)) break;
         const roomId = client.roomId;
         if (!roomId) break;
         const ownerId = await resolveStreamOwnerUserId(roomId);
@@ -1321,7 +1527,7 @@ export async function handleMessage(
           if (!uid || uid === hostUserId || seen.has(uid)) return false;
           seen.add(uid);
           return true;
-        });
+        }).slice(0, MAX_COHOST_SLOTS);
         const previous = await getCohostLayout(roomId);
         const previousIds = new Set<string>(
           Array.isArray(previous?.coHosts)

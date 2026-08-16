@@ -1,5 +1,5 @@
 /**
- * Battle system — ALL state in Valkey. Fully distributed timer.
+ * Battle system — Valkey-backed distributed authority.
  *
  * Timer architecture:
  *   - battles:active  SET  — contains roomIds of all battles needing ticks
@@ -10,7 +10,7 @@
  *     can acquire on a subsequent tick.
  *   - Battle countdown uses wall time: timeLeft = f(endsAt, Date.now()), not “assume 300 ticks fired”.
  *
- * No local Maps. No setInterval per battle.
+ * Valkey is required for distributed timer + shared state across instances.
  */
 
 import { broadcastToRoom } from "./index";
@@ -71,18 +71,14 @@ const ACTIVE_BATTLES_KEY = "battles:active";
 
 let globalTickInterval: ReturnType<typeof setInterval> | null = null;
 
-function requireValkey(): boolean {
-  if (!isValkeyConfigured()) {
-    logger.error("Battle system requires Valkey — VALKEY_URL not set");
-    return false;
-  }
-  return true;
+function hasValkey(): boolean {
+  return isValkeyConfigured();
 }
 
 export async function getBattleFromStore(
   roomId: string,
 ): Promise<BattleSession | null> {
-  if (!requireValkey()) return null;
+  if (!hasValkey()) return null;
   try {
     const raw = await valkeyGet("battle:" + roomId);
     if (raw) {
@@ -100,7 +96,7 @@ export async function saveBattleToStore(
   roomId: string,
   session: BattleSession,
 ): Promise<void> {
-  if (!requireValkey()) return;
+  if (!hasValkey()) return;
   try {
     const { timer: _timer, ...serializable } = session;
     await valkeySet(
@@ -117,6 +113,7 @@ async function deleteBattleFromStore(
   roomId: string,
   session: BattleSession,
 ): Promise<void> {
+  if (!hasValkey()) return;
   try {
     await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
     await valkeyDel("battle:" + roomId);
@@ -136,13 +133,96 @@ export async function getUserBattleRoom(userId: string): Promise<string | null> 
   return valkeyGet("ubr:" + userId);
 }
 
+export async function setUserBattleRoom(
+  userId: string,
+  roomId: string,
+  ttlMs = BATTLE_TTL,
+): Promise<void> {
+  if (!userId || !roomId) return;
+  if (!hasValkey()) return;
+  await valkeySet("ubr:" + userId, roomId, ttlMs);
+}
+
+export async function clearUserBattleRoom(userId: string): Promise<void> {
+  if (!userId) return;
+  if (!hasValkey()) return;
+  await valkeyDel("ubr:" + userId);
+}
+
+export async function setBattleInvite(
+  roomId: string,
+  targetUserId: string,
+  ttlMs = 10 * 60 * 1000,
+): Promise<void> {
+  if (!roomId || !targetUserId) return;
+  if (!hasValkey()) return;
+  await valkeySet(`battle_invite:${roomId}:${targetUserId}`, "1", ttlMs);
+}
+
+export async function hasBattleInvite(roomId: string, targetUserId: string): Promise<boolean> {
+  if (!roomId || !targetUserId) return false;
+  if (!hasValkey()) return false;
+  return !!(await valkeyGet(`battle_invite:${roomId}:${targetUserId}`));
+}
+
+export async function clearBattleInvite(roomId: string, targetUserId: string): Promise<void> {
+  if (!roomId || !targetUserId) return;
+  if (!hasValkey()) return;
+  await valkeyDel(`battle_invite:${roomId}:${targetUserId}`);
+}
+
+export async function setBattleAcceptedGrant(
+  roomId: string,
+  userId: string,
+  ttlMs = BATTLE_TTL,
+): Promise<void> {
+  if (!roomId || !userId) return;
+  if (!hasValkey()) return;
+  await valkeySet(`battle_accept:${roomId}:${userId}`, "1", ttlMs);
+}
+
+export async function hasBattleAcceptedGrant(
+  roomId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!roomId || !userId) return false;
+  if (!hasValkey()) return false;
+  return !!(await valkeyGet(`battle_accept:${roomId}:${userId}`));
+}
+
+export async function clearBattleAcceptedGrant(
+  roomId: string,
+  userId: string,
+): Promise<void> {
+  if (!roomId || !userId) return;
+  if (!hasValkey()) return;
+  await valkeyDel(`battle_accept:${roomId}:${userId}`);
+}
+
+export async function clearBattleRuntimeForRoom(
+  roomId: string,
+  session: BattleSession | null,
+): Promise<void> {
+  if (!roomId) return;
+  if (!hasValkey()) return;
+  await valkeyDel("battle:" + roomId);
+  await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
+  await valkeyDel(SCORE_KEY_PREFIX + roomId);
+  await valkeyDel(PENDING_INVITES_KEY_PREFIX + roomId);
+  if (session) {
+    await clearUserBattleRoom(session.hostUserId);
+    if (session.opponentUserId) await clearUserBattleRoom(session.opponentUserId);
+    if (session.player3UserId) await clearUserBattleRoom(session.player3UserId);
+    if (session.player4UserId) await clearUserBattleRoom(session.player4UserId);
+  }
+}
+
 export async function createBattle(
   hostRoomId: string,
   hostUserId: string,
   hostName: string,
 ): Promise<BattleSession | null> {
-  if (!requireValkey()) return null;
-
+  if (!hasValkey()) return null;
   const session: BattleSession = {
     id: `battle-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     hostRoomId,
@@ -168,7 +248,7 @@ export async function createBattle(
     hostReady: false,
     opponentReady: false,
   };
-  await valkeySet("ubr:" + hostUserId, hostRoomId, BATTLE_TTL);
+  await setUserBattleRoom(hostUserId, hostRoomId, BATTLE_TTL);
   await saveBattleToStore(hostRoomId, session);
   return session;
 }
@@ -203,13 +283,14 @@ export async function claimBattleSeat(
   userId: string,
   userName: string,
 ): Promise<BattleSession | null> {
+  if (!hasValkey()) return null;
   const lockKey = SEAT_CLAIM_LOCK_PREFIX + roomId;
-  const locked = await valkeySetNx(lockKey, "1", 2_000);
+  let locked = await valkeySetNx(lockKey, "1", 2_000);
   if (!locked) {
     // Brief contention — retry once after a short wait so a valid accept is not lost.
     await new Promise((r) => setTimeout(r, 50));
-    const retry = await valkeySetNx(lockKey, "1", 2_000);
-    if (!retry) return null;
+    locked = await valkeySetNx(lockKey, "1", 2_000);
+    if (!locked) return null;
   }
   try {
     const session = await getBattleFromStore(roomId);
@@ -237,7 +318,7 @@ export async function claimBattleSeat(
       return null;
     }
 
-    await valkeySet("ubr:" + userId, roomId, BATTLE_TTL);
+    await setUserBattleRoom(userId, roomId, BATTLE_TTL);
     await saveBattleToStore(roomId, session);
     broadcastBattleState(roomId, session);
     return session;
@@ -262,6 +343,7 @@ export async function trackPendingBattleInvite(
   roomId: string,
   targetUserId: string,
 ): Promise<void> {
+  if (!hasValkey()) return;
   await valkeySadd(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
 }
 
@@ -269,11 +351,13 @@ export async function untrackPendingBattleInvite(
   roomId: string,
   targetUserId: string,
 ): Promise<void> {
+  if (!hasValkey()) return;
   await valkeySrem(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
 }
 
 /** Drop every outstanding invite when seats are full (no 5th creator). */
 export async function clearPendingBattleInvites(roomId: string): Promise<string[]> {
+  if (!hasValkey()) return [];
   const key = PENDING_INVITES_KEY_PREFIX + roomId;
   const members = await valkeySmembers(key);
   for (const targetUserId of members) {
@@ -294,12 +378,14 @@ export async function startBattleTimer(roomId: string): Promise<void> {
   await initScoreHash(roomId, session);
   broadcastBattleState(roomId, session);
 
+  if (!hasValkey()) return;
   await valkeySadd(ACTIVE_BATTLES_KEY, roomId);
 }
 
 const SCORE_KEY_PREFIX = "battle:scores:";
 
 async function initScoreHash(roomId: string, session: BattleSession): Promise<void> {
+  if (!hasValkey()) return;
   const key = SCORE_KEY_PREFIX + roomId;
   await valkeyHset(key, "host", String(session.hostScore));
   await valkeyHset(key, "opponent", String(session.opponentScore));
@@ -313,6 +399,14 @@ export async function getBattleScores(roomId: string): Promise<{ hostScore: numb
 }
 
 async function getScoresFromHash(roomId: string): Promise<{ hostScore: number; opponentScore: number; player3Score: number; player4Score: number }> {
+  if (!hasValkey()) {
+    return {
+      hostScore: 0,
+      opponentScore: 0,
+      player3Score: 0,
+      player4Score: 0,
+    };
+  }
   const raw = await valkeyHgetall(SCORE_KEY_PREFIX + roomId);
   return {
     hostScore: Number(raw.host) || 0,
@@ -334,6 +428,7 @@ export async function addBattleScoreForTarget(
   const session = await getBattleFromStore(roomId);
   if (!session || session.status !== "ACTIVE") return;
 
+  if (!hasValkey()) return;
   const scoreKey = SCORE_KEY_PREFIX + roomId;
   await valkeyHincrby(scoreKey, target, points);
   const scores = await getScoresFromHash(roomId);
@@ -346,6 +441,17 @@ export async function addBattleScoreForTarget(
     lastScorer: target,
     points,
   });
+}
+
+export async function claimBattleVoteOnce(
+  battleId: string,
+  userId: string,
+  voteTarget: "host" | "opponent" | "player3" | "player4",
+  ttlMs = 600_000,
+): Promise<boolean> {
+  if (!hasValkey()) return false;
+  const onceKey = `battle_vote_once:${battleId}:${userId}`;
+  return await valkeySetNx(onceKey, voteTarget, ttlMs);
 }
 
 /**
@@ -378,7 +484,7 @@ export async function removeBattleParticipant(
   }
   if (!removed) return false;
 
-  await valkeyDel("ubr:" + userId);
+  await clearUserBattleRoom(userId);
   await saveBattleToStore(roomId, session);
   broadcastBattleState(roomId, session);
   return true;
@@ -388,6 +494,7 @@ export async function endBattle(roomId: string): Promise<void> {
   const session = await getBattleFromStore(roomId);
   if (!session) return;
 
+  if (!hasValkey()) return;
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
   await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
 
@@ -477,6 +584,7 @@ export function broadcastBattleState(
  * if another worker holds the lock, returns false and this tick is a no-op for that room.
  */
 async function processBattleTick(roomId: string): Promise<void> {
+  if (!hasValkey()) return;
   const locked = await valkeySetNx(BATTLE_TICK_LOCK_KEY_PREFIX + roomId, "1", TICK_LOCK_TTL);
   if (!locked) return;
 
@@ -510,8 +618,7 @@ async function processBattleTick(roomId: string): Promise<void> {
 }
 
 async function globalTickLoop(): Promise<void> {
-  if (!isValkeyConfigured()) return;
-
+  if (!hasValkey()) return;
   try {
     const activeRoomIds = await valkeySmembers(ACTIVE_BATTLES_KEY);
     if (activeRoomIds.length === 0) return;
@@ -530,7 +637,7 @@ async function globalTickLoop(): Promise<void> {
  */
 export function initBattleTickLoop(): void {
   if (globalTickInterval) return;
-  if (!isValkeyConfigured()) {
+  if (!hasValkey()) {
     logger.warn("Battle tick loop not started — Valkey not configured");
     return;
   }

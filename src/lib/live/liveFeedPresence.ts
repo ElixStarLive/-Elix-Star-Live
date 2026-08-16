@@ -7,6 +7,7 @@
  */
 
 import { websocket } from '../websocket';
+const FEED_PRESENCE_OWNER_ID = 'feed-presence';
 
 type FeedPresenceHandlers = {
   onStreamStarted?: (data: Record<string, unknown>) => void;
@@ -32,7 +33,10 @@ export function connectLiveFeedPresence(
   // While in a live room the singleton must stay on that room; App reconnects __feed__ after exit.
   // Also: For You InlineLiveViewer joins the stream room — do not steal it back to __feed__.
   if (!isLiveRoomId(websocket.getCurrentRoomId())) {
-    websocket.connect('__feed__', token, { persistent: true });
+    websocket.connect('__feed__', token, {
+      persistent: true,
+      ownerId: FEED_PRESENCE_OWNER_ID,
+    });
   }
 
   const onStarted = (data: unknown) => {

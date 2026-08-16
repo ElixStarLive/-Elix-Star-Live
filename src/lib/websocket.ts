@@ -91,22 +91,31 @@ class WebSocketService {
   private persistentReconnect = false;
   /** Battle: which creator's gift/chat audience this socket belongs to. */
   private audienceCreatorId: string | null = null;
+  /** Ownership tokens for singleton handoff safety (inline/watch/host/feed). */
+  private ownerIds = new Set<string>();
 
   connect(
     roomId: string,
     token: string,
-    options?: { persistent?: boolean; audienceCreatorId?: string },
+    options?: { persistent?: boolean; audienceCreatorId?: string; ownerId?: string },
   ) {
     if (options?.audienceCreatorId !== undefined) {
       const next = options.audienceCreatorId.trim();
       this.audienceCreatorId = next || null;
     }
+    const nextOwner =
+      options?.ownerId !== undefined ? options.ownerId.trim() : "";
+    if (nextOwner) this.ownerIds.add(nextOwner);
     if (
       this.ws?.readyState === WebSocket.OPEN ||
       this.ws?.readyState === WebSocket.CONNECTING
     ) {
       if (this.roomId === roomId) {
         this.persistentReconnect = options?.persistent ?? this.persistentReconnect;
+        if (options?.audienceCreatorId !== undefined) {
+          const next = options.audienceCreatorId.trim();
+          this.audienceCreatorId = next || null;
+        }
         return;
       }
       this.disconnect();
@@ -188,6 +197,7 @@ class WebSocketService {
     this.token = null;
     this.persistentReconnect = false;
     this.audienceCreatorId = null;
+    this.ownerIds.clear();
     this.reconnectAttempts = 0;
     this.pendingMessages = [];
   }
@@ -211,9 +221,13 @@ class WebSocketService {
     return this.roomId;
   }
 
-  /** Tear down only when this service still owns `roomId` (safe for preview → watch handoff). */
-  disconnectIfRoom(roomId: string) {
-    if (this.roomId === roomId) {
+  /** Tear down only if this owner still controls the singleton connection. */
+  disconnectIfOwner(ownerId: string) {
+    const owner = ownerId.trim();
+    if (!owner) return;
+    if (!this.ownerIds.has(owner)) return;
+    this.ownerIds.delete(owner);
+    if (this.ownerIds.size === 0) {
       this.disconnect();
     }
   }

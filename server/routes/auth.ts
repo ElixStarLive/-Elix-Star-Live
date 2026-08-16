@@ -874,17 +874,8 @@ export async function handleDeleteAccount(req: Request, res: Response) {
   }
 
   const client = await pool.connect();
-  // Each delete is wrapped in a SAVEPOINT so that an absent optional table/column
-  // (schema drift across environments) cannot abort the whole account deletion.
   const del = async (sql: string, params: unknown[]) => {
-    await client.query('SAVEPOINT del_sp');
-    try {
-      await client.query(sql, params);
-      await client.query('RELEASE SAVEPOINT del_sp');
-    } catch (err) {
-      await client.query('ROLLBACK TO SAVEPOINT del_sp');
-      logger.warn({ err, sql }, 'handleDeleteAccount: skipped delete (schema drift)');
-    }
+    await client.query(sql, params);
   };
   try {
     await client.query('BEGIN');

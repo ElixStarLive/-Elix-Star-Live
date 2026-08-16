@@ -1,5 +1,5 @@
 /**
- * Livestream engagement engine (MVP) — Valkey/mem room state.
+ * Livestream engagement engine (MVP) — Valkey-backed room state.
  * Digital rewards only (XP, titles, badges). No coins or cash value.
  */
 import {
@@ -119,10 +119,11 @@ const DEFAULT_FEATURES: EngagementFeatures = {
   poll: true,
 };
 
-const memRooms = new Map<string, EngagementRoomState>();
-const memActiveRoom = new Map<string, string>();
-const memTickClaims = new Set<string>();
-const memActionClaims = new Set<string>();
+function requireValkey(): void {
+  if (!isValkeyConfigured()) {
+    throw new Error("engagement_backend_unavailable");
+  }
+}
 
 function roomKey(roomId: string): string {
   return `engage:room:${roomId}`;
@@ -186,62 +187,47 @@ function ensureUser(
 }
 
 async function loadRoom(roomId: string): Promise<EngagementRoomState> {
-  if (isValkeyConfigured()) {
-    const raw = await valkeyGet(roomKey(roomId));
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as EngagementRoomState;
-        if (parsed && parsed.roomId === roomId) return parsed;
-      } catch {
-        /* fall through */
-      }
+  requireValkey();
+  const raw = await valkeyGet(roomKey(roomId));
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as EngagementRoomState;
+      if (parsed && parsed.roomId === roomId) return parsed;
+    } catch {
+      /* fall through */
     }
   }
-  return memRooms.get(roomId) ?? emptyRoom(roomId);
+  return emptyRoom(roomId);
 }
 
 async function saveRoom(state: EngagementRoomState): Promise<void> {
-  memRooms.set(state.roomId, state);
-  if (isValkeyConfigured()) {
-    await valkeySet(roomKey(state.roomId), JSON.stringify(state), ROOM_TTL_MS);
-  }
+  requireValkey();
+  await valkeySet(roomKey(state.roomId), JSON.stringify(state), ROOM_TTL_MS);
 }
 
 async function claimNx(key: string, ttlMs: number): Promise<boolean> {
-  if (isValkeyConfigured()) {
-    return valkeySetNx(key, "1", ttlMs);
-  }
-  if (memTickClaims.has(key) || memActionClaims.has(key)) return false;
-  const set = key.includes(":tick:") ? memTickClaims : memActionClaims;
-  set.add(key);
-  setTimeout(() => set.delete(key), ttlMs).unref?.();
-  return true;
+  requireValkey();
+  return valkeySetNx(key, "1", ttlMs);
 }
 
 async function getActiveRoom(userId: string): Promise<string | null> {
-  if (isValkeyConfigured()) {
-    return valkeyGet(activeKey(userId));
-  }
-  return memActiveRoom.get(userId) ?? null;
+  requireValkey();
+  return valkeyGet(activeKey(userId));
 }
 
 async function setActiveRoom(userId: string, roomId: string): Promise<void> {
-  memActiveRoom.set(userId, roomId);
-  if (isValkeyConfigured()) {
-    await valkeySet(activeKey(userId), roomId, ROOM_TTL_MS);
-  }
+  requireValkey();
+  await valkeySet(activeKey(userId), roomId, ROOM_TTL_MS);
 }
 
 export async function clearEngagementActiveRoom(
   userId: string,
   roomId?: string,
 ): Promise<void> {
+  requireValkey();
   const current = await getActiveRoom(userId);
   if (roomId && current && current !== roomId) return;
-  memActiveRoom.delete(userId);
-  if (isValkeyConfigured()) {
-    await valkeyDel(activeKey(userId));
-  }
+  await valkeyDel(activeKey(userId));
 }
 
 function nextMilestoneMin(watchSeconds: number, claimed: number[]): number | null {
@@ -663,9 +649,7 @@ export async function voteEngagementPoll(input: {
 }
 
 export async function clearRoomEngagement(roomId: string): Promise<void> {
-  memRooms.delete(roomId);
-  if (isValkeyConfigured()) {
-    await valkeyDel(roomKey(roomId));
-  }
+  if (!isValkeyConfigured()) return;
+  await valkeyDel(roomKey(roomId));
   logger.info({ roomId }, "engagement room cleared");
 }

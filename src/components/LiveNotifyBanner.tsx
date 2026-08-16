@@ -318,7 +318,7 @@ export function LiveNotifyBanner() {
           invite,
           requesterName: user.username || user.name || 'User',
           requesterAvatar: user.avatar || '',
-          streamKey: user.id,
+          streamKey: inviteBanner.streamKey,
         });
         if (!granted) {
           showToast('Battle invite expired or was declined');
@@ -343,7 +343,7 @@ export function LiveNotifyBanner() {
         hostUserId: inviteBanner.hostUserId,
         cohostName: user.username || user.name || 'User',
         cohostAvatar: user.avatar || '',
-        streamKey: user.id,
+        streamKey: inviteBanner.streamKey,
       });
       dismissInvite();
       navigate(`/watch/${encodeURIComponent(inviteBanner.streamKey)}?cohost=1`, {

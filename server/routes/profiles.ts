@@ -1094,9 +1094,17 @@ export async function handleSeedProfile(req: Request, res: Response): Promise<vo
     if (realDisplayName) existing.displayName = realDisplayName;
     if (avatarUrl) existing.avatarUrl = avatarUrl;
     existing.updatedAt = new Date().toISOString();
-    saveProfileToDb(existing).catch((err) => {
-      logger.warn({ err, userId: existing.userId }, "handleSeedProfile: saveProfileToDb failed");
-    });
+    try {
+      const persisted = await saveProfileToDb(existing);
+      if (!persisted) {
+        res.status(503).json({ error: "Database not configured" });
+        return;
+      }
+    } catch (err) {
+      logger.error({ err, userId: existing.userId }, "handleSeedProfile: saveProfileToDb failed");
+      res.status(500).json({ error: "Failed to save profile." });
+      return;
+    }
     res.status(201).json({ profile: existing });
     return;
   }

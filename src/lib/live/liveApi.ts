@@ -10,6 +10,12 @@ export interface LiveKitCreds {
   url: string;
 }
 
+export interface LiveStatus {
+  room: string;
+  active: boolean;
+  hostUserId?: string;
+}
+
 export async function apiLiveStart(body: {
   room: string;
   /** Server contract: displayName (not title). */
@@ -58,6 +64,18 @@ export function isLiveTokenTransient(error: string | null | undefined): boolean 
   );
 }
 
+/** 404/ended responses from /api/live/token that mean "room is not live now". */
+export function isLiveTokenOffline(error: string | null | undefined): boolean {
+  const m = String(error || '').toLowerCase();
+  return (
+    m.includes('http_404') ||
+    m.includes(' 404') ||
+    m.includes('stream not found') ||
+    m.includes('already ended') ||
+    m.includes('not found')
+  );
+}
+
 export async function apiLiveToken(
   room: string,
   publish: boolean,
@@ -78,6 +96,21 @@ export async function apiLiveTokenWithIdentity(
   const url = typeof data?.url === 'string' ? data.url.trim() : '';
   if (!token) return { creds: null, error: 'Missing LiveKit token' };
   return { creds: { token, url }, error: null };
+}
+
+export async function apiLiveStatus(
+  room: string,
+): Promise<{ status: LiveStatus | null; error: string | null }> {
+  const q = `room=${encodeURIComponent(room)}`;
+  const { data, error } = await request<Record<string, unknown>>(`/api/live/status?${q}`);
+  if (error) return { status: null, error: error.message };
+  const resolvedRoom = typeof data?.room === 'string' ? data.room : room;
+  const active = Boolean(data?.active);
+  const hostUserId = typeof data?.host_user_id === 'string' ? data.host_user_id : undefined;
+  return {
+    status: { room: resolvedRoom, active, hostUserId },
+    error: null,
+  };
 }
 
 export async function apiLiveStreams(): Promise<{
