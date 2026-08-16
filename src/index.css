@@ -781,13 +781,15 @@ video::-webkit-media-controls-overlay-enclosure,
 }
 
 /* Co-host squares only — silver ring breathes while that seat's person is speaking.
-   Border color only (never size), so the grid never shifts. */
+   Border color + a subtle transform scale (no border-width / layout change). */
 @keyframes elix-cohost-ring-pulse {
   0%, 100% {
     border-color: rgba(216, 217, 221, 0.7);
+    transform: scale(1);
   }
   50% {
     border-color: rgba(245, 245, 247, 1);
+    transform: scale(1.03);
   }
 }
 .elix-cohost-pill.elix-speaking-pulse {
