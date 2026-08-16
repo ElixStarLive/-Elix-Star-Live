@@ -52,6 +52,20 @@ const CAPSULE_CHEVRON = 'elix-silver-red-text text-[8px] font-medium leading-non
 const THIN_CAPSULE_CLASS =
   'elix-live-thin-capsule inline-flex items-center gap-0.5 flex-shrink-0 rounded-full pl-1.5 pr-2 h-[22px] box-border pointer-events-auto active:scale-95 transition-transform bg-transparent shadow-none';
 
+/**
+ * One action slot in the host header: Follow (before follow) → Join (after).
+ * Both pills must render the identical outer capsule box, so the slot never resizes.
+ */
+const ACTION_PILL_CLASS =
+  'flex items-center justify-center gap-1 w-[70px] h-[36px] pl-2 pr-2.5 rounded-full box-border flex-shrink-0 active:scale-95 transition-transform';
+const ACTION_PILL_STYLE: React.CSSProperties = {
+  height: 'calc(36px + 0.5mm)',
+  minHeight: 'calc(36px + 0.5mm)',
+  position: 'relative',
+  top: '1mm',
+  marginTop: 0,
+};
+
 /** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
 function LiveFollowPill({
   onFollow,
@@ -69,20 +83,12 @@ function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-1 h-[36px] pl-2 pr-2.5 rounded-full border border-[#EF4444] bg-[#EF4444] active:scale-95 transition-transform flex-shrink-0"
-        style={{
-          /* Same box as LiveJoinPill — one slot, zero layout shift on Follow → Join. */
-          height: 'calc(36px + 0.5mm)',
-          minHeight: 'calc(36px + 0.5mm)',
-          position: 'relative',
-          top: '1mm',
-          marginTop: 0,
-        }}
+        className={`${ACTION_PILL_CLASS} border border-[#EF4444] bg-[#EF4444]`}
+        style={ACTION_PILL_STYLE}
         onClick={onFollow}
         aria-label={label}
       >
-        {!isFollowing ? <Plus size={12} className="text-white" strokeWidth={3} /> : null}
-        <span className="text-white text-[11px] font-bold leading-none">{label}</span>
+        <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">{label}</span>
       </button>
     );
   }
@@ -262,18 +268,14 @@ export function LiveJoinPill({
       type="button"
       data-elix-join="true"
       data-elix-join-sent={hasJoinedToday ? 'true' : 'false'}
-      className="elix-live-join-capsule flex items-center justify-center gap-1 h-[36px] pl-2 pr-2.5 rounded-full active:scale-95 transition-transform shadow-none outline-none flex-shrink-0 bg-transparent"
+      className={`elix-live-join-capsule ${ACTION_PILL_CLASS} shadow-none outline-none bg-transparent`}
       style={{
+        ...ACTION_PILL_STYLE,
         background: 'transparent',
         backgroundColor: 'transparent',
         backgroundImage: 'none',
         boxShadow: 'none',
         border: '1px solid #2A2D33',
-        height: 'calc(36px + 0.5mm)',
-        minHeight: 'calc(36px + 0.5mm)',
-        position: 'relative',
-        top: '1mm',
-        marginTop: 0,
         ['--elix-join-accent' as string]: accent,
         color: accent,
       }}
