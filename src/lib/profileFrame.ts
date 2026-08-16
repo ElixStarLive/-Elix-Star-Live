@@ -32,6 +32,13 @@ export const MVP_RING_PHOTO_SOFT_CLASS =
 export const MVP_BADGE_CLASS =
   'px-1 rounded-full bg-[#D9A62E] text-white text-[6px] font-black leading-none tracking-wide' as const;
 
+/**
+ * Battle bottom MVP strip — 6 circle slots total (3 per side), 3mm apart, never overlapping.
+ * Host and spectator must use both of these so the strip stays 1-1.
+ */
+export const BATTLE_MVP_SLOTS_PER_SIDE = 3;
+export const BATTLE_MVP_CIRCLE_GAP_CLASS = 'gap-[3mm]' as const;
+
 /** Live chat message user avatar circle — app-wide standard for level badges. */
 export const LEVEL_BADGE_RING_PX = 26;
 export const CHAT_PROFILE_RING_PX = LEVEL_BADGE_RING_PX;

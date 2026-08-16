@@ -55,6 +55,8 @@ import { StoryGoldRingAvatar } from '../../../components/StoryGoldRingAvatar';
 import { LevelBadge } from '../../../components/LevelBadge';
 import {
   LIVE_MVP_PROFILE_RING_PX,
+  BATTLE_MVP_SLOTS_PER_SIDE,
+  BATTLE_MVP_CIRCLE_GAP_CLASS,
   LIVE_BATTLE_VIDEO_HEIGHT,
   LIVE_BATTLE_CHAT_HEIGHT,
   LIVE_BATTLE_CHAT_SHIFT_Y,
@@ -1581,7 +1583,7 @@ export default function SpectatorLiveScreen() {
                     </div>
                   ) : null}
                   <div
-                    className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden"
+                    className={`flex items-center ${BATTLE_MVP_CIRCLE_GAP_CLASS} w-1/2 min-w-0 justify-start pointer-events-auto overflow-hidden`}
                     title="Top viewers & gifters"
                     onClick={() => {
                       const list = listBattleSideMembers('host').map((s) => ({
@@ -1595,14 +1597,20 @@ export default function SpectatorLiveScreen() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.host.slice(0, 3).map((slot, i) => {
+                    {Array.from({ length: BATTLE_MVP_SLOTS_PER_SIDE }, (_, i) => {
+                      const slot = mvpSlots.host[i];
+                      if (!slot) {
+                        return (
+                          <div
+                            key={`mvp-l-empty-${i}`}
+                            className="relative shrink-0 rounded-full bg-[#121419] border border-[#D8D9DD]/70"
+                            style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                          />
+                        );
+                      }
                       const isMvp = i === 0 && (slot.points ?? 0) > 0;
                       return (
-                        <div
-                          key={`mvp-l-${slot.id}`}
-                          className="relative"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                        >
+                        <div key={`mvp-l-${slot.id}`} className="relative shrink-0">
                           <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(slot.avatar, slot.name)}
@@ -1621,7 +1629,7 @@ export default function SpectatorLiveScreen() {
                     })}
                   </div>
                   <div
-                    className="flex items-center gap-[0mm] w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden"
+                    className={`flex items-center ${BATTLE_MVP_CIRCLE_GAP_CLASS} w-1/2 min-w-0 justify-end pointer-events-auto overflow-hidden`}
                     title="Top viewers & gifters"
                     onClick={() => {
                       const list = listBattleSideMembers('opponent').map((s) => ({
@@ -1635,14 +1643,20 @@ export default function SpectatorLiveScreen() {
                       setShowViewersPanel(true);
                     }}
                   >
-                    {mvpSlots.opponent.slice(0, 3).map((slot, i) => {
+                    {Array.from({ length: BATTLE_MVP_SLOTS_PER_SIDE }, (_, i) => {
+                      const slot = mvpSlots.opponent[i];
+                      if (!slot) {
+                        return (
+                          <div
+                            key={`mvp-r-empty-${i}`}
+                            className="relative shrink-0 rounded-full bg-[#121419] border border-[#D8D9DD]/70"
+                            style={{ width: LIVE_MVP_PROFILE_RING_PX, height: LIVE_MVP_PROFILE_RING_PX }}
+                          />
+                        );
+                      }
                       const isMvp = i === 0 && (slot.points ?? 0) > 0;
                       return (
-                        <div
-                          key={`mvp-r-${slot.id}`}
-                          className="relative"
-                          style={{ zIndex: 3 - i, marginLeft: i === 0 ? '0mm' : '-1.5mm' }}
-                        >
+                        <div key={`mvp-r-${slot.id}`} className="relative shrink-0">
                           <div className={isMvp ? MVP_RING_PHOTO_SOFT_CLASS : 'rounded-full'}>
                             <AvatarRing
                               src={resolveCircleAvatar(slot.avatar, slot.name)}
