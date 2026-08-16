@@ -778,6 +778,24 @@ video::-webkit-media-controls-overlay-enclosure,
   animation: elix-cohost-ring-pulse 0.9s ease-in-out infinite;
 }
 
+/* Speak pulse is co-host seats only. If the class leaks onto battle/main video
+   panes, do not animate a contour or glow on those containers. */
+.elix-speaking-pulse:not(.elix-cohost-pill) {
+  animation: none !important;
+  box-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+}
+
+/* Battle / main live video panes never get a speaking contour. */
+#root .elix-live-room .elix-battle-stage-fundal,
+#root .elix-live-room .elix-battle-stage-fundal > *,
+#root .elix-live-room .elix-battle-stage-fundal .live-webrtc-video,
+#root .elix-live-room .video-zone > .relative > video.live-webrtc-video {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 /* Co-host squares — while touched, the ring turns one solid red (same red semantic as End call).
    Takes over from the speaking pulse only for as long as the finger is down. */
 .elix-cohost-pill:active,

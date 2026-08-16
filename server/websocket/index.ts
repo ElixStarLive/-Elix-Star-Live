@@ -883,12 +883,15 @@ async function listRoomMemberUserIds(roomId: string): Promise<string[]> {
   return live;
 }
 
-/** Host, co-host publishers, and battle creators are not counted as spectators. */
-async function computeSpectatorViewerCount(roomId: string): Promise<number> {
-  const memberIds = await listRoomMemberUserIds(roomId);
-  if (memberIds.length === 0) return 0;
-
+/**
+ * User ids that must never appear as spectators (host / co-host publishers /
+ * battle creators). Shared by the count and the invite list so they stay aligned.
+ */
+async function spectatorExcludeUserIds(roomId: string): Promise<Set<string>> {
   const exclude = new Set<string>();
+  // Room keys are the host stream id (auth userId). Always exclude that id so a
+  // failed owner lookup can never leave the host counted as a spectator.
+  if (roomId) exclude.add(roomId);
   try {
     const ownerId = await resolveStreamOwnerUserId(roomId);
     if (ownerId) exclude.add(ownerId);
@@ -939,6 +942,15 @@ async function computeSpectatorViewerCount(roomId: string): Promise<number> {
     /* non-fatal */
   }
 
+  return exclude;
+}
+
+/** Host, co-host publishers, and battle creators are not counted as spectators. */
+async function computeSpectatorViewerCount(roomId: string): Promise<number> {
+  const memberIds = await listRoomMemberUserIds(roomId);
+  if (memberIds.length === 0) return 0;
+
+  const exclude = await spectatorExcludeUserIds(roomId);
   let count = 0;
   for (const id of memberIds) {
     if (!exclude.has(id)) count += 1;
@@ -1175,8 +1187,11 @@ async function buildViewerList(
   if (isValkeyConfigured()) {
     const memberIds = await listRoomMemberUserIds(roomId);
     if (memberIds.length === 0) return [];
+    const exclude = await spectatorExcludeUserIds(roomId);
+    const spectatorIds = memberIds.filter((id) => !exclude.has(id));
+    if (spectatorIds.length === 0) return [];
 
-    const capped = memberIds.slice(0, MAX_VIEWER_LIST);
+    const capped = spectatorIds.slice(0, MAX_VIEWER_LIST);
     const db = getPool();
     if (db) {
       try {
@@ -1205,6 +1220,7 @@ async function buildViewerList(
 
   const room = rooms.get(roomId);
   if (!room) return [];
+  const exclude = await spectatorExcludeUserIds(roomId);
   const seenUserIds = new Set<string>();
   const viewers: {
     user_id: string;
@@ -1216,7 +1232,7 @@ async function buildViewerList(
     audienceCreatorId: string;
   }[] = [];
   for (const c of room) {
-    if (seenUserIds.has(c.userId)) continue;
+    if (seenUserIds.has(c.userId) || exclude.has(c.userId)) continue;
     seenUserIds.add(c.userId);
     viewers.push({
       user_id: c.userId,

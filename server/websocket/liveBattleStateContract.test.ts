@@ -45,15 +45,22 @@ describe("LIVE + battle server state-machine contracts", () => {
     // which showed the host a phantom viewer with an empty spectator list.
     expect(wsIndex).toContain("ROOM_PRESENCE_TTL_MS");
     expect(wsIndex).toContain("async function markRoomPresence");
+    expect(wsIndex).toContain("async function spectatorExcludeUserIds");
     const listFn = wsIndex.slice(
       wsIndex.indexOf("async function listRoomMemberUserIds"),
-      wsIndex.indexOf("async function computeSpectatorViewerCount"),
+      wsIndex.indexOf("async function spectatorExcludeUserIds"),
     );
     expect(listFn).toContain("valkeyExistsBatch");
     expect(listFn).toContain("valkeySrem(`room:members:${roomId}`, ...stale)");
-    // Count and list read the same pruned membership.
+    // Count and list read the same pruned membership + same exclude set.
     const viewerListFn = wsIndex.slice(wsIndex.indexOf("async function buildViewerList"));
     expect(viewerListFn).toContain("await listRoomMemberUserIds(roomId)");
+    expect(viewerListFn).toContain("await spectatorExcludeUserIds(roomId)");
+    const excludeFn = wsIndex.slice(
+      wsIndex.indexOf("async function spectatorExcludeUserIds"),
+      wsIndex.indexOf("async function computeSpectatorViewerCount"),
+    );
+    expect(excludeFn).toContain("if (roomId) exclude.add(roomId)");
   });
 
   it("recounts spectators after a connected user becomes a battle creator", () => {
