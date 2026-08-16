@@ -69,7 +69,15 @@ function LiveFollowPill({
     return (
       <button
         type="button"
-        className="flex items-center justify-center gap-0.5 h-[28px] px-2.5 rounded-full bg-transparent border border-[#D8D9DD]/40 active:scale-95 transition-transform flex-shrink-0"
+        className="flex items-center justify-center gap-1 h-[36px] pl-2 pr-2.5 rounded-full border border-[#EF4444] bg-[#EF4444] active:scale-95 transition-transform flex-shrink-0"
+        style={{
+          /* Same box as LiveJoinPill — one slot, zero layout shift on Follow → Join. */
+          height: 'calc(36px + 0.5mm)',
+          minHeight: 'calc(36px + 0.5mm)',
+          position: 'relative',
+          top: '1mm',
+          marginTop: 0,
+        }}
         onClick={onFollow}
         aria-label={label}
       >
@@ -204,13 +212,14 @@ export function LiveHostProfileHeader({
           >
             {displayName}
           </span>
-          {/* Follow + Join inside profile capsule (original layout). */}
+          {/* One slot: Follow first → after Follow, Join. Never both, never stacked. */}
           {(showFollow || joinSlot) ? (
-            <div className="flex-shrink-0 flex items-center justify-center gap-1 ml-0.5 relative z-30">
+            <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
               {showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-              ) : null}
-              {joinSlot ?? null}
+              ) : (
+                joinSlot ?? null
+              )}
             </div>
           ) : null}
         </div>
