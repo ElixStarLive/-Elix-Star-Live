@@ -8,6 +8,13 @@ import { getLiveKitUrl } from '../api';
 import { LiveKitSession, type LiveKitSessionHandlers } from '../liveKitSession';
 import { websocket } from '../websocket';
 import { apiLiveEnd, type LiveKitCreds } from './liveApi';
+import {
+  normalizeLiveKitSignalUrl,
+  probeLiveKitSignalReason,
+  summarizeLiveKitConnectError,
+  summarizeLiveKitEndpoint,
+  summarizeLiveKitToken,
+} from './liveKitDiagnostics';
 
 /**
  * Owns a single LiveKitSession for one live surface.
@@ -38,19 +45,66 @@ export class LiveRoomLifecycle {
   async connectLiveKitOnly(
     creds: LiveKitCreds,
     handlers: LiveKitSessionHandlers = {},
+    context?: {
+      surface?: 'host' | 'spectator' | 'inline' | 'battle' | 'unknown';
+      roomId?: string;
+      publish?: boolean;
+    },
   ): Promise<{ error: string | null; session: LiveKitSession | null }> {
-    const url = (creds.url || '').trim() || getLiveKitUrl();
+    const rawUrl = (creds.url || '').trim() || getLiveKitUrl();
+    const url = normalizeLiveKitSignalUrl(rawUrl);
     if (!url || !creds.token) {
       return { error: 'Missing LiveKit URL or token', session: null };
     }
+    const endpoint = summarizeLiveKitEndpoint(url);
+    const token = summarizeLiveKitToken(creds.token);
+    const surface = context?.surface || 'unknown';
+    const roomId = (context?.roomId || '').trim() || token.room || null;
+    console.info('[LiveKit] connect attempt', {
+      surface,
+      roomId,
+      endpointHost: endpoint.host,
+      endpointProtocol: endpoint.protocol,
+      endpointSecure: endpoint.isSecureWss,
+      endpointLocalhost: endpoint.isLocalhost,
+      identity: token.identity,
+      issuer: token.issuer,
+      tokenRoom: token.room,
+      canPublish: token.canPublish,
+      canSubscribe: token.canSubscribe,
+      roomJoin: token.roomJoin,
+      expiresAtIso: token.expiresAtIso,
+      publishRequested: context?.publish ?? null,
+    });
     this.session?.disconnect();
     const session = new LiveKitSession(handlers);
     this.session = session;
     try {
       await session.connect(url, creds.token);
+      const state = session.raw?.state ?? 'disconnected';
+      console.info('[LiveKit] connect success', { surface, roomId, state });
       return { error: null, session };
     } catch (e) {
       this.session = null;
+      const err = summarizeLiveKitConnectError(e);
+      const probe = await probeLiveKitSignalReason(url, creds.token);
+      console.error('[LiveKit] connect failed', {
+        surface,
+        roomId,
+        endpointHost: endpoint.host,
+        endpointProtocol: endpoint.protocol,
+        endpointSecure: endpoint.isSecureWss,
+        endpointLocalhost: endpoint.isLocalhost,
+        identity: token.identity,
+        issuer: token.issuer,
+        tokenRoom: token.room,
+        canPublish: token.canPublish,
+        canSubscribe: token.canSubscribe,
+        roomJoin: token.roomJoin,
+        error: err,
+        signalRejectStatus: probe.status,
+        signalRejectReason: probe.reason,
+      });
       return { error: e instanceof Error ? e.message : 'LiveKit connect failed', session: null };
     }
   }

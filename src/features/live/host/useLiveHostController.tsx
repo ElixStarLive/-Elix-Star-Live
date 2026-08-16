@@ -119,6 +119,7 @@ import {
 } from '../cohost/syncBroadcastCohostLayout';
 import {
   DEFAULT_COHOST_LAYOUT_ID,
+  parseCohostLayoutId,
   type CohostLayoutId,
 } from '../cohost/cohostLayoutPresets';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
@@ -246,6 +247,9 @@ export function useLiveHostController() {
   const isBroadcast = streamId === 'broadcast' || location.pathname === '/live/broadcast' || (user?.id && streamId === user.id);
   const isBroadcaster = isBroadcast;
   const effectiveStreamId = isBroadcaster ? (user?.id || 'broadcast') : (_rawStreamId || 'broadcast');
+  const wsOwnerIdRef = useRef(
+    `host-live-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`,
+  );
 
   const {
     state: engagementState,
@@ -953,6 +957,7 @@ export function useLiveHostController() {
   const hostSmallVideoRef = useRef<HTMLVideoElement | null>(null);
   const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
+  const cohostEndInFlightRef = useRef(false);
   const isBroadcastRef = useRef(false);
   const isBattleJoinerRef = useRef(false);
   const selfUserIdRef = useRef<string | null>(null);
@@ -1078,7 +1083,7 @@ export function useLiveHostController() {
       hostUserId: inv.hostUserId,
       cohostName: myName,
       cohostAvatar: user?.avatar || '',
-      streamKey: user?.id || effectiveStreamId,
+      streamKey: inv.streamKey || effectiveStreamId,
     });
     if (inv.streamKey) {
       navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
@@ -1088,17 +1093,25 @@ export function useLiveHostController() {
 
   // ─── JOIN REQUEST: creator receives when someone asked to join (from viewer) ───
   type PendingJoinRequest = { requesterName: string; requesterAvatar: string; requesterId: string; type: 'cohost' | 'battle' };
-  const [pendingJoinRequest, setPendingJoinRequest] = useState<PendingJoinRequest | null>(null);
+  const [pendingJoinRequests, setPendingJoinRequests] = useState<PendingJoinRequest[]>([]);
+  const pendingJoinRequest = pendingJoinRequests[0] || null;
+  const setPendingJoinRequest = useCallback((next: PendingJoinRequest | null) => {
+    if (!next) {
+      setPendingJoinRequests([]);
+      return;
+    }
+    setPendingJoinRequests([next]);
+  }, []);
 
   const acceptJoinRequest = useCallback(async () => {
     if (!pendingJoinRequest || !user?.id) return;
     const req = pendingJoinRequest;
     if (isSelfUser(req.requesterId, user.id, effectiveStreamId)) {
-      setPendingJoinRequest(null);
+      setPendingJoinRequests((prev) => prev.slice(1));
       closeAllBottomPanels();
       return;
     }
-    setPendingJoinRequest(null);
+    setPendingJoinRequests((prev) => prev.slice(1));
     closeAllBottomPanels();
     const myName = user.username || user.name || 'Creator';
     cohostRequestAccept({
@@ -1107,23 +1120,12 @@ export function useLiveHostController() {
       hostAvatar: user.avatar || '',
       streamKey: effectiveStreamId,
     });
-    setCoHosts(prev => {
-      if (prev.some(h => h.userId === req.requesterId)) return prev;
-      return [...prev, {
-        id: `host-${Date.now()}`,
-        userId: req.requesterId,
-        name: req.requesterName,
-        avatar: sanitizeLiveAvatar(req.requesterAvatar),
-        status: 'live',
-        isMuted: false,
-      }];
-    });
   }, [pendingJoinRequest, user?.id, user?.username, user?.name, user?.avatar, effectiveStreamId, closeAllBottomPanels]);
 
   const declineJoinRequest = useCallback(async () => {
     if (!pendingJoinRequest) return;
     const requesterId = pendingJoinRequest.requesterId;
-    setPendingJoinRequest(null);
+    setPendingJoinRequests((prev) => prev.slice(1));
     closeAllBottomPanels();
     if (requesterId) cohostRequestDecline({ requesterUserId: requesterId });
   }, [pendingJoinRequest, closeAllBottomPanels]);
@@ -1156,7 +1158,15 @@ export function useLiveHostController() {
 
   /** Host big-table X: clear every co-host seat and return to solo live — stay on this broadcast (never /feed). */
   const endCoHostMode = useCallback(() => {
-    if (coHosts.length === 0 && !featuredUserId && cohostLayoutId === 'solo_big') return;
+    if (cohostEndInFlightRef.current) return;
+    if (
+      coHostsRef.current.length === 0 &&
+      !featuredUserIdRef.current &&
+      cohostLayoutIdRef.current === 'solo_big'
+    ) {
+      return;
+    }
+    cohostEndInFlightRef.current = true;
     setCoHosts([]);
     setFeaturedUserId(null);
     setSelectedCohostGiftUserId(null);
@@ -1175,7 +1185,10 @@ export function useLiveHostController() {
         LIVE_CHAT_MESSAGE_CAP,
       ),
     );
-  }, [coHosts.length, featuredUserId, cohostLayoutId, restoreHostCameraPreview, setMessages]);
+    window.setTimeout(() => {
+      cohostEndInFlightRef.current = false;
+    }, 0);
+  }, [restoreHostCameraPreview, setMessages]);
 
   /** Spectators panel layout buttons — Solo clears seats and stays on normal live. */
   const selectCohostLayout = useCallback(
@@ -1391,6 +1404,7 @@ export function useLiveHostController() {
         websocket.connect(effectiveStreamId, wsToken, {
           persistent: true,
           ...(user?.id ? { audienceCreatorId: user.id } : {}),
+          ownerId: wsOwnerIdRef.current,
         });
         for (let i = 0; i < 24 && !cancelled; i += 1) {
           if (websocket.isConnected()) break;
@@ -1495,6 +1509,11 @@ export function useLiveHostController() {
                 setHasOpponentStream(true);
               }
             },
+          },
+          {
+            surface: 'battle',
+            roomId: effectiveStreamId,
+            publish: true,
           },
         );
         if (cancelled) {
@@ -3087,6 +3106,7 @@ export function useLiveHostController() {
       websocket.connect(effectiveStreamId, token, {
         persistent: isBroadcast,
         ...(user?.id ? { audienceCreatorId: user.id } : {}),
+        ownerId: wsOwnerIdRef.current,
       });
     };
 
@@ -3941,11 +3961,19 @@ export function useLiveHostController() {
 
     const handleCohostRequest = (data) => {
       if (!isBroadcast) return;
-      setPendingJoinRequest({
-        requesterId: data.requesterUserId,
-        requesterName: data.requesterName,
-        requesterAvatar: data.requesterAvatar || '',
-        type: 'cohost',
+      const requesterId = typeof data?.requesterUserId === 'string' ? data.requesterUserId : '';
+      if (!requesterId) return;
+      setPendingJoinRequests((prev) => {
+        if (prev.some((r) => sameUserId(r.requesterId, requesterId))) return prev;
+        return [
+          ...prev,
+          {
+            requesterId,
+            requesterName: data.requesterName,
+            requesterAvatar: data.requesterAvatar || '',
+            type: 'cohost',
+          },
+        ];
       });
       // Show Accept/Reject only in Join requests & Spectators panel (no center modal).
       setShowGiftPanel(false);
@@ -3992,6 +4020,9 @@ export function useLiveHostController() {
         if (tid) {
           setCoHosts((prev) => prev.filter((h) => !(sameUserId(h.userId, tid) && h.status === 'invited')));
         }
+        if (data?.reason === 'cohost_full') {
+          showToast('Co-host stage is full (max 8)');
+        }
       }
     };
 
@@ -4026,6 +4057,49 @@ export function useLiveHostController() {
       });
     };
 
+    const handleCohostLayoutSync = (data) => {
+      if (!mounted || !isBroadcast) return;
+      const list = Array.isArray(data?.coHosts) ? data.coHosts : [];
+      const normalized = list
+        .map((h) => ({
+          id: String(h?.id ?? h?.userId ?? ''),
+          userId: String(h?.userId ?? ''),
+          name: String(h?.name ?? 'Co-host'),
+          avatar: sanitizeLiveAvatar(String(h?.avatar ?? '')),
+          status: (() => {
+            const raw = String(h?.status ?? 'invited');
+            if (raw === 'live' || raw === 'accepted' || raw === 'pending_accept') return raw;
+            return 'invited';
+          })(),
+          isMuted: false,
+        }))
+        .filter((h) => !!h.userId && !sameUserId(h.userId, user?.id))
+        .slice(0, 8);
+
+      const nextSig = JSON.stringify(
+        normalized.map((h) => [h.userId, h.status, h.name, h.avatar]),
+      );
+      const prevSig = JSON.stringify(
+        coHostsRef.current.map((h) => [h.userId, h.status, h.name, h.avatar]),
+      );
+      if (nextSig !== prevSig) {
+        setCoHosts(normalized as typeof coHostsRef.current);
+      }
+
+      const nextFeatured =
+        typeof data?.featuredUserId === 'string' && data.featuredUserId.trim()
+          ? data.featuredUserId.trim()
+          : null;
+      if ((featuredUserIdRef.current || null) !== nextFeatured) {
+        setFeaturedUserId(nextFeatured);
+      }
+
+      const nextLayout = parseCohostLayoutId(data?.layoutId);
+      if (nextLayout && nextLayout !== cohostLayoutIdRef.current) {
+        setCohostLayoutId(nextLayout);
+      }
+    };
+
     const unbindBattleInviteWs = bindLiveBattleInviteWs({
       onInvite: handleBattleInvite,
       onInviteAck: handleBattleInviteAck,
@@ -4042,6 +4116,7 @@ export function useLiveHostController() {
       onInviteAccepted: handleCohostInviteAccepted,
       onRequest: handleCohostRequest,
       onRequestAccepted: handleCohostRequestAccepted,
+      onLayoutSync: handleCohostLayoutSync,
     });
 
     const handleModerationWarning = (data: { message?: string }) => {
@@ -4087,8 +4162,9 @@ export function useLiveHostController() {
 
   // Disconnect WS only when leaving the LiveStream page entirely.
   useEffect(() => {
+    const wsOwnerId = wsOwnerIdRef.current;
     return () => {
-      websocket.disconnect();
+      websocket.disconnectIfOwner(wsOwnerId);
     };
   }, []);
 
@@ -4609,7 +4685,7 @@ export function useLiveHostController() {
       showToast(endErr || 'Could not end stream on server. It may still appear live — try again.');
     }
 
-    websocket.disconnect();
+    websocket.disconnectIfOwner(wsOwnerIdRef.current);
     navigate('/feed', { replace: true });
   };
 

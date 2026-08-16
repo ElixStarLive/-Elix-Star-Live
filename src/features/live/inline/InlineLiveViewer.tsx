@@ -5,7 +5,7 @@ import { getLiveKitUrl } from "../../../lib/api";
 import { useAuthStore } from "../../../store/useAuthStore";
 import { LiveKitTrack } from "../../../lib/liveKitSession";
 import { websocket } from "../../../lib/websocket";
-import { apiLiveToken, LiveRoomLifecycle } from "../../../lib/live";
+import { apiLiveStatus, apiLiveToken, LiveRoomLifecycle } from "../../../lib/live";
 import { bindLiveRoomWs } from "../ws/bindLiveRoomWs";
 import { bindLiveBattleWs } from "../ws/bindLiveBattleWs";
 import { bindLiveCohostWs } from "../ws/bindLiveCohostWs";
@@ -78,6 +78,10 @@ export default function InlineLiveViewer({
   const lifecycleRef = useRef(new LiveRoomLifecycle());
   const roomRef = useRef<Room | null>(null);
   const connectedKeyRef = useRef<string>("");
+  const connectGenerationRef = useRef(0);
+  const wsOwnerIdRef = useRef(
+    `inline-live-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`,
+  );
   const modeRef = useRef<PreviewMode>("normal");
   const initialHostId = String(hostUserIdProp || streamKey || "").trim() || streamKey;
   const hostIdRef = useRef<string>(initialHostId);
@@ -292,7 +296,7 @@ export default function InlineLiveViewer({
       lifecycleRef.current.liveKit?.disconnect();
       roomRef.current = null;
       connectedKeyRef.current = "";
-      websocket.disconnectIfRoom(streamKey);
+      websocket.disconnectIfOwner(wsOwnerIdRef.current);
       setHasStream(false);
       setConnecting(false);
       setMode("normal");
@@ -304,12 +308,35 @@ export default function InlineLiveViewer({
     const connKey = `${streamKey}-active`;
     if (connectedKeyRef.current === connKey && lifecycleRef.current.liveKit?.connected) return;
     connectedKeyRef.current = connKey;
+    const attemptId = ++connectGenerationRef.current;
 
     let mounted = true;
     let gotVideo = false;
     const lifecycle = lifecycleRef.current;
+    let attemptSession: { disconnect: () => void } | null = null;
+    let disposed = false;
+    let unbindRoomWs: (() => void) | null = null;
+    let unbindCohostWs: (() => void) | null = null;
+    let unbindBattleWs: (() => void) | null = null;
 
-    const cleanup = () => {
+    const isCurrentAttempt = () =>
+      mounted &&
+      isActive &&
+      connectGenerationRef.current === attemptId &&
+      connectedKeyRef.current === connKey;
+
+    const disposeAttempt = () => {
+      if (disposed) return;
+      disposed = true;
+      if (connectGenerationRef.current === attemptId) {
+        connectGenerationRef.current += 1;
+      }
+      unbindRoomWs?.();
+      unbindRoomWs = null;
+      unbindCohostWs?.();
+      unbindCohostWs = null;
+      unbindBattleWs?.();
+      unbindBattleWs = null;
       attachCleanupRef.current?.();
       attachCleanupRef.current = null;
       for (const el of [hostVideoRef.current, opponentVideoRef.current]) {
@@ -321,29 +348,36 @@ export default function InlineLiveViewer({
           }
         }
       }
-      lifecycle.liveKit?.disconnect();
-      roomRef.current = null;
-      websocket.disconnectIfRoom(streamKey);
+      // Disconnect only the session owned by this attempt; never touch newer owners.
+      attemptSession?.disconnect();
+      attemptSession = null;
+      if (roomRef.current && !isCurrentAttempt()) {
+        roomRef.current = null;
+      }
+      websocket.disconnectIfOwner(wsOwnerIdRef.current);
     };
 
     const timeoutId = setTimeout(() => {
-      if (!mounted || gotVideo) return;
-      cleanup();
-      if (mounted) {
+      if (!isCurrentAttempt() || gotVideo) return;
+      // Do not synthesize "stream ended" from a local timeout. Keep the card
+      // joinable and wait for authoritative server lifecycle events.
+      if (mounted && connectGenerationRef.current === attemptId) {
         setConnecting(false);
-        setIsOffline(true);
       }
     }, 10000);
 
-    const onStreamEnded = () => {
-      if (!mounted) return;
+    const onStreamEnded = (raw: unknown) => {
+      if (!isCurrentAttempt()) return;
+      const data = (raw ?? {}) as Record<string, unknown>;
+      const endedKey = String(data.stream_key ?? data.room_id ?? "").trim();
+      if (endedKey && endedKey !== streamKey) return;
       setIsOffline(true);
       setHasStream(false);
-      cleanup();
+      disposeAttempt();
     };
 
     const onCohostLayout = (raw: unknown) => {
-      if (!mounted) return;
+      if (!isCurrentAttempt()) return;
       const data = (raw ?? {}) as Record<string, unknown>;
       const list = Array.isArray(data.coHosts) ? data.coHosts : [];
       const tiles: CohostTile[] = list.map((h: Record<string, unknown>) => ({
@@ -373,7 +407,7 @@ export default function InlineLiveViewer({
     };
 
     const applyBattlePayload = (raw: unknown, fromTick: boolean) => {
-      if (!mounted) return;
+      if (!isCurrentAttempt()) return;
       const data = (raw ?? {}) as Record<string, unknown>;
       const status = String(data.status || "");
       if (status === "ENDED") {
@@ -406,19 +440,19 @@ export default function InlineLiveViewer({
     const onBattleStateSync = (raw: unknown) => applyBattlePayload(raw, false);
     const onBattleTick = (raw: unknown) => applyBattlePayload(raw, true);
 
-    const unbindRoomWs = bindLiveRoomWs({
+    unbindRoomWs = bindLiveRoomWs({
       onStreamEnded: onStreamEnded,
     });
-    const unbindCohostWs = bindLiveCohostWs({
+    unbindCohostWs = bindLiveCohostWs({
       onLayoutSync: onCohostLayout,
     });
-    const unbindBattleWs = bindLiveBattleWs({
+    unbindBattleWs = bindLiveBattleWs({
       onStateSync: onBattleStateSync,
       onTick: onBattleTick,
     });
 
     (async () => {
-      if (mounted) {
+      if (isCurrentAttempt()) {
         setConnecting(true);
         setIsOffline(false);
         setHasStream(false);
@@ -432,24 +466,29 @@ export default function InlineLiveViewer({
       }
       try {
         const tok = await apiLiveToken(streamKey, false);
-        if (tok.error || !tok.creds || !mounted) {
-          if (mounted) {
-            setIsOffline(true);
+        if (!isCurrentAttempt()) return;
+        if (tok.error || !tok.creds) {
+          if (mounted && connectGenerationRef.current === attemptId) {
+            const { status: liveStatus, error: statusErr } = await apiLiveStatus(streamKey);
+            if (!isCurrentAttempt()) return;
+            if (!statusErr && liveStatus && !liveStatus.active) {
+              setIsOffline(true);
+            } else {
+              setIsOffline(false);
+            }
             setConnecting(false);
           }
-          cleanup();
           return;
         }
 
         let url = tok.creds.url.trim();
         if (!url) url = getLiveKitUrl();
         const lkToken = tok.creds.token;
-        if (!url || !lkToken || !mounted) {
-          if (mounted) {
-            setIsOffline(true);
+        if (!url || !lkToken || !isCurrentAttempt()) {
+          if (mounted && connectGenerationRef.current === attemptId) {
+            setIsOffline(false);
             setConnecting(false);
           }
-          cleanup();
           return;
         }
 
@@ -457,6 +496,7 @@ export default function InlineLiveViewer({
           { url, token: lkToken },
           {
             onTrackSubscribed: ({ track, participant }) => {
+              if (!isCurrentAttempt()) return;
               if (!mounted || track.kind !== LiveKitTrack.Kind.Video) return;
               gotVideo = true;
               const room = lifecycle.liveKit?.raw;
@@ -464,11 +504,13 @@ export default function InlineLiveViewer({
               routeVideoTrackRef.current(track, participant?.identity || "");
             },
             onParticipantConnected: () => {
+              if (!isCurrentAttempt()) return;
               if (!mounted) return;
               const room = lifecycle.liveKit?.raw;
               if (room) syncCohostTilesFromRoomRef.current(room);
             },
             onParticipantDisconnected: (participant) => {
+              if (!isCurrentAttempt()) return;
               if (!mounted) return;
               const identity = participant?.identity || "";
               const hostId = hostIdRef.current || hostUserIdProp || streamKey;
@@ -500,45 +542,59 @@ export default function InlineLiveViewer({
                 }
                 return;
               }
+              // Host participant can briefly drop/reconnect during network churn.
+              // Do not mark ended locally; only server lifecycle events own end.
               setHasStream(false);
-              setIsOffline(true);
-              cleanup();
+              setConnecting(true);
             },
             onDisconnected: () => {
-              if (!mounted) return;
-              setIsOffline(true);
+              if (!isCurrentAttempt()) return;
+              // Realtime disconnects can be transient; don't fake "stream ended".
+              setIsOffline(false);
               setHasStream(false);
               setConnecting(false);
             },
           },
+          {
+            surface: 'inline',
+            roomId: streamKey,
+            publish: false,
+          },
         );
-        if (!mounted || error || !session) {
-          cleanup();
+        if (!isCurrentAttempt()) {
+          session?.disconnect();
           return;
         }
+        if (error || !session) {
+          disposeAttempt();
+          return;
+        }
+        attemptSession = session;
         roomRef.current = session.raw;
 
         const authToken = useAuthStore.getState().session?.access_token;
-        if (authToken) {
-          websocket.connect(streamKey, authToken);
+        if (authToken && isCurrentAttempt()) {
+          websocket.connect(streamKey, authToken, {
+            ownerId: wsOwnerIdRef.current,
+          });
         }
 
-        if (session.raw) {
+        if (session.raw && isCurrentAttempt()) {
           syncCohostTilesFromRoomRef.current(session.raw);
           reattachAllRef.current(session.raw);
         }
-        if (gotVideo || (session.raw && hasAnyVideo(session.raw))) {
+        if (isCurrentAttempt() && (gotVideo || (session.raw && hasAnyVideo(session.raw)))) {
           gotVideo = true;
           setHasStream(true);
         }
       } catch {
-        if (mounted) {
+        if (isCurrentAttempt()) {
           setHasStream(false);
           setIsOffline(true);
-          cleanup();
+          disposeAttempt();
         }
       } finally {
-        if (mounted) setConnecting(false);
+        if (isCurrentAttempt()) setConnecting(false);
       }
     })();
 
@@ -546,10 +602,7 @@ export default function InlineLiveViewer({
       mounted = false;
       clearTimeout(timeoutId);
       connectedKeyRef.current = "";
-      unbindRoomWs();
-      unbindCohostWs();
-      unbindBattleWs();
-      cleanup();
+      disposeAttempt();
       setHasStream(false);
       setConnecting(false);
     };

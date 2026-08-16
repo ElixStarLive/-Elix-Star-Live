@@ -99,6 +99,10 @@ export function useHostLiveSession(opts: {
           roomRef.current = null;
           opts.liveKitHandlersRef.current.onDisconnected?.();
         },
+      }, {
+        surface: 'host',
+        roomId: opts.roomId,
+        publish: true,
       });
       if (cancelled) {
         lifecycle.liveKit?.disconnect();

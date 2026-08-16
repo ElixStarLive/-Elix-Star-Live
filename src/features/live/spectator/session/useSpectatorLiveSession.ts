@@ -33,18 +33,13 @@ export function useSpectatorLiveSession(opts: {
     let cancelled = false;
     (async () => {
       setJoinError(null);
-      // Prefer authorized publish token; if cohost grant is missing, stay in the
-      // live as subscribe-only instead of leaving the room disconnected.
-      let tok = await apiLiveToken(opts.roomId, opts.publish);
+      const tok = await apiLiveToken(opts.roomId, opts.publish);
       if (cancelled) return;
-      if (opts.publish && (tok.error || !tok.creds)) {
-        tok = await apiLiveToken(opts.roomId, false);
-        if (cancelled) return;
-      }
       if (tok.error || !tok.creds) {
-        const err = tok.error || 'Could not get watch token';
+        const err = tok.error || (opts.publish ? 'Could not get co-host publish token' : 'Could not get watch token');
         setJoinError(err);
-        if (err.includes('401')) showToast('Please log in to watch');
+        if (err.includes('401')) showToast(opts.publish ? 'Co-host authorization expired. Rejoin from invite.' : 'Please log in to watch');
+        else if (opts.publish && err.includes('403')) showToast('Host approval required before you can co-host');
         else if (err.includes('503')) showToast('Live video is not configured on server');
         else showToast(err);
         return;
@@ -70,6 +65,11 @@ export function useSpectatorLiveSession(opts: {
             roomRef.current = null;
             opts.liveKitHandlersRef.current.onDisconnected?.();
           },
+        },
+        {
+          surface: 'spectator',
+          roomId: opts.roomId,
+          publish: opts.publish,
         },
       );
       if (cancelled) {

@@ -143,8 +143,17 @@ export class LiveKitSession {
         if (generation !== this.connectGeneration) return;
         this.handlers.onReconnected?.();
       })
-      .on(RoomEvent.Disconnected, () => {
+      .on(RoomEvent.Disconnected, (...args: unknown[]) => {
         if (generation !== this.connectGeneration) return;
+        const reason = args[0] as
+          | { reason?: unknown; code?: unknown; message?: unknown }
+          | undefined;
+        console.warn('[LiveKit] disconnected', {
+          state: room.state,
+          reason: reason?.reason ?? null,
+          code: reason?.code ?? null,
+          message: reason?.message ?? null,
+        });
         this.handlers.onDisconnected?.();
       });
 

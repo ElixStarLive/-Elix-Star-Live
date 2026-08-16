@@ -11,6 +11,7 @@ import { logger } from '../lib/logger';
 const API_KEY = (process.env.LIVEKIT_API_KEY || '').trim();
 const API_SECRET = (process.env.LIVEKIT_API_SECRET || '').trim();
 const LIVEKIT_URL = (process.env.LIVEKIT_URL || '').trim();
+const LIVEKIT_SIGNAL_URL = normalizeLiveKitSignalUrl(LIVEKIT_URL);
 
 export function isLiveKitConfigured(): boolean {
   return Boolean(API_KEY && API_SECRET);
@@ -98,7 +99,7 @@ export async function roomHasActivePublisher(roomName: string): Promise<boolean>
 
 /** WebSocket URL for the LiveKit server (client connects here with token). */
 export function getLiveKitUrl(): string {
-  return LIVEKIT_URL;
+  return LIVEKIT_SIGNAL_URL;
 }
 
 export interface CreateTokenOptions {
@@ -158,4 +159,22 @@ export async function createLiveToken(options: CreateTokenOptions): Promise<stri
   });
 
   return await at.toJwt();
+}
+
+function normalizeLiveKitSignalUrl(rawUrl: string): string {
+  const input = String(rawUrl || '').trim();
+  if (!input) return '';
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `wss://${input}`;
+  try {
+    const u = new URL(withScheme);
+    if (u.protocol === 'https:') u.protocol = 'wss:';
+    else if (u.protocol === 'http:') {
+      const host = (u.hostname || '').toLowerCase();
+      const local = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+      u.protocol = local ? 'ws:' : 'wss:';
+    }
+    return u.toString().replace(/\/$/, '');
+  } catch {
+    return input;
+  }
 }

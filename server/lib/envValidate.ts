@@ -65,6 +65,22 @@ export function validateProductionEnvironment(): void {
     );
     process.exit(1);
   }
+  try {
+    const lk = new URL(process.env.LIVEKIT_URL.trim());
+    const proto = lk.protocol.toLowerCase();
+    if (proto !== "wss:" && proto !== "https:") {
+      logger.fatal("LIVEKIT_URL must use wss:// or https:// in production");
+      process.exit(1);
+    }
+    const host = lk.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+      logger.fatal("LIVEKIT_URL must not point to localhost in production");
+      process.exit(1);
+    }
+  } catch {
+    logger.fatal("LIVEKIT_URL is not a valid URL in production");
+    process.exit(1);
+  }
 
   // Media storage: avatar/video/sticker uploads fail without these Bunny keys.
   if (!process.env.BUNNY_STORAGE_ZONE?.trim() || !process.env.BUNNY_STORAGE_API_KEY?.trim()) {

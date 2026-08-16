@@ -4,6 +4,7 @@
  */
 
 import { Capacitor } from "@capacitor/core";
+import { normalizeLiveKitSignalUrl } from "./live/liveKitDiagnostics";
 
 const env = typeof window !== "undefined" ? (window as unknown as { __ENV?: Record<string, string> }).__ENV : undefined;
 
@@ -53,7 +54,8 @@ export function getApiBase(): string {
 }
 
 export function getLiveKitUrl(): string {
-  return (import.meta.env.VITE_LIVEKIT_URL ?? env?.VITE_LIVEKIT_URL ?? '').toString().trim();
+  const raw = (import.meta.env.VITE_LIVEKIT_URL ?? env?.VITE_LIVEKIT_URL ?? '').toString().trim();
+  return normalizeLiveKitSignalUrl(raw);
 }
 
 export function getWsUrl(): string {
