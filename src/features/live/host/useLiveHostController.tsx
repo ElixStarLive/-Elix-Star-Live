@@ -112,11 +112,10 @@ import {
   cohostRequestAccept,
   cohostRequestDecline,
   cohostRequestSend,
+  cohostSeatRelease,
+  cohostSeatsClear,
 } from '../cohost/liveCohostActions';
-import {
-  mapCoHostsForLayoutSync,
-  syncBroadcastCohostLayout,
-} from '../cohost/syncBroadcastCohostLayout';
+import { syncBroadcastCohostLayout } from '../cohost/syncBroadcastCohostLayout';
 import {
   DEFAULT_COHOST_LAYOUT_ID,
   parseCohostLayoutId,
@@ -974,17 +973,18 @@ export function useLiveHostController() {
     cohostLayoutIdRef.current = cohostLayoutId;
   }, [coHosts, isBroadcast, isBattleJoiner, user?.id, featuredUserId, cohostLayoutId]);
 
-  // Broadcast co-host layout to room so spectators see same layout (single source of truth; no duplicate userIds)
+  // Broadcast the host's presentation choices (layout preset + featured tile) so
+  // spectators render the same stage. Seats are server-owned and are never sent
+  // from here.
   useEffect(() => {
     syncBroadcastCohostLayout({
       isBroadcast,
       roomId: effectiveStreamId,
       hostUserId: user?.id,
-      coHosts: mapCoHostsForLayoutSync(coHosts),
       featuredUserId: featuredUserId || null,
       layoutId: cohostLayoutId,
     });
-  }, [isBroadcast, effectiveStreamId, user?.id, coHosts, featuredUserId, cohostLayoutId]);
+  }, [isBroadcast, effectiveStreamId, user?.id, featuredUserId, cohostLayoutId]);
 
   // Inviting seats while on Solo → switch to Normal (1 big + 8). Choosing Solo clears seats (see selectCohostLayout).
   useEffect(() => {
@@ -1133,6 +1133,11 @@ export function useLiveHostController() {
   const removeCoHost = (hostId: string) => {
     const host = coHosts.find((h) => h.id === hostId);
     if (!host) return;
+    // Server frees this one seat and revokes publish for this participant only;
+    // the authoritative cohost_layout_sync then reconciles every client.
+    if (isBroadcast && effectiveStreamId && host.userId) {
+      cohostSeatRelease({ roomId: effectiveStreamId, targetUserId: host.userId });
+    }
     setCoHosts((prev) => prev.filter((h) => h.id !== hostId));
     if (featuredUserId && sameUserId(featuredUserId, host.userId)) {
       setFeaturedUserId(null);
@@ -1167,6 +1172,11 @@ export function useLiveHostController() {
       return;
     }
     cohostEndInFlightRef.current = true;
+    // Server releases each occupied seat individually (per-user publish revoke).
+    // Spectators stay connected; only seated co-hosts are stood down.
+    if (isBroadcastRef.current && effectiveStreamIdRef.current) {
+      cohostSeatsClear({ roomId: effectiveStreamIdRef.current });
+    }
     setCoHosts([]);
     setFeaturedUserId(null);
     setSelectedCohostGiftUserId(null);
@@ -3181,12 +3191,11 @@ export function useLiveHostController() {
       }
       needsIdentityLookup.forEach((uid) => maybeResolveViewerIdentity(uid));
 
-      // Creator: push layout to server as soon as we connect so spectators who join later get creator layout
+      // Creator: push layout preset to server as soon as we connect so spectators who join later get creator layout
       syncBroadcastCohostLayout({
         isBroadcast: isBroadcastRef.current,
         roomId: effectiveStreamId,
         hostUserId: user?.id,
-        coHosts: mapCoHostsForLayoutSync(coHostsRef.current),
         featuredUserId: featuredUserIdRef.current || null,
         layoutId: cohostLayoutIdRef.current,
       });
@@ -3275,7 +3284,6 @@ export function useLiveHostController() {
         isBroadcast: isBroadcastRef.current,
         roomId: effectiveStreamId,
         hostUserId: user?.id,
-        coHosts: mapCoHostsForLayoutSync(coHostsRef.current),
         featuredUserId: featuredUserIdRef.current || null,
         layoutId: cohostLayoutIdRef.current,
       });
@@ -4057,6 +4065,13 @@ export function useLiveHostController() {
       });
     };
 
+    // This creator's own co-host request (while watching someone else's live)
+    // was declined or their seat was freed — let them ask again.
+    const handleOwnCohostRequestResolved = () => {
+      if (!mounted) return;
+      setSpectatorCoHostRequestSent(false);
+    };
+
     const handleCohostLayoutSync = (data) => {
       if (!mounted || !isBroadcast) return;
       const list = Array.isArray(data?.coHosts) ? data.coHosts : [];
@@ -4116,7 +4131,9 @@ export function useLiveHostController() {
       onInviteAccepted: handleCohostInviteAccepted,
       onRequest: handleCohostRequest,
       onRequestAccepted: handleCohostRequestAccepted,
+      onRequestDeclined: handleOwnCohostRequestResolved,
       onLayoutSync: handleCohostLayoutSync,
+      onSeatReleased: handleOwnCohostRequestResolved,
     });
 
     const handleModerationWarning = (data: { message?: string }) => {

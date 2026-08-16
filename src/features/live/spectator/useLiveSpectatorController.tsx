@@ -297,7 +297,6 @@ export function useLiveSpectatorController() {
     }, 8000);
   };
 
-  const [spectatorCoHostRequestSent, setSpectatorCoHostRequestSent] = useState(false);
   const [showViewersPanel, setShowViewersPanel] = useState(false);
   const [viewersList, setViewersList] = useState<{ id: string; name: string; avatar: string; level?: number; points?: number }[]>([]);
   const actualViewersRef = useRef<Map<string, { name: string; avatar: string; level: number; side?: 'host' | 'opponent' | null }>>(new Map());
@@ -479,17 +478,19 @@ export function useLiveSpectatorController() {
     syncMvpSlotsRef.current();
   }, [user?.id, user?.avatar, user?.username, user?.name, user?.level]);
 
+  // This viewer's own co-host request state. One owner, so declining or having
+  // the seat released lets them ask again — and never gates another spectator.
   const [joinRequested, setJoinRequested] = useState(false);
+  const spectatorCoHostRequestSent = joinRequested;
 
   const sendCohostJoinRequest = useCallback(() => {
-    if (!user?.id || joinRequested || spectatorCoHostRequestSent) return false;
+    if (!user?.id || joinRequested) return false;
     const targetHostId = hostUserIdRef.current || hostUserId || effectiveStreamId;
     if (!targetHostId) {
       showToast('Host not ready — try again');
       return false;
     }
     setJoinRequested(true);
-    setSpectatorCoHostRequestSent(true);
     cohostRequestSend({
       hostUserId: targetHostId,
       requesterName: user?.username || user?.name || 'Someone',
@@ -497,7 +498,7 @@ export function useLiveSpectatorController() {
     });
     showToast('Co-host request sent!');
     return true;
-  }, [user?.id, user?.username, user?.name, user?.avatar, joinRequested, spectatorCoHostRequestSent, hostUserId, effectiveStreamId]);
+  }, [user?.id, user?.username, user?.name, user?.avatar, joinRequested, hostUserId, effectiveStreamId]);
 
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));
 
@@ -2655,6 +2656,15 @@ export function useLiveSpectatorController() {
       showToast('Creator declined your co-host request');
     };
 
+    // Per-user notice that this participant's own seat was freed. It owns only
+    // this user's request/invite state so they can ask again; standing the media
+    // down stays with the authoritative seat list above (single owner).
+    const handleCohostSeatReleased = () => {
+      if (!mounted) return;
+      setJoinRequested(false);
+      setPendingCoHostInvite(null);
+    };
+
     const handleCohostInvite = (data) => {
       if (!mounted) return;
       setPendingCoHostInvite({
@@ -2745,6 +2755,7 @@ export function useLiveSpectatorController() {
       onRequestAccepted: handleCohostRequestAccepted,
       onRequestDeclined: handleCohostRequestDeclined,
       onInvite: handleCohostInvite,
+      onSeatReleased: handleCohostSeatReleased,
     });
     const unbindBattleInviteWs = bindLiveBattleInviteWs({
       onInvite: handleBattleInvite,
@@ -3526,7 +3537,6 @@ export function useLiveSpectatorController() {
     setShowViewersPanel,
     setSpeakingIds,
     setSpectatorBattle,
-    setSpectatorCoHostRequestSent,
     setSpectatorCoHosts,
     setSpectatorGiftBattleTarget,
     setSpeedChallengeActive,

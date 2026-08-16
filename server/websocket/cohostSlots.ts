@@ -52,6 +52,21 @@ export function normalizeCohostSlots(
   return out;
 }
 
+/**
+ * Free exactly one seat. Every other seat keeps its occupant and position, so a
+ * removal can never cascade into the rest of the stage.
+ */
+export function removeCohostSlot(
+  slots: CohostSlot[],
+  userId: string,
+): { slots: CohostSlot[]; removed: boolean } {
+  const uid = String(userId || "").trim();
+  if (!uid) return { slots, removed: false };
+  const next = slots.filter((s) => s.userId !== uid);
+  if (next.length === slots.length) return { slots, removed: false };
+  return { slots: next, removed: true };
+}
+
 export function upsertCohostSlot(
   slots: CohostSlot[],
   slot: Omit<CohostSlot, "id"> & { id?: string },

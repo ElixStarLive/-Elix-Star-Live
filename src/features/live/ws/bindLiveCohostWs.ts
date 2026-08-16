@@ -13,6 +13,8 @@ export type LiveCohostWsHandlers = {
   onRequestAccepted?: (data: unknown) => void;
   onRequestDeclined?: (data: unknown) => void;
   onLayoutSync?: (data: unknown) => void;
+  /** This participant's own seat was freed by the host. */
+  onSeatReleased?: (data: unknown) => void;
 };
 
 export function bindLiveCohostWs(handlers: LiveCohostWsHandlers): () => void {
@@ -34,6 +36,9 @@ export function bindLiveCohostWs(handlers: LiveCohostWsHandlers): () => void {
   }
   if (handlers.onLayoutSync) {
     pairs.push([LIVE_WS_IN.cohost_layout_sync, handlers.onLayoutSync]);
+  }
+  if (handlers.onSeatReleased) {
+    pairs.push([LIVE_WS_IN.cohost_seat_released, handlers.onSeatReleased]);
   }
 
   return bindLiveWsEventPairs(pairs);

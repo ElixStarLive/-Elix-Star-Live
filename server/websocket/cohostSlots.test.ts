@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MAX_COHOST_SLOTS,
   normalizeCohostSlots,
+  removeCohostSlot,
   upsertCohostSlot,
   type CohostSlot,
 } from "./cohostSlots";
@@ -69,6 +70,55 @@ describe("cohost slot upsert", () => {
     expect(result.slots).toHaveLength(MAX_COHOST_SLOTS);
     expect(result.slots.filter((s) => s.userId === "u3")).toHaveLength(1);
     expect(result.slots.find((s) => s.userId === "u3")?.avatar).toBe("a3");
+  });
+});
+
+describe("cohost seat release", () => {
+  const seat = (userId: string): CohostSlot => ({
+    id: `cohost-${userId}`,
+    userId,
+    name: userId.toUpperCase(),
+    avatar: "",
+    status: "live",
+  });
+
+  it("frees only the released seat and keeps every other occupant", () => {
+    const seats = [seat("a"), seat("b"), seat("c")];
+    const result = removeCohostSlot(seats, "a");
+    expect(result.removed).toBe(true);
+    expect(result.slots.map((s) => s.userId)).toEqual(["b", "c"]);
+  });
+
+  it("leaves the stage untouched for an unseated user", () => {
+    const seats = [seat("a"), seat("b")];
+    const result = removeCohostSlot(seats, "zz");
+    expect(result.removed).toBe(false);
+    expect(result.slots).toBe(seats);
+  });
+
+  it("reopens capacity so the next spectator can claim the freed seat", () => {
+    const full = Array.from({ length: MAX_COHOST_SLOTS }, (_, i) => seat(`u${i + 1}`));
+    expect(upsertCohostSlot(full, { userId: "u9", name: "Nine", avatar: "", status: "accepted" }).full).toBe(true);
+    const freed = removeCohostSlot(full, "u4");
+    const claimed = upsertCohostSlot(freed.slots, {
+      userId: "u9",
+      name: "Nine",
+      avatar: "",
+      status: "accepted",
+    });
+    expect(claimed.full).toBe(false);
+    expect(claimed.changed).toBe(true);
+    expect(claimed.slots).toHaveLength(MAX_COHOST_SLOTS);
+    expect(claimed.slots.map((s) => s.userId)).toEqual([
+      "u1",
+      "u2",
+      "u3",
+      "u5",
+      "u6",
+      "u7",
+      "u8",
+      "u9",
+    ]);
   });
 });
 

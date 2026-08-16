@@ -470,7 +470,9 @@ export async function setCohostLayout(
         ? { featuredUserId: featuredUserId.trim() }
         : { featuredUserId: null }),
     }),
-    3_600_000,
+    // Seats must outlive quiet periods: the table has to stay valid for as long
+    // as the publish grants it authorises, or a long live would lose its stage.
+    COHOST_GRANT_TTL_MS,
   );
 }
 

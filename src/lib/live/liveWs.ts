@@ -39,6 +39,8 @@ export const LIVE_WS_IN = {
   cohost_invite_accepted: 'cohost_invite_accepted',
   cohost_request: 'cohost_request',
   cohost_layout_sync: 'cohost_layout_sync',
+  /** Server tells one participant their seat was freed (per-user, never room-wide). */
+  cohost_seat_released: 'cohost_seat_released',
   booster_activated: 'booster_activated',
   mist_activated: 'mist_activated',
   engagement_sync: 'engagement_sync',
@@ -71,7 +73,12 @@ export const LIVE_WS_OUT = {
   cohost_request_send: 'cohost_request_send',
   cohost_request_accept: 'cohost_request_accept',
   cohost_request_decline: 'cohost_request_decline',
+  /** Presentation only (layout preset + featured tile) — never seat membership. */
   cohost_layout_sync: 'cohost_layout_sync',
+  /** Host frees one seat. Server revokes publish for that user alone. */
+  cohost_seat_release: 'cohost_seat_release',
+  /** Host ends co-host mode: server releases every seat individually. */
+  cohost_seats_clear: 'cohost_seats_clear',
   booster_activated: 'booster_activated',
   mist_activated: 'mist_activated',
 } as const;

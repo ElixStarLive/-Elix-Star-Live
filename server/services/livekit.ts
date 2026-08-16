@@ -97,6 +97,39 @@ export async function roomHasActivePublisher(roomName: string): Promise<boolean>
   }
 }
 
+/**
+ * Stop one participant publishing in LiveKit itself, for the exact identities
+ * that belong to this user (publish identity is the bare userId; a spectator
+ * identity carries a `__v_` suffix).
+ *
+ * Revoking the server-side publish grant only stops the *next* token, so
+ * without this a removed co-host would keep sending media until their client
+ * chose to stand down. Enforcing it here means the seat release is real.
+ */
+export async function revokeParticipantPublish(
+  roomName: string,
+  userId: string,
+): Promise<void> {
+  const client = getRoomService();
+  if (!client || !roomName || !userId) return;
+  try {
+    const participants = await client.listParticipants(roomName);
+    for (const p of participants) {
+      const identity = p?.identity || '';
+      if (!identity || userIdFromLiveKitIdentity(identity) !== userId) continue;
+      await client.updateParticipant(roomName, identity, undefined, {
+        canPublish: false,
+        canSubscribe: true,
+        canPublishData: true,
+      });
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/not found|does not exist|404/i.test(msg)) return;
+    logger.warn({ err, roomName, userId }, 'revokeParticipantPublish failed');
+  }
+}
+
 export type RoomOccupancy = 'occupied' | 'empty' | 'unknown';
 
 /**

@@ -44,6 +44,7 @@ type WebSocketEvent =
   | "cohost_request_accepted"
   | "cohost_request_declined"
   | "cohost_layout_sync"
+  | "cohost_seat_released"
   | "live_share"
   | "live_share_ack"
   // Moderation events (AI safety: warning → pause → suspend)
