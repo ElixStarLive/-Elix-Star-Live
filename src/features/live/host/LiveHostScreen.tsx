@@ -564,8 +564,8 @@ export default function LiveHostScreen() {
               className={`${
                 hasAnyCoHost
                   ? useClassicStack
-                    ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-black/35'
-                    : 'min-w-0 relative elix-cohost-pill bg-black/35'
+                    ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-white/5'
+                    : 'min-w-0 relative elix-cohost-pill bg-white/5'
                   : 'absolute inset-0 w-full h-full'
               } ${
                 (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
@@ -613,7 +613,7 @@ export default function LiveHostScreen() {
                       muted
                       controls={false}
                       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                      style={{ backgroundColor: '#080A0E' }}
+                      style={{ backgroundColor: 'transparent' }}
                     />
                     <div className="absolute top-1 left-1 z-20 flex items-center gap-1 pointer-events-auto">
                       <button
@@ -744,7 +744,7 @@ export default function LiveHostScreen() {
                         muted
                         controls={false}
                         poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: '#080A0E' }}
+                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: 'transparent' }}
                       />
                       {isCamOff && (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
@@ -945,7 +945,7 @@ export default function LiveHostScreen() {
                             openGiftPanelForCohost(cellHost.userId);
                           }
                         }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-white/5 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>
@@ -975,7 +975,7 @@ export default function LiveHostScreen() {
                           }
                         }}
                         style={{ gridArea: area }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-white/5 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
                       >
                         {renderCoHostCell(slot)}
                       </div>

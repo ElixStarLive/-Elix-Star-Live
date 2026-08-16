@@ -763,18 +763,45 @@ video::-webkit-media-controls-overlay-enclosure,
   border-width: 2px !important;
 }
 
-/* Co-host tiles — sharp square (no rounded, no corner cut) */
+/* Co-host tiles — see-through glass tile: small radius, silver frame, no corner cut */
 .elix-cohost-pill {
-  border-radius: 0 !important;
+  border-radius: 0.5rem !important;
   overflow: hidden !important;
-  border: none !important;
+  /* Same glass fill used by live sheet tiles (bg-white/5) — video stays visible through it */
+  background-image: none !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  /* Silver seat frame — same silver line tone used for split lines / rings across the app.
+     border-color stays un-!important so the co-host speaking pulse can animate it. */
+  border-style: solid !important;
+  border-width: 1px !important;
+  border-color: rgba(216, 217, 221, 0.7);
   box-shadow: none !important;
   -webkit-clip-path: none !important;
   clip-path: none !important;
 }
+
+/* Co-host squares only — silver ring breathes while that seat's person is speaking.
+   Border color only (never size), so the grid never shifts. */
+@keyframes elix-cohost-ring-pulse {
+  0%, 100% {
+    border-color: rgba(216, 217, 221, 0.7);
+  }
+  50% {
+    border-color: rgba(245, 245, 247, 1);
+  }
+}
 .elix-cohost-pill.elix-speaking-pulse {
+  border-width: 1px !important;
   box-shadow: none !important;
   filter: none;
+  animation: elix-cohost-ring-pulse 0.9s ease-in-out infinite;
+}
+
+/* Co-host squares — while touched, the ring turns one solid red (same red semantic as End call).
+   Takes over from the speaking pulse only for as long as the finger is down. */
+.elix-cohost-pill:active,
+.elix-cohost-pill.elix-speaking-pulse:active {
+  border-color: #EF4444 !important;
 }
 
 /* Layout picker thumbs — square FRAME only (transparent, video shows through) */
@@ -1376,6 +1403,15 @@ video::-webkit-media-controls-overlay-enclosure,
   background-color: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+/* Panels / sheets — no backing light behind a touch (press flash, sticky hover, focus glow) */
+#root :is(.elix-panel, .elix-full-page-panel, .elix-glass, .elix-glass-panel, .elix-fundal-glass)
+  :is(button, a, [role='button']):is(:hover, :active, :focus, :focus-visible):not(.elix-solid-red):not(.elix-solid-accent):not(.elix-accent):not([data-elix-accent='true']) {
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
 }
 
 /* Form fields — never white browser chrome; transparent over fundal */

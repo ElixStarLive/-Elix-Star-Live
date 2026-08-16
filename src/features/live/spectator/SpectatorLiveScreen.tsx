@@ -1015,7 +1015,7 @@ export default function SpectatorLiveScreen() {
                     muted
                     controls={false}
                     poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                    style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: '#080A0E' }}
+                    style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: 'transparent' }}
                   />
                   {hostCamOff && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
@@ -1065,7 +1065,7 @@ export default function SpectatorLiveScreen() {
                     style={{
                       opacity: isCamOff ? 0 : 1,
                       transition: 'opacity 0.3s ease',
-                      backgroundColor: '#080A0E',
+                      backgroundColor: 'transparent',
                     }}
                   />
                   {/* Left-side co-host controls: Camera / Microphone / Switch Screen */}
@@ -1163,7 +1163,7 @@ export default function SpectatorLiveScreen() {
                     style={{
                       opacity: camOff ? 0 : 1,
                       transition: 'opacity 0.3s ease',
-                      backgroundColor: '#080A0E',
+                      backgroundColor: 'transparent',
                     }}
                   />
                   <button
@@ -1304,7 +1304,7 @@ export default function SpectatorLiveScreen() {
                   style={{
                     opacity: featuredLive ? 0 : (hasStream && !hostCamOff ? 1 : 0),
                     transition: 'opacity 0.4s ease',
-                    backgroundColor: '#080A0E',
+                    backgroundColor: 'transparent',
                     pointerEvents: featuredLive ? 'none' : undefined,
                   }}
                 />
@@ -1318,7 +1318,7 @@ export default function SpectatorLiveScreen() {
                       muted
                       controls={false}
                       poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                      style={{ backgroundColor: '#080A0E' }}
+                      style={{ backgroundColor: 'transparent' }}
                     />
                     <button
                       type="button"
@@ -1435,7 +1435,7 @@ export default function SpectatorLiveScreen() {
                             setShowGiftPanel(true);
                           }
                         }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-white/5 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>
@@ -1481,7 +1481,7 @@ export default function SpectatorLiveScreen() {
                           }
                         }}
                         style={{ gridArea: area }}
-                        className={`relative elix-cohost-pill bg-black/35 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
+                        className={`relative elix-cohost-pill bg-white/5 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${canOpenGift ? 'cursor-pointer' : ''}`}
                       >
                         {renderSlot(slot)}
                       </div>

@@ -768,7 +768,7 @@ export default function InlineLiveViewer({
             }}
           >
             <div className="relative flex w-full h-full min-h-0 flex-row overflow-hidden gap-[2px]">
-              <div className="w-1/2 h-full relative elix-cohost-pill bg-[rgba(0,0,0,0.35)] overflow-hidden min-w-0">
+              <div className="w-1/2 h-full relative elix-cohost-pill bg-white/5 overflow-hidden min-w-0">
                 <video
                   ref={hostVideoRef}
                   className={videoClass}
@@ -800,7 +800,7 @@ export default function InlineLiveViewer({
                     return (
                       <div
                         key={`empty-${i}`}
-                        className="relative elix-cohost-pill min-h-0 overflow-hidden rounded-none bg-black/35 flex flex-col items-center justify-center"
+                        className="relative elix-cohost-pill min-h-0 overflow-hidden bg-white/5 flex flex-col items-center justify-center"
                       >
                         <span className="text-white/30 text-lg font-light">+</span>
                         <span className="text-white/30 text-[8px] font-semibold">Add</span>
@@ -810,7 +810,7 @@ export default function InlineLiveViewer({
                   return (
                     <div
                       key={h.userId}
-                      className="relative elix-cohost-pill min-h-0 overflow-hidden rounded-none bg-black/35"
+                      className="relative elix-cohost-pill min-h-0 overflow-hidden bg-white/5"
                     >
                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-0.5 z-[1] bg-transparent">
                         {h.avatar ? (
