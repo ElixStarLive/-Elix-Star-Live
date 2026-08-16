@@ -177,8 +177,8 @@ export function LiveGiftFeedStack({
                     maxWidth: '220px',
                   }
                 : {
-                    // Solo: top of chat (middle of screen), shifted 33mm down. Red banner stays on Weekly Ranking.
-                    bottom: `calc(${LIVE_SOLO_CHAT_TOP_FROM_BOTTOM} - 33mm)`,
+                    // Solo: top of chat (middle of screen), shifted 23mm down. Red banner stays on Weekly Ranking.
+                    bottom: `calc(${LIVE_SOLO_CHAT_TOP_FROM_BOTTOM} - 23mm)`,
                     transform: 'translateY(-100%)',
                     maxWidth: '220px',
                   }
