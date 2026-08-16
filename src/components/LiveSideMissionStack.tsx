@@ -339,7 +339,11 @@ export function LiveSideMissionStack({
   const body = !open ? closedTab : openPanel;
 
   if (embedded) {
-    return <div className="relative flex flex-col items-end justify-end">{body}</div>;
+    return (
+      <div className="relative flex flex-col items-end justify-end" style={{ bottom: '20mm' }}>
+        {body}
+      </div>
+    );
   }
 
   return (
