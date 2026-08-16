@@ -567,10 +567,6 @@ export default function LiveHostScreen() {
                     ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-white/5'
                     : 'min-w-0 relative elix-cohost-pill bg-white/5'
                   : 'absolute inset-0 w-full h-full'
-              } ${
-                (featuredHost ? isSpeakingUser(featuredHost.userId) : isSpeakingUser(user?.id))
-                  ? 'elix-speaking-pulse'
-                  : ''
               }`}
               style={
                 hasAnyCoHost && !useClassicStack && hostGridArea
@@ -929,9 +925,7 @@ export default function LiveHostScreen() {
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
                   {seatsForLayout.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
-                    const cellSpeaking =
-                      (slot.type === 'host_main' && isSpeakingUser(user?.id)) ||
-                      (!!cellHost && isSpeakingUser(cellHost.userId));
+                    const cellSpeaking = !!cellHost && isSpeakingUser(cellHost.userId);
                     return (
                       <div
                         key={i}
@@ -956,9 +950,7 @@ export default function LiveHostScreen() {
                 <>
                   {seatsForLayout.map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
-                    const cellSpeaking =
-                      (slot.type === 'host_main' && isSpeakingUser(user?.id)) ||
-                      (!!cellHost && isSpeakingUser(cellHost.userId));
+                    const cellSpeaking = !!cellHost && isSpeakingUser(cellHost.userId);
                     const area = seatAreas[i];
                     if (!area) return null;
                     return (

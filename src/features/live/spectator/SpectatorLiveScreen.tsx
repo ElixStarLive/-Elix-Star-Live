@@ -1237,10 +1237,6 @@ export default function SpectatorLiveScreen() {
           const featuredLive = featuredUserId
             ? liveCoHosts.find((h) => sameUserId(h.userId, featuredUserId)) || null
             : null;
-          const hostIdForSpeak = hostUserIdRef.current || hostUserId || effectiveStreamId;
-          const bigSpeaking = featuredLive
-            ? isSpeakingUser(featuredLive.userId)
-            : isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId);
 
           return (
             <div
@@ -1273,7 +1269,7 @@ export default function SpectatorLiveScreen() {
                       ? 'w-1/2 elix-cohost-pill'
                       : 'elix-cohost-pill'
                     : 'w-full'
-                } ${bigSpeaking ? 'elix-speaking-pulse' : ''}`}
+                }`}
                 style={
                   showGrid && !useClassicStack && hostGridArea
                     ? { gridArea: hostGridArea }
@@ -1403,7 +1399,6 @@ export default function SpectatorLiveScreen() {
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
                   {slots.slice(0, 8).map((slot, i) => {
                     const cellSpeaking =
-                      (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||
                       (slot.type === 'self' && isSpeakingUser(user?.id)) ||
                       (slot.type === 'live' && !!slot.host && isSpeakingUser(slot.host.userId));
                     const liveHost = slot.type === 'live' ? slot.host : undefined;
@@ -1446,7 +1441,6 @@ export default function SpectatorLiveScreen() {
                 <>
                   {slots.map((slot, i) => {
                     const cellSpeaking =
-                      (slot.type === 'host_main' && (isSpeakingUser(hostIdForSpeak) || isSpeakingUser(effectiveStreamId))) ||
                       (slot.type === 'self' && isSpeakingUser(user?.id)) ||
                       (slot.type === 'live' && !!slot.host && isSpeakingUser(slot.host.userId));
                     const liveHost = slot.type === 'live' ? slot.host : undefined;

@@ -743,26 +743,6 @@ video::-webkit-media-controls-overlay-enclosure,
   pointer-events: none;
 }
 
-/* Active-speaker pulse — silver ring breathing in/out to show who is talking.
-   Uses box-shadow + border-color only (never size), so it never shifts layout. */
-@keyframes elix-speaking-pulse {
-  0%, 100% {
-    box-shadow: none;
-    border-color: rgba(216, 217, 221, 0.45);
-    filter: none;
-  }
-  50% {
-    box-shadow: none;
-    border-color: rgba(245, 245, 247, 0.75);
-    filter: none;
-  }
-}
-
-.elix-speaking-pulse {
-  animation: elix-speaking-pulse 0.75s ease-in-out infinite;
-  border-width: 2px !important;
-}
-
 /* Co-host tiles — see-through glass tile: small radius, silver frame, no corner cut */
 .elix-cohost-pill {
   border-radius: 0.5rem !important;
@@ -770,8 +750,7 @@ video::-webkit-media-controls-overlay-enclosure,
   /* Same glass fill used by live sheet tiles (bg-white/5) — video stays visible through it */
   background-image: none !important;
   background-color: rgba(255, 255, 255, 0.05) !important;
-  /* Silver seat frame — same silver line tone used for split lines / rings across the app.
-     border-color stays un-!important so the co-host speaking pulse can animate it. */
+  /* Silver seat frame — same silver line tone used for split lines / rings across the app. */
   border-style: solid !important;
   border-width: 1px !important;
   border-color: rgba(216, 217, 221, 0.7);
@@ -835,11 +814,6 @@ video::-webkit-media-controls-overlay-enclosure,
   content: none;
   display: none;
 }
-.elix-cohost-cut-corner.elix-speaking-pulse {
-  box-shadow: none !important;
-  filter: none;
-}
-
 /* Premium Glow Pulse — disabled (no white flush behind containers) */
 @keyframes premium-glow {
   0%, 100% { filter: none; }
