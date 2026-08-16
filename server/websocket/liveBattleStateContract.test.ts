@@ -40,6 +40,22 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(viewerCountHelper).toContain("applyServerViewerCount");
   });
 
+  it("stale room members are swept so the count matches the spectator list", () => {
+    // Membership alone survives dead sockets (instance restart / killed app),
+    // which showed the host a phantom viewer with an empty spectator list.
+    expect(wsIndex).toContain("ROOM_PRESENCE_TTL_MS");
+    expect(wsIndex).toContain("async function markRoomPresence");
+    const listFn = wsIndex.slice(
+      wsIndex.indexOf("async function listRoomMemberUserIds"),
+      wsIndex.indexOf("async function computeSpectatorViewerCount"),
+    );
+    expect(listFn).toContain("valkeyExistsBatch");
+    expect(listFn).toContain("valkeySrem(`room:members:${roomId}`, ...stale)");
+    // Count and list read the same pruned membership.
+    const viewerListFn = wsIndex.slice(wsIndex.indexOf("async function buildViewerList"));
+    expect(viewerListFn).toContain("await listRoomMemberUserIds(roomId)");
+  });
+
   it("recounts spectators after a connected user becomes a battle creator", () => {
     expect(wsIndex).toContain("export async function updateViewerCount");
     const battleStart = wsHandlers.slice(

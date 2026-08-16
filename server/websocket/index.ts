@@ -41,6 +41,7 @@ import {
   valkeySmembers,
   valkeySetNx,
   valkeyExpire,
+  valkeyExistsBatch,
   valkeyHincrby,
   valkeyHget,
   valkeyHset,
@@ -81,6 +82,15 @@ export interface Client {
 
 const INSTANCE_ID = randomUUID();
 const ROOM_MEMBER_TTL = 3600;
+/**
+ * Room membership is a Valkey SET, but a SET alone cannot tell a live socket
+ * from one that died without a close event (instance restart, killed mobile
+ * app, network drop on another node). Those ghosts stayed in the set for the
+ * whole live — the host saw "1 viewer" with an empty spectator list. Each
+ * member therefore also holds a short-lived presence key refreshed by the WS
+ * heartbeat; membership without presence is stale and is swept on read.
+ */
+const ROOM_PRESENCE_TTL_MS = 90_000;
 
 let _warnedWsRateCheckNoValkey = false;
 let _warnedTryClaimNoValkey = false;
@@ -830,14 +840,47 @@ const viewerCountDbWriter = createCoalescedWriter<number>((roomId, count) => {
   });
 }, VIEWER_DB_WRITE_DEBOUNCE_MS);
 
-/** Unique WS member ids in this live room (Valkey SET). */
+function roomPresenceKey(roomId: string, userId: string): string {
+  return `room:presence:${roomId}:${userId}`;
+}
+
+/** Record/refresh this user's live presence in the room (join + heartbeat). */
+async function markRoomPresence(roomId: string, userId: string): Promise<void> {
+  if (!isValkeyConfigured() || !roomId || !userId) return;
+  await valkeySadd(`room:members:${roomId}`, userId);
+  await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
+  await valkeySet(roomPresenceKey(roomId, userId), "1", ROOM_PRESENCE_TTL_MS);
+}
+
+/**
+ * Unique WS member ids in this live room (Valkey SET), pruned to members that
+ * still hold a presence key or a socket on this instance. Single source for the
+ * spectator count and the spectator list, so the number always matches the list.
+ */
 async function listRoomMemberUserIds(roomId: string): Promise<string[]> {
   if (!isValkeyConfigured()) return [];
   const ids = await valkeySmembers(`room:members:${roomId}`);
-  if (ids.length > 0) {
-    await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
+  if (ids.length === 0) return [];
+  await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
+
+  const localUserIds = new Set<string>();
+  for (const c of rooms.get(roomId) || []) {
+    if (c.ws.readyState === WebSocket.OPEN) localUserIds.add(c.userId);
   }
-  return ids;
+
+  const present = await valkeyExistsBatch(
+    ids.map((id) => roomPresenceKey(roomId, id)),
+  );
+  const live: string[] = [];
+  const stale: string[] = [];
+  ids.forEach((id, i) => {
+    if (present[i] || localUserIds.has(id)) live.push(id);
+    else stale.push(id);
+  });
+  if (stale.length > 0) {
+    await valkeySrem(`room:members:${roomId}`, ...stale);
+  }
+  return live;
 }
 
 /** Host, co-host publishers, and battle creators are not counted as spectators. */
@@ -1130,7 +1173,7 @@ async function buildViewerList(
   roomId: string,
 ): Promise<{ user_id: string; username: string; display_name: string; avatar_url: string; level: number; country: string }[]> {
   if (isValkeyConfigured()) {
-    const memberIds = await valkeySmembers(`room:members:${roomId}`);
+    const memberIds = await listRoomMemberUserIds(roomId);
     if (memberIds.length === 0) return [];
 
     const capped = memberIds.slice(0, MAX_VIEWER_LIST);
@@ -1244,6 +1287,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
           if (!userStillInRoom && isValkeyConfigured()) {
             await valkeySrem(`room:members:${client.roomId}`, client.userId);
+            await valkeyDel(roomPresenceKey(client.roomId, client.userId));
             // Do NOT revokeCohostPublish here — brief WS reconnects (cohost
             // publish token upgrade, mobile blips) must keep the grant. Grants
             // are revoked only when the host removes the seat via layout sync
@@ -1472,10 +1516,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       }
       (rooms.get(roomId) as Set<Client>).add(client);
 
-      if (isValkeyConfigured()) {
-        await valkeySadd(`room:members:${roomId}`, userId);
-        await valkeyExpire(`room:members:${roomId}`, ROOM_MEMBER_TTL);
-      }
+      await markRoomPresence(roomId, userId);
 
       try {
         const battleOnJoin = await getBattleFromStore(roomId);
@@ -1665,6 +1706,14 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       }
       aliveClients.delete(ws);
       ws.ping();
+      // Keep this socket's room presence alive so the spectator sweep only
+      // drops members whose connection is really gone.
+      const c = clients.get(ws);
+      if (c && c.roomId && c.roomId !== "__feed__") {
+        markRoomPresence(c.roomId, c.userId).catch((err) => {
+          logger.warn({ err, roomId: c.roomId }, "room presence refresh failed");
+        });
+      }
     });
   }, HEARTBEAT_INTERVAL);
 

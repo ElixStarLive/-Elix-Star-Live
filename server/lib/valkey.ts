@@ -455,6 +455,24 @@ export async function valkeyHgetallBatch(
   }
 }
 
+/** One Valkey round-trip for many EXISTS (e.g. live room presence sweep). */
+export async function valkeyExistsBatch(keys: string[]): Promise<boolean[]> {
+  const v = getValkey();
+  if (!v || keys.length === 0) return keys.map(() => false);
+  try {
+    const pipe = v.pipeline();
+    for (const k of keys) {
+      pipe.exists(k);
+    }
+    const raw = await pipe.exec();
+    if (!raw) return keys.map(() => false);
+    return raw.map(([err, res]) => !err && res === 1);
+  } catch (err) {
+    logger.warn({ err: err?.message, n: keys.length }, "valkeyExistsBatch failed");
+    return keys.map(() => false);
+  }
+}
+
 export async function valkeyHincrby(key: string, field: string, increment: number): Promise<number> {
   const v = getValkey();
   if (!v) return 0;
