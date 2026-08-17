@@ -2668,7 +2668,7 @@ body,
   top: 0;
   left: 0;
   right: 0;
-  overflow: hidden;
+  overflow: visible;
   background-color: var(--elix-bg) !important;
   background-image: var(--elix-fundal-image) !important;
   background-size: 100% auto !important;

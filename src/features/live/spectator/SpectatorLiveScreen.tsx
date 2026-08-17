@@ -1680,7 +1680,7 @@ export default function SpectatorLiveScreen() {
 
         {/* CREATOR TOP BAR — only connection to creator page: spectator has access to full creator top bar (avatar, name, likes, Follow, Weekly Ranking, Membership, viewer count, close). Rest is single video + spectator's own bottom bar. */}
         <div
-          className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-hidden elix-live-top-chrome ${spectatorBattle?.active ? 'elix-battle-top-fundal' : ''}`}
+          className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible elix-live-top-chrome ${spectatorBattle?.active ? 'elix-battle-top-fundal' : ''}`}
         >
           <div className="px-3 pb-1.5" style={{ paddingTop: 'max(2px, calc(var(--safe-top) + 6px))' }}>
             <div className="flex items-start justify-between gap-2">

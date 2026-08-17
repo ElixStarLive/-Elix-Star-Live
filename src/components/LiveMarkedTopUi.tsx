@@ -233,11 +233,14 @@ export function LiveHostProfileHeader({
                     <button
                       type="button"
                       className={`${ACTION_PILL_CLASS} absolute left-0 right-0 z-10 border border-[#EF4444] bg-[#EF4444]`}
-                      style={{
+                        style={{
                         /* ABOVE Join with a gap — same width/height, no overlap, no flow height. */
                         ...ACTION_PILL_STYLE,
+                        position: 'absolute',
                         top: 'auto',
                         bottom: 'calc(100% + 4px)',
+                        left: 0,
+                        right: 0,
                         width: '100%',
                         marginTop: 0,
                       }}
