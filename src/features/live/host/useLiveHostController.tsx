@@ -1635,8 +1635,6 @@ export function useLiveHostController() {
     lastTapAt: 0,
     count: 0,
   });
-  const [battleCountdown, setBattleCountdown] = useState<number | null>(null);
-
   const resolveSpectatorVoteTargetFromWatchedStream = useCallback((): 'me' | 'opponent' | 'player3' | 'player4' | null => {
     const ids = battleStreamIdsRef.current;
     if (!ids) return null;
@@ -2276,7 +2274,6 @@ export function useLiveHostController() {
     setPlayer4Score(0);
     setBattleWinner(null);
     setBattleTeamWinner(null);
-    setBattleCountdown(null);
     setHasOpponentStream(false);
     setOpponentStreamKey(null);
     setIAmReady(false);
@@ -2367,7 +2364,6 @@ export function useLiveHostController() {
     setBattleWinner(null);
     setBattleTeamWinner(null);
     setGiftTarget('me');
-    setBattleCountdown(null);
     setHasOpponentStream(false);
     setOpponentStreamKey(null);
     setIAmReady(false);
@@ -2429,21 +2425,6 @@ export function useLiveHostController() {
 
   // No auto-start - user must press Match to begin
 
-  useEffect(() => {
-    if (battleCountdown === null || battleCountdown > 0) return;
-    setBattleState('IN_BATTLE');
-    setBattleCountdown(null);
-    setBattleTime(300);
-    battleTapScoreRemainingRef.current = 5;
-    // Duration clock: server battle_tick / battle_state_sync only (no local owner).
-  }, [battleCountdown]);
-
-  useEffect(() => {
-    if (battleCountdown == null || battleCountdown <= 0) return;
-    const id = setTimeout(() => setBattleCountdown((c) => (c != null && c > 0 ? c - 1 : null)), 1000);
-    return () => clearTimeout(id);
-  }, [battleCountdown]);
-
   const _startBattleWithCreator = (creatorId: string, creatorName: string) => {
     setOpponentCreatorName(creatorName);
     if (!isBattleMode) {
@@ -2456,7 +2437,6 @@ export function useLiveHostController() {
         setBattleWinner(null);
     setBattleTeamWinner(null);
         setGiftTarget('me');
-      setBattleCountdown(null);
       const params = new URLSearchParams(location.search);
       params.set('battle', '1');
       navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
@@ -3560,9 +3540,7 @@ export function useLiveHostController() {
         selfId &&
         syncStatus &&
         syncStatus !== 'ENDED' &&
-        (prevSyncStatus === 'WAITING' ||
-          prevSyncStatus === 'ACTIVE' ||
-          prevSyncStatus === 'COUNTDOWN')
+        (prevSyncStatus === 'WAITING' || prevSyncStatus === 'ACTIVE')
       ) {
         const seated = [
           typeof data.hostUserId === 'string' ? data.hostUserId : '',
@@ -3580,14 +3558,9 @@ export function useLiveHostController() {
       if (data.status === 'WAITING') {
         setIsBattleMode(true);
         setBattleState('INVITING');
-      } else if (data.status === 'COUNTDOWN') {
-        setIsBattleMode(true);
-        setBattleState('INVITING');
-        setBattleCountdown(null);
       } else if (data.status === 'ACTIVE') {
         setIsBattleMode(true);
         setBattleState('IN_BATTLE');
-        setBattleCountdown(null);
       } else if (data.status === 'ENDED') {
         setBattleState('ENDED');
       }
@@ -5013,7 +4986,6 @@ export function useLiveHostController() {
     setBattleWinner(null);
     setBattleTeamWinner(null);
     battleStreakCountedForEndRef.current = false;
-    setBattleCountdown(null);
     reachedThresholdsRef.current.clear();
     roseCountRef.current = 0;
     setRoseCount(0);
@@ -5524,7 +5496,6 @@ export function useLiveHostController() {
     allFilledAccepted,
     applyLiveFilterPreset,
     attachRemoteAudio,
-    battleCountdown,
     battleEndedTimeoutRef,
     battleFreeTapUsedRef,
     battleGloves,
@@ -5817,7 +5788,6 @@ export function useLiveHostController() {
     sendSpectatorCohostRequest,
     sessionContribution,
     setActiveViewers,
-    setBattleCountdown,
     setBattleGloves,
     setBattleHideScores,
     setBattleMistSide,

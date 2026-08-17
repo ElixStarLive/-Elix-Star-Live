@@ -201,7 +201,6 @@ export default function LiveHostScreen() {
     activeLikes,
     activeViewers,
     applyLiveFilterPreset,
-    battleCountdown,
     battleGloves,
     battleHideScores,
     battleMistSide,
@@ -1287,15 +1286,6 @@ export default function LiveHostScreen() {
               handleScreenTap(e);
             }}
           >
-            {battleCountdown != null && (
-              <div className="absolute inset-0 z-[260] pointer-events-none flex items-center justify-center">
-                {/* LUXURY BATTLE COUNTDOWN */}
-                <div className="w-32 h-32 flex items-center justify-center animate-luxury-pulse relative">
-                  <div className="text-white text-6xl font-black tabular-nums relative z-10 drop-shadow-[0_0_20px_rgba(230,179,106,1)]">{battleCountdown}</div>
-                </div>
-              </div>
-            )}
-
             
 
 
