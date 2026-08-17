@@ -12,6 +12,12 @@
  * Stored in Valkey (`test_coins:balances` hash, field = userId) so every worker
  * and instance sees the same balance. HINCRBY makes the debit atomic — no
  * read-modify-write race can mint coins by double-spending.
+ *
+ * PERSISTENCE (deliberate): this is QA currency, not a durable ledger. The hash
+ * has no TTL, so a balance outlives app reloads and server restarts, but it is
+ * NOT permanent authority: a Valkey wipe simply resets it, and it must never be
+ * written to a Neon wallet/money table. Re-minting is free — login + the server
+ * password issues more at any time.
  */
 
 import { isValkeyConfigured, valkeyHget, valkeyHincrby } from "./valkey";

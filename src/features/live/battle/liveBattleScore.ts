@@ -166,15 +166,6 @@ function determineTeamWinnerFromTotals(
   return red > blue ? 'host' : 'opponent';
 }
 
-/** Host-perspective winner label used by determine4PlayerWinner. */
-export function determinePerspectiveWinner(
-  totals: BattleServerTotals,
-): 'me' | 'opponent' | 'draw' {
-  const team = determineTeamWinnerFromTotals(totals);
-  if (team === 'draw') return 'draw';
-  return team === 'host' ? 'me' : 'opponent';
-}
-
 /**
  * Prefer explicit server `winner`; otherwise derive from server score totals.
  * Never invent scores — only uses totals already applied from the server.

@@ -98,7 +98,6 @@ import {
 import {
   applyBattleTickTime,
   applyBattleWinStreak,
-  determinePerspectiveWinner,
   normalizeBattleWinner,
   resolveServerBattleWinner,
   scoresForBattleRole,
@@ -2262,13 +2261,6 @@ export function useLiveHostController() {
       showToast('Could not share');
     }
   };
-
-  // Team totals (same as server): red = hostScore + player3Score; blue = opponentScore + player4Score.
-  // 2-player: p3/p4 are 0. 'me' = red side won; 'opponent' = blue side won (layout: left=red, right=blue).
-  const determine4PlayerWinner = useCallback(
-    () => determinePerspectiveWinner(battleServerTotalsRef.current),
-    [battleServerTotalsRef],
-  );
 
     // Scores + clock: battle_score + battle_state_sync + battle_tick + battle_ended.
     // Remaining seconds are server-owned (battle_tick); no local authoritative countdown.
@@ -5468,34 +5460,6 @@ export function useLiveHostController() {
     }
   }, [user?.id, miniProfile, closeMiniProfile]);
 
-  const _startBattleMatch = () => {
-    if (!isBattleMode) return;
-    setMyScore(0);
-    setOpponentScore(0);
-    resetScores();
-    setBattleWinner(null);
-    setBattleTeamWinner(null);
-    battleFreeTapUsedRef.current = false;
-    battleTapScoreRemainingRef.current = 5;
-    setBattleTime(0);
-    setBattleCountdown(null);
-  };
-
-  const _closeBattleMatch = () => {
-    if (!isBattleMode) return;
-    setBattleCountdown(null);
-    setBattleTime(0);
-    const winner = determine4PlayerWinner();
-    setBattleWinner(winner);
-    const teamWinner =
-      winner === 'me' ? 'host' : winner === 'opponent' ? 'opponent' : 'draw';
-    setBattleTeamWinner(teamWinner);
-    if (!battleStreakCountedForEndRef.current) {
-      battleStreakCountedForEndRef.current = true;
-      setBattleWinStreak((prev) => applyBattleWinStreak(prev, teamWinner));
-    }
-  };
-
   // Team totals for bar: always server host + P3 (red) vs server opponent + P4 (blue) — do not use role-swapped myScore.
   const { red: redTeamScore, blue: blueTeamScore } = teamTotalsFromScores(battleServerTotals);
   const totalScore = redTeamScore + blueTeamScore;
@@ -5520,7 +5484,6 @@ export function useLiveHostController() {
     _battleKeyboardLikeArmedRef,
     _battleReadiness,
     _battleUiRole,
-    _closeBattleMatch,
     _formatStreamName,
     _hostIsReady,
     _iAmReady,
@@ -5545,7 +5508,6 @@ export function useLiveHostController() {
     _showEmojiPicker,
     _showMembershipBar,
     _speedChallengeTimerRef,
-    _startBattleMatch,
     _startBattleWithCreator,
     _universeDurationSeconds,
     acceptBattleInvite,
@@ -5656,7 +5618,6 @@ export function useLiveHostController() {
     declineJoinRequest,
     declineJoinRequestFromViewerList,
     deleteSticker,
-    determine4PlayerWinner,
     diamondLeagueRank,
     effectiveStreamId,
     effectiveStreamIdRef,

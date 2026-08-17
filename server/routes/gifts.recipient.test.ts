@@ -195,6 +195,114 @@ describe("paid gift creator attribution", () => {
     );
   });
 
+  it("resolves the recipient BEFORE any money moves", async () => {
+    const order: string[] = [];
+    recipientMocks.resolveValidatedGiftRecipient.mockImplementation(async () => {
+      order.push("resolve");
+      return {
+        ok: true,
+        recipient: {
+          creatorId: PLAYER4,
+          battleSeat: "player4" as const,
+          teamId: "teamB" as const,
+          origin: "battle_seat" as const,
+        },
+      };
+    });
+    walletMocks.neonDebitGiftWithCreatorCredit.mockImplementation(async () => {
+      order.push("debit+credit");
+      return { ok: true, newBalance: 900, alreadyProcessed: false, credited: 60 };
+    });
+    deliveryMocks.deliverVerifiedGift.mockImplementation(async () => {
+      order.push("deliver+score");
+      return { delivered: true };
+    });
+
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), mockRes().value);
+
+    // Debit and creator credit are one atomic Neon transaction, and battle score
+    // only runs after it — so a score can never exist for a failed payment.
+    expect(order).toEqual(["resolve", "debit+credit", "deliver+score"]);
+  });
+
+  it("awards no score and shows no animation when the payment fails", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: PLAYER4,
+        battleSeat: "player4" as const,
+        teamId: "teamB" as const,
+        origin: "battle_seat" as const,
+      },
+    });
+    walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
+      ok: false,
+      error: "INSUFFICIENT_COINS",
+      newBalance: 10,
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), res.value);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(deliveryMocks.deliverVerifiedGift).not.toHaveBeenCalled();
+  });
+
+  it("uses one idempotency key for the money and for the score", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: PLAYER4,
+        battleSeat: "player4" as const,
+        teamId: "teamB" as const,
+        origin: "battle_seat" as const,
+      },
+    });
+
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), mockRes().value);
+
+    const money = walletMocks.neonDebitGiftWithCreatorCredit.mock.calls[0][0];
+    const delivery = deliveryMocks.deliverVerifiedGift.mock.calls[0][0];
+    expect(money.clientTransactionId).toBe("tx-1");
+    expect(delivery.transactionId).toBe("tx-1");
+  });
+
+  it("a retried gift credits nothing twice and scores nothing twice", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: PLAYER4,
+        battleSeat: "player4" as const,
+        teamId: "teamB" as const,
+        origin: "battle_seat" as const,
+      },
+    });
+    // Same transaction id replayed: the wallet transaction is already recorded
+    // and the delivery claim is already taken, so neither side applies twice.
+    walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
+      ok: true,
+      newBalance: 900,
+      alreadyProcessed: true,
+      credited: 0,
+    });
+    deliveryMocks.deliverVerifiedGift.mockResolvedValue({
+      delivered: false,
+      reason: "duplicate",
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), res.value);
+
+    // The first attempt already paid, animated and scored, so the retry is a
+    // no-op reported as delivered — not a second credit and not a second score.
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ room_delivered: true, new_balance: 900 }),
+    );
+    expect(walletMocks.neonDebitGiftWithCreatorCredit.mock.calls[0][0].clientTransactionId)
+      .toBe("tx-1");
+  });
+
   it("test coins can never enter the REST money path", async () => {
     const res = mockRes();
     await handleSendGift(

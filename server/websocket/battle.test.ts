@@ -33,6 +33,7 @@ const {
   confirmBattleParticipantPresence,
   ensureBattleForHost,
   finalizeBattle,
+  flushPendingBattleResults,
   getBattleFromStore,
   getBattleScores,
   removeBattleParticipant,
@@ -160,6 +161,68 @@ describe("battle authority", () => {
         ["player3", "c3"],
         ["player4", "c4"],
       ]);
+    });
+
+    it("seats creators 1-4, refuses the 5th, and starts only when all are ready", async () => {
+      // Creator 1 (host).
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      await confirmBattleParticipantPresence(ROOM, "c1");
+      expect(await startBattleIfReady(ROOM)).toMatchObject({ reason: "no_rivals" });
+
+      // Creator 2 → a complete 1x1 that starts.
+      expect(await claimBattleSeat(ROOM, "c2", "C2", "c2-room")).not.toBe(null);
+      await confirmBattleParticipantPresence(ROOM, "c2");
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+      expect((await getBattleFromStore(ROOM))?.battleType).toBe("1x1");
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(2);
+
+      // Creator 3 IS seated (never refused) — it is only the 2x2 START that waits.
+      expect(await claimBattleSeat(ROOM, "c3", "C3", "c3-room")).not.toBe(null);
+      await confirmBattleParticipantPresence(ROOM, "c3");
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(3);
+
+      // Creator 4 completes the 2x2 roster.
+      expect(await claimBattleSeat(ROOM, "c4", "C4", "c4-room")).not.toBe(null);
+      await confirmBattleParticipantPresence(ROOM, "c4");
+      const full = await getBattleFromStore(ROOM);
+      expect(full?.participants.map((p) => [p.seat, p.userId, p.teamId])).toEqual([
+        ["host", "c1", "teamA"],
+        ["opponent", "c2", "teamB"],
+        ["player3", "c3", "teamA"],
+        ["player4", "c4", "teamB"],
+      ]);
+      expect(full?.battleType).toBe("2x2");
+
+      // Creator 5 is refused: four seats is the hard maximum.
+      expect(await claimBattleSeat(ROOM, "c5", "C5", "c5-room")).toBe(null);
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(4);
+    });
+
+    it("holds the 2x2 start until the fourth creator is present", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      for (const id of ["c2", "c3"]) {
+        await claimBattleSeat(ROOM, id, id, `${id}-room`);
+      }
+      for (const id of ["c1", "c2", "c3"]) {
+        await confirmBattleParticipantPresence(ROOM, id);
+      }
+      // Three creators = an unbalanced 2x2 roster: start is refused, seats stay.
+      expect(await startBattleIfReady(ROOM)).toMatchObject({
+        ok: false,
+        reason: "incomplete_teams",
+      });
+      const waiting = await getBattleFromStore(ROOM);
+      expect(waiting?.status).toBe("WAITING");
+      expect(waiting?.participants).toHaveLength(3);
+
+      await claimBattleSeat(ROOM, "c4", "C4", "c4-room");
+      expect(await startBattleIfReady(ROOM)).toMatchObject({
+        ok: false,
+        reason: "not_ready",
+        notReady: ["c4"],
+      });
+      await confirmBattleParticipantPresence(ROOM, "c4");
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
     });
 
     it("records the creator's own room from the server, not the client", async () => {
@@ -371,13 +434,81 @@ describe("battle authority", () => {
       expect(eventsOf("battle_ended")[0].payload).toMatchObject({ winner: "draw" });
     });
 
-    it("still ends the battle for clients when the permanent write fails", async () => {
+    it("keeps the real result and retries when Neon is down", async () => {
+      insertFails = true;
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 17, source: "paid_gift" });
+      const finalized = await finalizeBattle(ROOM, "timer");
+
+      // The battle really ended, so clients are told the true frozen scores.
+      expect(finalized?.status).toBe("ENDED");
+      expect(eventsOf("battle_ended")).toHaveLength(1);
+      expect(eventsOf("battle_ended")[0].payload).toMatchObject({ hostScore: 17 });
+      // Nothing was written, and nothing was lost: the result is queued.
+      expect(persisted).toHaveLength(0);
+      expect(await valkeyFake.valkeySmembers("battles:result_outbox")).toEqual([
+        finalized?.id,
+      ]);
+
+      // A retry pass while the database is still down changes nothing.
+      await flushPendingBattleResults();
+      expect(persisted).toHaveLength(0);
+      expect(await valkeyFake.valkeySmembers("battles:result_outbox")).toEqual([
+        finalized?.id,
+      ]);
+
+      // Database back: the queued result is written and leaves the outbox.
+      insertFails = false;
+      await flushPendingBattleResults();
+      expect(persisted).toHaveLength(1);
+      expect(persisted[0]).toMatchObject({
+        battleId: finalized?.id,
+        teamAScore: 17,
+        finalizeReason: "timer",
+      });
+      expect(await valkeyFake.valkeySmembers("battles:result_outbox")).toEqual([]);
+      expect(
+        await valkeyFake.valkeyGet(`battle:result_pending:${finalized?.id}`),
+      ).toBe(null);
+    });
+
+    it("a failed permanent write never blocks the next battle", async () => {
+      insertFails = true;
+      await activeBattle();
+      const dropped = await finalizeBattle(ROOM, "timer");
+      expect(dropped?.status).toBe("ENDED");
+
+      // The finalize claim is per battle id, so a new battle finalizes normally
+      // even while the previous result is still queued.
+      insertFails = false;
+      const rematch = await ensureBattleForHost({
+        roomId: ROOM,
+        hostUserId: "c1",
+        hostName: "C1",
+      });
+      expect(rematch?.id).not.toBe(dropped?.id);
+      await confirmBattleParticipantPresence(ROOM, "c1");
+      await confirmBattleParticipantPresence(ROOM, "c2");
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+      const second = await finalizeBattle(ROOM, "host_end");
+      expect(second?.id).toBe(rematch?.id);
+      expect(persisted.map((r) => r.battleId)).toEqual([rematch?.id]);
+
+      // And the earlier queued result still reaches Neon on the next pass.
+      await flushPendingBattleResults();
+      expect(persisted.map((r) => r.battleId).sort()).toEqual(
+        [rematch?.id, dropped?.id].sort(),
+      );
+    });
+
+    it("retries are idempotent — one row per battle even if flushed twice", async () => {
       insertFails = true;
       await activeBattle();
       const finalized = await finalizeBattle(ROOM, "timer");
-      expect(finalized?.status).toBe("ENDED");
-      expect(eventsOf("battle_ended")).toHaveLength(1);
-      expect(persisted).toHaveLength(0);
+      insertFails = false;
+      await flushPendingBattleResults();
+      await flushPendingBattleResults();
+      expect(persisted.filter((r) => r.battleId === finalized?.id)).toHaveLength(1);
     });
 
     it("rematch finalizes nothing twice and starts a NEW battle id with zero scores", async () => {

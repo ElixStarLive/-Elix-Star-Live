@@ -38,7 +38,7 @@ import {
   valkeyExpire,
 } from "../lib/valkey";
 import { logger } from "../lib/logger";
-import { dbInsertBattleResult } from "../lib/postgres";
+import { dbInsertBattleResult, type BattleResultRecord } from "../lib/postgres";
 import {
   BATTLE_DURATION_SECONDS,
   BATTLE_SEATS,
@@ -84,6 +84,14 @@ const PENDING_INVITES_KEY_PREFIX = "battle:pending_invites:";
 const FINALIZE_LOCK_PREFIX = "battle:final:";
 /** How long the ENDED session stays readable so late clients still see the result. */
 const ENDED_RETENTION_MS = 10_000;
+/** Results Neon has not accepted yet: SET of battleIds + one payload key each. */
+const RESULT_OUTBOX_KEY = "battles:result_outbox";
+const RESULT_OUTBOX_PAYLOAD_PREFIX = "battle:result_pending:";
+/** A queued result stays retryable for a week, far beyond any normal outage. */
+const RESULT_OUTBOX_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const RESULT_FLUSH_LOCK_KEY = "battle:result_flush";
+/** One retry pass every ~10 s across all workers. */
+const RESULT_FLUSH_LOCK_TTL_MS = 10_000;
 
 let globalTickInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -682,7 +690,12 @@ export async function finalizeBattle(
   };
   await saveBattleToStore(roomId, finalized);
 
-  await persistBattleResult(finalized, scores);
+  // Durability is a separate concern from freezing. The frozen scores are real
+  // either way, so clients are told the truth immediately; if Neon is down the
+  // record goes to the retry outbox instead of being lost.
+  const record = battleResultRecord(finalized, scores);
+  const persisted = await persistBattleResult(record);
+  if (!persisted) await queueBattleResultForRetry(record);
 
   const totals = teamTotals(scores);
   const host = finalized.participants.find((p) => p.seat === "host");
@@ -716,36 +729,116 @@ export async function finalizeBattle(
   return finalized;
 }
 
-async function persistBattleResult(
+function battleResultRecord(
   session: BattleSession,
   scores: BattleScores,
-): Promise<void> {
+): BattleResultRecord {
   const totals = teamTotals(scores);
+  return {
+    battleId: session.id,
+    roomId: session.roomId,
+    battleType: session.battleType,
+    winner: session.winner ?? "draw",
+    teamAScore: totals.teamA,
+    teamBScore: totals.teamB,
+    startedAt: session.startedAt,
+    endedAt: session.finalizedAt,
+    finalizeReason: session.finalizeReason,
+    participants: session.participants
+      .filter((p) => p.userId)
+      .map((p) => ({
+        seat: p.seat,
+        creatorUserId: p.userId,
+        teamId: p.teamId,
+        score: scores[p.seat],
+      })),
+  };
+}
+
+/** True when the permanent Neon record exists. Idempotent per `battleId`. */
+async function persistBattleResult(record: BattleResultRecord): Promise<boolean> {
   try {
-    await dbInsertBattleResult({
-      battleId: session.id,
-      roomId: session.roomId,
-      battleType: session.battleType,
-      winner: session.winner ?? "draw",
-      teamAScore: totals.teamA,
-      teamBScore: totals.teamB,
-      startedAt: session.startedAt,
-      endedAt: session.finalizedAt,
-      finalizeReason: session.finalizeReason,
-      participants: session.participants
-        .filter((p) => p.userId)
-        .map((p) => ({
-          seat: p.seat,
-          creatorUserId: p.userId,
-          teamId: p.teamId,
-          score: scores[p.seat],
-        })),
-    });
+    await dbInsertBattleResult(record);
+    return true;
   } catch (err) {
     logger.error(
-      { err, battleId: session.id, roomId: session.roomId },
-      "persistBattleResult failed",
+      { err, battleId: record.battleId, roomId: record.roomId },
+      "persistBattleResult failed — result queued for retry",
     );
+    return false;
+  }
+}
+
+/**
+ * Outbox for a finalized result Neon has not accepted yet.
+ *
+ * Exactly-once means ONE SUCCESSFUL persistence, so a database outage must not
+ * silently drop the record: the full result waits here and every retry re-runs
+ * the same idempotent insert until it commits.
+ */
+async function queueBattleResultForRetry(record: BattleResultRecord): Promise<void> {
+  try {
+    await valkeySet(
+      RESULT_OUTBOX_PAYLOAD_PREFIX + record.battleId,
+      JSON.stringify(record),
+      RESULT_OUTBOX_TTL_MS,
+    );
+    await valkeySadd(RESULT_OUTBOX_KEY, record.battleId);
+    logger.warn(
+      { battleId: record.battleId, roomId: record.roomId },
+      "battle result awaiting permanent storage (queued)",
+    );
+  } catch (err) {
+    logger.error(
+      { err, battleId: record.battleId },
+      "could not queue battle result for retry",
+    );
+  }
+}
+
+/**
+ * Retry every queued result. The NX lock is a mutex so two workers never flush
+ * at once, and it is released at the end of the pass (its TTL only covers a
+ * worker dying mid-pass) — a failed pass must never stop future retries. A
+ * result leaves the outbox only after Neon has actually committed it.
+ */
+export async function flushPendingBattleResults(): Promise<void> {
+  if (!hasValkey()) return;
+  const battleIds = await valkeySmembers(RESULT_OUTBOX_KEY);
+  if (battleIds.length === 0) return;
+  const locked = await valkeySetNx(
+    RESULT_FLUSH_LOCK_KEY,
+    "1",
+    RESULT_FLUSH_LOCK_TTL_MS,
+  );
+  if (!locked) return;
+
+  try {
+    for (const battleId of battleIds) {
+      const raw = await valkeyGet(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+      if (!raw) {
+        await valkeySrem(RESULT_OUTBOX_KEY, battleId);
+        continue;
+      }
+      let record: BattleResultRecord;
+      try {
+        record = JSON.parse(raw) as BattleResultRecord;
+      } catch {
+        await valkeySrem(RESULT_OUTBOX_KEY, battleId);
+        await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+        logger.error({ battleId }, "unreadable queued battle result dropped");
+        continue;
+      }
+      if (!(await persistBattleResult(record))) {
+        // Still failing — keep everything queued and stop this pass.
+        return;
+      }
+      await valkeySrem(RESULT_OUTBOX_KEY, battleId);
+      await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+      logger.info({ battleId }, "queued battle result persisted on retry");
+    }
+  } finally {
+    await valkeyDel(RESULT_FLUSH_LOCK_KEY);
   }
 }
 
@@ -813,6 +906,13 @@ async function processBattleTick(roomId: string): Promise<void> {
 
 async function globalTickLoop(): Promise<void> {
   if (!hasValkey()) return;
+  // Runs even with no active battle: a result queued during a Neon outage must
+  // still reach permanent storage once the database is back.
+  try {
+    await flushPendingBattleResults();
+  } catch (err) {
+    logger.error({ err }, "battle result retry pass failed");
+  }
   try {
     const activeRoomIds = await valkeySmembers(ACTIVE_BATTLES_KEY);
     if (activeRoomIds.length === 0) return;
