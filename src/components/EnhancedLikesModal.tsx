@@ -101,7 +101,9 @@ export default function EnhancedLikesModal({ isOpen, onClose, videoId, likes }: 
     const { userId } = await apiGetCurrentUserId();
     if (!userId) { showToast('Please sign in'); return; }
     const { error } = await apiCreateReport({
-      reporter_id: userId, target_type: 'user', target_id: user.id, reason: 'inappropriate',
+      targetType: 'user',
+      targetId: user.id,
+      reason: 'inappropriate',
     });
     if (error) showToast('Failed to report');
     else showToast('User reported');

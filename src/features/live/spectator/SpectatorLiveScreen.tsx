@@ -3137,7 +3137,7 @@ export default function SpectatorLiveScreen() {
           <ReportModal
             isOpen={isReportModalOpen}
             onClose={() => setIsReportModalOpen(false)}
-            videoId={hostUserId}
+            videoId={hostUserId || effectiveStreamId || ''}
             contentType="live"
           />
         )}

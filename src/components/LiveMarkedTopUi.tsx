@@ -130,7 +130,7 @@ function LiveFollowCapsule({ onFollow }: { onFollow: (e: React.MouseEvent) => vo
 
 /**
  * Host profile block (photo 1-1): gold-glow avatar (same soft halo as LIVE icons),
- * name + blue verified, “N Likes • LIVE” or “LIVE Pro” only when earned (1M gift coins).
+ * name + blue verified, “N Likes LIVE” or “LIVE Pro” only when earned (1M gift coins).
  * Level / Diamond tier live in the bottom creator panel (tap avatar), not here.
  * One action slot beside name: Follow first → after Follow, Join (membership).
  * One big oval covers avatar + name + Join — round on the circle side.
@@ -269,7 +269,6 @@ export function LiveHostProfileHeader({
           <span className="elix-silver-red-text text-[9px] font-semibold tabular-nums leading-none whitespace-nowrap">
             {likesLabel} Likes
           </span>
-          <span className="elix-silver-red-text text-[9px] leading-none">•</span>
           <span className="elix-silver-red-text text-[9px] font-semibold leading-none whitespace-nowrap">
             {isLivePro ? 'LIVE Pro' : 'LIVE'}
           </span>
