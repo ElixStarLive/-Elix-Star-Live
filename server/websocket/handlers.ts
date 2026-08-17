@@ -5,6 +5,7 @@ import {
   sendToUserGlobal,
   incrementRoomLiveLikes,
   updateViewerCount,
+  transferLiveAudienceToBattleRoom,
 } from "./index";
 import { logger } from "../lib/logger";
 import { setCreatorCohostRoom } from "./liveCreatorRole";
@@ -26,6 +27,7 @@ import {
   untrackPendingBattleInvite,
   clearPendingBattleInvites,
   setUserBattleRoom,
+  getUserBattleRoom,
   setBattleInvite,
   hasBattleInvite,
   clearBattleInvite,
@@ -1171,10 +1173,27 @@ export async function handleMessage(
         const removed = await removeActiveStream(client.roomId, client.userId);
         if (removed) {
           await deleteCohostLayout(client.roomId);
+          // Host is moving into a battle room (accepted an invite): their
+          // spectators must transition into the battle, not get kicked to feed.
+          let battleRedirect: string | null = null;
+          try {
+            const battleRoomId = await getUserBattleRoom(client.userId);
+            if (battleRoomId && battleRoomId !== client.roomId) {
+              battleRedirect = battleRoomId;
+            }
+          } catch { /* non-fatal */ }
+          if (battleRedirect) {
+            await transferLiveAudienceToBattleRoom(
+              client.roomId,
+              client.userId,
+              battleRedirect,
+            );
+          }
           broadcastToRoom(client.roomId, "stream_ended", {
             stream_key: client.roomId,
             host_user_id: client.userId,
-            reason: "host_ended",
+            reason: battleRedirect ? "host_joined_battle" : "host_ended",
+            ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
           });
           broadcastToFeedSubscribers("stream_ended", {
             stream_key: client.roomId,

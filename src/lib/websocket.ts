@@ -92,8 +92,8 @@ class WebSocketService {
   private persistentReconnect = false;
   /** Battle: which creator's gift/chat audience this socket belongs to. */
   private audienceCreatorId: string | null = null;
-  /** Owner id → room they attached this singleton for. One socket; owners are per-room. */
-  private ownerRooms = new Map<string, string>();
+  /** Ownership tokens for singleton handoff safety (inline/watch/host/feed). */
+  private ownerIds = new Set<string>();
 
   connect(
     roomId: string,
@@ -107,15 +107,14 @@ class WebSocketService {
     const nextOwner =
       options?.ownerId !== undefined ? options.ownerId.trim() : "";
     // #region agent log
-    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'post-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:110',message:'websocket owner requested connection',data:{targetIsFeed:roomId==='__feed__',currentIsFeed:this.roomId==='__feed__',sameRoom:this.roomId===roomId,ownerCountBefore:this.ownerRooms.size,readyState:this.ws?.readyState??-1,persistent:options?.persistent??this.persistentReconnect,hasNextOwner:!!nextOwner},timestamp:Date.now()})}).catch(()=>{});
+    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'post-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:110',message:'websocket owner requested connection',data:{targetIsFeed:roomId==='__feed__',currentIsFeed:this.roomId==='__feed__',sameRoom:this.roomId===roomId,ownerCountBefore:this.ownerIds.size,readyState:this.ws?.readyState??-1,persistent:options?.persistent??this.persistentReconnect,hasNextOwner:!!nextOwner},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
-    if (nextOwner) this.ownerRooms.set(nextOwner, roomId);
+    if (nextOwner) this.ownerIds.add(nextOwner);
     if (
       this.ws?.readyState === WebSocket.OPEN ||
       this.ws?.readyState === WebSocket.CONNECTING
     ) {
       if (this.roomId === roomId) {
-        this.token = token;
         this.persistentReconnect = options?.persistent ?? this.persistentReconnect;
         if (options?.audienceCreatorId !== undefined) {
           const next = options.audienceCreatorId.trim();
@@ -123,8 +122,7 @@ class WebSocketService {
         }
         return;
       }
-      this.closeSocket();
-      this.dropOwnersNotForRoom(roomId);
+      this.disconnect();
     }
 
     this.roomId = roomId;
@@ -185,8 +183,7 @@ class WebSocketService {
     };
   }
 
-  /** Close the current socket without wiping owners (used for room transfer). */
-  private closeSocket() {
+  disconnect() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -200,23 +197,13 @@ class WebSocketService {
       this.ws.close();
       this.ws = null;
     }
-    this.reconnectAttempts = 0;
-    this.pendingMessages = [];
-  }
-
-  private dropOwnersNotForRoom(roomId: string) {
-    for (const [owner, room] of this.ownerRooms) {
-      if (room !== roomId) this.ownerRooms.delete(owner);
-    }
-  }
-
-  disconnect() {
-    this.closeSocket();
     this.roomId = null;
     this.token = null;
     this.persistentReconnect = false;
     this.audienceCreatorId = null;
-    this.ownerRooms.clear();
+    this.ownerIds.clear();
+    this.reconnectAttempts = 0;
+    this.pendingMessages = [];
   }
 
   isConnected(): boolean {
@@ -242,12 +229,12 @@ class WebSocketService {
   disconnectIfOwner(ownerId: string) {
     const owner = ownerId.trim();
     if (!owner) return;
-    if (!this.ownerRooms.has(owner)) return;
-    this.ownerRooms.delete(owner);
+    if (!this.ownerIds.has(owner)) return;
+    this.ownerIds.delete(owner);
     // #region agent log
-    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:236',message:'websocket owner released connection',data:{currentIsFeed:this.roomId==='__feed__',remainingOwnerCount:this.ownerRooms.size,willDisconnect:this.ownerRooms.size===0,readyState:this.ws?.readyState??-1},timestamp:Date.now()})}).catch(()=>{});
+    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:236',message:'websocket owner released connection',data:{currentIsFeed:this.roomId==='__feed__',remainingOwnerCount:this.ownerIds.size,willDisconnect:this.ownerIds.size===0,readyState:this.ws?.readyState??-1},timestamp:Date.now()})}).catch(()=>{});
     // #endregion
-    if (this.ownerRooms.size === 0) {
+    if (this.ownerIds.size === 0) {
       this.disconnect();
     }
   }
@@ -286,13 +273,12 @@ class WebSocketService {
   reconnectOnForeground() {
     if (
       this.roomId &&
+      this.token &&
       this.ws?.readyState !== WebSocket.OPEN &&
       this.ws?.readyState !== WebSocket.CONNECTING
     ) {
-      const freshToken = useAuthStore.getState().session?.access_token || this.token;
-      if (!freshToken) return;
       this.reconnectAttempts = 0;
-      this.connect(this.roomId, freshToken);
+      this.connect(this.roomId, this.token);
     }
   }
 

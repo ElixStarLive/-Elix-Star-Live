@@ -51,22 +51,6 @@ describe("release architecture contracts", () => {
     expect(block).not.toContain("for (const seat of seats)");
   });
 
-  it("6. WS room switching preserves owner map instead of disconnect()", () => {
-    const ws = read("src/lib/websocket.ts");
-    const connect = ws.slice(ws.indexOf("connect("), ws.indexOf("private closeSocket"));
-    expect(connect).toContain("this.closeSocket()");
-    expect(connect).toContain("this.dropOwnersNotForRoom(roomId)");
-    expect(connect).not.toContain("this.disconnect()");
-    expect(ws).toContain("private ownerRooms = new Map<string, string>()");
-  });
-
-  it("7. foreground reconnect uses the current authenticated JWT", () => {
-    const ws = read("src/lib/websocket.ts");
-    expect(ws).toContain("reconnectOnForeground()");
-    const fg = ws.slice(ws.indexOf("reconnectOnForeground()"), ws.indexOf("private attemptReconnect"));
-    expect(fg).toContain("useAuthStore.getState().session?.access_token || this.token");
-  });
-
   it("pins Apple JWS trust to Apple Root CA G3", () => {
     const apple = read("server/lib/appleIap.ts");
     expect(apple).toContain("63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179");

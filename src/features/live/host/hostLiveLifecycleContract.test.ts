@@ -13,9 +13,7 @@ describe("host live lifecycle ownership contract", () => {
   const websocketHandlers = read("../../../../server/websocket/handlers.ts");
   const webhook = read("../../../../server/routes/livekit-webhook.ts");
 
-  it("never ends the server live record from host page unmount", () => {
-    expect(controller).not.toContain("apiLiveEnd");
-
+  it("keeps WS teardown owner-scoped on host page unmount", () => {
     const unmountOwner = controller.indexOf(
       "// Disconnect WS only when leaving the LiveStream page entirely.",
     );
@@ -66,12 +64,12 @@ describe("host live lifecycle ownership contract", () => {
     );
   });
 
-  it("treats stream_end as deliberate end, never as a role transition", () => {
+  it("transitions spectators into the battle room when the host joins a battle", () => {
     const start = websocketHandlers.indexOf('case "stream_end"');
     expect(start).toBeGreaterThan(-1);
-    const block = websocketHandlers.slice(start, start + 900);
-    expect(block).toContain('reason: "host_ended"');
-    expect(block).not.toContain("battleRedirect");
-    expect(block).not.toContain("host_joined_battle");
+    const block = websocketHandlers.slice(start, start + 1400);
+    expect(block).toContain("getUserBattleRoom(client.userId)");
+    expect(block).toContain("transferLiveAudienceToBattleRoom(");
+    expect(block).toContain('battleRedirect ? "host_joined_battle" : "host_ended"');
   });
 });

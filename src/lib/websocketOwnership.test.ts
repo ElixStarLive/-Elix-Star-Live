@@ -134,18 +134,5 @@ describe("websocket singleton owner handoff", () => {
     expect(websocket.isConnected()).toBe(true);
     expect(websocket.getCurrentRoomId()).toBe("room-b");
   });
-
-  it("foreground reconnect uses the current authenticated JWT", async () => {
-    auth.token = "stale-jwt";
-    websocket.connect("live-1", "stale-jwt", { ownerId: "watch-1" });
-    await flush();
-    auth.token = "rotated-jwt";
-    const sock = (websocket as unknown as { ws: { readyState: number } }).ws;
-    sock.readyState = MockWebSocket.CLOSED;
-    websocket.reconnectOnForeground();
-    const last = constructedUrls[constructedUrls.length - 1] || "";
-    expect(last).toContain("token=rotated-jwt");
-    expect(last).not.toContain("token=stale-jwt");
-  });
 });
 

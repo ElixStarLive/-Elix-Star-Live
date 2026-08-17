@@ -61,6 +61,7 @@ import { useVideoStore } from '../../../store/useVideoStore';
 import { apiUrl, getLiveKitUrl } from '../../../lib/api';
 import { useLiveCamera } from '../hooks/useLiveCamera';
 import {
+  apiLiveEnd,
   apiLiveToken,
   apiLiveStreams,
   isLivePublishDenied,
@@ -468,6 +469,22 @@ export function useLiveHostController() {
       // Viewer mode - rely on WebSocket events for stream status
     }
   }, [effectiveStreamId, isBroadcast, user?.id]);
+
+  // End live registration only on page unmount (not on effect re-run mid-stream).
+  useEffect(() => {
+    return () => {
+      if (!liveRegisteredRef.current) return;
+      const room = effectiveStreamIdRef.current;
+      void apiLiveEnd(room)
+        .then(({ error }) => {
+          if (error) reportFailure('live_end', error, { room });
+        })
+        .catch((err) => reportFailure('live_end', err, { room }))
+        .finally(() => {
+          liveRegisteredRef.current = false;
+        });
+    };
+  }, [liveRegisteredRef]);
 
   useEffect(() => {
     // Title is set at stream start via POST /api/live/start; no DB update needed here
