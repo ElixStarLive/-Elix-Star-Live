@@ -184,19 +184,7 @@ function App() {
   // Running checkUser before hydration used no token, cleared state, and could overwrite saved login.
   useEffect(() => {
     const runCheckUser = () => {
-      // #region agent log
-      const before = useAuthStore.getState();
-      void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H2',location:'src/App.tsx:186',message:'boot session validation started',data:{hydrated:useAuthStore.persist.hasHydrated(),hadPersistedToken:!!before.session?.access_token,wasAuthenticated:before.isAuthenticated},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      void useAuthStore
-        .getState()
-        .checkUser()
-        .finally(() => {
-          // #region agent log
-          const after = useAuthStore.getState();
-          void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H2',location:'src/App.tsx:194',message:'boot session validation finished',data:{hasToken:!!after.session?.access_token,isAuthenticated:after.isAuthenticated,isLoading:after.isLoading,hasUser:!!after.user},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-        });
+      void useAuthStore.getState().checkUser();
     };
     if (useAuthStore.persist.hasHydrated()) {
       runCheckUser();

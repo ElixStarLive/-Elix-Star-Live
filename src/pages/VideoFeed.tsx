@@ -18,6 +18,8 @@ import {
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
 import { apiLiveStreams, connectLiveFeedPresence } from "../lib/live";
+import { pruneEndedBefore, reconcileLivePresence } from "../lib/live/liveCardReconcile";
+import { reportFailure } from "../lib/reportFailure";
 import { apiFetchProfileById as apiFeedFetchProfileById } from "../features/feed/feedApi";
 
 /* ------------------------------------------------------------------ */
@@ -32,6 +34,8 @@ type LiveStreamCard = {
   title?: string;
   thumbnail?: string;
   userId?: string;
+  /** When this client learned the room was live — orders client vs server truth. */
+  discoveredAt: number;
 };
 
 type FeedItem =
@@ -55,6 +59,7 @@ function streamStartedToCard(data: Record<string, unknown>): LiveStreamCard {
     title: typeof data.title === "string" ? data.title : undefined,
     thumbnail: "",
     userId,
+    discoveredAt: Date.now(),
   };
 }
 
@@ -94,10 +99,9 @@ export default function VideoFeed() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [liveStreams, setLiveStreams] = useState<LiveStreamCard[]>([]);
   const [liveLoading, setLiveLoading] = useState(true);
-  // Suppress keys after stream_ended so a REST reconcile cannot re-add a room
-  // before the live-streams DB row is cleared. Feed presence is source of truth
-  // for realtime add/remove; this only bridges REST lag.
-  const removedKeysRef = useRef<Set<string>>(new Set());
+  // stream_ended times, so a snapshot taken before the end cannot re-add the
+  // room. Records are pruned once a newer snapshot has accounted for them.
+  const endedAtRef = useRef<Map<string, number>>(new Map());
 
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
@@ -116,32 +120,26 @@ export default function VideoFeed() {
 
   /* ---- Remove a live stream (feed presence stream_ended) ---- */
   const removeLiveStream = useCallback((streamKey: string) => {
-    removedKeysRef.current.add(streamKey);
+    endedAtRef.current.set(streamKey, Date.now());
     setLiveStreams((prev) => prev.filter((s) => s.streamKey !== streamKey));
-    setTimeout(() => removedKeysRef.current.delete(streamKey), 20_000);
   }, []);
 
-  /* ---- Fetch live streams from REST ---- */
+  /* ---- Fetch live streams from REST (server owns live presence) ---- */
   const fetchLiveStreams = useCallback(async () => {
+    const requestedAt = Date.now();
     try {
       const { streams: rawStreams, error } = await apiLiveStreams();
 
+      // Failed or unchanged (304): the server told us nothing about who is
+      // live, so this is not a snapshot and the current list stands.
       if (error) {
-        // Keep realtime + WS-discovered streams on 304/empty/transient failures.
         setLiveLoading(false);
         return;
       }
       const streams = rawStreams as RawLiveStreamFields[];
 
-      // When API returns [], still merge with prev so streams from stream_started stay visible
-      const removed = removedKeysRef.current;
-
-      const mapped: LiveStreamCard[] = streams
-        .filter((s) => {
-          const key = parseRawLiveStreamCore(s).streamKey;
-          if (!key || removed.has(key)) return false;
-          return true;
-        })
+      const snapshot: LiveStreamCard[] = streams
+        .filter((s) => !!parseRawLiveStreamCore(s).streamKey)
         .map((s) => {
           const core = parseRawLiveStreamCore(s);
           return {
@@ -152,39 +150,23 @@ export default function VideoFeed() {
             title: core.title,
             thumbnail: "",
             userId: core.userId,
+            discoveredAt: requestedAt,
           } as LiveStreamCard;
         });
 
-      // #region agent log
-      void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H3',location:'src/pages/VideoFeed.tsx:158',message:'authoritative live feed response mapped',data:{apiCount:streams.length,mappedCount:mapped.length,removedCount:removed.size},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      // Merge with current list so streams added by stream_started (realtime) don't disappear
-      // when reconcile runs before LiveKit has the room (creator still connecting)
-      setLiveStreams((prev) => {
-        const fromApi = new Set(mapped.map((s) => s.streamKey));
-        // If API returned an empty list, keep previous discovery (WS / last good reconcile)
-        // so a transient LiveKit verification miss does not wipe For You lives.
-        if (mapped.length === 0 && prev.length > 0) {
-          const retained = prev.filter((s) => !removed.has(s.streamKey));
-          // #region agent log
-          void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H3',location:'src/pages/VideoFeed.tsx:170',message:'empty authoritative response retained previous live cards',data:{previousCount:prev.length,retainedCount:retained.length},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
-          return retained;
-        }
-        const keptFromPrev = prev.filter(
-          (s) => !fromApi.has(s.streamKey) && !removed.has(s.streamKey)
-        );
-        const merged = [...mapped, ...keptFromPrev];
-        // Dedupe by streamKey (API + WS can both add the same room).
-        const seen = new Set<string>();
-        return merged.filter((s) => {
-          if (!s.streamKey || seen.has(s.streamKey)) return false;
-          seen.add(s.streamKey);
-          return true;
-        });
-      });
-    } catch {
-      /* preserve existing streams on transient errors */
+      setLiveStreams((prev) =>
+        reconcileLivePresence<LiveStreamCard>({
+          snapshot,
+          previous: prev,
+          keyOf: (s) => s.streamKey,
+          discoveredAtOf: (s) => s.discoveredAt,
+          requestedAt,
+          endedAt: endedAtRef.current,
+        }),
+      );
+      pruneEndedBefore(endedAtRef.current, requestedAt);
+    } catch (err) {
+      reportFailure("feed_live_streams", err);
     }
     setLiveLoading(false);
   }, []);
@@ -249,7 +231,7 @@ export default function VideoFeed() {
         const key = String(data.stream_key ?? data.room_id ?? "").trim();
         if (!key) return;
         const uid = String(data.user_id ?? key);
-        removedKeysRef.current.delete(key);
+        endedAtRef.current.delete(key);
         const card = streamStartedToCard({ ...data, user_id: uid, stream_key: key });
         setLiveStreams((prev) => {
           if (prev.some((s) => s.streamKey === key)) return prev;

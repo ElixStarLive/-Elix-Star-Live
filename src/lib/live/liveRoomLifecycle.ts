@@ -60,9 +60,6 @@ export class LiveRoomLifecycle {
     const token = summarizeLiveKitToken(creds.token);
     const surface = context?.surface || 'unknown';
     const roomId = (context?.roomId || '').trim() || token.room || null;
-    // #region agent log
-    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H5',location:'src/lib/live/liveRoomLifecycle.ts:63',message:'LiveKit signal connect attempted',data:{surface,endpointHost:endpoint.host,endpointProtocol:endpoint.protocol,secure:endpoint.isSecureWss,localhost:endpoint.isLocalhost,tokenRoomMatchesContext:token.room===roomId,canPublish:token.canPublish,canSubscribe:token.canSubscribe,roomJoin:token.roomJoin,publishRequested:context?.publish??null},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
     console.info('[LiveKit] connect attempt', {
       surface,
       roomId,
@@ -85,9 +82,6 @@ export class LiveRoomLifecycle {
     try {
       await session.connect(url, creds.token);
       const state = session.raw?.state ?? 'disconnected';
-      // #region agent log
-      void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'post-fix',hypothesisId:'H5',location:'src/lib/live/liveRoomLifecycle.ts:85',message:'LiveKit signal connect succeeded',data:{surface,endpointHost:endpoint.host,state},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       console.info('[LiveKit] connect success', { surface, roomId, state });
       return { error: null, session };
     } catch (e) {

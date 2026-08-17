@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Radio, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
+import { pruneEndedBefore, reconcileLivePresence } from '../lib/live/liveCardReconcile';
 import { showToast } from '../lib/toast';
 import {
   isGenericLiveCreatorName,
@@ -27,6 +28,8 @@ type LiveCreator = {
   avatar?: string;
   viewers: number;
   title?: string;
+  /** When this client learned the room was live — orders client vs server truth. */
+  discoveredAt: number;
 };
 
 async function enrichLiveCreator(creator: LiveCreator): Promise<LiveCreator> {
@@ -65,28 +68,24 @@ export default function LiveDiscover() {
   const [creators, setCreators] = useState<LiveCreator[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
-  const removedKeysRef = useRef<Set<string>>(new Set());
+  const endedAtRef = useRef<Map<string, number>>(new Map());
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const visibleIdsRef = useRef<Set<string>>(new Set());
 
   const fetchLiveStreams = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
+    const requestedAt = Date.now();
     try {
       const { streams, error } = await apiLiveStreams();
+      // Failed or unchanged (304) is not a snapshot: keep the current lobby.
       if (error) {
-        // Keep prior lobby data — do not wipe to empty on a failed refresh.
         if (!opts?.silent) showToast(error || 'Could not load live streams');
         return;
       }
 
-      const removed = removedKeysRef.current;
-
-      const mapped: LiveCreator[] = streams
-        .filter((raw) => {
-          const key = parseRawLiveStreamCore(raw as RawLiveStreamFields).streamKey;
-          return !!key && !removed.has(key);
-        })
+      const snapshot: LiveCreator[] = streams
+        .filter((raw) => !!parseRawLiveStreamCore(raw as RawLiveStreamFields).streamKey)
         .map((raw) => {
           const core = parseRawLiveStreamCore(raw as RawLiveStreamFields);
           return {
@@ -96,24 +95,21 @@ export default function LiveDiscover() {
             avatar: undefined,
             viewers: core.viewers,
             title: core.title,
+            discoveredAt: requestedAt,
           };
         });
 
-      // Merge so stream_started cards are not wiped if REST lags LiveKit verification.
-      setCreators((prev) => {
-        const fromApi = new Set(mapped.map((c) => c.id));
-        if (mapped.length === 0 && prev.length > 0) {
-          return prev.filter((c) => !removed.has(c.id));
-        }
-        const keptFromPrev = prev.filter((c) => !fromApi.has(c.id) && !removed.has(c.id));
-        const merged = [...mapped, ...keptFromPrev];
-        const seen = new Set<string>();
-        return merged.filter((c) => {
-          if (!c.id || seen.has(c.id)) return false;
-          seen.add(c.id);
-          return true;
-        });
-      });
+      setCreators((prev) =>
+        reconcileLivePresence<LiveCreator>({
+          snapshot,
+          previous: prev,
+          keyOf: (c) => c.id,
+          discoveredAtOf: (c) => c.discoveredAt,
+          requestedAt,
+          endedAt: endedAtRef.current,
+        }),
+      );
+      pruneEndedBefore(endedAtRef.current, requestedAt);
     } catch (e: unknown) {
       if (!opts?.silent) {
         const msg = e instanceof Error ? e.message : 'Could not load live streams';
@@ -153,9 +149,8 @@ export default function LiveDiscover() {
   }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}:${c.avatar ?? ''}`).join(',')]);
 
   const removeLiveStream = useCallback((key: string) => {
-    removedKeysRef.current.add(key);
+    endedAtRef.current.set(key, Date.now());
     setCreators((prev) => prev.filter((c) => c.id !== key));
-    setTimeout(() => removedKeysRef.current.delete(key), 10000);
   }, []);
 
   const token = useAuthStore((s) => s.session?.access_token) ?? '';
@@ -228,7 +223,8 @@ export default function LiveDiscover() {
     return connectLiveFeedPresence(token, {
       onStreamStarted: (data) => {
         const key = (data.stream_key ?? data.room_id) as string;
-        if (!key || removedKeysRef.current.has(key)) return;
+        if (!key) return;
+        endedAtRef.current.delete(key);
         const userId = (data.user_id ?? '') as string;
         const name = liveNameFromStreamFields(
           data.title as string | undefined,
@@ -242,6 +238,7 @@ export default function LiveDiscover() {
           avatar: undefined,
           viewers: 0,
           title: typeof data.title === 'string' ? data.title : name,
+          discoveredAt: Date.now(),
         };
         setCreators((prev) => {
           if (prev.some((c) => c.id === key)) return prev;
