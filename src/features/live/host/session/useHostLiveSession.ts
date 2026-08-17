@@ -122,6 +122,10 @@ export function useHostLiveSession(opts: {
       setConnected(false);
       lifecycle.liveKit?.disconnect();
     };
+    // `opts.roomId` is deliberately not a dependency: it is only connect
+    // metadata, and `creds` already changes when the room does. Adding it would
+    // tear down and reconnect a running broadcast on a bare key change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.enabled, creds, opts.liveKitHandlersRef, publishFromCamera]);
 
   // Republish when camera stream recreates (does not reconnect the room).

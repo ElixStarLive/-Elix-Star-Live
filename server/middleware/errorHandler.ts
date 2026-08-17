@@ -2,6 +2,20 @@ import { Request, Response, NextFunction, RequestHandler } from "express";
 import { logger } from "../lib/logger";
 import { captureExceptionToSentry } from "../lib/sentryInit";
 
+/**
+ * The request-id middleware in `server/index.ts` stamps every non-load-test
+ * request; error logs and API error bodies read it back here. Declared once so
+ * both ends share one type instead of casting at each use site.
+ */
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      requestId?: string;
+    }
+  }
+}
+
 export interface ApiError {
   error: string;
   code?: string;

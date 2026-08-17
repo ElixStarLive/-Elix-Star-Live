@@ -27,7 +27,7 @@ export async function consumeGooglePlayAfterCredit(input: {
     productId: input.productId,
     purchaseToken: input.purchaseToken,
   });
-  if (result.ok) {
+  if (result.ok === true) {
     await markGooglePurchaseConsumed(input.externalPurchaseId);
     return;
   }
@@ -52,7 +52,7 @@ export async function processGooglePlayConsumeJob(input: {
     productId: input.productId,
     purchaseToken: input.purchaseToken,
   });
-  if (result.ok) {
+  if (result.ok === true) {
     await markGooglePurchaseConsumed(input.externalPurchaseId);
     return;
   }

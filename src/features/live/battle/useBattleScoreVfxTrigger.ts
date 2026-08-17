@@ -45,7 +45,11 @@ export function useBattleScoreVfxTrigger(
 
   useEffect(() => {
     return () => {
+      // Reading the ref at unmount is the point: it must clear whichever mist
+      // timeout is pending then. Copying it into the effect body (what
+      // exhaustive-deps suggests) would capture null at mount and clear nothing.
       if (battleMistTimerRef.current != null) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         window.clearTimeout(battleMistTimerRef.current);
       }
     };
