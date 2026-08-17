@@ -220,7 +220,7 @@ export async function createLiveToken(options: CreateTokenOptions): Promise<stri
   return await at.toJwt();
 }
 
-function normalizeLiveKitSignalUrl(rawUrl: string): string {
+export function normalizeLiveKitSignalUrl(rawUrl: string): string {
   const input = String(rawUrl || '').trim();
   if (!input) return '';
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(input) ? input : `wss://${input}`;

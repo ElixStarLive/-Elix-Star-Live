@@ -2,6 +2,7 @@
  * Production environment validation — fails fast on missing critical config.
  */
 import { logger } from "./logger";
+import { normalizeLiveKitSignalUrl } from "../services/livekit";
 
 export function validateProductionEnvironment(): void {
   if (process.env.NODE_ENV !== "production") return;
@@ -65,16 +66,17 @@ export function validateProductionEnvironment(): void {
     );
     process.exit(1);
   }
+  // Validate the same signal URL the LiveKit service actually connects with, so
+  // boot can never reject a value that live streaming resolves correctly.
   try {
-    const lk = new URL(process.env.LIVEKIT_URL.trim());
-    const proto = lk.protocol.toLowerCase();
-    if (proto !== "wss:" && proto !== "https:") {
-      logger.fatal("LIVEKIT_URL must use wss:// or https:// in production");
-      process.exit(1);
-    }
+    const lk = new URL(normalizeLiveKitSignalUrl(process.env.LIVEKIT_URL));
     const host = lk.hostname.toLowerCase();
     if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
       logger.fatal("LIVEKIT_URL must not point to localhost in production");
+      process.exit(1);
+    }
+    if (lk.protocol.toLowerCase() !== "wss:") {
+      logger.fatal("LIVEKIT_URL must resolve to a wss:// signal URL in production");
       process.exit(1);
     }
   } catch {

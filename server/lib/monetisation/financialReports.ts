@@ -223,7 +223,7 @@ export async function importStoreFinancialReport(input: {
           `SELECT provider_transaction_id FROM elix_paid_coin_lots
             WHERE provider_transaction_id = $1 LIMIT 1`,
           [line.externalTransactionId],
-        );
+        ).catch(() => ({ rowCount: 0, rows: [] as { provider_transaction_id: string }[] }));
         if (purch.rowCount) {
           matchStatus = "matched";
           matchKind = "coin_lot";
@@ -235,7 +235,7 @@ export async function importStoreFinancialReport(input: {
               WHERE latest_order_id = $1 OR purchase_token_hash = $1
                  OR provider_transaction_id = $1 LIMIT 1`,
             [line.externalTransactionId],
-          );
+          ).catch(() => ({ rowCount: 0, rows: [] as { latest_order_id: string }[] }));
           if (memb.rowCount) {
             matchStatus = "matched";
             matchKind = "membership";
@@ -246,7 +246,7 @@ export async function importStoreFinancialReport(input: {
               `SELECT provider_transaction_id FROM elix_promote_purchases
                 WHERE provider_transaction_id = $1 LIMIT 1`,
               [line.externalTransactionId],
-            );
+            ).catch(() => ({ rowCount: 0, rows: [] as { provider_transaction_id: string }[] }));
             if (promo.rowCount) {
               matchStatus = "matched";
               matchKind = "promote";
