@@ -81,6 +81,7 @@ import {
   resolveBattleSlotForCreatorId,
   resolveServerBattleGiftTarget,
   resolveViewerBattleSide,
+  shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
@@ -133,7 +134,7 @@ import {
 } from '../battle/liveBattleScore';
 import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
-import { cohostRequestSend, cohostSeatLeave } from '../cohost/liveCohostActions';
+import { cohostRequestSend } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
 import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
@@ -1192,10 +1193,6 @@ export function useLiveSpectatorController() {
 
   /** Leave the co-host seat but keep watching this live (never /feed). */
   const exitCohostStayWatching = useCallback(() => {
-    const sid = String(effectiveStreamId || '').trim();
-    if (sid) {
-      cohostSeatLeave({ roomId: sid });
-    }
     stopCoHosting();
     wasCohostSeatedRef.current = false;
     if (user?.id) {
@@ -1223,7 +1220,6 @@ export function useLiveSpectatorController() {
     location.pathname,
     location.search,
     navigate,
-    effectiveStreamId,
   ]);
 
   useEffect(() => {
@@ -2349,12 +2345,18 @@ export function useLiveSpectatorController() {
       }
 
       // Play gift video for other users' gifts (sender already queued locally).
-      // Creator + every spectator play the same video 1-1.
       if (gifterId && user?.id && gifterId === user.id) return;
 
       const giftSlot = spectatorBattleRef.current?.active
         ? resolveServerBattleGiftTarget(battleTarget)
         : null;
+      // Battle: full video only for the target creator's audience.
+      if (
+        spectatorBattleRef.current?.active &&
+        !shouldPlayFullBattleGiftVideo(giftSlot, battleAudienceSlotRef.current)
+      ) {
+        return;
+      }
 
       enqueueFromGiftSent({
         data,
@@ -3070,7 +3072,8 @@ export function useLiveSpectatorController() {
       return;
     }
     if (!websocket.isConnected()) {
-      websocket.reconnectOnForeground();
+      showToast('Connecting... try again in a moment');
+      return;
     }
 
     let newLevel = userLevel;
@@ -3177,10 +3180,18 @@ export function useLiveSpectatorController() {
     if (gift.video && gift.video.trim()) {
       const videoUrl = resolveLocalGiftVideoUrl(gift.video);
       if (videoUrl) {
-        enqueueGiftVideo(
-          videoUrl,
-          spectatorBattle?.active ? spectatorGiftBattleTarget : null,
-        );
+        const localSlot = spectatorBattle?.active
+          ? resolveServerBattleGiftTarget(spectatorGiftBattleTarget)
+          : null;
+        const playFull =
+          !spectatorBattle?.active ||
+          shouldPlayFullBattleGiftVideo(localSlot, battleAudienceSlotRef.current);
+        if (playFull) {
+          enqueueGiftVideo(
+            videoUrl,
+            spectatorBattle?.active ? spectatorGiftBattleTarget : null,
+          );
+        }
       }
     }
 

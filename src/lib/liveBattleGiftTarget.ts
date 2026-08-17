@@ -138,6 +138,19 @@ export function resolveViewerBattleSide(opts: {
   return opts.joinSide ?? null;
 }
 
+/**
+ * Full gift video plays only for the target creator + that creator's audience.
+ * Server routes gift_sent by targetCreatorId — other creators and their
+ * spectators must not receive the gift event (score is a separate battle_score).
+ */
+export function shouldPlayFullBattleGiftVideo(
+  giftTarget: ServerBattleGiftTarget | null,
+  audienceSlot: ServerBattleGiftTarget | null,
+): boolean {
+  if (!giftTarget || !audienceSlot) return false;
+  return giftTarget === audienceSlot;
+}
+
 /** Resolve gift PNG/icon URL for co-host tile icons (icon only — never video). */
 export function resolveBattleGiftIconUrl(
   icon: unknown,

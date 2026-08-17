@@ -52,17 +52,6 @@ describe("release architecture contracts", () => {
     expect(webhook).toContain('res.status(500).json({ error: "Webhook processing failed" })');
   });
 
-  it("4-5. co-host self-leave frees one seat and does not end the live", () => {
-    const handlers = read("server/websocket/handlers.ts");
-    const start = handlers.indexOf('case "cohost_seat_leave"');
-    const end = handlers.indexOf('case "cohost_seats_clear"', start);
-    const block = handlers.slice(start, end);
-    expect(block).toContain("removeCohostSlot(seats, targetUserId)");
-    expect(block).not.toContain("removeActiveStream");
-    expect(block).not.toContain("stream_ended");
-    expect(block).not.toContain("for (const seat of seats)");
-  });
-
   it("6. WS room switching preserves owner map instead of disconnect()", () => {
     const ws = read("src/lib/websocket.ts");
     const connect = ws.slice(ws.indexOf("connect("), ws.indexOf("private closeSocket"));

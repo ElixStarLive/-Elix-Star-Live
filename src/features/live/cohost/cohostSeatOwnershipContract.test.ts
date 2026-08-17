@@ -24,7 +24,6 @@ describe("co-host seat ownership contract (client)", () => {
   it("exposes per-seat intents instead of a whole-stage replacement", () => {
     expect(actions).toContain("export function cohostSeatRelease");
     expect(actions).toContain("targetUserId: string");
-    expect(actions).toContain("export function cohostSeatLeave");
     expect(actions).toContain("export function cohostSeatsClear");
   });
 
@@ -44,12 +43,13 @@ describe("co-host seat ownership contract (client)", () => {
     expect(block).toContain("cohostSeatsClear({ roomId: effectiveStreamIdRef.current })");
   });
 
-  it("spectator self-leave asks the server to free the seat before local teardown", () => {
-    const spectator = read("../spectator/useLiveSpectatorController.tsx");
-    const start = spectator.indexOf("const exitCohostStayWatching = useCallback");
-    expect(start).toBeGreaterThan(-1);
-    const block = spectator.slice(start, start + 900);
-    expect(block).toContain("cohostSeatLeave({ roomId: sid })");
-    expect(block.indexOf("cohostSeatLeave")).toBeLessThan(block.indexOf("stopCoHosting()"));
+  it("keeps incoming co-host requests as an independent per-user queue", () => {
+    expect(hostController).toContain(
+      "const [pendingJoinRequests, setPendingJoinRequests] = useState<PendingJoinRequest[]>([])",
+    );
+    // A new request is appended, never allowed to overwrite an existing one.
+    expect(hostController).toContain(
+      "if (prev.some((r) => sameUserId(r.requesterId, requesterId))) return prev;",
+    );
   });
 });

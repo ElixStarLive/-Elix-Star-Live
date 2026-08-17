@@ -47,7 +47,7 @@ describe("cohost server authority contracts", () => {
 
   it("seat release frees one seat and revokes publish for that user only", () => {
     const start = handlers.indexOf('case "cohost_seat_release"');
-    const end = handlers.indexOf('case "cohost_seat_leave"', start);
+    const end = handlers.indexOf('case "cohost_seats_clear"', start);
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     const block = handlers.slice(start, end);
@@ -60,25 +60,6 @@ describe("cohost server authority contracts", () => {
     // Host-only, and never a room-wide grant sweep.
     expect(block).toContain("if (!ownerId || ownerId !== client.userId) break");
     expect(block).not.toContain("clearCohostPublishGrants");
-  });
-
-  it("co-host self-leave frees exactly one seat and keeps the spectator connected", () => {
-    const start = handlers.indexOf('case "cohost_seat_leave"');
-    const end = handlers.indexOf('case "cohost_seats_clear"', start);
-    expect(start).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(start);
-    const block = handlers.slice(start, end);
-    expect(block).toContain("if (ownerId === client.userId) break");
-    expect(block).toContain("const targetUserId = client.userId");
-    expect(block).toContain("removeCohostSlot(seats, targetUserId)");
-    expect(block).toContain("await revokeCohostPublish(roomId, targetUserId)");
-    expect(block).toContain("await revokeParticipantPublish(roomId, targetUserId)");
-    expect(block).toContain('sendToUserGlobal(targetUserId, "cohost_seat_released"');
-    expect(block).toContain('broadcastToRoom(roomId, "cohost_layout_sync"');
-    expect(block).not.toContain("removeActiveStream");
-    expect(block).not.toContain("stream_ended");
-    expect(block).not.toContain("clearCohostPublishGrants");
-    expect(block).not.toContain("for (const seat of seats)");
   });
 
   it("only the explicit seats_clear intent stands every seat down", () => {

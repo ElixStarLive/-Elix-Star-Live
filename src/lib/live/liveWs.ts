@@ -77,8 +77,6 @@ export const LIVE_WS_OUT = {
   cohost_layout_sync: 'cohost_layout_sync',
   /** Host frees one seat. Server revokes publish for that user alone. */
   cohost_seat_release: 'cohost_seat_release',
-  /** Seated co-host leaves their own seat and remains a spectator. */
-  cohost_seat_leave: 'cohost_seat_leave',
   /** Host ends co-host mode: server releases every seat individually. */
   cohost_seats_clear: 'cohost_seats_clear',
   booster_activated: 'booster_activated',

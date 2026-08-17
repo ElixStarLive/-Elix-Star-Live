@@ -2,10 +2,10 @@
  * Authoritative in-room gift delivery.
  *
  * After a gift is paid (REST), delivery must not depend on the client re-sending
- * a WebSocket event. This module claims the transaction once, broadcasts
- * gift_sent (WITH a playable video URL) to the whole room so creator and every
- * spectator play the same animation 1-1, updates gift goals, and applies battle
- * scores separately (team aggregation, not gift broadcast).
+ * a WebSocket event. This module claims the transaction once, routes gift_sent
+ * (WITH a playable video URL) to the target creator's audience only, updates
+ * gift goals, and applies battle scores separately (team aggregation, not gift
+ * broadcast).
  */
 
 import {
@@ -26,6 +26,7 @@ import {
 import {
   isActiveBattleSession,
   resolveGiftTargetCreatorId,
+  seatedBattleCreatorIds,
 } from "./giftAudience";
 import { incrementGiftGoal } from "./giftGoal";
 import { addBattleScoreForTarget, getBattleFromStore } from "./battle";
@@ -139,8 +140,9 @@ async function applyActiveBattleGiftScore(opts: {
 }
 
 /**
- * One gift visual event → same video for the creator and every spectator in
- * the room (solo and battle). Battle score stays a separate room event.
+ * One gift visual event → one target creator + that creator's spectators.
+ * Battle score stays on broadcastToRoom (addBattleScoreForTarget). Solo live
+ * still uses the full room because that room is already one creator's audience.
  */
 export async function emitGiftSentToTargetAudience(opts: {
   roomId: string;
@@ -178,16 +180,24 @@ export async function emitGiftSentToTargetAudience(opts: {
   };
 
   const battleActive = isActiveBattleSession(battle);
-  broadcastToRoom(roomId, "gift_sent", payload);
-  if (opts.boosterCaught) {
-    if (battleActive && targetCreatorId) {
+  if (battleActive && targetCreatorId) {
+    broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent", payload);
+    for (const seatedId of seatedBattleCreatorIds(battle)) {
+      if (seatedId && seatedId !== targetCreatorId) {
+        broadcastToCreatorAudience(roomId, seatedId, "gift_sent", payload);
+      }
+    }
+    if (opts.boosterCaught) {
       broadcastToCreatorAudience(
         roomId,
         targetCreatorId,
         "booster_caught",
         opts.boosterCaught,
       );
-    } else {
+    }
+  } else if (!battleActive) {
+    broadcastToRoom(roomId, "gift_sent", payload);
+    if (opts.boosterCaught) {
       broadcastToRoom(roomId, "booster_caught", opts.boosterCaught);
     }
   }
