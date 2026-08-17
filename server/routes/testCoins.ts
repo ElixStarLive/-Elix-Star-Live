@@ -262,25 +262,6 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   if (!auth) return;
   const ip = clientIp(req);
 
-  const mintOff = String(process.env.ALLOW_TEST_COINS_MINT_IN_PROD || "")
-    .trim()
-    .toLowerCase();
-  if (mintOff === "0" || mintOff === "false" || mintOff === "off") {
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
-      ip,
-      outcome: "denied",
-      reason: "mint_kill_switch",
-    });
-    res.status(403).json({
-      error: "TEST_COINS_MINT_DISABLED",
-      message: "Test-coin mint is disabled.",
-    });
-    return;
-  }
-
   const userLimit = checkRateLimit(failByUser, auth.userId);
   const ipLimit = checkRateLimit(failByIp, ip);
   if (userLimit.ok === false || ipLimit.ok === false) {

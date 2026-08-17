@@ -33,6 +33,8 @@ import {
   BarChart3,
   ArrowLeftRight,
   LayoutGrid,
+  Lock,
+  Coins,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { FILTER_PRESETS } from '../../../lib/ai/filters';
@@ -78,6 +80,8 @@ import PromotePanel from '../../../components/PromotePanel';
 import { GiftPanel } from '../../../components/GiftPanel';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
+import { getPersistedTestCoinsBalance } from '../../../lib/testCoins';
+import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { RankingPanel } from '../../../components/RankingPanel';
 import {
@@ -469,6 +473,126 @@ export default function LiveHostScreen() {
     milestoneFlash,
     stageFlash,
   } = useLiveHostController();
+
+  const [showTestCoinsModal, setShowTestCoinsModal] = useState(false);
+  const [testCoinsStep, setTestCoinsStep] = useState<'password' | 'amount'>('password');
+  const [testCoinsPwd, setTestCoinsPwd] = useState('');
+  const [testCoinsAmount, setTestCoinsAmount] = useState('');
+  const [testCoinsError, setTestCoinsError] = useState('');
+  const [testCoinsBusy, setTestCoinsBusy] = useState(false);
+  const [testCoinBalance, setTestCoinBalance] = useState(0);
+  const testCoinsPwdRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user?.id) setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
+  }, [user?.id, showTestCoinsModal]);
+
+  useEffect(() => {
+    if (showTestCoinsModal && testCoinsStep === 'password') {
+      setTimeout(() => testCoinsPwdRef.current?.focus(), 100);
+    }
+  }, [showTestCoinsModal, testCoinsStep]);
+
+  const openTestCoinsModal = () => {
+    if (!user?.id) {
+      showToast('Sign in required');
+      closeMoreMenu();
+      return;
+    }
+    setShowTestCoinsModal(true);
+    setTestCoinsStep('password');
+    setTestCoinsPwd('');
+    setTestCoinsError('');
+    setTestCoinsAmount('');
+    closeMoreMenu();
+  };
+
+  const closeTestCoinsModal = () => {
+    setShowTestCoinsModal(false);
+    setTestCoinsPwd('');
+  };
+
+  const submitTestCoinsPasswordUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      setTestCoinsError('Sign in required');
+      setTestCoinsPwd('');
+      return;
+    }
+    if (!testCoinsPwd.trim()) {
+      setTestCoinsError('Enter password');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await authorizeTestCoinIssue(testCoinsPwd);
+      if (!result.ok) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsPwd('');
+        return;
+      }
+      setTestCoinsError('');
+      setTestCoinsStep('amount');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  };
+
+  const submitTestCoinsAmount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.id) {
+      setTestCoinsError('Sign in required');
+      return;
+    }
+    const amount = parseInt(testCoinsAmount, 10);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTestCoinsError('Enter a valid amount');
+      return;
+    }
+    if (amount > 100000000) {
+      setTestCoinsError('Max 100,000,000 per top-up');
+      return;
+    }
+    if (!testCoinsPwd) {
+      setTestCoinsStep('password');
+      setTestCoinsError('Enter password again');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, amount);
+      if (!result.ok) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        if (result.status === 403) setTestCoinsStep('password');
+        return;
+      }
+      setTestCoinBalance(result.balance);
+      setShowTestCoinsModal(false);
+      setTestCoinsPwd('');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  };
+
+  const addMaxTestCoinsAtOnce = async () => {
+    if (!user?.id || !testCoinsPwd) {
+      setTestCoinsError('Password required');
+      return;
+    }
+    setTestCoinsBusy(true);
+    try {
+      const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, 100000000);
+      if (!result.ok) {
+        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        return;
+      }
+      setTestCoinBalance(result.balance);
+      setShowTestCoinsModal(false);
+      setTestCoinsPwd('');
+    } finally {
+      setTestCoinsBusy(false);
+    }
+  };
   /** Auto cycle x2 → x3 → x5 for gift-panel buster (no manual tier pick). */
   const hostAutoBoosterTierRef = useRef(0);
 
@@ -3126,11 +3250,25 @@ export default function LiveHostScreen() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header — line then name (same as For You More Options) */}
-            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+            <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10 relative">
               <div className="flex justify-center pb-2" aria-hidden>
                 <div className="w-10 h-1 rounded-full bg-white/25" />
               </div>
               <span className="text-[#F5F5F7] font-bold text-sm text-center">More Options</span>
+              {user?.id ? (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openTestCoinsModal();
+                  }}
+                  className="absolute top-0 right-0 z-[100] w-10 h-10 p-0 m-0 flex items-center justify-center pointer-events-auto"
+                  aria-label="Test coins"
+                >
+                  <span className="block w-2 h-2 rounded-full bg-transparent" aria-hidden />
+                </button>
+              ) : null}
             </div>
 
             {/* Content â€” icon on top, label under (same as Share / Effects) */}
@@ -3242,6 +3380,127 @@ export default function LiveHostScreen() {
 
             </div>
           </div>
+          </div>
+        </>
+      )}
+
+      {user?.id && showTestCoinsModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/35 pointer-events-auto"
+            style={{ zIndex: 100000 }}
+            onClick={closeTestCoinsModal}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[100001] pointer-events-auto max-w-[480px] mx-auto">
+            <div
+              className="relative elix-panel rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+                <div className="flex justify-center pb-2" aria-hidden>
+                  <div className="w-10 h-1 rounded-full bg-white/25" />
+                </div>
+                <div className="flex items-center justify-center gap-2">
+                  <Lock className="w-4 h-4 text-[#F5F5F7]" />
+                  <span className="text-[#F5F5F7] font-bold text-sm text-center">
+                    {testCoinsStep === 'password' ? 'Enter Password' : 'Add Test'}
+                  </span>
+                </div>
+              </div>
+              <div className="px-4 pt-3 pb-4">
+                {testCoinsStep === 'password' && (
+                  <form onSubmit={(e) => { void submitTestCoinsPasswordUnlock(e); }}>
+                    <input
+                      ref={testCoinsPwdRef}
+                      type="password"
+                      autoFocus
+                      value={testCoinsPwd}
+                      onChange={(e) => { setTestCoinsPwd(e.target.value); setTestCoinsError(''); }}
+                      placeholder="Password"
+                      className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    />
+                    {testCoinsError && (
+                      <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
+                    )}
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        type="button"
+                        onClick={closeTestCoinsModal}
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white/70 text-sm font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!testCoinsPwd || testCoinsBusy}
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white text-sm font-bold disabled:opacity-40"
+                      >
+                        Unlock
+                      </button>
+                    </div>
+                  </form>
+                )}
+                {testCoinsStep === 'amount' && (
+                  <form onSubmit={(e) => { void submitTestCoinsAmount(e); }}>
+                    <p className="text-white/40 text-xs mb-3">Test coins only — battle score + gift animation. Never real money, wallet, or creator revenue.</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Coins className="w-4 h-4 text-[#D9A62E]" />
+                      <span className="text-white/60 text-xs">Test balance: {testCoinBalance.toLocaleString()}</span>
+                    </div>
+                    <input
+                      type="number"
+                      autoFocus
+                      value={testCoinsAmount}
+                      onChange={(e) => { setTestCoinsAmount(e.target.value); setTestCoinsError(''); }}
+                      placeholder="Amount (e.g. 5000)"
+                      min={1}
+                      max={100000000}
+                      className="w-full bg-[rgba(0,0,0,0.35)] text-white text-sm rounded-xl px-4 py-3 border border-[#2A2D33] focus:border-[#D8D9DD]/60 focus:outline-none placeholder:text-white/30 mb-2"
+                    />
+                    {testCoinsError && (
+                      <p className="text-white/60 text-xs mb-2">{testCoinsError}</p>
+                    )}
+                    <div className="grid grid-cols-3 gap-1.5 mb-3">
+                      {[1000, 5000, 10000, 25000, 50000, 100000].map((amt) => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => { setTestCoinsAmount(String(amt)); setTestCoinsError(''); }}
+                          disabled={testCoinsBusy}
+                          className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-white/5 text-white/70 hover:bg-white/10 disabled:opacity-40"
+                        >
+                          {amt.toLocaleString()}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => { void addMaxTestCoinsAtOnce(); }}
+                        disabled={testCoinsBusy}
+                        className="py-1.5 rounded-lg text-xs font-bold transition-colors bg-[#E6E9EE]/30 text-[#F5F5F7] hover:bg-[#E6E9EE]/40 col-span-3 disabled:opacity-40"
+                      >
+                        Max (100M) – Add test coins once
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={closeTestCoinsModal}
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white/70 text-sm font-bold"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!testCoinsAmount || testCoinsBusy}
+                        className="flex-1 py-2.5 rounded-xl bg-transparent border border-[#D8D9DD]/40 text-white text-sm font-bold disabled:opacity-40"
+                      >
+                        Add Test Coins
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           </div>
         </>
       )}

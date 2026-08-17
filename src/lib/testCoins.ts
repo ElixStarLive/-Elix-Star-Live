@@ -1,13 +1,11 @@
 /** Local test coins — BATTLE GAME SCORE + gift animation only. Never real money / IAP / Stripe. */
 
 /**
- * Test coins stay in the app (including store builds).
+ * Test coins stay in the app on iOS, Android, and Play Store.
  * Battle score + gift animation only (£0). Never creator revenue / IAP / Stripe.
- * Password-gated spectator/admin mint. Off only when VITE_ALLOW_TEST_COINS=0.
+ * Password-gated admin mint from live More Options. Do not disable.
  */
 export function areTestCoinsEnabled(): boolean {
-  const raw = String(import.meta.env.VITE_ALLOW_TEST_COINS ?? "").trim().toLowerCase();
-  if (raw === "0" || raw === "false" || raw === "off") return false;
   return true;
 }
 

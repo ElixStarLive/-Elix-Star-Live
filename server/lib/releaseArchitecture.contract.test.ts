@@ -127,12 +127,16 @@ describe("release architecture contracts", () => {
   it("test coins stay in the app by default (battle + animation, never money)", () => {
     const client = read("src/lib/testCoins.ts");
     expect(client).toContain("BATTLE GAME SCORE");
-    expect(client).not.toContain("IS_STORE_BUILD");
+    expect(client).toMatch(/export function areTestCoinsEnabled\(\)[\s\S]*return true;/);
     const storeEnv = read(".env.store.example");
     expect(storeEnv).toContain("VITE_ALLOW_TEST_COINS=1");
     expect(storeEnv).not.toMatch(/VITE_ALLOW_TEST_COINS=0/);
     const mint = read("server/routes/testCoins.ts");
-    expect(mint).not.toContain("TEST_COINS_MINT_DISABLED_IN_PRODUCTION");
+    expect(mint).not.toContain("TEST_COINS_MINT_DISABLED");
     expect(mint).toContain("financialValueGbp: 0");
+    const spec = read("src/features/live/spectator/SpectatorLiveScreen.tsx");
+    const host = read("src/features/live/host/LiveHostScreen.tsx");
+    expect(spec).toContain('aria-label="Test coins"');
+    expect(host).toContain('aria-label="Test coins"');
   });
 });

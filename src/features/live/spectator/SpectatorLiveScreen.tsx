@@ -45,7 +45,6 @@ import { appendCapped, LIVE_CHAT_MESSAGE_CAP } from '../../../lib/liveRuntimeCap
 import { BattleVfxOverlays, GloveIcon } from '../../../components/BattleVfxOverlays';
 import { BattleTauntOverlays } from '../../../components/BattleTauntOverlays';
 import { teamTotalsFromScores } from '../battle/liveBattleScore';
-import { areTestCoinsEnabled } from '../../../lib/testCoins';
 import { GiftOverlay } from '../../../components/GiftOverlay';
 import GiftAnimationOverlay from '../../../components/GiftAnimationOverlay';
 import { LiveGiftFeedStack } from '../../../components/LiveGiftFeedStack';
@@ -2825,25 +2824,28 @@ export default function SpectatorLiveScreen() {
                 className="relative elix-panel elix-more-options-sheet elix-live-sheet rounded-t-2xl pb-safe h-[40vh] overflow-y-auto no-scrollbar shadow-2xl w-full"
                 onClick={(e) => e.stopPropagation()}
               >
-                {areTestCoinsEnabled() && user?.id && (
-                  <button
-                    type="button"
-                    onClick={openTestCoinsModal}
-                    className="absolute top-1 right-1 z-20 w-10 h-10 p-0 m-0 flex items-center justify-center"
-                    aria-label="Test coins"
-                  >
-                    {/* Invisible mark — blends into the sheet; same hit area; password gate; never real money */}
-                    <span
-                      className="block w-2 h-2 rounded-full bg-transparent"
-                      aria-hidden
-                    />
-                  </button>
-                )}
-                <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10">
+                <div className="flex flex-col px-4 pt-2 pb-3 border-b border-white/10 relative">
                   <div className="flex justify-center pb-2" aria-hidden>
                     <div className="w-10 h-1 rounded-full bg-white/25" />
                   </div>
                   <span className="text-[#F5F5F7] font-bold text-sm text-center">More Options</span>
+                  {user?.id ? (
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openTestCoinsModal();
+                      }}
+                      className="absolute top-0 right-0 z-[100] w-10 h-10 p-0 m-0 flex items-center justify-center pointer-events-auto"
+                      aria-label="Test coins"
+                    >
+                      <span
+                        className="block w-2 h-2 rounded-full bg-transparent"
+                        aria-hidden
+                      />
+                    </button>
+                  ) : null}
                 </div>
                 <div className="grid grid-cols-4 gap-y-4 gap-x-2 pt-3 pb-2 px-3">
                   <button
@@ -2953,7 +2955,7 @@ export default function SpectatorLiveScreen() {
         )}
 
         {/* TEST COINS — bottom sheet + fundal (same pattern as More Options) */}
-        {areTestCoinsEnabled() && user?.id && showTestCoinsModal && (
+        {user?.id && showTestCoinsModal && (
           <>
             <div
               className="fixed inset-0 bg-black/35 pointer-events-auto"

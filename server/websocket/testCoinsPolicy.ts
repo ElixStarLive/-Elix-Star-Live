@@ -39,15 +39,10 @@ export function isProductionTestCoinsBlocked(
 
 /**
  * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only (£0 money).
- * On by default in every environment, including production.
- * Explicit kill switch: ALLOW_TEST_COINS_BATTLE_SCORE=0|false|off.
+ * Always on (iOS / Android / Play Store / production). Never money.
  */
 export function canAcceptTestCoinsBattleScore(
   _nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
-  const raw = String(process.env.ALLOW_TEST_COINS_BATTLE_SCORE || "")
-    .trim()
-    .toLowerCase();
-  if (raw === "0" || raw === "false" || raw === "off") return false;
   return true;
 }

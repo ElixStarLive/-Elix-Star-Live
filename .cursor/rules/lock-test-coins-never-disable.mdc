@@ -1,0 +1,31 @@
+---
+description: Test coins stay on iOS, Android, and Play Store — never disable or remove
+alwaysApply: true
+---
+
+# Test coins — NEVER disable (owner 2026-08-16)
+
+Test coins stay in the app on **iOS**, **Android**, and **Google Play** store builds. Do **not** turn them off.
+
+## Stay on
+
+- Keep `areTestCoinsEnabled()` on (do not gate store builds off)
+- Keep `VITE_ALLOW_TEST_COINS=1` in `.env.store` / `.env.store.example`
+- Keep battle score + gift animation for `giftSource=test_coins` in production
+- Keep More Options password mint (admin + server password)
+- Keep them in spectator **and** creator live More Options
+
+## Still never money
+
+- No IAP, no Stripe, no real wallet, no 60/40, no GBP payout, no `paidCoinLots`
+- Battle points + gift video animation only (`financialValueGbp: 0`)
+
+## Forbidden
+
+- Do not set `VITE_ALLOW_TEST_COINS=0`
+- Do not hide the More Options test-coin control on store builds
+- Do not add production mint / battle-score kill switches that remove the feature
+- Do not delete `src/lib/testCoins.ts` or the More panel mint UI
+- Do not "clean up" test coins as unused
+
+Default: **test coins stay. Never touch to remove.**
