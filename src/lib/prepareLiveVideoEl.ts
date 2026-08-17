@@ -99,7 +99,8 @@ export function stripVideoMediaChrome(el: HTMLVideoElement): void {
 export const GIFT_OVERLAY_VIDEO_CLASS = 'gift-overlay-video';
 
 /**
- * Gift overlay URL videos — strip chrome, transparent poster, reveal only on first frame.
+ * Gift overlay URL videos — strip chrome, transparent poster.
+ * Always visible: hiding until `playing` swallowed gifts on the creator camera page.
  * Keep muted on Android; unmute-after-play paints the stuck white play icon.
  */
 export function prepareGiftVideoEl(
@@ -115,7 +116,7 @@ export function prepareGiftVideoEl(
   el.defaultMuted = muted;
   if (muted) el.setAttribute('muted', '');
   else el.removeAttribute('muted');
-  hideVideoUntilPlaying(el);
+  el.style.visibility = 'visible';
   const kick = () => {
     void el.play().catch(() => {});
   };

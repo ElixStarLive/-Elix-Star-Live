@@ -3072,8 +3072,7 @@ export function useLiveSpectatorController() {
       return;
     }
     if (!websocket.isConnected()) {
-      showToast('Connecting... try again in a moment');
-      return;
+      websocket.reconnectOnForeground();
     }
 
     let newLevel = userLevel;
