@@ -1,7 +1,21 @@
 /** @vitest-environment jsdom */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { websocket } from "./websocket";
+
+const { auth } = vi.hoisted(() => ({
+  auth: { token: "fresh-jwt" as string | null },
+}));
+
+vi.mock("../store/useAuthStore", () => ({
+  useAuthStore: {
+    getState: () => ({
+      session: auth.token ? { access_token: auth.token } : null,
+    }),
+  },
+}));
+
+const constructedUrls: string[] = [];
 
 class MockWebSocket {
   static CONNECTING = 0;
@@ -15,7 +29,8 @@ class MockWebSocket {
   onerror: ((ev?: unknown) => void) | null = null;
   onclose: ((ev?: { code?: number }) => void) | null = null;
 
-  constructor(_url: string) {
+  constructor(url: string) {
+    constructedUrls.push(url);
     queueMicrotask(() => {
       this.readyState = MockWebSocket.OPEN;
       this.onopen?.({});
@@ -40,6 +55,8 @@ const flush = async () => {
 
 describe("websocket singleton owner handoff", () => {
   beforeEach(() => {
+    constructedUrls.length = 0;
+    auth.token = "fresh-jwt";
     websocket.disconnect();
   });
 
@@ -105,6 +122,30 @@ describe("websocket singleton owner handoff", () => {
 
     websocket.disconnectIfOwner(owner2);
     expect(websocket.isConnected()).toBe(false);
+  });
+
+  it("room switch transfers ownership without wiping the new room owner", async () => {
+    websocket.connect("room-a", "tA", { ownerId: "owner-a" });
+    await flush();
+    websocket.connect("room-b", "tB", { ownerId: "owner-b" });
+    await flush();
+    expect(websocket.getCurrentRoomId()).toBe("room-b");
+    websocket.disconnectIfOwner("owner-a");
+    expect(websocket.isConnected()).toBe(true);
+    expect(websocket.getCurrentRoomId()).toBe("room-b");
+  });
+
+  it("foreground reconnect uses the current authenticated JWT", async () => {
+    auth.token = "stale-jwt";
+    websocket.connect("live-1", "stale-jwt", { ownerId: "watch-1" });
+    await flush();
+    auth.token = "rotated-jwt";
+    const sock = (websocket as unknown as { ws: { readyState: number } }).ws;
+    sock.readyState = MockWebSocket.CLOSED;
+    websocket.reconnectOnForeground();
+    const last = constructedUrls[constructedUrls.length - 1] || "";
+    expect(last).toContain("token=rotated-jwt");
+    expect(last).not.toContain("token=stale-jwt");
   });
 });
 

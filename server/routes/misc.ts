@@ -35,6 +35,7 @@ import {
   coinAmountForProviderProduct,
   gateProviderProduct,
   PROMOTE_IAP_PRODUCTS,
+  appAccountTokenForUserId,
 } from '../lib/monetisation/storeProductCatalogs';
 
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
@@ -290,9 +291,11 @@ async function verifyGooglePlayPurchase(
       return { valid: false, detail: `google-purchase-state-${purchase.purchaseState}` };
     }
     // consumptionState: 0 = yet to be consumed, 1 = consumed.
-    // Reject already-consumed tokens as defense-in-depth against replay.
-    if (purchase.consumptionState === 1) {
-      return { valid: false, detail: 'google-already-consumed' };
+    // Already-consumed tokens may still be credited once (idempotent processed
+    // purchase). Server consume after credit is the authority; client consume is
+    // Play Billing cache cleanup only.
+    if (purchase.consumptionState !== 0 && purchase.consumptionState !== 1) {
+      return { valid: false, detail: `google-consumption-state-${purchase.consumptionState}` };
     }
 
     return {
@@ -388,9 +391,14 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     );
     if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
     if (await neonIsIapProcessed(safeProvider, providerTransactionId)) {
-      // Coins were already credited for this transaction. Return the authoritative
-      // wallet balance so the client never fabricates one (e.g. base + coins),
-      // which would double-count the purchase in the displayed balance.
+      if (safeProvider === 'google' && googlePurchaseToken) {
+        const { consumeGooglePlayAfterCredit } = await import('../lib/googlePlayConsume');
+        await consumeGooglePlayAfterCredit({
+          productId: String(packageId),
+          purchaseToken: googlePurchaseToken,
+          externalPurchaseId: `${safeProvider}:${providerTransactionId}`,
+        });
+      }
       const dedupedBalance = await neonGetCoinBalance(String(userId));
       return res.status(200).json({
         success: true,
@@ -451,6 +459,22 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       }
     }
 
+    if (safeProvider === 'apple') {
+      const expectedToken = appAccountTokenForUserId(user.sub);
+      const actualToken =
+        applePayload && typeof applePayload.appAccountToken === 'string'
+          ? String(applePayload.appAccountToken).trim()
+          : '';
+      if (!actualToken) {
+        logger.warn({ userId: user.sub }, 'IAP rejected — Apple appAccountToken missing');
+        return res.status(400).json({ error: 'Missing appAccountToken', code: 'missing_app_account_token' });
+      }
+      if (actualToken.toLowerCase() !== expectedToken.toLowerCase()) {
+        logger.warn({ userId: user.sub }, 'IAP rejected — Apple appAccountToken mismatch');
+        return res.status(400).json({ error: 'appAccountToken mismatch', code: 'app_account_token_mismatch' });
+      }
+    }
+
     const coinMap = await dbLoadCoinMap();
     const catalogCoins = coinAmountForProviderProduct(safeProvider, String(packageId));
     const coins = catalogCoins > 0 ? catalogCoins : coinMap[String(packageId)] || 0;
@@ -471,9 +495,18 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       coins,
       verification: verificationResponse,
       applePayload,
+      googlePurchaseToken: safeProvider === 'google' ? googlePurchaseToken : null,
     });
 
     if (credited.ok) {
+      if (safeProvider === 'google' && googlePurchaseToken) {
+        const { consumeGooglePlayAfterCredit } = await import('../lib/googlePlayConsume');
+        await consumeGooglePlayAfterCredit({
+          productId: String(packageId),
+          purchaseToken: googlePurchaseToken,
+          externalPurchaseId: `${safeProvider}:${providerTransactionId}`,
+        });
+      }
       logger.info(
         { userId: String(userId), provider: safeProvider, packageId, coins, newBalance: credited.newBalance },
         'IAP coins credited',
@@ -485,6 +518,14 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       });
     }
     if ('alreadyProcessed' in credited && credited.alreadyProcessed) {
+      if (safeProvider === 'google' && googlePurchaseToken) {
+        const { consumeGooglePlayAfterCredit } = await import('../lib/googlePlayConsume');
+        await consumeGooglePlayAfterCredit({
+          productId: String(packageId),
+          purchaseToken: googlePurchaseToken,
+          externalPurchaseId: `${safeProvider}:${providerTransactionId}`,
+        });
+      }
       return res.status(200).json({
         success: true,
         deduplicated: true,

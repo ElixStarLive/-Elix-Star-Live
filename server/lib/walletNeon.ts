@@ -11,7 +11,7 @@ import { splitNetRevenue } from "./monetisation/moneyMath";
 import { postLedgerEntry } from "./monetisation/ledger";
 import {
   resolveCoinPurchaseVerifiedPrice,
-  reversePurchaseFinancials,
+  reversePurchaseFinancialsOnClient,
 } from "./monetisation/storeSettlement";
 import type { AppleTxPayload } from "./appleIap";
 
@@ -102,6 +102,7 @@ export async function neonCreditIap(input: {
   coins: number;
   verification: Record<string, unknown>;
   applePayload?: AppleTxPayload | Record<string, unknown> | null;
+  googlePurchaseToken?: string | null;
 }): Promise<CreditOk | CreditDup | CreditErr> {
   const pool = getPool();
   if (!pool) return { ok: false, error: "no_pool" };
@@ -166,15 +167,23 @@ export async function neonCreditIap(input: {
       processingDeductionPence: price.processingDeductionPence,
       settled: price.grossPence > 0,
     });
+    const googlePurchaseToken =
+      input.provider === "google" ? String(input.googlePurchaseToken || "").trim() : "";
     await client.query(
-      `INSERT INTO elix_processed_purchases (external_purchase_id, provider, product_id, user_id)
-       VALUES ($1, $2, $3, $4)
-       ON CONFLICT (external_purchase_id) DO NOTHING`,
+      `INSERT INTO elix_processed_purchases
+         (external_purchase_id, provider, product_id, user_id, google_purchase_token)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (external_purchase_id) DO UPDATE SET
+         google_purchase_token = COALESCE(
+           elix_processed_purchases.google_purchase_token,
+           EXCLUDED.google_purchase_token
+         )`,
       [
         `${input.provider}:${input.providerTransactionId}`,
         input.provider,
         input.productId,
         input.userId,
+        googlePurchaseToken || null,
       ],
     );
     const balR = await client.query(
@@ -259,14 +268,6 @@ export async function neonListLedger(userId: string, limit: number): Promise<
   }
 }
 
-/** Creator gift revenue share percent (default 60: creator keeps 60%). */
-function creatorGiftSharePct(): number {
-  return Math.min(
-    100,
-    Math.max(0, Number(process.env.CREATOR_GIFT_SHARE_PERCENT ?? 60)),
-  );
-}
-
 /**
  * Atomic paid-gift settlement: debit the sender's wallet AND credit the
  * recipient creator's pending earnings in a SINGLE database transaction.
@@ -335,8 +336,8 @@ export async function neonDebitGiftWithCreatorCredit(input: {
       [input.userId, -coins, input.giftId, input.roomId, input.clientTransactionId, idem],
     );
     await client.query(
-      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, created_at)
-       VALUES ($1, $2, $3, $4, $5, NOW())
+      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+       VALUES ($1, $2, $3, $4, $5, 'paid_coins', NOW())
        ON CONFLICT (client_transaction_id) DO NOTHING`,
       [input.userId, input.roomId, input.giftId, coins, input.clientTransactionId],
     );
@@ -369,11 +370,12 @@ export async function neonDebitGiftWithCreatorCredit(input: {
     }
 
     // Creator credit (same transaction). Idempotent via earn:{txid}.
-    // Coin Diamonds remain the operational gift share; GBP ledger posts only when
-    // settled paid-coin net revenue is attributable (never invent store fees).
+    // Coin Diamonds and GBP ledger use the same monetisation split. Any failure
+    // after this point rolls back the whole gift (wallet, lots, Diamonds, GBP).
     let credited = 0;
     if (input.creatorId && input.creatorId !== input.userId) {
-      const c = Math.floor((coins * creatorGiftSharePct()) / 100);
+      const cfg = await loadMonetisationConfig();
+      const c = Math.floor((coins * cfg.giftCreatorPct) / 100);
       if (c > 0) {
         const earningId = `earn:${input.clientTransactionId}`;
         const earnIns = await client.query(
@@ -395,61 +397,52 @@ export async function neonDebitGiftWithCreatorCredit(input: {
           );
           credited = c;
 
-          // Immutable GBP ledger when verified settlement net is available on lots.
-          try {
-            const cfg = await loadMonetisationConfig();
-            if (cfg.giftMonetisationEnabled) {
-              const attr = await consumeSettledNetForGift(client, input.userId, coins);
-              if (attr.settled && attr.netPence > 0) {
-                const split = splitNetRevenue(
-                  attr.netPence,
-                  cfg.giftCreatorPct,
-                  cfg.giftPlatformPct,
+          if (cfg.giftMonetisationEnabled) {
+            const attr = await consumeSettledNetForGift(client, input.userId, coins);
+            if (attr.settled && attr.netPence > 0) {
+              const split = splitNetRevenue(
+                attr.netPence,
+                cfg.giftCreatorPct,
+                cfg.giftPlatformPct,
+              );
+              const ledger = await postLedgerEntry(client, {
+                idempotencyKey: `paid_gift:${input.clientTransactionId}`,
+                revenueSource: "PAID_GIFT",
+                creatorUserId: input.creatorId,
+                payerUserId: input.userId,
+                giftId: input.giftId,
+                liveRoomId: input.roomId,
+                coinAmount: coins,
+                coinSource: "paid",
+                grossPence: attr.grossPence,
+                appStoreDeductionPence: attr.appStoreDeductionPence,
+                taxDeductionPence: attr.taxDeductionPence,
+                processingDeductionPence: attr.processingDeductionPence,
+                netRevenuePence: split.netPence,
+                creatorPct: split.creatorPct,
+                creatorAmountPence: split.creatorPence,
+                platformPct: split.platformPct,
+                platformAmountPence: split.platformPence,
+                status: "pending",
+                ruleSnapshot: ruleSnapshotFromConfig(cfg, {
+                  lot_ids: attr.lotIds,
+                  client_transaction_id: input.clientTransactionId,
+                }),
+              });
+              if (ledger.id && !ledger.alreadyExisted) {
+                await client.query(
+                  `UPDATE elix_creator_earnings
+                      SET amount_pence = $2, ledger_id = $3, rule_snapshot = $4::jsonb
+                    WHERE id = $1`,
+                  [
+                    earningId,
+                    split.creatorPence,
+                    ledger.id,
+                    JSON.stringify(ruleSnapshotFromConfig(cfg)),
+                  ],
                 );
-                const ledger = await postLedgerEntry(client, {
-                  idempotencyKey: `paid_gift:${input.clientTransactionId}`,
-                  revenueSource: "PAID_GIFT",
-                  creatorUserId: input.creatorId,
-                  payerUserId: input.userId,
-                  giftId: input.giftId,
-                  liveRoomId: input.roomId,
-                  coinAmount: coins,
-                  coinSource: "paid",
-                  grossPence: attr.grossPence,
-                  appStoreDeductionPence: attr.appStoreDeductionPence,
-                  taxDeductionPence: attr.taxDeductionPence,
-                  processingDeductionPence: attr.processingDeductionPence,
-                  netRevenuePence: split.netPence,
-                  creatorPct: split.creatorPct,
-                  creatorAmountPence: split.creatorPence,
-                  platformPct: split.platformPct,
-                  platformAmountPence: split.platformPence,
-                  status: "pending",
-                  ruleSnapshot: ruleSnapshotFromConfig(cfg, {
-                    lot_ids: attr.lotIds,
-                    client_transaction_id: input.clientTransactionId,
-                  }),
-                });
-                if (ledger.id && !ledger.alreadyExisted) {
-                  await client.query(
-                    `UPDATE elix_creator_earnings
-                        SET amount_pence = $2, ledger_id = $3, rule_snapshot = $4::jsonb
-                      WHERE id = $1`,
-                    [
-                      earningId,
-                      split.creatorPence,
-                      ledger.id,
-                      JSON.stringify(ruleSnapshotFromConfig(cfg)),
-                    ],
-                  );
-                }
               }
             }
-          } catch (ledgerErr) {
-            logger.warn(
-              { err: ledgerErr, tx: input.clientTransactionId },
-              "paid gift GBP ledger skipped (coin Diamonds still credited)",
-            );
           }
         }
       }
@@ -566,6 +559,15 @@ export async function neonReverseIapPurchase(input: {
       [refundIdem],
     );
     if (dup.rowCount) {
+      const gbpHeal = await reversePurchaseFinancialsOnClient(client, {
+        provider: input.provider,
+        providerTransactionId: txnId,
+        kind: "REFUND_REVERSAL",
+        webhookEventId: `iap_gbp_rev:${input.provider}:${txnId}`,
+      });
+      if (!gbpHeal.ok) {
+        throw new Error("gbp_reverse_failed");
+      }
       await client.query("COMMIT");
       return { ok: true, alreadyProcessed: true, reversedCoins: 0 };
     }
@@ -622,12 +624,12 @@ export async function neonReverseIapPurchase(input: {
       );
     }
 
-    // Reverse pending gift earnings funded by this buyer during the hold window.
-    const pending = await client.query(
-      `SELECT id, creator_id, coins
+    // Reverse pending AND available gift earnings funded by this buyer.
+    const earnings = await client.query(
+      `SELECT id, creator_id, coins, status
          FROM elix_creator_earnings
         WHERE sender_id = $1
-          AND status = 'pending'
+          AND status IN ('pending', 'available')
           AND kind = 'gift'
           AND created_at >= $2
         ORDER BY created_at ASC
@@ -635,39 +637,49 @@ export async function neonReverseIapPurchase(input: {
       [userId, purchasedAt],
     );
     let remainingReversal = coins;
-    for (const row of pending.rows || []) {
+    for (const row of earnings.rows || []) {
       const earningId = String(row.id);
       const creatorId = String(row.creator_id);
       const earningCoins = Math.floor(Number(row.coins) || 0);
+      const status = String(row.status);
       if (!earningId || !creatorId || earningCoins <= 0) continue;
-      // Never remove more creator earnings than the refunded purchase funded.
       if (earningCoins > remainingReversal) continue;
-      await client.query(
-        `UPDATE elix_creator_earnings SET status = 'reversed' WHERE id = $1 AND status = 'pending'`,
+      const flipped = await client.query(
+        `UPDATE elix_creator_earnings SET status = 'reversed'
+          WHERE id = $1 AND status IN ('pending', 'available')`,
         [earningId],
       );
-      await client.query(
-        `UPDATE elix_creator_balances
-            SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
-          WHERE user_id = $1`,
-        [creatorId, earningCoins],
-      );
+      if (!flipped.rowCount) continue;
+      if (status === "pending") {
+        await client.query(
+          `UPDATE elix_creator_balances
+              SET pending_coins = GREATEST(0, pending_coins - $2), updated_at = NOW()
+            WHERE user_id = $1`,
+          [creatorId, earningCoins],
+        );
+      } else {
+        await client.query(
+          `UPDATE elix_creator_balances
+              SET available_coins = GREATEST(0, available_coins - $2), updated_at = NOW()
+            WHERE user_id = $1`,
+          [creatorId, earningCoins],
+        );
+      }
       remainingReversal -= earningCoins;
       if (remainingReversal <= 0) break;
     }
 
-    await client.query("COMMIT");
-    // GBP ledger + paid-coin lot reverse (idempotent via webhook event id).
-    try {
-      await reversePurchaseFinancials({
-        provider: input.provider,
-        providerTransactionId: txnId,
-        kind: "REFUND_REVERSAL",
-        webhookEventId: `iap_gbp_rev:${input.provider}:${txnId}`,
-      });
-    } catch (gbpErr) {
-      logger.error({ err: gbpErr, txnId }, "GBP ledger reverse after IAP refund failed");
+    const gbp = await reversePurchaseFinancialsOnClient(client, {
+      provider: input.provider,
+      providerTransactionId: txnId,
+      kind: "REFUND_REVERSAL",
+      webhookEventId: `iap_gbp_rev:${input.provider}:${txnId}`,
+    });
+    if (!gbp.ok) {
+      throw new Error("gbp_reverse_failed");
     }
+
+    await client.query("COMMIT");
     return { ok: true, alreadyProcessed: false, reversedCoins: coins };
   } catch (e) {
     try {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Wallet, Landmark, Banknote } from 'lucide-react';
 import { showToast } from '../lib/toast';
@@ -108,6 +108,8 @@ export default function CreatorPayout() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+  const withdrawInFlightRef = useRef(false);
+  const withdrawIdemRef = useRef<string | null>(null);
   const [methodType, setMethodType] = useState<'bank' | 'paypal'>('bank');
   const [accountName, setAccountName] = useState('');
   const [accountDetail, setAccountDetail] = useState('');
@@ -216,20 +218,26 @@ export default function CreatorPayout() {
       showToast('Add a payout method first');
       return;
     }
+    if (withdrawInFlightRef.current) return;
+    if (!withdrawIdemRef.current) withdrawIdemRef.current = crypto.randomUUID();
+    const idempotencyKey = withdrawIdemRef.current;
+    withdrawInFlightRef.current = true;
     setWithdrawing(true);
     try {
       const { data, error } = await apiCreatorWithdrawGbp({
         amount_pence: amountPence,
-        idempotency_key: `ui:${Date.now()}:${amountPence}`,
+        idempotency_key: idempotencyKey,
       });
       if (error) {
         showToast(error || 'Withdraw failed');
         return;
       }
+      withdrawIdemRef.current = null;
       showToast(data?.already_exists ? 'Withdrawal already submitted' : 'GBP withdrawal requested');
       setWithdrawAmount('');
       await reload();
     } finally {
+      withdrawInFlightRef.current = false;
       setWithdrawing(false);
     }
   };

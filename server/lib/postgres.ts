@@ -5,6 +5,9 @@
 
 import pg from "pg";
 import os from "node:os";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Video } from "./videoStore";
 import { normalizeDatabaseUrl } from "./databaseUrl";
 import { logger } from "./logger";
@@ -55,8 +58,23 @@ export function isPostgresConfigured(): boolean {
 
 const MIGRATIONS_TABLE = "elix_schema_migrations";
 
+const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "migrations");
+
+/** SQL filenames in server/migrations — source of truth for the schema gate. */
+export function listRepoMigrationFilenames(): string[] {
+  return fs
+    .readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort();
+}
+
+export function missingRepoMigrations(appliedFilenames: Iterable<string>): string[] {
+  const have = new Set(appliedFilenames);
+  return listRepoMigrationFilenames().filter((name) => !have.has(name));
+}
+
 /**
- * In production, refuse to serve if migration metadata is missing or empty.
+ * In production, refuse to serve if any repo migration file is not recorded as applied.
  * Run `npm run migrate` in the deploy release step before starting app processes.
  * Emergency escape: ELIX_SKIP_MIGRATION_CHECK=1 — refused when NODE_ENV=production (see envValidate).
  */
@@ -101,13 +119,13 @@ async function assertMigrationsApplied(client: pg.Pool): Promise<void> {
     return;
   }
 
-  const cnt = await client.query<{ c: number }>(
-    `SELECT COUNT(*)::int AS c FROM ${MIGRATIONS_TABLE}`,
+  const appliedR = await client.query<{ filename: string }>(
+    `SELECT filename FROM ${MIGRATIONS_TABLE}`,
   );
-  const n = Number(cnt.rows[0]?.c ?? 0);
-  if (n < 1) {
-    const detail =
-      "elix_schema_migrations has no rows — run `npm run migrate` at least once before production traffic.";
+  const applied = appliedR.rows.map((r) => String(r.filename));
+  const missing = missingRepoMigrations(applied);
+  if (missing.length) {
+    const detail = `Missing applied migrations (${missing.length}): ${missing.join(", ")} — run \`npm run migrate\` before starting workers.`;
     if (isProd) {
       throw new Error(`MIGRATIONS_REQUIRED: ${detail}`);
     }
@@ -115,7 +133,10 @@ async function assertMigrationsApplied(client: pg.Pool): Promise<void> {
     return;
   }
 
-  logger.info({ appliedMigrationFiles: n }, "Schema migrations verified");
+  logger.info(
+    { appliedMigrationFiles: applied.length, repoMigrationFiles: listRepoMigrationFilenames().length },
+    "Schema migrations verified",
+  );
 }
 
 /**

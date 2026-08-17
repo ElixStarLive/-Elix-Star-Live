@@ -17,7 +17,6 @@ import { createPaidCoinLot, settlePaidCoinLot } from "./paidCoinLots";
 import {
   postCreatorSubscriptionRevenue,
   postPromotePlatformRevenue,
-  reverseByExternalTransaction,
 } from "./settlements";
 import { reverseLedgerEntry } from "./ledger";
 import { loadMembershipPriceConfig } from "../googlePlaySubscriptions";
@@ -232,6 +231,60 @@ export async function applyVerifiedProceedsAdjustment(input: {
 }
 
 /** Reverse paid coin lot + all linked financial ledger rows for a store refund. */
+export async function reversePurchaseFinancialsOnClient(
+  client: PoolClient,
+  input: {
+    provider: string;
+    providerTransactionId: string;
+    kind: "REFUND_REVERSAL" | "CHARGEBACK_REVERSAL";
+    webhookEventId: string;
+  },
+): Promise<{ ok: true; reversedLedger: number; alreadyProcessed: boolean }> {
+  const wh = await client.query(
+    `INSERT INTO elix_processed_webhook_events (webhook_event_id, provider, event_type)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (webhook_event_id) DO NOTHING
+     RETURNING webhook_event_id`,
+    [input.webhookEventId, input.provider, input.kind],
+  );
+  const eventInserted = (wh.rowCount ?? 0) > 0;
+
+  await client.query(
+    `UPDATE elix_paid_coin_lots SET
+       settlement_status = 'reversed',
+       coins_remaining = 0,
+       net_pence = 0
+     WHERE provider = $1 AND provider_transaction_id = $2`,
+    [input.provider, input.providerTransactionId],
+  );
+
+  const extIds = [
+    input.providerTransactionId,
+    `${input.provider}:${input.providerTransactionId}`,
+  ];
+  const rows = await client.query(
+    `SELECT id FROM elix_financial_ledger
+      WHERE reversal_of_id IS NULL
+        AND (
+          external_transaction_id = ANY($1::text[])
+          OR idempotency_key LIKE $2
+        )`,
+    [extIds, `%${input.providerTransactionId}%`],
+  );
+  let reversedLedger = 0;
+  for (const row of rows.rows) {
+    const r = await reverseLedgerEntry(
+      client,
+      String(row.id),
+      `rev:${input.kind}:${row.id}`,
+      input.kind,
+    );
+    if (r && !r.alreadyExisted) reversedLedger += 1;
+  }
+  return { ok: true, reversedLedger, alreadyProcessed: !eventInserted && reversedLedger === 0 };
+}
+
+/** Reverse paid coin lot + all linked financial ledger rows for a store refund. */
 export async function reversePurchaseFinancials(input: {
   provider: string;
   providerTransactionId: string;
@@ -241,68 +294,19 @@ export async function reversePurchaseFinancials(input: {
   const pool = getPool();
   if (!pool) return { ok: false, reversedLedger: 0 };
   const client = await pool.connect();
-  let reversedLedger = 0;
   try {
     await client.query("BEGIN");
-    const wh = await client.query(
-      `INSERT INTO elix_processed_webhook_events (webhook_event_id, provider, event_type)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (webhook_event_id) DO NOTHING
-       RETURNING webhook_event_id`,
-      [input.webhookEventId, input.provider, input.kind],
-    );
-    if (!wh.rowCount) {
-      await client.query("COMMIT");
-      return { ok: true, reversedLedger: 0 };
-    }
-
-    await client.query(
-      `UPDATE elix_paid_coin_lots SET
-         settlement_status = 'reversed',
-         coins_remaining = 0,
-         net_pence = 0
-       WHERE provider = $1 AND provider_transaction_id = $2`,
-      [input.provider, input.providerTransactionId],
-    );
-
-    const extIds = [
-      input.providerTransactionId,
-      `${input.provider}:${input.providerTransactionId}`,
-    ];
-    const rows = await client.query(
-      `SELECT id FROM elix_financial_ledger
-        WHERE reversal_of_id IS NULL
-          AND (
-            external_transaction_id = ANY($1::text[])
-            OR idempotency_key LIKE $2
-          )`,
-      [extIds, `%${input.providerTransactionId}%`],
-    );
-    for (const row of rows.rows) {
-      const r = await reverseLedgerEntry(
-        client,
-        String(row.id),
-        `rev:${input.kind}:${row.id}`,
-        input.kind,
-      );
-      if (r && !r.alreadyExisted) reversedLedger += 1;
-    }
+    const result = await reversePurchaseFinancialsOnClient(client, input);
     await client.query("COMMIT");
-    return { ok: true, reversedLedger };
+    return { ok: true, reversedLedger: result.reversedLedger };
   } catch (err) {
     try {
       await client.query("ROLLBACK");
     } catch {
-      /* ignore */
+      logger.error({ err }, "reversePurchaseFinancials ROLLBACK failed");
     }
     logger.error({ err }, "reversePurchaseFinancials failed");
-    // Fallback to standalone reverse helper outside txn
-    const fallback = await reverseByExternalTransaction({
-      externalTransactionId: input.providerTransactionId,
-      kind: input.kind,
-      webhookEventId: `${input.webhookEventId}:fallback`,
-    });
-    return { ok: fallback.ok, reversedLedger: fallback.reversed };
+    return { ok: false, reversedLedger: 0 };
   } finally {
     client.release();
   }

@@ -4,166 +4,131 @@
 import { logger } from "./logger";
 import { normalizeLiveKitSignalUrl } from "../services/livekit";
 
-export function validateProductionEnvironment(): void {
-  if (process.env.NODE_ENV !== "production") return;
+/** Returns fatal production boot messages. Empty when NODE_ENV is not production. */
+export function collectProductionEnvironmentFailures(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  if (env.NODE_ENV !== "production") return [];
+  const failures: string[] = [];
 
-  if (!process.env.DATABASE_URL) {
-    logger.fatal("DATABASE_URL is required in production");
-    process.exit(1);
+  if (!env.DATABASE_URL) {
+    failures.push("DATABASE_URL is required in production");
   }
 
-  const jwt = process.env.JWT_SECRET || process.env.AUTH_SECRET || "";
+  const jwt = env.JWT_SECRET || env.AUTH_SECRET || "";
   if (jwt.length < 32) {
-    logger.fatal("JWT_SECRET (or AUTH_SECRET) must be at least 32 characters in production");
-    process.exit(1);
+    failures.push("JWT_SECRET (or AUTH_SECRET) must be at least 32 characters in production");
   }
 
-  if (!process.env.VALKEY_URL && !process.env.REDIS_URL) {
-    logger.fatal("VALKEY_URL or REDIS_URL is required in production");
-    process.exit(1);
+  if (!env.VALKEY_URL && !env.REDIS_URL) {
+    failures.push("VALKEY_URL or REDIS_URL is required in production");
   }
 
-  if (process.env.ELIX_SKIP_MIGRATION_CHECK === "1") {
-    logger.fatal("ELIX_SKIP_MIGRATION_CHECK must not be set in production — migration checks are mandatory");
-    process.exit(1);
+  if (env.ELIX_SKIP_MIGRATION_CHECK === "1") {
+    failures.push(
+      "ELIX_SKIP_MIGRATION_CHECK must not be set in production — migration checks are mandatory",
+    );
   }
 
-  // Payment credentials: fail closed at boot so users are not charged while verify fails.
-  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim()) {
-    logger.fatal("GOOGLE_SERVICE_ACCOUNT_JSON is required in production for Android IAP verification");
-    process.exit(1);
+  if (!env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim()) {
+    failures.push("GOOGLE_SERVICE_ACCOUNT_JSON is required in production for Android IAP verification");
   }
-  if (!process.env.STRIPE_SECRET_KEY?.trim() || !process.env.STRIPE_WEBHOOK_SECRET?.trim()) {
-    logger.fatal("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production for shop checkout");
-    process.exit(1);
+  if (!env.STRIPE_SECRET_KEY?.trim() || !env.STRIPE_WEBHOOK_SECRET?.trim()) {
+    failures.push("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production for shop checkout");
   }
-  const stripeKey = process.env.STRIPE_SECRET_KEY.trim();
-  const stripeWhsec = process.env.STRIPE_WEBHOOK_SECRET.trim();
-  if (!stripeKey.startsWith("sk_live_")) {
-    logger.fatal("STRIPE_SECRET_KEY must be sk_live_… in production (test keys are not allowed)");
-    process.exit(1);
+  const stripeKey = (env.STRIPE_SECRET_KEY || "").trim();
+  const stripeWhsec = (env.STRIPE_WEBHOOK_SECRET || "").trim();
+  if (stripeKey && !stripeKey.startsWith("sk_live_")) {
+    failures.push("STRIPE_SECRET_KEY must be sk_live_… in production (test keys are not allowed)");
   }
-  if (!stripeWhsec.startsWith("whsec_")) {
-    logger.fatal("STRIPE_WEBHOOK_SECRET must be whsec_… in production");
-    process.exit(1);
+  if (stripeWhsec && !stripeWhsec.startsWith("whsec_")) {
+    failures.push("STRIPE_WEBHOOK_SECRET must be whsec_… in production");
   }
-  if (String(process.env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test") {
-    logger.fatal(
+  if (String(env.ELIX_STRIPE_CONNECT_MODE || "").trim().toLowerCase() === "test") {
+    failures.push(
       "ELIX_STRIPE_CONNECT_MODE=test must not be set in production — remove it so Connect uses live keys",
     );
-    process.exit(1);
   }
 
-  // Live streaming: fail fast so the app does not boot "healthy" while every
-  // live token request fails at runtime.
-  if (
-    !process.env.LIVEKIT_URL?.trim() ||
-    !process.env.LIVEKIT_API_KEY?.trim() ||
-    !process.env.LIVEKIT_API_SECRET?.trim()
-  ) {
-    logger.fatal(
+  if (!env.LIVEKIT_URL?.trim() || !env.LIVEKIT_API_KEY?.trim() || !env.LIVEKIT_API_SECRET?.trim()) {
+    failures.push(
       "LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production for live streaming",
     );
-    process.exit(1);
-  }
-  // Validate the same signal URL the LiveKit service actually connects with, so
-  // boot can never reject a value that live streaming resolves correctly.
-  try {
-    const lk = new URL(normalizeLiveKitSignalUrl(process.env.LIVEKIT_URL));
-    const host = lk.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
-      logger.fatal("LIVEKIT_URL must not point to localhost in production");
-      process.exit(1);
+  } else {
+    try {
+      const lk = new URL(normalizeLiveKitSignalUrl(env.LIVEKIT_URL));
+      const host = lk.hostname.toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+        failures.push("LIVEKIT_URL must not point to localhost in production");
+      }
+      if (lk.protocol.toLowerCase() !== "wss:") {
+        failures.push("LIVEKIT_URL must resolve to a wss:// signal URL in production");
+      }
+    } catch {
+      failures.push("LIVEKIT_URL is not a valid URL in production");
     }
-    if (lk.protocol.toLowerCase() !== "wss:") {
-      logger.fatal("LIVEKIT_URL must resolve to a wss:// signal URL in production");
-      process.exit(1);
-    }
-  } catch {
-    logger.fatal("LIVEKIT_URL is not a valid URL in production");
-    process.exit(1);
   }
 
-  // Media storage: avatar/video/sticker uploads fail without these Bunny keys.
-  if (!process.env.BUNNY_STORAGE_ZONE?.trim() || !process.env.BUNNY_STORAGE_API_KEY?.trim()) {
-    logger.fatal(
+  if (!env.BUNNY_STORAGE_ZONE?.trim() || !env.BUNNY_STORAGE_API_KEY?.trim()) {
+    failures.push(
       "BUNNY_STORAGE_ZONE and BUNNY_STORAGE_API_KEY are required in production for media uploads",
     );
-    process.exit(1);
   }
-  // Play package name: if explicitly set, must match the shipped app id.
-  // (Default falls back to the correct value, so unset is fine.)
-  const playPkg = (process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.elixstarlive.app").trim();
+
+  const playPkg = (env.GOOGLE_PLAY_PACKAGE_NAME || "com.elixstarlive.app").trim();
   if (playPkg !== "com.elixstarlive.app") {
-    logger.fatal(
+    failures.push(
       `GOOGLE_PLAY_PACKAGE_NAME must be com.elixstarlive.app in production (got ${playPkg})`,
     );
-    process.exit(1);
   }
 
-  // Apple IAP is opt-in via APPLE_IAP_REQUIRED=1. When opted-in, boot fails
-  // closed unless every Apple credential is present. When not opted-in, iOS
-  // purchase attempts still fail closed at runtime in appleIap.ts
-  // (`APPLE_CREDENTIALS_NOT_CONFIGURED`), so nothing can be silently credited —
-  // but the server is allowed to boot and serve Android/Web while iOS IAP
-  // is being finalised in App Store Connect + Coolify.
-  const appleRequired = process.env.APPLE_IAP_REQUIRED === "1";
   const appleTrioReady =
-    !!process.env.APPLE_ISSUER_ID?.trim() &&
-    !!process.env.APPLE_KEY_ID?.trim() &&
-    !!process.env.APPLE_PRIVATE_KEY?.trim();
-  const appleBundle = (process.env.APPLE_BUNDLE_ID || "").trim();
-  const appleNotifSecret = !!process.env.APPLE_IAP_NOTIFICATION_SECRET?.trim();
-  if (appleRequired) {
-    if (!appleTrioReady) {
-      logger.fatal(
-        "APPLE_IAP_REQUIRED=1 but APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are missing",
-      );
-      process.exit(1);
-    }
-    if (!appleBundle) {
-      logger.fatal("APPLE_IAP_REQUIRED=1 but APPLE_BUNDLE_ID is missing");
-      process.exit(1);
-    }
-    if (appleBundle !== "com.elixstarlive.app") {
-      logger.fatal(
-        `APPLE_BUNDLE_ID must be com.elixstarlive.app in production (got ${appleBundle})`,
-      );
-      process.exit(1);
-    }
-    if (!appleNotifSecret) {
-      logger.fatal(
-        "APPLE_IAP_REQUIRED=1 but APPLE_IAP_NOTIFICATION_SECRET is missing (needed for App Store Server Notifications V2)",
-      );
-      process.exit(1);
-    }
-  } else if (appleTrioReady || appleBundle || appleNotifSecret) {
-    logger.warn(
-      "Apple IAP env variables are set but APPLE_IAP_REQUIRED is not 1 — iOS purchases will be refused at runtime until you opt in explicitly",
+    !!env.APPLE_ISSUER_ID?.trim() && !!env.APPLE_KEY_ID?.trim() && !!env.APPLE_PRIVATE_KEY?.trim();
+  const appleBundle = (env.APPLE_BUNDLE_ID || "").trim();
+  const appleNotifSecret = !!env.APPLE_IAP_NOTIFICATION_SECRET?.trim();
+  if (!appleTrioReady) {
+    failures.push(
+      "APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are required in production for iOS IAP verification",
     );
-  } else {
-    logger.warn(
-      "APPLE_IAP_REQUIRED is not 1 — iOS purchases will be refused at runtime (Android/web continue to serve)",
+  }
+  if (!appleBundle) {
+    failures.push("APPLE_BUNDLE_ID is required in production for iOS IAP verification");
+  } else if (appleBundle !== "com.elixstarlive.app") {
+    failures.push(`APPLE_BUNDLE_ID must be com.elixstarlive.app in production (got ${appleBundle})`);
+  }
+  if (!appleNotifSecret) {
+    failures.push(
+      "APPLE_IAP_NOTIFICATION_SECRET is required in production for App Store Server Notifications V2",
     );
   }
 
-  // Play refund/void RTDN: warn only. If the shared secret is not configured
-  // the RTDN endpoint rejects all callbacks (see iapNotifications.ts), which
-  // is the same fail-closed posture without preventing boot.
-  if (!process.env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
-    logger.warn(
-      "GOOGLE_RTDN_WEBHOOK_SECRET is not set — Play refund/void notifications will be rejected until configured",
+  if (!env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
+    failures.push(
+      "GOOGLE_RTDN_WEBHOOK_SECRET is required in production for Play refund/void notifications",
     );
   }
 
-  if (process.env.ALLOW_LOADTEST_IN_PROD === "1") {
-    logger.fatal(
+  if (env.ALLOW_LOADTEST_IN_PROD === "1") {
+    failures.push(
       "ALLOW_LOADTEST_IN_PROD must not be set in production — remove it so rate-limit bypass cannot be enabled against live traffic",
     );
-    process.exit(1);
   }
 
-  logger.info(
-    "Production environment validation passed — ensure `npm run migrate` runs in the release/deploy step before workers start",
-  );
+  return failures;
+}
+
+export function validateProductionEnvironment(): void {
+  const failures = collectProductionEnvironmentFailures();
+  if (!failures.length) {
+    if (process.env.NODE_ENV === "production") {
+      logger.info(
+        "Production environment validation passed — ensure `npm run migrate` runs in the release/deploy step before workers start",
+      );
+    }
+    return;
+  }
+  for (const msg of failures) {
+    logger.fatal(msg);
+  }
+  process.exit(1);
 }

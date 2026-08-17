@@ -96,10 +96,49 @@ function appleBaseUrls(): string[] {
 }
 
 /**
- * Cryptographically verify an App Store Server API / ASN V2 JWS using the
- * embedded x5c leaf certificate, and validate the supplied certificate chain
- * links (child signed by parent). Does not embed Apple Root CA material.
+ * Cryptographically verify an App Store Server API / ASN V2 JWS.
+ * Trusts only chains that terminate at Apple Root CA - G3 (published Apple PKI).
  */
+const APPLE_ROOT_CA_G3_PEM = `-----BEGIN CERTIFICATE-----
+MIICQzCCAcmgAwIBAgIILcX8iNLFS5UwCgYIKoZIzj0EAwMwZzEbMBkGA1UEAwwS
+QXBwbGUgUm9vdCBDQSAtIEczMSYwJAYDVQQLDB1BcHBsZSBDZXJ0aWZpY2F0aW9u
+IEF1dGhvcml0eTETMBEGA1UECgwKQXBwbGUgSW5jLjELMAkGA1UEBhMCVVMwHhcN
+MTQwNDMwMTgxOTA2WhcNMzkwNDMwMTgxOTA2WjBnMRswGQYDVQQDDBJBcHBsZSBS
+b290IENBIC0gRzMxJjAkBgNVBAsMHUFwcGxlIENlcnRpZmljYXRpb24gQXV0aG9y
+aXR5MRMwEQYDVQQKDApBcHBsZSBJbmMuMQswCQYDVQQGEwJVUzB2MBAGByqGSM49
+AgEGBSuBBAAiA2IABJjpLz1AcqTtkyJygRMc3RCV8cWjTnHcFBbZDuWmBSp3ZHtf
+TjjTuxxEtX/1H7YyYl3J6YRbTzBPEVoA/VhYDKX1DyxNB0cTddqXl5dvMVztK517
+IDvYuVTZXpmkOlEKMaNCMEAwHQYDVR0OBBYEFLuw3qFYM4iapIqZ3r6966/ayySr
+MA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgEGMAoGCCqGSM49BAMDA2gA
+MGUCMQCD6cHEFl4aXTQY2e3v9GwOAEZLuN+yRhHFD/3meoyhpmvOwgPUnPWTxnS4
+at+qIxUCMG1mihDK1A3UT82NQz60imOlM27jbdoXt2QfyFMm+YhidDkLF1vLUagM
+6BgD56KyKA==
+-----END CERTIFICATE-----`;
+
+/** SHA-256 of Apple Root CA - G3 DER (Apple PKI / Apple Support root list). */
+const APPLE_ROOT_CA_G3_SHA256 =
+  "63343abfb89a6a03ebb57e9b3f5fa7be7c4f5c756f3017b3a8c488c3653e9179";
+
+function sha256Hex(buf: Buffer): string {
+  return createHash("sha256").update(buf).digest("hex");
+}
+
+function appleRootCaG3(): X509Certificate {
+  const root = new X509Certificate(APPLE_ROOT_CA_G3_PEM);
+  if (sha256Hex(root.raw) !== APPLE_ROOT_CA_G3_SHA256) {
+    throw new Error("embedded Apple Root CA G3 fingerprint mismatch");
+  }
+  return root;
+}
+
+function chainTerminatesAtAppleRootG3(certs: X509Certificate[]): boolean {
+  const root = appleRootCaG3();
+  const last = certs[certs.length - 1];
+  if (!last) return false;
+  if (sha256Hex(last.raw) === APPLE_ROOT_CA_G3_SHA256) return true;
+  return last.verify(root.publicKey);
+}
+
 export async function verifyAppleJwsPayload(
   jws: string,
 ): Promise<AppleTxPayload | null> {
@@ -125,17 +164,14 @@ export async function verifyAppleJwsPayload(
         return null;
       }
     }
-    if (!/Apple/i.test(leaf.subject) && !/Apple/i.test(leaf.issuer)) {
-      logger.warn({ subject: leaf.subject }, "Apple JWS leaf does not look Apple-issued");
+    if (!chainTerminatesAtAppleRootG3(certs)) {
+      logger.warn("Apple JWS chain does not terminate at Apple Root CA G3");
       return null;
     }
 
     const key = createPublicKey(leaf.publicKey);
     const { payload } = await jose.jwtVerify(jws, key, { algorithms: ["ES256"] });
     const p = payload as AppleTxPayload;
-    // Reject validly-signed payloads that belong to a different app. Only enforced
-    // when bundleId is present (transaction payloads carry it; the outer
-    // notification envelope does not).
     const expectedBundleId = process.env.APPLE_BUNDLE_ID || "com.elixstarlive.app";
     if (p.bundleId && p.bundleId !== expectedBundleId) {
       logger.warn({ bundleId: p.bundleId }, "Apple JWS bundleId mismatch — rejecting");

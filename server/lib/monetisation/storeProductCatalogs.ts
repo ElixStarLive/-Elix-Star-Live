@@ -11,4 +11,5 @@ export {
   coinAmountForProviderProduct,
   gateProviderProduct,
   isPromoteIapProductId,
+  appAccountTokenForUserId,
 } from "../../../src/lib/storeProductCatalogs";

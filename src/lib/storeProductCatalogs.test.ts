@@ -73,4 +73,16 @@ describe("store product catalogues — platform separation", () => {
     expect(PROMOTE_IAP_PRODUCTS["com.elixstarlive.promote_views"].amountGbp).toBe(5);
     expect(PROMOTE_IAP_PRODUCTS["com.elixstarlive.promote_followers"].amountGbp).toBe(30);
   });
+
+  it("iOS native catalogue requests zero Google-only SKUs", () => {
+    const ids = storeCoinProductIdsForNativePlatform("ios");
+    expect(ids).not.toContain("coins500a");
+    expect(ids.every((id) => isAppleIapProductId(id))).toBe(true);
+  });
+
+  it("Android native catalogue requests zero Apple-only SKUs", () => {
+    const ids = storeCoinProductIdsForNativePlatform("android");
+    expect(ids).not.toContain("coins500");
+    expect(ids.every((id) => isGooglePlayProductId(id))).toBe(true);
+  });
 });

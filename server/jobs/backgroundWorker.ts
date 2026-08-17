@@ -6,6 +6,10 @@ import { logger } from "../lib/logger";
 import type { JobPayload } from "../lib/jobQueue";
 import { sendTransactionalEmail } from "../lib/email";
 import { pushNotifyUser } from "../lib/push";
+import {
+  enqueueUnconsumedGooglePlayPurchases,
+  processGooglePlayConsumeJob,
+} from "../lib/googlePlayConsume";
 
 const ANALYTICS_RETENTION_DAYS = Math.max(30, Number(process.env.ANALYTICS_RETENTION_DAYS) || 90);
 const NOTIFICATION_RETENTION_DAYS = Math.max(14, Number(process.env.NOTIFICATION_RETENTION_DAYS) || 60);
@@ -14,12 +18,20 @@ export async function processJob(job: JobPayload): Promise<void> {
   switch (job.type) {
     case "cleanup_retention":
       await runRetentionCleanup();
+      await enqueueUnconsumedGooglePlayPurchases();
       break;
     case "push_notify":
       await pushNotifyUser(job.userId, job.title, job.body, job.data);
       break;
     case "email_send":
       await sendTransactionalEmail({ to: job.to, subject: job.subject, html: job.html });
+      break;
+    case "google_play_consume":
+      await processGooglePlayConsumeJob({
+        productId: job.productId,
+        purchaseToken: job.purchaseToken,
+        externalPurchaseId: job.externalPurchaseId,
+      });
       break;
     default:
       logger.warn({ job }, "Unknown job type");

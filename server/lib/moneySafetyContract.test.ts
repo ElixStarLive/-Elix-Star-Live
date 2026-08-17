@@ -168,4 +168,41 @@ describe("Money and economy safety contracts", () => {
     const engWs = read("../websocket/engagement.ts");
     expect(engWs).toContain("endEngagementPoll");
   });
+
+  it("paid gift GBP ledger failure is not swallowed", () => {
+    expect(wallet).not.toContain("paid gift GBP ledger skipped");
+    const start = wallet.indexOf("export async function neonDebitGiftWithCreatorCredit");
+    const end = wallet.indexOf("export function creatorEarningHoldHours", start);
+    const fn = wallet.slice(start, end);
+    expect(fn).toContain("await consumeSettledNetForGift");
+    expect(fn).toContain("await postLedgerEntry");
+    expect(fn).not.toContain("ledgerErr");
+    expect(fn).not.toContain("ledger skipped");
+    expect(fn).toContain("cfg.giftCreatorPct");
+    expect(fn).not.toContain("CREATOR_GIFT_SHARE_PERCENT");
+  });
+
+  it("IAP refund reverses GBP in the same transaction as coin clawback", () => {
+    const start = wallet.indexOf("export async function neonReverseIapPurchase");
+    const fn = wallet.slice(start, start + 8000);
+    expect(fn.indexOf("reversePurchaseFinancialsOnClient")).toBeGreaterThan(-1);
+    expect(fn.indexOf("reversePurchaseFinancialsOnClient")).toBeLessThan(fn.indexOf('await client.query("COMMIT")'));
+    expect(fn).not.toContain("GBP ledger reverse after IAP refund failed");
+  });
+
+  it("zero-cost gifts are classified promotional_coins not paid_coins", () => {
+    expect(gifts).toContain("gift_source, created_at)");
+    expect(gifts).toContain("'promotional_coins', NOW()");
+    const zero = gifts.slice(gifts.indexOf("VALUES ($1, $2, $3, 0, $4"));
+    expect(zero.slice(0, 400)).toContain("promotional_coins");
+    expect(zero.slice(0, 400)).not.toContain("paid_coins");
+  });
+
+  it("GBP withdrawal requires a client idempotency key", () => {
+    const start = payout.indexOf("handleCreatorWithdrawGbp");
+    const block = payout.slice(start, start + 1800);
+    expect(block).toContain("idempotency_key_required");
+    expect(block).toContain("status(400)");
+    expect(block).not.toContain("Date.now()");
+  });
 });

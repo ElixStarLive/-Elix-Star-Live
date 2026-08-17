@@ -131,15 +131,17 @@ async function applyCreatorWalletDelta(
   remaining -= fromAvailable;
   const fromHeld = Math.min(held, remaining);
   remaining -= fromHeld;
+  const recovered = abs - remaining;
   await client.query(
     `UPDATE elix_creator_wallet_gbp SET
        pending_pence = GREATEST(0, pending_pence - $2),
        available_pence = GREATEST(0, available_pence - $3),
        held_pence = GREATEST(0, held_pence - $4),
        reversed_pence = reversed_pence + $5,
+       recoverable_pence = recoverable_pence + $6,
        updated_at = NOW()
      WHERE user_id = $1`,
-    [creatorUserId, fromPending, fromAvailable, fromHeld, abs],
+    [creatorUserId, fromPending, fromAvailable, fromHeld, recovered, remaining],
   );
 }
 
@@ -181,14 +183,17 @@ async function applyPlatformWalletDelta(
   const fromPending = Math.min(pending, remaining);
   remaining -= fromPending;
   const fromAvailable = Math.min(available, remaining);
+  remaining -= fromAvailable;
+  const recovered = abs - remaining;
   await client.query(
     `UPDATE elix_platform_wallet_gbp SET
        pending_pence = GREATEST(0, pending_pence - $1),
        available_pence = GREATEST(0, available_pence - $2),
        reversed_pence = reversed_pence + $3,
+       recoverable_pence = recoverable_pence + $4,
        updated_at = NOW()
      WHERE id = 'default'`,
-    [fromPending, fromAvailable, abs],
+    [fromPending, fromAvailable, recovered, remaining],
   );
 }
 
@@ -398,13 +403,21 @@ export async function matureGbpPendingEarnings(holdHours: number): Promise<numbe
       );
       if (!upd.rowCount) continue;
       await ensureCreatorWallet(client, creatorId);
+      const recR = await client.query(
+        `SELECT recoverable_pence FROM elix_creator_wallet_gbp WHERE user_id = $1 FOR UPDATE`,
+        [creatorId],
+      );
+      const recoverable = Math.max(0, Math.floor(Number(recR.rows[0]?.recoverable_pence) || 0));
+      const toDebt = Math.min(amount, recoverable);
+      const toAvailable = amount - toDebt;
       await client.query(
         `UPDATE elix_creator_wallet_gbp
             SET pending_pence = GREATEST(0, pending_pence - $2),
-                available_pence = available_pence + $2,
+                recoverable_pence = GREATEST(0, recoverable_pence - $3),
+                available_pence = available_pence + $4,
                 updated_at = NOW()
           WHERE user_id = $1`,
-        [creatorId, amount],
+        [creatorId, amount, toDebt, toAvailable],
       );
       matured += 1;
     }

@@ -740,10 +740,12 @@ export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
   const amountPence = Math.floor(Number(req.body?.amount_pence) || 0);
-  const idempotencyKey =
-    typeof req.body?.idempotency_key === 'string' && req.body.idempotency_key.trim()
-      ? String(req.body.idempotency_key).trim().slice(0, 120)
-      : `wdgbp:${userId}:${amountPence}:${Date.now()}`;
+  const rawKey =
+    typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key.trim() : '';
+  if (!rawKey) {
+    return res.status(400).json({ error: 'idempotency_key_required' });
+  }
+  const idempotencyKey = rawKey.slice(0, 120);
   try {
     const { requestGbpWithdrawal } = await import('../lib/monetisation/gbpWithdrawals');
     const result = await requestGbpWithdrawal({

@@ -61,31 +61,17 @@ export default defineConfig(({ mode }) => ({
       ],
     },
     proxy: {
-      // Local backend needs Valkey; when it is down, proxy to production so login works.
-      // Strip localhost Origin — production currently 500s on that Origin header.
+      // Default: local backend. Set VITE_DEV_PROXY_TARGET to hit a remote API explicitly.
       '/api': {
-        target: 'https://www.elixstarlive.co.uk',
+        target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8080',
         changeOrigin: true,
         secure: true,
-        configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.removeHeader('origin');
-            proxyReq.setHeader('origin', 'https://www.elixstarlive.co.uk');
-            proxyReq.setHeader('referer', 'https://www.elixstarlive.co.uk/');
-          });
-        },
       },
       '/live': {
-        target: 'https://www.elixstarlive.co.uk',
+        target: process.env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8080',
         changeOrigin: true,
         secure: true,
         ws: true,
-        configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq) => {
-            proxyReq.removeHeader('origin');
-            proxyReq.setHeader('origin', 'https://www.elixstarlive.co.uk');
-          });
-        },
       },
     },
   },

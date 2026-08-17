@@ -16,9 +16,8 @@ jobs:
         with:
           node-version: '20'
 
-      # Dockerfile uses `npm install` (lockfile may drift), so mirror that here.
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Typecheck
         run: npm run check
@@ -53,7 +52,7 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Money DB integration tests
         env:

@@ -460,8 +460,8 @@ export async function handleSendGift(req: Request, res: Response) {
     }
 
     await pool.query(
-      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, created_at)
-       VALUES ($1, $2, $3, 0, $4, NOW())
+      `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+       VALUES ($1, $2, $3, 0, $4, 'promotional_coins', NOW())
        ON CONFLICT (client_transaction_id) DO NOTHING`,
       [auth.userId, roomId, giftId, clientTransactionId],
     );
@@ -470,6 +470,7 @@ export async function handleSendGift(req: Request, res: Response) {
       ok: true,
       room_id: roomId,
       gift_id: giftId,
+      gift_source: "promotional_coins",
       transaction_id: clientTransactionId,
       message: "Gift sent. Delivery in room is via WebSocket.",
     });

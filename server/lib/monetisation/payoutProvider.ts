@@ -14,7 +14,7 @@ import Stripe from "stripe";
 import { randomUUID } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
-import { adminSetGbpWithdrawalStatus } from "./gbpWithdrawals";
+import { adminSetGbpWithdrawalStatus, applyGbpWithdrawalStatusOnClient } from "./gbpWithdrawals";
 
 export type StripeKeyMode = "test" | "live" | "none";
 export type StripeKeySource =
@@ -438,37 +438,40 @@ export async function confirmPayoutFromProvider(input: {
         JSON.stringify(input.payload ?? {}),
       ],
     );
-    if ((ev.rowCount ?? 0) === 0) {
-      await client.query("COMMIT");
-      return { ok: true, alreadyProcessed: true };
+    const r = await applyGbpWithdrawalStatusOnClient(client, {
+      withdrawalId: input.withdrawalId,
+      toStatus: "paid",
+      adminUserId: "system:stripe_connect",
+      note: `Provider confirmed (${input.eventType})`,
+      payoutProviderRef: input.providerRef,
+    });
+    if (!r.ok) {
+      await client.query("ROLLBACK");
+      logger.error(
+        { withdrawalId: input.withdrawalId, error: r.error },
+        "confirmPayoutFromProvider status update failed — event not committed",
+      );
+      return { ok: false };
+    }
+    if ((input.feePence || 0) > 0) {
+      await client.query(
+        `UPDATE elix_creator_withdrawals_gbp SET provider_fee_pence = $2 WHERE id = $1`,
+        [input.withdrawalId, Math.floor(input.feePence || 0)],
+      );
     }
     await client.query("COMMIT");
+    return { ok: true, alreadyProcessed: (ev.rowCount ?? 0) === 0 };
   } catch (err) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* ignore */
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "confirmPayoutFromProvider ROLLBACK failed");
     }
-    logger.error({ err }, "confirmPayoutFromProvider event insert failed");
+    logger.error({ err }, "confirmPayoutFromProvider failed");
     return { ok: false };
   } finally {
     client.release();
   }
-
-  const r = await adminSetGbpWithdrawalStatus({
-    withdrawalId: input.withdrawalId,
-    toStatus: "paid",
-    adminUserId: "system:stripe_connect",
-    note: `Provider confirmed (${input.eventType})`,
-    payoutProviderRef: input.providerRef,
-  });
-  if (r.ok && (input.feePence || 0) > 0) {
-    await pool.query(
-      `UPDATE elix_creator_withdrawals_gbp SET provider_fee_pence = $2 WHERE id = $1`,
-      [input.withdrawalId, Math.floor(input.feePence || 0)],
-    );
-  }
-  return { ok: r.ok };
 }
 
 /** Audited exception — never pretend this is a provider payout. */
@@ -526,7 +529,7 @@ export async function handleStripeConnectPayoutWebhook(
       eventType === "transfer.failed" ||
       transfer.reversed
     ) {
-      await adminSetGbpWithdrawalStatus({
+      const failed = await adminSetGbpWithdrawalStatus({
         withdrawalId,
         toStatus: "failed",
         adminUserId: "system:stripe_webhook",
@@ -538,16 +541,16 @@ export async function handleStripeConnectPayoutWebhook(
           eventType === "transfer.failed" ? "transfer_failed" : "transfer_reversed",
         payoutProviderRef: transfer.id,
       });
-      return { ok: true };
+      return { ok: failed.ok };
     }
-    await confirmPayoutFromProvider({
+    const confirmed = await confirmPayoutFromProvider({
       withdrawalId,
       providerRef: transfer.id,
       providerEventId: event.id,
       eventType,
       payload: { id: transfer.id, amount: transfer.amount },
     });
-    return { ok: true };
+    return { ok: confirmed.ok };
   }
 
   if (eventType === "account.updated") {

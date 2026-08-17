@@ -37,8 +37,13 @@ export function cohostSeatRelease(payload: { roomId: string; targetUserId: strin
   liveWsSend(LIVE_WS_OUT.cohost_seat_release, payload);
 }
 
+/** Seated co-host leaves their own seat and stays in the live as a spectator. */
+export function cohostSeatLeave(payload: { roomId: string }): void {
+  liveWsSend(LIVE_WS_OUT.cohost_seat_leave, payload);
+}
+
 /** Host ends co-host mode — server releases every seat one by one. */
 export function cohostSeatsClear(payload: { roomId: string }): void {
   liveWsSend(LIVE_WS_OUT.cohost_seats_clear, payload);
 }
-
+

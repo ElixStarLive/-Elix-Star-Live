@@ -14,6 +14,7 @@ import {
   isProductAllowedForProvider,
   PROMOTE_IAP_PRODUCTS,
   storeCoinProductIdsForNativePlatform,
+  appAccountTokenForUserId,
   type PromoteIapProductId,
   type StoreCoinProductId,
   type StoreIapProvider,
@@ -223,20 +224,7 @@ let purchaseInProgress = false;
 
 /** Deterministic UUID (v5-style) from a user id for StoreKit appAccountToken. */
 function appAccountTokenForUser(userId: string): string {
-  const nsHex = '6ba7b8109dad11d180b400c04fd430c8';
-  const pairs = nsHex.match(/.{2}/g) || [];
-  const ns = new Uint8Array(pairs.map((b) => parseInt(b, 16)));
-  const data = new TextEncoder().encode(userId);
-  const bytes = new Uint8Array(20);
-  for (let i = 0; i < ns.length; i++) bytes[i % 20] ^= ns[i];
-  for (let i = 0; i < data.length; i++) bytes[i % 20] ^= data[i] + i;
-  bytes[6] = (bytes[6] & 0x0f) | 0x50;
-  bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-    .slice(0, 32);
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  return appAccountTokenForUserId(userId);
 }
 
 type NativePurchasesPlugin = NonNullable<Awaited<ReturnType<typeof getPlugin>>>;

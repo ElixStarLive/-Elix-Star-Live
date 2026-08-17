@@ -131,7 +131,7 @@ describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
     giftId: string;
     roomId: string;
     clientTransactionId: string;
-    failAfterLedger?: "balance" | "gift_row" | "diamond";
+    failAfterLedger?: "balance" | "gift_row" | "diamond" | "gbp_ledger";
   }) {
     const client = await pool.connect();
     const idem = `gift:${input.userId}:${input.clientTransactionId}`;
@@ -182,6 +182,9 @@ describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
       }
       if (input.failAfterLedger === "diamond") {
         throw new Error("simulated_diamond_credit_failure");
+      }
+      if (input.failAfterLedger === "gbp_ledger") {
+        throw new Error("simulated_gbp_ledger_failure");
       }
       // Eligible paid gift → Diamonds = floor(coins * 60%) pending earnings
       const credited = Math.floor((input.coins * 60) / 100);
@@ -650,6 +653,192 @@ describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
     );
     expect(first.rowCount).toBe(1);
     expect(second.rowCount).toBe(0);
+  });
+
+  it("GBP ledger failure rolls back the paid gift completely", async () => {
+    const userId = `it_gbp_fail_${Date.now()}`;
+    await ensureUser(userId, 1000);
+    const r = await debitPaidGiftOnce({
+      userId,
+      coins: 100,
+      giftId: "g_gbp",
+      roomId: "r_gbp",
+      clientTransactionId: `tx_gbp_${userId}`,
+      failAfterLedger: "gbp_ledger",
+    });
+    expect(r.ok).toBe(false);
+    const bal = await pool.query(
+      `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
+      [userId],
+    );
+    expect(Number(bal.rows[0].b)).toBe(1000);
+    const gifts = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM elix_gift_transactions WHERE user_id = $1`,
+      [userId],
+    );
+    expect(gifts.rows[0].c).toBe(0);
+    const earn = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM elix_creator_earnings WHERE sender_id = $1`,
+      [userId],
+    );
+    expect(earn.rows[0].c).toBe(0);
+  });
+
+  it("zero-cost gift cannot become paid_coins", async () => {
+    const userId = `it_zero_${Date.now()}`;
+    const tx = `tx_zero_${userId}`;
+    await pool.query(
+      `INSERT INTO elix_gift_transactions
+         (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
+       VALUES ($1, $2, $3, 0, $4, 'promotional_coins', NOW())`,
+      [userId, "r_zero", "g_zero", tx],
+    );
+    const row = await pool.query(
+      `SELECT gift_source, coins::bigint AS c FROM elix_gift_transactions WHERE client_transaction_id = $1`,
+      [tx],
+    );
+    expect(row.rows[0].gift_source).toBe("promotional_coins");
+    expect(Number(row.rows[0].c)).toBe(0);
+  });
+
+  it("IAP refund GBP failure rolls back coin reversal", async () => {
+    const userId = `it_rev_${Date.now()}`;
+    await ensureUser(userId, 500);
+    const txnId = `tok_rev_${Date.now()}`;
+    await pool.query(
+      `INSERT INTO elix_wallet_ledger
+         (user_id, kind, coins_delta, provider, provider_transaction_id, product_id, idempotency_key)
+       VALUES ($1, 'iap_purchase', 500, 'google', $2, 'coins500a', $3)`,
+      [userId, txnId, `iap:google:${txnId}`],
+    );
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `INSERT INTO elix_wallet_ledger
+           (user_id, kind, coins_delta, provider, provider_transaction_id, idempotency_key)
+         VALUES ($1, 'iap_refund', -500, 'google', $2, $3)`,
+        [userId, txnId, `iap_refund:google:${txnId}`],
+      );
+      await client.query(
+        `UPDATE elix_wallet_balances SET coin_balance = GREATEST(0, coin_balance - 500) WHERE user_id = $1`,
+        [userId],
+      );
+      throw new Error("simulated_gbp_reverse_failure");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      expect(e instanceof Error && e.message).toBe("simulated_gbp_reverse_failure");
+    } finally {
+      client.release();
+    }
+    const bal = await pool.query(
+      `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
+      [userId],
+    );
+    expect(Number(bal.rows[0].b)).toBe(500);
+    const refunds = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM elix_wallet_ledger WHERE user_id = $1 AND kind = 'iap_refund'`,
+      [userId],
+    );
+    expect(refunds.rows[0].c).toBe(0);
+  });
+
+  it("Stripe payout status failure does not keep the provider event", async () => {
+    const eventId = `evt_${Date.now()}`;
+    const withdrawalId = `wd_${Date.now()}`;
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        `INSERT INTO elix_payout_provider_events
+           (provider, event_id, event_type, withdrawal_id, provider_ref, payload)
+         VALUES ('stripe_connect', $1, 'transfer.created', $2, 'tr_test', '{}'::jsonb)`,
+        [eventId, withdrawalId],
+      );
+      throw new Error("simulated_withdrawal_status_failure");
+    } catch (e) {
+      await client.query("ROLLBACK");
+      expect(e instanceof Error && e.message).toBe("simulated_withdrawal_status_failure");
+    } finally {
+      client.release();
+    }
+    const ev = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM elix_payout_provider_events WHERE event_id = $1`,
+      [eventId],
+    );
+    expect(ev.rows[0].c).toBe(0);
+  });
+
+  it("withdrawal double-tap with the same idempotency key creates one row", async () => {
+    const userId = `it_wd_${Date.now()}`;
+    const key = `idem_${userId}`;
+    await pool.query(
+      `INSERT INTO elix_creator_wallet_gbp (user_id, available_pence)
+       VALUES ($1, 10000)
+       ON CONFLICT (user_id) DO UPDATE SET available_pence = 10000`,
+      [userId],
+    );
+    const insert = async () => {
+      const r = await pool.query(
+        `INSERT INTO elix_creator_withdrawals_gbp
+           (id, idempotency_key, creator_user_id, amount_pence, status)
+         VALUES ($1, $2, $3, 500, 'pending')
+         ON CONFLICT (idempotency_key) DO NOTHING
+         RETURNING id`,
+        [`wdrow_${Math.random().toString(16).slice(2)}`, key, userId],
+      );
+      return r.rowCount || 0;
+    };
+    expect(await insert()).toBe(1);
+    expect(await insert()).toBe(0);
+    const rows = await pool.query(
+      `SELECT COUNT(*)::int AS c FROM elix_creator_withdrawals_gbp WHERE idempotency_key = $1`,
+      [key],
+    );
+    expect(rows.rows[0].c).toBe(1);
+  });
+
+  it("duplicate Apple and Google IAP credits once each", async () => {
+    const userId = `it_iap2_${Date.now()}`;
+    await ensureUser(userId, 0);
+    const appleIdem = `iap:apple:txn_${Date.now()}`;
+    const googleIdem = `iap:google:tok_${Date.now()}`;
+    const credit = async (idem: string, provider: string, productId: string) => {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const ins = await client.query(
+          `INSERT INTO elix_wallet_ledger
+             (user_id, kind, coins_delta, provider, provider_transaction_id, product_id, idempotency_key)
+           VALUES ($1, 'iap_purchase', 100, $2, $3, $4, $5)
+           ON CONFLICT (idempotency_key) DO NOTHING
+           RETURNING id`,
+          [userId, provider, idem, productId, idem],
+        );
+        if (ins.rowCount) {
+          await client.query(
+            `UPDATE elix_wallet_balances SET coin_balance = coin_balance + 100 WHERE user_id = $1`,
+            [userId],
+          );
+        }
+        await client.query("COMMIT");
+        return ins.rowCount || 0;
+      } catch (e) {
+        await client.query("ROLLBACK");
+        throw e;
+      } finally {
+        client.release();
+      }
+    };
+    expect(await credit(appleIdem, "apple", "coins100")).toBe(1);
+    expect(await credit(appleIdem, "apple", "coins100")).toBe(0);
+    expect(await credit(googleIdem, "google", "coins100")).toBe(1);
+    expect(await credit(googleIdem, "google", "coins100")).toBe(0);
+    const bal = await pool.query(
+      `SELECT coin_balance::bigint AS b FROM elix_wallet_balances WHERE user_id = $1`,
+      [userId],
+    );
+    expect(Number(bal.rows[0].b)).toBe(200);
   });
 });
 

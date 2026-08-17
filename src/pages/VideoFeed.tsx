@@ -155,9 +155,6 @@ export default function VideoFeed() {
           } as LiveStreamCard;
         });
 
-      // #region agent log
-      void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H3',location:'src/pages/VideoFeed.tsx:158',message:'authoritative live feed response mapped',data:{apiCount:streams.length,mappedCount:mapped.length,removedCount:removed.size},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
       // Merge with current list so streams added by stream_started (realtime) don't disappear
       // when reconcile runs before LiveKit has the room (creator still connecting)
       setLiveStreams((prev) => {
@@ -166,9 +163,6 @@ export default function VideoFeed() {
         // so a transient LiveKit verification miss does not wipe For You lives.
         if (mapped.length === 0 && prev.length > 0) {
           const retained = prev.filter((s) => !removed.has(s.streamKey));
-          // #region agent log
-          void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H3',location:'src/pages/VideoFeed.tsx:170',message:'empty authoritative response retained previous live cards',data:{previousCount:prev.length,retainedCount:retained.length},timestamp:Date.now()})}).catch(()=>{});
-          // #endregion
           return retained;
         }
         const keptFromPrev = prev.filter(

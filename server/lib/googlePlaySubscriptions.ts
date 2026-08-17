@@ -202,6 +202,56 @@ async function getAndroidPublisherAccessToken(): Promise<string | null> {
   }
 }
 
+export async function consumeGooglePlayProduct(input: {
+  productId: string;
+  purchaseToken: string;
+}): Promise<
+  | { ok: true; alreadyConsumed?: boolean }
+  | { ok: false; retryable: boolean; status: number; detail: string }
+> {
+  const productId = String(input.productId || "").trim();
+  const purchaseToken = String(input.purchaseToken || "").trim();
+  if (!productId || !purchaseToken) {
+    return { ok: false, retryable: false, status: 400, detail: "missing_product_or_token" };
+  }
+  const accessToken = await getAndroidPublisherAccessToken();
+  if (!accessToken) {
+    return { ok: false, retryable: true, status: 503, detail: "google_auth_failed" };
+  }
+  const packageName = googlePlayPackageName();
+  const url = `${ANDROID_PUBLISHER_BASE}/applications/${encodeURIComponent(packageName)}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:consume`;
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (res.ok || res.status === 204) {
+      return { ok: true };
+    }
+    const detail = (await res.text().catch(() => "")).slice(0, 400);
+    const already =
+      res.status === 410 ||
+      /already.?consumed|productNotConsumed/i.test(detail);
+    if (already) {
+      return { ok: true, alreadyConsumed: true };
+    }
+    return {
+      ok: false,
+      retryable: res.status >= 500 || res.status === 429,
+      status: res.status,
+      detail: `status_${res.status}${detail ? `: ${detail}` : ""}`,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      retryable: true,
+      status: 502,
+      detail: e instanceof Error ? e.message : "fetch_failed",
+    };
+  }
+}
+
 /**
  * Verify a subscription purchase token against
  * `purchases/subscriptionsv2/tokens/{token}` and fail closed on any mismatch.

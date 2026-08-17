@@ -135,7 +135,10 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         const { handleStripeConnectPayoutWebhook } = await import(
           "../lib/monetisation/payoutProvider"
         );
-        await handleStripeConnectPayoutWebhook(event);
+        const payout = await handleStripeConnectPayoutWebhook(event);
+        if (!payout.ok) {
+          return res.status(500).json({ error: "Webhook processing failed" });
+        }
         break;
       }
       default: {
@@ -144,7 +147,10 @@ export async function handleStripeWebhook(req: Request, res: Response) {
           const { handleStripeConnectPayoutWebhook } = await import(
             "../lib/monetisation/payoutProvider"
           );
-          await handleStripeConnectPayoutWebhook(event);
+          const payout = await handleStripeConnectPayoutWebhook(event);
+          if (!payout.ok) {
+            return res.status(500).json({ error: "Webhook processing failed" });
+          }
           break;
         }
         // Shop checkout + Connect payout events only.

@@ -153,6 +153,140 @@ export async function requestGbpWithdrawal(input: {
   }
 }
 
+export async function applyGbpWithdrawalStatusOnClient(
+  client: import("pg").PoolClient,
+  input: {
+    withdrawalId: string;
+    toStatus: WithdrawalStatus;
+    adminUserId: string;
+    note?: string;
+    payoutProviderRef?: string | null;
+    failureReason?: string | null;
+  },
+): Promise<{ ok: boolean; error?: string }> {
+  const rowR = await client.query(
+    `SELECT * FROM elix_creator_withdrawals_gbp WHERE id = $1 FOR UPDATE`,
+    [input.withdrawalId],
+  );
+  if (!rowR.rowCount) {
+    return { ok: false, error: "not_found" };
+  }
+  const row = rowR.rows[0];
+  const from = String(row.status);
+  const amount = Math.floor(Number(row.amount_pence) || 0);
+  const creatorId = String(row.creator_user_id);
+
+  if (input.payoutProviderRef) {
+    const dup = await client.query(
+      `SELECT id FROM elix_creator_withdrawals_gbp
+        WHERE payout_provider_ref = $1 AND id <> $2 LIMIT 1`,
+      [input.payoutProviderRef, input.withdrawalId],
+    );
+    if (dup.rowCount) {
+      return { ok: false, error: "duplicate_provider_ref" };
+    }
+  }
+
+  await client.query(
+    `UPDATE elix_creator_withdrawals_gbp SET
+       status = $2,
+       payout_provider_ref = COALESCE($3, payout_provider_ref),
+       failure_reason = COALESCE($4, failure_reason),
+       processing_at = CASE WHEN $2 = 'processing' THEN COALESCE(processing_at, NOW()) ELSE processing_at END,
+       paid_at = CASE WHEN $2 = 'paid' THEN NOW() ELSE paid_at END
+     WHERE id = $1`,
+    [
+      input.withdrawalId,
+      input.toStatus,
+      input.payoutProviderRef ?? null,
+      input.failureReason ?? null,
+    ],
+  );
+  await appendStatusHistory(
+    client,
+    input.withdrawalId,
+    from,
+    input.toStatus,
+    input.adminUserId,
+    input.note,
+  );
+
+  if (input.toStatus === "paid" && from !== "paid") {
+    await client.query(
+      `UPDATE elix_creator_wallet_gbp
+          SET held_pence = GREATEST(0, held_pence - $2),
+              withdrawn_pence = withdrawn_pence + $2,
+              updated_at = NOW()
+        WHERE user_id = $1`,
+      [creatorId, amount],
+    );
+    await client.query(
+      `UPDATE elix_financial_ledger SET
+         status = 'paid',
+         paid_at = NOW(),
+         updated_at = NOW()
+       WHERE revenue_source = 'WITHDRAWAL'
+         AND status = 'held'
+         AND (rule_snapshot->>'withdrawal_id') = $1`,
+      [input.withdrawalId],
+    );
+  } else if (
+    (input.toStatus === "failed" ||
+      input.toStatus === "rejected" ||
+      input.toStatus === "cancelled") &&
+    from !== "paid"
+  ) {
+    const heldLedger = await client.query(
+      `SELECT id FROM elix_financial_ledger
+        WHERE revenue_source = 'WITHDRAWAL'
+          AND status = 'held'
+          AND (rule_snapshot->>'withdrawal_id') = $1
+        LIMIT 1`,
+      [input.withdrawalId],
+    );
+    const fundsWereHeld = (heldLedger.rowCount ?? 0) > 0;
+    if (fundsWereHeld) {
+      await client.query(
+        `UPDATE elix_creator_wallet_gbp
+            SET held_pence = GREATEST(0, held_pence - $2),
+                updated_at = NOW()
+          WHERE user_id = $1`,
+        [creatorId, amount],
+      );
+    }
+    await client.query(
+      `UPDATE elix_financial_ledger SET
+         status = 'cancelled',
+         updated_at = NOW()
+       WHERE revenue_source = 'WITHDRAWAL'
+         AND status = 'held'
+         AND (rule_snapshot->>'withdrawal_id') = $1`,
+      [input.withdrawalId],
+    );
+    if (fundsWereHeld) {
+      await postLedgerEntry(client, {
+        idempotencyKey: `payout_failure:${input.withdrawalId}:${input.toStatus}`,
+        revenueSource: "PAYOUT_FAILURE",
+        creatorUserId: creatorId,
+        grossPence: amount,
+        netRevenuePence: amount,
+        creatorPct: 100,
+        creatorAmountPence: amount,
+        platformPct: 0,
+        platformAmountPence: 0,
+        status: "available",
+        ruleSnapshot: {
+          withdrawal_id: input.withdrawalId,
+          restored: true,
+          from_status: from,
+        },
+      });
+    }
+  }
+
+  return { ok: true };
+}
+
 export async function adminSetGbpWithdrawalStatus(input: {
   withdrawalId: string;
   toStatus: WithdrawalStatus;
@@ -166,142 +300,18 @@ export async function adminSetGbpWithdrawalStatus(input: {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const rowR = await client.query(
-      `SELECT * FROM elix_creator_withdrawals_gbp WHERE id = $1 FOR UPDATE`,
-      [input.withdrawalId],
-    );
-    if (!rowR.rowCount) {
+    const r = await applyGbpWithdrawalStatusOnClient(client, input);
+    if (!r.ok) {
       await client.query("ROLLBACK");
-      return { ok: false, error: "not_found" };
+      return r;
     }
-    const row = rowR.rows[0];
-    const from = String(row.status);
-    const amount = Math.floor(Number(row.amount_pence) || 0);
-    const creatorId = String(row.creator_user_id);
-
-    if (input.payoutProviderRef) {
-      const dup = await client.query(
-        `SELECT id FROM elix_creator_withdrawals_gbp
-          WHERE payout_provider_ref = $1 AND id <> $2 LIMIT 1`,
-        [input.payoutProviderRef, input.withdrawalId],
-      );
-      if (dup.rowCount) {
-        await client.query("ROLLBACK");
-        return { ok: false, error: "duplicate_provider_ref" };
-      }
-    }
-
-    await client.query(
-      `UPDATE elix_creator_withdrawals_gbp SET
-         status = $2,
-         payout_provider_ref = COALESCE($3, payout_provider_ref),
-         failure_reason = COALESCE($4, failure_reason),
-         processing_at = CASE WHEN $2 = 'processing' THEN COALESCE(processing_at, NOW()) ELSE processing_at END,
-         paid_at = CASE WHEN $2 = 'paid' THEN NOW() ELSE paid_at END
-       WHERE id = $1`,
-      [
-        input.withdrawalId,
-        input.toStatus,
-        input.payoutProviderRef ?? null,
-        input.failureReason ?? null,
-      ],
-    );
-    await appendStatusHistory(
-      client,
-      input.withdrawalId,
-      from,
-      input.toStatus,
-      input.adminUserId,
-      input.note,
-    );
-
-    if (input.toStatus === "paid" && from !== "paid") {
-      await client.query(
-        `UPDATE elix_creator_wallet_gbp
-            SET held_pence = GREATEST(0, held_pence - $2),
-                withdrawn_pence = withdrawn_pence + $2,
-                updated_at = NOW()
-          WHERE user_id = $1`,
-        [creatorId, amount],
-      );
-      // Mark the matching WITHDRAWAL ledger row paid so reconcile can count withdrawn.
-      await client.query(
-        `UPDATE elix_financial_ledger SET
-           status = 'paid',
-           paid_at = NOW(),
-           updated_at = NOW()
-         WHERE revenue_source = 'WITHDRAWAL'
-           AND status = 'held'
-           AND (rule_snapshot->>'withdrawal_id') = $1`,
-        [input.withdrawalId],
-      );
-    } else if (
-      (input.toStatus === "failed" ||
-        input.toStatus === "rejected" ||
-        input.toStatus === "cancelled") &&
-      from !== "paid"
-    ) {
-      // Only restore when a held WITHDRAWAL ledger row proves funds were reserved.
-      const heldLedger = await client.query(
-        `SELECT id FROM elix_financial_ledger
-          WHERE revenue_source = 'WITHDRAWAL'
-            AND status = 'held'
-            AND (rule_snapshot->>'withdrawal_id') = $1
-          LIMIT 1`,
-        [input.withdrawalId],
-      );
-      const fundsWereHeld = (heldLedger.rowCount ?? 0) > 0;
-      if (fundsWereHeld) {
-        // Release held only — available is restored via PAYOUT_FAILURE creator credit below.
-        await client.query(
-          `UPDATE elix_creator_wallet_gbp
-              SET held_pence = GREATEST(0, held_pence - $2),
-                  updated_at = NOW()
-            WHERE user_id = $1`,
-          [creatorId, amount],
-        );
-      }
-      // Release held WITHDRAWAL ledger so it no longer counts as held.
-      await client.query(
-        `UPDATE elix_financial_ledger SET
-           status = 'cancelled',
-           updated_at = NOW()
-         WHERE revenue_source = 'WITHDRAWAL'
-           AND status = 'held'
-           AND (rule_snapshot->>'withdrawal_id') = $1`,
-        [input.withdrawalId],
-      );
-      // Creator restore only — never credit platform wallet on payout failure.
-      // postLedgerEntry applies available += creatorAmountPence (reconcile excludes
-      // PAYOUT_FAILURE from available expected so cancel+restore stays balanced).
-      if (fundsWereHeld) {
-        await postLedgerEntry(client, {
-          idempotencyKey: `payout_failure:${input.withdrawalId}:${input.toStatus}`,
-          revenueSource: "PAYOUT_FAILURE",
-          creatorUserId: creatorId,
-          grossPence: amount,
-          netRevenuePence: amount,
-          creatorPct: 100,
-          creatorAmountPence: amount,
-          platformPct: 0,
-          platformAmountPence: 0,
-          status: "available",
-          ruleSnapshot: {
-            withdrawal_id: input.withdrawalId,
-            restored: true,
-            from_status: from,
-          },
-        });
-      }
-    }
-
     await client.query("COMMIT");
     return { ok: true };
   } catch (err) {
     try {
       await client.query("ROLLBACK");
-    } catch {
-      /* ignore */
+    } catch (rbErr) {
+      logger.error({ err: rbErr }, "adminSetGbpWithdrawalStatus ROLLBACK failed");
     }
     logger.error({ err }, "adminSetGbpWithdrawalStatus failed");
     return { ok: false, error: "database_error" };

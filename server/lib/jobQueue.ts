@@ -14,7 +14,13 @@ const allowMemoryFallback = process.env.NODE_ENV !== "production";
 export type JobPayload =
   | { type: "cleanup_retention" }
   | { type: "push_notify"; userId: string; title: string; body: string; data?: Record<string, string> }
-  | { type: "email_send"; to: string; subject: string; html: string };
+  | { type: "email_send"; to: string; subject: string; html: string }
+  | {
+      type: "google_play_consume";
+      productId: string;
+      purchaseToken: string;
+      externalPurchaseId: string;
+    };
 
 type QueuedJob = JobPayload & { enqueuedAt: number };
 
