@@ -4155,20 +4155,10 @@ export function useLiveHostController() {
       setModerationWarningMessage(data?.message || 'Your stream may violate our safety guidelines. Please avoid dangerous or illegal activity.');
       setShowModerationWarning(true);
     };
-    const handleModerationPause = (data: { message?: string }) => {
-      if (!mounted) return;
-      showToast(data?.message || 'Stream paused for safety. Please review our community guidelines.');
-      navigate('/feed', { replace: true });
-    };
-    const handleModerationSuspend = (data: { message?: string }) => {
-      if (!mounted) return;
-      showToast(data?.message || 'Your account is under review. Contact support if you have questions.');
-      navigate('/feed', { replace: true });
-    };
     const unbindModerationWs = bindLiveModerationWs({
       onWarning: handleModerationWarning,
-      onPause: handleModerationPause,
-      onSuspend: handleModerationSuspend,
+      onPause: handleModerationWarning,
+      onSuspend: handleModerationWarning,
     });
 
     connect();
@@ -4199,8 +4189,7 @@ export function useLiveHostController() {
     };
   }, []);
 
-  // AI moderation safety tick: WS events (bindLiveModerationWs) are preferred for
-  // warning/pause/suspend. Keep ONE 30s client frame check as backup only — no extra intervals.
+  // AI moderation safety tick: flag only (warning). Never pause/end/ban from this check.
   const moderationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   useEffect(() => {
     if (!isBroadcast || !user?.id || !effectiveStreamId) return;
@@ -4242,15 +4231,9 @@ export function useLiveHostController() {
         if (!json) return;
         const action = typeof json?.action === 'string' ? json.action : '';
         const message = typeof json?.message === 'string' ? json.message : '';
-        if (action === 'warning') {
-          setModerationWarningMessage(message);
+        if (action === 'warning' || action === 'pause' || action === 'suspend') {
+          setModerationWarningMessage(message || 'Your stream may violate our safety guidelines. Please avoid dangerous or illegal activity.');
           setShowModerationWarning(true);
-        } else if (action === 'pause') {
-          showToast(message);
-          navigate('/feed', { replace: true });
-        } else if (action === 'suspend') {
-          showToast(message);
-          navigate('/feed', { replace: true });
         }
       } catch (err) {
         reportFailure('live_moderation_check', err, { streamKey: effectiveStreamId });
@@ -4265,7 +4248,7 @@ export function useLiveHostController() {
         moderationIntervalRef.current = null;
       }
     };
-  }, [isBroadcast, user?.id, effectiveStreamId, navigate, videoRef]);
+  }, [isBroadcast, user?.id, effectiveStreamId, videoRef]);
 
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [userLevel, setUserLevel] = useState(() => Math.max(1, Number(user?.level) || 0));

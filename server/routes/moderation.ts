@@ -1,16 +1,14 @@
 /**
- * Live AI moderation: flag dangerous behavior only; enforce warning → pause → suspend.
- * All actions logged for review. Do NOT flag: smoking, drinking, sitting in car, normal adult content.
+ * Live AI moderation: flag dangerous behavior only. Never pause, end, ban, or block the stream.
+ * Flags are logged for review. Do NOT flag: smoking, drinking, sitting in car, normal adult content.
  */
 
 import { Request, Response } from 'express';
 import { getPool } from '../lib/postgres';
-import { getTokenFromRequest, verifyAuthToken, invalidateUserSessionCache } from './auth';
+import { getTokenFromRequest, verifyAuthToken } from './auth';
 import { logger } from '../lib/logger';
 import { isValkeyConfigured, valkeyRateCheck } from '../lib/valkey';
-import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
-import { broadcastToRoom, deleteCohostLayout, disconnectUserSessions } from '../websocket/index';
-import { broadcastToFeedSubscribers } from '../feedBroadcast';
+import { resolveStreamOwnerUserId } from './livestream';
 
 const DANGEROUS_CATEGORIES = [
   'driving_while_live',
@@ -21,10 +19,7 @@ const DANGEROUS_CATEGORIES = [
   'violent_challenge',
 ] as const;
 
-const WINDOW_MS = 24 * 60 * 60 * 1000; // 24h for "repeated"
 const WARNING_MESSAGE = 'Your stream may violate our safety guidelines. Please avoid dangerous or illegal activity.';
-const PAUSE_MESSAGE = 'Stream paused for safety. Please review our community guidelines.';
-const SUSPEND_MESSAGE = 'Your account is under review. Contact support if you have questions.';
 
 type Severity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -170,76 +165,7 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
     const category = result.category ?? 'unspecified';
     const severity = (result.severity ?? 'medium') as Severity;
 
-    const since = new Date(Date.now() - WINDOW_MS).toISOString();
-    let recentCount = 0;
-    try {
-      const r = await db.query(
-        `SELECT COUNT(*)::int AS c FROM live_moderation_log
-         WHERE user_id = $1 AND kind IN ('flag', 'warning', 'pause', 'suspend') AND created_at >= $2`,
-        [userId, since],
-      );
-      recentCount = Number(r.rows[0]?.c ?? 0);
-    } catch (err) {
-      logger.error({ err, userId }, 'Failed to count recent moderation entries');
-    }
-
-    const isCritical = severity === 'critical';
-    const shouldSuspend = isCritical || recentCount >= 2;
-
-    if (shouldSuspend) {
-      await logEntry('flag', category, severity, 'suspend', { recent_count: recentCount, reason: isCritical ? 'critical' : 'repeated' });
-      const bannedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      try {
-        await db.query(
-          `UPDATE profiles
-              SET is_verified = FALSE,
-                  banned_until = $2,
-                  updated_at = NOW()
-            WHERE user_id = $1`,
-          [userId, bannedUntil.toISOString()],
-        );
-      } catch (err) {
-        logger.error({ err, userId }, 'Failed to ban account for moderation');
-      }
-      try {
-        const removed = await removeActiveStream(streamKey, userId);
-        if (removed) {
-          await deleteCohostLayout(streamKey);
-          broadcastToRoom(streamKey, 'stream_ended', {
-            stream_key: streamKey,
-            host_user_id: userId,
-            reason: 'moderation_suspend',
-          });
-          broadcastToFeedSubscribers('stream_ended', { stream_key: streamKey });
-        }
-      } catch (err) {
-        logger.error({ err, userId, streamKey }, 'Failed to end stream on moderation suspend');
-      }
-      disconnectUserSessions(userId, 'Suspended');
-      await invalidateUserSessionCache(userId);
-      return res.json({ action: 'suspend', message: SUSPEND_MESSAGE });
-    }
-
-    if (recentCount >= 1) {
-      await logEntry('flag', category, severity, 'pause', { recent_count: recentCount });
-      try {
-        const removed = await removeActiveStream(streamKey, userId);
-        if (removed) {
-          await deleteCohostLayout(streamKey);
-          broadcastToRoom(streamKey, 'stream_ended', {
-            stream_key: streamKey,
-            host_user_id: userId,
-            reason: 'moderation_pause',
-          });
-          broadcastToFeedSubscribers('stream_ended', { stream_key: streamKey });
-        }
-      } catch (err) {
-        logger.error({ err, userId, streamKey }, 'Failed to end stream on moderation pause');
-      }
-      return res.json({ action: 'pause', message: PAUSE_MESSAGE });
-    }
-
-    await logEntry('warning', category, severity, 'warning', {});
+    await logEntry('flag', category, severity, 'flag', {});
     return res.json({ action: 'warning', message: WARNING_MESSAGE });
   } catch (err) {
     logger.error({ err, streamKey: streamKey, userId }, 'handleLiveModerationCheck AI path failed');
