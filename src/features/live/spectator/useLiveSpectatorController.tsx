@@ -56,7 +56,7 @@ import {
   getTestLevel,
   shouldUseTestCoinsForGifts,
 } from '../../../lib/testCoins';
-import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
+import { authorizeTestCoinIssue, formatTestCoinIssueError, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { applyCohostGiftTileScore, applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -1991,7 +1991,7 @@ export function useLiveSpectatorController() {
     try {
       const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, 100000000);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         return;
       }
       setTestCoinBalance(result.balance);
@@ -2027,7 +2027,7 @@ export function useLiveSpectatorController() {
     try {
       const result = await mintTestCoinsViaServer(user?.id, testCoinsPwd, amount);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         if (result.status === 403) setTestCoinsStep('password');
         return;
       }
@@ -2055,7 +2055,7 @@ export function useLiveSpectatorController() {
     try {
       const result = await authorizeTestCoinIssue(testCoinsPwd);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         setTestCoinsPwd('');
         return;
       }

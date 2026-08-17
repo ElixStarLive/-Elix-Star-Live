@@ -81,7 +81,7 @@ import { GiftPanel } from '../../../components/GiftPanel';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { getPersistedTestCoinsBalance } from '../../../lib/testCoins';
-import { authorizeTestCoinIssue, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
+import { authorizeTestCoinIssue, formatTestCoinIssueError, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { RankingPanel } from '../../../components/RankingPanel';
 import {
@@ -527,7 +527,7 @@ export default function LiveHostScreen() {
     try {
       const result = await authorizeTestCoinIssue(testCoinsPwd);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         setTestCoinsPwd('');
         return;
       }
@@ -562,7 +562,7 @@ export default function LiveHostScreen() {
     try {
       const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, amount);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         if (result.status === 403) setTestCoinsStep('password');
         return;
       }
@@ -583,7 +583,7 @@ export default function LiveHostScreen() {
     try {
       const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, 100000000);
       if (result.ok === false) {
-        setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
+        setTestCoinsError(formatTestCoinIssueError(result.error, result.status));
         return;
       }
       setTestCoinBalance(result.balance);

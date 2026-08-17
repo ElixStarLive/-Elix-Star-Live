@@ -10,6 +10,14 @@ export type TestCoinIssueResult =
   | { ok: true; balance: number; minted: number }
   | { ok: false; status: number; error: string };
 
+/** Never show leftover admin-role copy. 403 is wrong password (or stale server). */
+export function formatTestCoinIssueError(error: string, status: number): string {
+  if (status === 401 || /not authenticated|invalid/i.test(error)) return "Sign in required";
+  if (status === 429 || /too many/i.test(error)) return "Too many attempts. Try again later.";
+  if (status === 403 || error === "FORBIDDEN" || /admin/i.test(error)) return "Wrong password";
+  return error;
+}
+
 export async function authorizeTestCoinIssue(password: string): Promise<TestCoinIssueResult> {
   const r = await request<{ ok?: boolean; error?: string }>("/api/test-coins/authorize", {
     method: "POST",
