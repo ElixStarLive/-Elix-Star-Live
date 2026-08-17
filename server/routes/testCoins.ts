@@ -5,15 +5,20 @@
  *   1. Authenticated user (login)
  *   2. Correct TEST_COINS_ISSUE_PASSWORD from server env (never in the client)
  *
- * Not an admin feature. Issued balances stay TEST origin on the client
- * (localStorage) for Live/Battle gameplay. They never enter paid-coin lots,
- * ledger, Stripe, or creator GBP revenue (giftSource=test_coins).
+ * Not an admin feature. Issued balances are SERVER-owned (see
+ * lib/testCoinsBalance.ts) and stay TEST origin: they never enter paid-coin
+ * lots, ledger, Stripe, or creator GBP revenue (giftSource=test_coins).
  */
 import { createHash, timingSafeEqual, randomBytes } from "crypto";
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
+import {
+  creditTestCoins,
+  getTestCoinsBalance,
+  isTestCoinsStoreAvailable,
+} from "../lib/testCoinsBalance";
 
 const MAX_MINT = 100_000_000;
 const FAIL_WINDOW_MS = 15 * 60 * 1000;
@@ -23,9 +28,6 @@ const LOCK_MS = 15 * 60 * 1000;
 type FailState = { count: number; windowStart: number; lockedUntil: number };
 const failByUser = new Map<string, FailState>();
 const failByIp = new Map<string, FailState>();
-
-/** In-memory issued balances (server truth for mint). Client mirrors for gift UI. */
-const issuedBalances = new Map<string, number>();
 
 function sha256Hex(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -172,7 +174,7 @@ async function requireAuthedUser(
 export async function handleGetTestCoinBalance(req: Request, res: Response): Promise<void> {
   const auth = await requireAuthedUser(req, res);
   if (!auth) return;
-  const balance = issuedBalances.get(auth.userId) || 0;
+  const balance = await getTestCoinsBalance(auth.userId);
   res.json({ balance, userId: auth.userId, origin: "test_coins" });
 }
 
@@ -195,7 +197,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "rate_limited",
       reason: "authorize_rate_limited",
@@ -208,7 +210,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "misconfigured",
       reason: "TEST_COINS_ISSUE_PASSWORD_missing",
@@ -223,7 +225,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "denied",
       reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
@@ -254,7 +256,7 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "rate_limited",
       reason: "mint_rate_limited",
@@ -267,7 +269,7 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "misconfigured",
       reason: "TEST_COINS_ISSUE_PASSWORD_missing",
@@ -282,7 +284,7 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      balanceAfter: await getTestCoinsBalance(auth.userId),
       ip,
       outcome: "denied",
       reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
@@ -297,9 +299,20 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     return;
   }
 
-  const current = issuedBalances.get(auth.userId) || 0;
-  const newBalance = current + amount;
-  issuedBalances.set(auth.userId, newBalance);
+  if (!isTestCoinsStoreAvailable()) {
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount,
+      balanceAfter: 0,
+      ip,
+      outcome: "misconfigured",
+      reason: "test_coin_balance_store_unavailable",
+    });
+    res.status(503).json({ error: "Test-coin balance store is unavailable." });
+    return;
+  }
+
+  const newBalance = await creditTestCoins(auth.userId, amount);
   clearFailures(auth.userId, ip);
 
   await auditIssue({
@@ -316,19 +329,4 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     origin: "test_coins",
     financialValueGbp: 0,
   });
-}
-
-/** Spend helper kept for legacy score path — still auth-gated, never money. */
-export async function handleSpendTestCoinsForScore(req: Request, res: Response): Promise<void> {
-  const auth = await requireAuthedUser(req, res);
-  if (!auth) return;
-  const amount = Math.max(0, Math.floor(Number(req.body?.amount) || 0));
-  const current = issuedBalances.get(auth.userId) || 0;
-  if (amount > current) {
-    res.status(400).json({ error: "Insufficient test coins.", balance: current, origin: "test_coins" });
-    return;
-  }
-  const newBalance = current - amount;
-  issuedBalances.set(auth.userId, newBalance);
-  res.json({ balance: newBalance, spent: amount, origin: "test_coins", financialValueGbp: 0 });
 }

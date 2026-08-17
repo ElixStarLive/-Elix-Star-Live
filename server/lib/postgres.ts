@@ -538,225 +538,101 @@ export async function listLiveShareRequestsNonFollowing(recipientId: string): Pr
   }
 }
 
-// ── Battle scores (Neon / Postgres) — one bucket per creator slot per host room ─────────────────
+// ── Battle results (Neon / Postgres) — the permanent record of a finished battle ─────────────────
+//
+// Live battle scoring is Valkey-authoritative (see server/websocket/battle.ts).
+// Postgres stores only the frozen result written once at finalization, so the
+// outcome survives Valkey cleanup and server restarts.
 
-export type BattleSlot = "host" | "opponent" | "player3" | "player4";
-
-export type BattleSessionScoreContext = {
-  hostRoomId: string;
-  id: string;
-  hostUserId: string;
-  opponentUserId: string;
-  player3UserId: string;
-  player4UserId: string;
+export type BattleResultParticipantRecord = {
+  seat: "host" | "opponent" | "player3" | "player4";
+  creatorUserId: string;
+  teamId: "teamA" | "teamB";
+  score: number;
 };
 
-export type BattleScoresRow = {
-  host: number;
-  opponent: number;
-  player3: number;
-  player4: number;
+export type BattleResultRecord = {
+  battleId: string;
+  roomId: string;
+  battleType: "1x1" | "2x2";
+  winner: "teamA" | "teamB" | "draw";
+  teamAScore: number;
+  teamBScore: number;
+  /** Epoch ms; 0 when unknown. */
+  startedAt: number;
+  /** Epoch ms. */
+  endedAt: number;
+  finalizeReason: string;
+  participants: BattleResultParticipantRecord[];
 };
 
-function rowToScores(rows: { slot: string; score: unknown }[]): BattleScoresRow {
-  const out: BattleScoresRow = { host: 0, opponent: 0, player3: 0, player4: 0 };
-  for (const r of rows) {
-    const s = String(r.slot);
-    const n = Number(r.score);
-    if (s === "host") out.host = Number.isFinite(n) ? n : 0;
-    else if (s === "opponent") out.opponent = Number.isFinite(n) ? n : 0;
-    else if (s === "player3") out.player3 = Number.isFinite(n) ? n : 0;
-    else if (s === "player4") out.player4 = Number.isFinite(n) ? n : 0;
-  }
-  return out;
-}
-
-/** Insert or refresh four creator buckets (P1–P4) for a battle. */
-export async function dbEnsureBattleCreatorBuckets(ctx: BattleSessionScoreContext): Promise<void> {
+/**
+ * Write the finalized battle exactly once.
+ * `ON CONFLICT (battle_id) DO NOTHING` makes a repeated finalization attempt a
+ * no-op instead of a second result row.
+ */
+export async function dbInsertBattleResult(record: BattleResultRecord): Promise<void> {
   const p = getPool();
   if (!p) {
     throw new Error("Postgres pool is not initialized");
   }
-  const creators: Record<BattleSlot, string> = {
-    host: ctx.hostUserId || "",
-    opponent: ctx.opponentUserId || "",
-    player3: ctx.player3UserId || "",
-    player4: ctx.player4UserId || "",
-  };
-  for (const slot of ["host", "opponent", "player3", "player4"] as BattleSlot[]) {
-    await p.query(
-      `INSERT INTO battle_creator_buckets (host_room_id, battle_id, slot, creator_user_id, score)
-       VALUES ($1, $2, $3, $4, 0)
-       ON CONFLICT (host_room_id, slot) DO UPDATE SET
-         battle_id = EXCLUDED.battle_id,
-         creator_user_id = CASE
-           WHEN EXCLUDED.creator_user_id <> '' THEN EXCLUDED.creator_user_id
-           ELSE battle_creator_buckets.creator_user_id
-         END`,
-      [ctx.hostRoomId, ctx.id, slot, creators[slot]],
-    );
-  }
-}
-
-export async function dbSyncBattleCreatorSlot(
-  hostRoomId: string,
-  slot: BattleSlot,
-  creatorUserId: string,
-): Promise<void> {
-  if (!creatorUserId) return;
-  const p = getPool();
-  if (!p) {
-    throw new Error("Postgres pool is not initialized");
-  }
+  const client = await p.connect();
   try {
-    await p.query(
-      `UPDATE battle_creator_buckets SET creator_user_id = $3, updated_at = NOW()
-       WHERE host_room_id = $1 AND slot = $2`,
-      [hostRoomId, slot, creatorUserId],
+    await client.query("BEGIN");
+    const inserted = await client.query(
+      `INSERT INTO battle_results
+         (battle_id, room_id, battle_type, winner, team_a_score, team_b_score,
+          started_at, ended_at, finalize_reason)
+       VALUES ($1, $2, $3, $4, $5, $6,
+               CASE WHEN $7::bigint > 0 THEN to_timestamp($7::bigint / 1000.0) ELSE NULL END,
+               to_timestamp($8::bigint / 1000.0), $9)
+       ON CONFLICT (battle_id) DO NOTHING`,
+      [
+        record.battleId,
+        record.roomId,
+        record.battleType,
+        record.winner,
+        Math.max(0, Math.trunc(record.teamAScore)),
+        Math.max(0, Math.trunc(record.teamBScore)),
+        Math.max(0, Math.trunc(record.startedAt)),
+        Math.max(0, Math.trunc(record.endedAt)) || Date.now(),
+        record.finalizeReason || "",
+      ],
     );
-  } catch (err) {
-    logger.error({ err, hostRoomId, slot }, "dbSyncBattleCreatorSlot failed");
-    throw err;
-  }
-}
-
-/** Atomic increment for one creator bucket; returns all four scores. Ensures rows if missing. */
-export async function dbAddBattleScoreAndFetchAll(
-  hostRoomId: string,
-  target: BattleSlot,
-  points: number,
-  ensureCtx: BattleSessionScoreContext | null,
-): Promise<BattleScoresRow | null> {
-  const battlePool = getPool();
-  if (!battlePool) {
-    throw new Error("Postgres pool is not initialized");
-  }
-
-  async function doIncrement(): Promise<BattleScoresRow | null> {
-    const client = await battlePool.connect();
-    try {
-      await client.query("BEGIN");
-      const up = await client.query(
-        `UPDATE battle_creator_buckets SET score = score + $3, updated_at = NOW()
-         WHERE host_room_id = $1 AND slot = $2`,
-        [hostRoomId, target, points],
-      );
-      if ((up.rowCount ?? 0) === 0) {
-        await client.query("ROLLBACK");
-        return null;
-      }
-      const sel = await client.query(
-        `SELECT slot, score FROM battle_creator_buckets WHERE host_room_id = $1`,
-        [hostRoomId],
-      );
-      await client.query("COMMIT");
-      return rowToScores(sel.rows as { slot: string; score: unknown }[]);
-    } catch (err) {
-      try {
-        await client.query("ROLLBACK");
-      } catch (rbErr: unknown) {
-        logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle bucket increment");
-      }
-      logger.error({ err, hostRoomId, target }, "battle bucket increment failed");
-      throw err;
-    } finally {
-      client.release();
+    if ((inserted.rowCount ?? 0) === 0) {
+      // Already finalized by another execution — leave the stored result alone.
+      await client.query("ROLLBACK");
+      return;
     }
-  }
-
-  let result = await doIncrement();
-  if (result === null && ensureCtx) {
-    await dbEnsureBattleCreatorBuckets(ensureCtx);
-    result = await doIncrement();
-  }
-  return result;
-}
-
-/** Increment both slots on one team (red: host+player3, blue: opponent+player4) in one transaction. */
-export async function dbAddBattleScoreTeamSideAndFetchAll(
-  hostRoomId: string,
-  side: "red" | "blue",
-  pointsPerPlayer: number,
-  ensureCtx: BattleSessionScoreContext | null,
-): Promise<BattleScoresRow | null> {
-  const battlePool = getPool();
-  if (!battlePool) {
-    throw new Error("Postgres pool is not initialized");
-  }
-
-  const slots: [BattleSlot, BattleSlot] =
-    side === "red" ? ["host", "player3"] : ["opponent", "player4"];
-
-  async function doIncrement(): Promise<BattleScoresRow | null> {
-    const client = await battlePool.connect();
-    try {
-      await client.query("BEGIN");
-      for (const slot of slots) {
-        const up = await client.query(
-          `UPDATE battle_creator_buckets SET score = score + $3, updated_at = NOW()
-           WHERE host_room_id = $1 AND slot = $2`,
-          [hostRoomId, slot, pointsPerPlayer],
-        );
-        if ((up.rowCount ?? 0) === 0) {
-          await client.query("ROLLBACK");
-          return null;
-        }
-      }
-      const sel = await client.query(
-        `SELECT slot, score FROM battle_creator_buckets WHERE host_room_id = $1`,
-        [hostRoomId],
+    for (const participant of record.participants) {
+      await client.query(
+        `INSERT INTO battle_result_participants
+           (battle_id, seat, creator_user_id, team_id, score)
+         VALUES ($1, $2, $3, $4, $5)
+         ON CONFLICT (battle_id, seat) DO NOTHING`,
+        [
+          record.battleId,
+          participant.seat,
+          participant.creatorUserId,
+          participant.teamId,
+          Math.max(0, Math.trunc(participant.score)),
+        ],
       );
-      await client.query("COMMIT");
-      return rowToScores(sel.rows as { slot: string; score: unknown }[]);
-    } catch (err) {
-      try {
-        await client.query("ROLLBACK");
-      } catch (rbErr: unknown) {
-        logger.warn({ err: rbErr instanceof Error ? rbErr.message : rbErr, hostRoomId }, "Rollback failed in battle team side increment");
-      }
-      logger.error({ err, hostRoomId, side }, "battle team side increment failed");
-      throw err;
-    } finally {
-      client.release();
     }
-  }
-
-  let result = await doIncrement();
-  if (result === null && ensureCtx) {
-    await dbEnsureBattleCreatorBuckets(ensureCtx);
-    result = await doIncrement();
-  }
-  return result;
-}
-
-export async function dbLoadBattleScores(hostRoomId: string): Promise<BattleScoresRow | null> {
-  const p = getPool();
-  if (!p) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    const sel = await p.query(
-      `SELECT slot, score FROM battle_creator_buckets WHERE host_room_id = $1`,
-      [hostRoomId],
-    );
-    if (!sel.rows?.length) return null;
-    return rowToScores(sel.rows as { slot: string; score: unknown }[]);
+    await client.query("COMMIT");
   } catch (err) {
-    logger.error({ err, hostRoomId }, "dbLoadBattleScores failed");
+    try {
+      await client.query("ROLLBACK");
+    } catch (rbErr: unknown) {
+      logger.warn(
+        { err: rbErr instanceof Error ? rbErr.message : rbErr, battleId: record.battleId },
+        "Rollback failed in battle result insert",
+      );
+    }
+    logger.error({ err, battleId: record.battleId }, "dbInsertBattleResult failed");
     throw err;
-  }
-}
-
-export async function dbDeleteBattleBuckets(hostRoomId: string): Promise<void> {
-  const p = getPool();
-  if (!p) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    await p.query(`DELETE FROM battle_creator_buckets WHERE host_room_id = $1`, [hostRoomId]);
-  } catch (err) {
-    logger.error({ err, hostRoomId }, "dbDeleteBattleBuckets failed");
-    throw err;
+  } finally {
+    client.release();
   }
 }
 

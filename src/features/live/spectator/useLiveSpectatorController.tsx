@@ -50,12 +50,17 @@ import { resolveHeartSpawnFromClient } from '../chat/resolveHeartSpawnFromClient
 import { createFloatingHeartParticle } from '../chat/createFloatingHeartParticle';
 import {
   addTestGiftXp,
-  debitTestCoinsForGift,
   getPersistedTestCoinsBalance,
   getTestLevel,
+  persistTestCoinsBalance,
   shouldUseTestCoinsForGifts,
 } from '../../../lib/testCoins';
-import { authorizeTestCoinIssue, formatTestCoinIssueError, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
+import {
+  authorizeTestCoinIssue,
+  formatTestCoinIssueError,
+  mintTestCoinsViaServer,
+  refreshTestCoinsBalance,
+} from '../../../lib/testCoinIssueApi';
 import { SPECTATOR_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { applyCohostGiftTileScore, applyLocalGiftSendSideEffects } from '../gifts/applyLocalGiftSendSideEffects';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -137,7 +142,7 @@ import { cohostRequestSend, cohostSeatLeave } from '../cohost/liveCohostActions'
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
 import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
-import { liveGiftSentWs } from '../gifts/liveGiftWsActions';
+import { sendTestCoinGiftWs } from '../gifts/liveGiftWsActions';
 
 /** Co-host tile gift totals — 15K / 100K / 500K style. */
 function battleTeamLabelsFromPayload(data: Record<string, unknown>): { red: string; blue: string } {
@@ -1928,6 +1933,21 @@ export function useLiveSpectatorController() {
     },
   });
 
+  // The test balance lives on the server, so read it from there and mirror it
+  // for display. Without this the panel would show a stale device-local number.
+  useEffect(() => {
+    const uid = user?.id;
+    if (!uid) return;
+    let cancelled = false;
+    void refreshTestCoinsBalance(uid).then((balance) => {
+      if (cancelled || balance === null) return;
+      setTestCoinBalance(balance);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
+
   useEffect(() => {
     if (showTestCoinsModal && testCoinsStep === 'password') {
       setTimeout(() => testCoinsPwdRef.current?.focus(), 100);
@@ -3065,15 +3085,51 @@ export function useLiveSpectatorController() {
     let giftTransactionId: string | null = null;
 
     if (usedTestCoins) {
-      const debit = debitTestCoinsForGift((user as NonNullable<typeof user>).id, gift.coins);
-      if (debit.ok === false) {
-        showToast(formatInsufficientCoinsToast(debit.balance, gift.coins));
+      const testUserId = (user as NonNullable<typeof user>).id;
+      // Test coins are a SERVER balance: ask, then play. The server debits
+      // atomically and returns the new balance, so the animation and the battle
+      // points can never come from a balance the client made up.
+      const testVideoUrl = resolvePlayableGiftVideoUrl(gift.video);
+      const ack = await sendTestCoinGiftWs({
+        giftId: gift.id,
+        giftName: gift.name,
+        username: viewerName,
+        coins: gift.coins,
+        gift_icon: gift.icon || '🎁',
+        quantity: 1,
+        level: userLevel,
+        avatar: viewerAvatar,
+        video: testVideoUrl,
+        animation_url: testVideoUrl,
+        transactionId: null,
+        giftSource: 'test_coins',
+        creator_name: hostName || 'Creator',
+        host_user_id: hostUserId || effectiveStreamId,
+        ...(spectatorBattle?.active
+          ? { battleTarget: spectatorGiftBattleTarget }
+          : {}),
+        ...(!spectatorBattle?.active && selectedCohostGiftUserId
+          ? {
+              cohostTargetUserId: selectedCohostGiftUserId,
+              cohost_target_user_id: selectedCohostGiftUserId,
+            }
+          : {}),
+      });
+      if (ack.balance !== null) {
+        persistTestCoinsBalance(testUserId, ack.balance);
+        setTestCoinBalance(ack.balance);
+      }
+      if (!ack.ok) {
+        showToast(
+          ack.status === 'insufficient_test_coins'
+            ? formatInsufficientCoinsToast(ack.balance ?? 0, gift.coins)
+            : 'Gift failed — please try again',
+        );
         return;
       }
-      setTestCoinBalance(debit.newBalance);
       // Test-only: drive a LOCAL level using the same curve as the server so the
       // level visibly climbs while testing. Never sent to the server / real XP.
-      const sim = addTestGiftXp((user as NonNullable<typeof user>).id, gift.coins);
+      const sim = addTestGiftXp(testUserId, gift.coins);
       if (sim.level > userLevel) {
         setUserLevel(sim.level);
         updateUser({ level: sim.level });
@@ -3180,37 +3236,9 @@ export function useLiveSpectatorController() {
       avatar: viewerAvatar,
     };
     setMessages(prev => appendCapped(prev, giftMsg, LIVE_CHAT_MESSAGE_CAP));
-    // Test coins: local WS gift_sent for animation + battle match points only.
-    // Paid / starter / promo: REST sendLivePaidGift is the sole authority (same as host) — never gift_sent.
-    if (usedTestCoins) {
-      const wsVideo = resolvePlayableGiftVideoUrl(gift.video);
-      liveGiftSentWs({
-        giftId: gift.id,
-        giftName: gift.name,
-        username: viewerName,
-        coins: gift.coins,
-        gift_icon: gift.icon || '🎁',
-        quantity: 1,
-        level: newLevel,
-        avatar: viewerAvatar,
-        video: wsVideo,
-        animation_url: wsVideo,
-        transactionId: null,
-        giftSource: 'test_coins',
-        creator_name: hostName || 'Creator',
-        host_user_id: hostUserId || effectiveStreamId,
-        ...(spectatorBattle?.active
-          ? { battleTarget: spectatorGiftBattleTarget }
-          : {}),
-        ...(!spectatorBattle?.active && selectedCohostGiftUserId
-          ? {
-              cohostTargetUserId: selectedCohostGiftUserId,
-              cohost_target_user_id: selectedCohostGiftUserId,
-            }
-          : {}),
-      });
-    }
-    
+    // Test coins already went out through sendTestCoinGiftWs above (server debit
+    // first). Paid / starter / promo: REST sendLivePaidGift is the sole
+    // authority (same as host) — never gift_sent.
 
     setLastSentGift(gift);
     let nextCombo = 1;

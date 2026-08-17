@@ -1,4 +1,4 @@
-/** Local test coins — BATTLE GAME SCORE + gift animation only. Never real money / IAP / Stripe. */
+/** Test coins — BATTLE GAME SCORE + gift animation only. Never real money / IAP / Stripe. */
 
 /**
  * Test coins stay in the app on iOS, Android, and Play Store.
@@ -9,6 +9,15 @@ export function areTestCoinsEnabled(): boolean {
   return true;
 }
 
+/**
+ * The test-coin BALANCE is owned by the server (Valkey, see
+ * server/lib/testCoinsBalance.ts). Mint credits it, and every test-coin gift is
+ * debited there before any animation or battle point is awarded.
+ *
+ * localStorage here is a DISPLAY MIRROR only: it lets the panel show the same
+ * number instantly across screens. It is never the authority — the client does
+ * not decide whether a spend is allowed, and writing to it cannot create coins.
+ */
 export function getPersistedTestCoinsBalance(userId: string | undefined): number {
   if (!areTestCoinsEnabled()) return 0;
   if (!userId || typeof localStorage === 'undefined') return 0;
@@ -20,6 +29,7 @@ export function getPersistedTestCoinsBalance(userId: string | undefined): number
   }
 }
 
+/** Mirror the SERVER balance for display. Only call with a server-returned value. */
 export function persistTestCoinsBalance(userId: string | undefined, balance: number): void {
   if (!areTestCoinsEnabled()) return;
   if (!userId || typeof localStorage === 'undefined') return;
@@ -30,66 +40,14 @@ export function persistTestCoinsBalance(userId: string | undefined, balance: num
   }
 }
 
-/** When test coins exist, gifts spend from test balance only — never the real wallet. */
+/**
+ * Which balance the gift panel spends from: test coins when the user has a
+ * server-issued test balance, otherwise the real wallet. This selects the
+ * REQUEST route only — the server validates and debits whichever it is.
+ */
 export function shouldUseTestCoinsForGifts(userId: string | undefined): boolean {
   if (!areTestCoinsEnabled()) return false;
   return getPersistedTestCoinsBalance(userId) > 0;
-}
-
-export function resolveGiftUiBalance(walletBalance: number, userId: string | undefined): number {
-  if (!areTestCoinsEnabled()) return Math.max(0, walletBalance);
-  const test = getPersistedTestCoinsBalance(userId);
-  if (test > 0) return test;
-  return Math.max(0, walletBalance);
-}
-
-/** Balance used before sending a gift — always prefers persisted test coins over wallet state. */
-export function getSpendableGiftBalance(displayBalance: number, userId: string | undefined): number {
-  return resolveGiftUiBalance(displayBalance, userId);
-}
-
-/**
- * After spending test coins, restore the UI to real wallet when test hits 0.
- * Keeps test and real balances from wiping each other.
- */
-export function displayBalanceAfterTestSpend(
-  testBalanceAfterDebit: number,
-  realWalletBalance: number,
-): number {
-  if (!areTestCoinsEnabled()) return Math.max(0, realWalletBalance);
-  if (testBalanceAfterDebit > 0) return testBalanceAfterDebit;
-  return Math.max(0, realWalletBalance);
-}
-
-/**
- * Mirror helper for TEST origin localStorage balance after server mint.
- * UI mint must still go through POST /api/test-coins/mint (login + password).
- * Do not use this to invent a second mint path in the UI.
- */
-export function addPersistedTestCoins(userId: string | undefined, amount: number): number {
-  if (!areTestCoinsEnabled()) return 0;
-  const add = Math.max(0, Math.floor(amount));
-  const current = getPersistedTestCoinsBalance(userId);
-  const newBalance = current + add;
-  persistTestCoinsBalance(userId, newBalance);
-  return newBalance;
-}
-
-export type DebitTestCoinsResult =
-  | { ok: true; newBalance: number }
-  | { ok: false; balance: number };
-
-export function debitTestCoinsForGift(
-  userId: string | undefined,
-  amount: number,
-): DebitTestCoinsResult {
-  if (!areTestCoinsEnabled()) return { ok: false as const, balance: 0 };
-  const coins = Math.max(0, Math.floor(amount));
-  const current = getPersistedTestCoinsBalance(userId);
-  if (current < coins) return { ok: false as const, balance: current };
-  const newBalance = current - coins;
-  persistTestCoinsBalance(userId, newBalance);
-  return { ok: true as const, newBalance };
 }
 
 // ── Local test-only XP/level simulation ────────────────────────────────────

@@ -18,10 +18,7 @@ import {
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
 import { deliverVerifiedGift } from "../websocket/giftDelivery";
-import {
-  getCohostLayout,
-  hasCohostPublishGrant,
-} from "../websocket/index";
+import { resolveValidatedGiftRecipient } from "../websocket/giftRecipient";
 import { getEngagementFlags } from "../lib/engagementFlags";
 import { spendPromoCoinsAndRecordGift } from "../lib/engagement";
 
@@ -150,39 +147,23 @@ export async function handleSendGift(req: Request, res: Response) {
     }
     const creatorId = String(hostRes.rows[0].user_id);
 
-    // Optional: gift a live co-host tile instead of the stream host.
-    // Validated via publish grant and/or the host's synced cohost layout.
-    let recipientId = creatorId;
-    let resolvedCohostTarget: string | null = null;
-    const requestedCohost =
-      typeof cohostTargetRaw === "string" ? cohostTargetRaw.trim() : "";
-    if (requestedCohost && requestedCohost !== creatorId) {
-      const granted = await hasCohostPublishGrant(roomId, requestedCohost);
-      let inLayout = false;
-      if (!granted) {
-        const layout = await getCohostLayout(roomId);
-        const coHosts = layout?.coHosts;
-        inLayout =
-          Array.isArray(coHosts) &&
-          coHosts.some((h) => {
-            const row = h as { userId?: unknown; status?: unknown };
-            const uid = typeof row.userId === "string" ? row.userId : "";
-            const status = typeof row.status === "string" ? row.status : "";
-            return (
-              uid === requestedCohost &&
-              (status === "live" ||
-                status === "accepted" ||
-                status === "" ||
-                status == null)
-            );
-          });
-      }
-      if (!granted && !inLayout) {
-        return res.status(400).json({ error: "INVALID_COHOST_TARGET" });
-      }
-      recipientId = requestedCohost;
-      resolvedCohostTarget = requestedCohost;
+    // WHO is being supported — one validated answer for money, battle score,
+    // animation routing and creator progress. During a battle the validated
+    // battle seat decides, so paid creator revenue follows the creator the
+    // viewer actually gifted, not the room host.
+    const resolved = await resolveValidatedGiftRecipient({
+      roomId,
+      streamOwnerUserId: creatorId,
+      requestedBattleTarget: battleTargetRaw,
+      requestedCohostTargetUserId: cohostTargetRaw,
+    });
+    if (resolved.ok === false) {
+      return res.status(400).json({ error: resolved.error });
     }
+    const giftRecipient = resolved.recipient;
+    const recipientId = giftRecipient.creatorId;
+    const resolvedCohostTarget =
+      giftRecipient.origin === "cohost" ? giftRecipient.creatorId : null;
 
     if (gift_source === "starter_coins") {
       const starterResult = await sendStarterCoinGift({
@@ -232,8 +213,7 @@ export async function handleSendGift(req: Request, res: Response) {
         coins: coinCost,
         giftSource: "starter_coins",
         transactionId: clientTransactionId,
-        battleTarget: battleTargetRaw,
-        cohostTargetUserId: resolvedCohostTarget,
+        recipient: giftRecipient,
         animationUrl:
           resolveGiftMediaUrl(gift.animation_url) ||
           resolveGiftMediaUrl(clientAnimationUrl),
@@ -342,8 +322,7 @@ export async function handleSendGift(req: Request, res: Response) {
         coins: coinCost,
         giftSource: "promotional_coins",
         transactionId: clientTransactionId,
-        battleTarget: battleTargetRaw,
-        cohostTargetUserId: resolvedCohostTarget,
+        recipient: giftRecipient,
         animationUrl:
           resolveGiftMediaUrl(gift.animation_url) ||
           resolveGiftMediaUrl(clientAnimationUrl),
@@ -434,8 +413,7 @@ export async function handleSendGift(req: Request, res: Response) {
         coins: coinCost,
         giftSource: "paid_coins",
         transactionId: clientTransactionId,
-        battleTarget: battleTargetRaw,
-        cohostTargetUserId: resolvedCohostTarget,
+        recipient: giftRecipient,
         animationUrl:
           resolveGiftMediaUrl(gift.animation_url) ||
           resolveGiftMediaUrl(clientAnimationUrl),

@@ -51,7 +51,11 @@ describe("Money and economy safety contracts", () => {
     const testCoinBranch = handlers.slice(start, end);
 
     // Allowed: battle score + gift animation audience emit (£0).
-    expect(testCoinBranch).toContain("addBattleScoreForTarget");
+    expect(testCoinBranch).toContain("addBattleScore(");
+    expect(testCoinBranch).toContain('source: "test_gift"');
+    // The balance is server-owned: debited atomically, refunded if refused.
+    expect(testCoinBranch).toContain("debitTestCoins");
+    expect(testCoinBranch).toContain("creditTestCoins");
     expect(testCoinBranch).toContain("emitGiftSentToTargetAudience");
     expect(testCoinBranch).toContain('giftSource: "test_coins"');
     expect(testCoinBranch).toContain('origin: "test_coins"');
@@ -82,7 +86,8 @@ describe("Money and economy safety contracts", () => {
     const voteBranch = handlers.slice(start, end);
     expect(voteBranch).toContain("claimBattleVoteOnce");
     expect(voteBranch).toContain("already_awarded");
-    expect(voteBranch).toContain("addBattleScoreForTarget");
+    expect(voteBranch).toContain("addBattleScore(");
+    expect(voteBranch).toContain('source: "tap"');
     expect(voteBranch).toContain("financialValueGbp: 0");
     expect(voteBranch).not.toContain("tapCount % 3");
     expect(voteBranch).not.toContain("neonCreditCreatorEarning");
@@ -104,7 +109,7 @@ describe("Money and economy safety contracts", () => {
     expect(end).toBeGreaterThan(start);
     const heartBranch = handlers.slice(start, end);
     expect(heartBranch).toContain('type: "like"');
-    expect(heartBranch).not.toContain("addBattleScoreForTarget");
+    expect(heartBranch).not.toContain("addBattleScore");
     expect(heartBranch).not.toContain("neonCreditCreatorEarning");
   });
 

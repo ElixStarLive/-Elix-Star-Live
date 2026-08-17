@@ -4,6 +4,7 @@ import {
   giftIconUrlFromAnimation,
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
+import { SEAT_TEAM, type BattleSeat } from "./battleModel";
 
 let giftValueCache: Record<string, number> = {};
 let giftAnimationCache: Record<string, string> = {};
@@ -80,27 +81,11 @@ export function isGiftCacheLoaded(): boolean {
   return cacheLoaded;
 }
 
-export type ServerBattleTarget = "host" | "opponent" | "player3" | "player4";
-
-/** Map gift battleTarget to authoritative server score bucket (P1–P4). */
-export function normalizeBattleTarget(
-  rawTarget: unknown,
-): ServerBattleTarget | null {
-  if (
-    rawTarget === "host" ||
-    rawTarget === "opponent" ||
-    rawTarget === "player3" ||
-    rawTarget === "player4"
-  ) {
-    return rawTarget;
-  }
-  if (rawTarget === "me") return "host";
-  return null;
-}
-
-/** Fan Energy side: red = host + player3, blue = opponent + player4. */
-export function battleTargetToFanSide(
-  target: ServerBattleTarget,
-): "host" | "opponent" {
-  return target === "opponent" || target === "player4" ? "opponent" : "host";
+/**
+ * Fan Energy side: red = host + player3, blue = opponent + player4.
+ * Seat → team mapping itself lives in `battleModel.ts`; this only names the two
+ * Fan Energy bars the client already renders.
+ */
+export function battleTargetToFanSide(target: BattleSeat): "host" | "opponent" {
+  return SEAT_TEAM[target] === "teamB" ? "opponent" : "host";
 }

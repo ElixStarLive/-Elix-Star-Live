@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
+import { resetValkeyFake, valkeyFake } from "../websocket/battleValkeyFake";
 
 const authMocks = vi.hoisted(() => ({
   getTokenFromRequest: vi.fn(),
@@ -12,12 +13,19 @@ const dbMocks = vi.hoisted(() => ({
   getPool: vi.fn(),
 }));
 
+const store = vi.hoisted(() => ({ available: true }));
+
 vi.mock("./auth", () => authMocks);
 vi.mock("../lib/postgres", () => ({
   getPool: () => dbMocks.getPool(),
 }));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+// Minted test coins are a SERVER balance (Valkey), never a client-side number.
+vi.mock("../lib/valkey", () => ({
+  ...valkeyFake,
+  isValkeyConfigured: () => store.available,
 }));
 
 import {
@@ -53,6 +61,8 @@ describe("test-coin ISSUE access control", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    resetValkeyFake();
+    store.available = true;
     process.env.TEST_COINS_ISSUE_PASSWORD = PASSWORD;
     delete process.env.TEST_COINS_ISSUE_PASSWORD_HASH;
     authMocks.getTokenFromRequest.mockReturnValue("tok");
@@ -155,6 +165,30 @@ describe("test-coin ISSUE access control", () => {
     );
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ minted: 10, origin: "test_coins" }),
+    );
+  });
+
+  it("mint fails visibly when the server balance store is unavailable", async () => {
+    store.available = false;
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-store" });
+    const res = mockRes();
+    await handleMintTestCoins(
+      mockReq({ password: PASSWORD, amount: 100 }),
+      res.value,
+    );
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).not.toHaveBeenCalledWith(
+      expect.objectContaining({ minted: 100 }),
+    );
+  });
+
+  it("mint credits the server balance so it survives the device", async () => {
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-server-balance" });
+    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 40 }), mockRes().value);
+    const res = mockRes();
+    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 60 }), res.value);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ minted: 60, balance: 100 }),
     );
   });
 

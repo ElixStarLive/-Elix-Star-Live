@@ -1,93 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
-  battleSeatUserId,
   clientReceivesCreatorGiftAudience,
-  isActiveBattleSession,
-  resolveGiftTargetCreatorId,
   resolveJoinAudienceCreatorId,
-  seatedBattleCreatorIds,
 } from "./giftAudience";
+import { seatedUserIds } from "./battleModel";
+import { battleSessionFixture } from "./battleTestFixtures";
 
-const battle4 = {
-  status: "ACTIVE" as const,
-  hostUserId: "c1",
-  opponentUserId: "c2",
-  player3UserId: "c3",
-  player4UserId: "c4",
-};
+const battle4 = battleSessionFixture({
+  status: "ACTIVE",
+  seats: { host: "c1", opponent: "c2", player3: "c3", player4: "c4" },
+});
 
 describe("4-creator battle gift audience ownership", () => {
-  it("maps each battle seat to exactly one creator id", () => {
-    expect(battleSeatUserId(battle4, "host")).toBe("c1");
-    expect(battleSeatUserId(battle4, "opponent")).toBe("c2");
-    expect(battleSeatUserId(battle4, "player3")).toBe("c3");
-    expect(battleSeatUserId(battle4, "player4")).toBe("c4");
-    expect(seatedBattleCreatorIds(battle4)).toEqual(["c1", "c2", "c3", "c4"]);
-  });
-
-  it("routes a gift to the target creator, never the teammate", () => {
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: battle4,
-        battleTarget: "host",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe("c1");
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: battle4,
-        battleTarget: "opponent",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe("c2");
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: battle4,
-        battleTarget: "player3",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe("c3");
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: battle4,
-        battleTarget: "player4",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe("c4");
-  });
-
-  it("does not reassign an empty-seat gift to the host or a teammate", () => {
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: { ...battle4, opponentUserId: "" },
-        battleTarget: "opponent",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe(null);
-  });
-
-  it("prefers an explicit cohost/creator tile target over the battle seat", () => {
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: battle4,
-        battleTarget: "host",
-        cohostTargetUserId: "c3",
-        streamOwnerUserId: "c1",
-      }),
-    ).toBe("c3");
-  });
-
-  it("solo live (no battle) targets the stream owner", () => {
-    expect(
-      resolveGiftTargetCreatorId({
-        battle: null,
-        battleTarget: "host",
-        streamOwnerUserId: "solo-host",
-      }),
-    ).toBe("solo-host");
-    expect(isActiveBattleSession({ status: "ENDED", hostUserId: "c1" })).toBe(
-      false,
-    );
+  it("lists every seated creator exactly once", () => {
+    expect(seatedUserIds(battle4)).toEqual(["c1", "c2", "c3", "c4"]);
   });
 
   it("seated creators own their own audience; spectators keep the creator they followed", () => {
@@ -103,7 +29,10 @@ describe("4-creator battle gift audience ownership", () => {
         userId: "c2",
         queryAudienceCreatorId: "c2",
         streamOwnerUserId: "c1",
-        battle: { ...battle4, opponentUserId: "" },
+        battle: battleSessionFixture({
+          status: "ACTIVE",
+          seats: { host: "c1", player3: "c3", player4: "c4" },
+        }),
       }),
     ).toBe("c2");
     expect(

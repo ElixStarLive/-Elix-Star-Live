@@ -25,7 +25,6 @@ import {
   handleGetTestCoinBalance,
   handleAuthorizeTestCoins,
   handleMintTestCoins,
-  handleSpendTestCoinsForScore,
 } from "./testCoins";
 
 export function mountRoutes(app: Express): void {
@@ -55,11 +54,11 @@ export function mountRoutes(app: Express): void {
   app.use("/api/media", mediaRouter);
 
   // Test-coin ISSUE — mounted in all envs. Mint requires login + server password.
-  // Gameplay spend of already-issued test coins stays client-local (giftSource=test_coins).
+  // Spending issued test coins happens in the live gift WS path, which debits the
+  // server-owned balance atomically before any animation or battle score.
   app.get("/api/test-coins/balance", handleGetTestCoinBalance);
   app.post("/api/test-coins/authorize", handleAuthorizeTestCoins);
   app.post("/api/test-coins/mint", handleMintTestCoins);
-  app.post("/api/test-coins/score", handleSpendTestCoinsForScore);
 
   // Misc (analytics, block, report, notifications, IAP, refunds, etc.)
   app.use("/api", miscRouter);

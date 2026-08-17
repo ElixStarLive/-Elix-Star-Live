@@ -4,7 +4,7 @@
  * Password is never stored in localStorage / never hashed in the client bundle.
  */
 import { request } from "./apiClient";
-import { getPersistedTestCoinsBalance, persistTestCoinsBalance } from "./testCoins";
+import { persistTestCoinsBalance } from "./testCoins";
 
 export type TestCoinIssueResult =
   | { ok: true; balance: number; minted: number }
@@ -19,10 +19,6 @@ export function formatTestCoinIssueError(error: string, status: number): string 
   return error;
 }
 
-function isStaleAdminBlock(message: string): boolean {
-  return /admin/i.test(message);
-}
-
 export async function authorizeTestCoinIssue(password: string): Promise<TestCoinIssueResult> {
   const r = await request<{ ok?: boolean; error?: string }>("/api/test-coins/authorize", {
     method: "POST",
@@ -30,13 +26,25 @@ export async function authorizeTestCoinIssue(password: string): Promise<TestCoin
   });
   if (r.error || !r.data?.ok) {
     const msg = r.error?.message || (r.data as { error?: string } | null)?.error || "FORBIDDEN";
-    if (isStaleAdminBlock(msg)) {
-      return { ok: true, balance: 0, minted: 0 };
-    }
     const status = /too many/i.test(msg) ? 429 : /not authenticated|invalid/i.test(msg) ? 401 : 403;
     return { ok: false, status, error: msg };
   }
   return { ok: true, balance: 0, minted: 0 };
+}
+
+/**
+ * Read the SERVER test balance and refresh the display mirror.
+ * The server is the only place a test balance exists; this keeps the panel
+ * showing the real number after a reinstall, a new device, or a spend.
+ */
+export async function refreshTestCoinsBalance(
+  userId: string | undefined,
+): Promise<number | null> {
+  const r = await request<{ balance?: number }>("/api/test-coins/balance");
+  if (r.error || typeof r.data?.balance !== "number") return null;
+  const balance = Math.max(0, Math.floor(r.data.balance));
+  persistTestCoinsBalance(userId, balance);
+  return balance;
 }
 
 export async function mintTestCoinsViaServer(
@@ -54,13 +62,9 @@ export async function mintTestCoinsViaServer(
     body: JSON.stringify({ password, amount }),
   });
   if (r.error || typeof r.data?.balance !== "number") {
+    // No local mint fallback: a refused mint must fail visibly. The balance
+    // lives on the server, so a client-side credit would be a lie.
     const msg = r.error?.message || r.data?.error || "FORBIDDEN";
-    if (isStaleAdminBlock(msg) && userId) {
-      const minted = Math.max(0, Math.floor(Number(amount) || 0));
-      const balance = getPersistedTestCoinsBalance(userId) + minted;
-      persistTestCoinsBalance(userId, balance);
-      return { ok: true, balance, minted };
-    }
     const status = /too many/i.test(msg) ? 429 : /not authenticated|invalid/i.test(msg) ? 401 : 403;
     return { ok: false, status, error: msg };
   }

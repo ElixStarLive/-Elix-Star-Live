@@ -103,17 +103,18 @@ describe("Starter Coin transactional contracts", () => {
 
   it("excludes starter gifts from goals and battle scores in giftDelivery", () => {
     // Gift-goal side effects for verified REST gifts only run inside paid_coins.
-    // Battle score is owned by applyActiveBattleGiftScore, which returns null
-    // for starter_coins. Test-coin match points stay in the WS gift_sent handler.
+    // Battle score is owned by applyBattleGiftScore, which returns null for
+    // starter_coins. Test-coin match points stay in the WS gift_sent handler.
     expect(giftDelivery).toContain('input.giftSource === "paid_coins"');
     const gate = giftDelivery.indexOf('input.giftSource === "paid_coins"');
     const paidBranch = giftDelivery.slice(gate);
     expect(paidBranch).toContain("incrementGiftGoal");
-    expect(giftDelivery).toContain("applyActiveBattleGiftScore");
+    expect(giftDelivery).toContain("applyBattleGiftScore");
     expect(giftDelivery).toContain(
       'if (opts.giftSource !== "paid_coins" && opts.giftSource !== "promotional_coins")',
     );
-    expect(giftDelivery).toContain("addBattleScoreForTarget");
+    // Scores are written only through the single battle choke point.
+    expect(giftDelivery).toContain("await addBattleScore({");
   });
 
   it("protects admin progression APIs with both auth and admin checks", () => {

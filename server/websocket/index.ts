@@ -50,7 +50,19 @@ import {
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
-import { getUserBattleRoom, endBattle, getBattleFromStore, removeBattleParticipant } from "./battle";
+import {
+  buildBattleStateForRoom,
+  finalizeBattle,
+  getBattleFromStore,
+  getUserBattleRoom,
+  removeBattleParticipant,
+} from "./battle";
+import {
+  isBattleHost,
+  participantOfUser,
+  rivalParticipants,
+  seatedUserIds,
+} from "./battleModel";
 import {
   clientReceivesCreatorGiftAudience,
   resolveJoinAudienceCreatorId,
@@ -929,14 +941,7 @@ async function spectatorExcludeUserIds(roomId: string): Promise<Set<string>> {
   try {
     const battle = await getBattleFromStore(roomId);
     if (battle && battle.status !== "ENDED") {
-      for (const uid of [
-        battle.hostUserId,
-        battle.opponentUserId,
-        battle.player3UserId,
-        battle.player4UserId,
-      ]) {
-        if (uid) exclude.add(uid);
-      }
+      for (const uid of seatedUserIds(battle)) exclude.add(uid);
     }
   } catch {
     /* non-fatal */
@@ -1078,22 +1083,14 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
         }
         const battle = await getBattleFromStore(battleRoomId);
         if (!battle || battle.status === "ENDED") return;
-        const isHost = battle.hostUserId === userId;
-        if (!isHost) return;
+        if (!isBattleHost(battle, userId)) return;
         logger.info(
           { battleRoomId, role: "host" },
           "Battle host gone after grace, ending battle",
         );
-        if (battle.opponentUserId) {
-          await revokeBattlePublish(battleRoomId, battle.opponentUserId);
-        }
-        if (battle.player3UserId) {
-          await revokeBattlePublish(battleRoomId, battle.player3UserId);
-        }
-        if (battle.player4UserId) {
-          await revokeBattlePublish(battleRoomId, battle.player4UserId);
-        }
-        await endBattle(battleRoomId);
+        // Finalization freezes the scores, stores the result and revokes the
+        // battle publish grants exactly once.
+        await finalizeBattle(battleRoomId, "host_disconnect");
       } catch (err) {
         logger.error({ err, battleRoomId, userId }, "battle disconnect grace end failed");
       }
@@ -1132,19 +1129,13 @@ function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: st
         const battle = await getBattleFromStore(battleRoomId);
         if (!battle || battle.status === "ENDED") return;
         // Host disconnect is handled by scheduleBattleDisconnectEnd, not here.
-        if (battle.hostUserId === userId) return;
-        const isParticipant =
-          battle.opponentUserId === userId ||
-          battle.player3UserId === userId ||
-          battle.player4UserId === userId;
-        if (!isParticipant) return;
+        if (isBattleHost(battle, userId)) return;
+        if (!participantOfUser(battle, userId)) return;
 
-        // Rival-side creators still connected besides the one who dropped.
-        const remainingRivals = [
-          battle.opponentUserId,
-          battle.player3UserId,
-          battle.player4UserId,
-        ].filter((id) => id && id !== userId);
+        // Rival creators still seated besides the one who dropped.
+        const remainingRivals = rivalParticipants(battle).filter(
+          (p) => p.userId !== userId,
+        );
 
         await revokeBattlePublish(battleRoomId, userId);
 
@@ -1153,7 +1144,7 @@ function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: st
             { battleRoomId, userId },
             "Battle opponent gone after grace, resolving battle from current scores",
           );
-          await endBattle(battleRoomId);
+          await finalizeBattle(battleRoomId, "participant_disconnect");
         } else {
           logger.info(
             { battleRoomId, userId },
@@ -1354,7 +1345,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           if (!stillConnectedToBattleRoom) {
             const battle = await getBattleFromStore(battleRoomId);
             if (battle && battle.status !== "ENDED") {
-              const isHost = battle.hostUserId === client.userId;
+              const isHost = isBattleHost(battle, client.userId);
               // Host disconnect ends the whole battle after grace. A non-host
               // creator dropping is resolved separately: after the same grace we
               // either end a 2-player battle or drop just that creator from a
@@ -1623,35 +1614,12 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
       await updateViewerCount(roomId);
 
-      const activeBattleOnJoin = await getBattleFromStore(roomId);
-      if (activeBattleOnJoin && activeBattleOnJoin.status !== "ENDED") {
-        if (activeBattleOnJoin.endsAt > 0) {
-          activeBattleOnJoin.timeLeft = Math.max(
-            0,
-            Math.round((activeBattleOnJoin.endsAt - Date.now()) / 1000),
-          );
-        }
-        sendToClient(client, "battle_state_sync", {
-          id: activeBattleOnJoin.id,
-          status: activeBattleOnJoin.status,
-          hostUserId: activeBattleOnJoin.hostUserId,
-          hostName: activeBattleOnJoin.hostName,
-          hostRoomId: activeBattleOnJoin.hostRoomId,
-          opponentUserId: activeBattleOnJoin.opponentUserId,
-          opponentName: activeBattleOnJoin.opponentName,
-          opponentRoomId: activeBattleOnJoin.opponentRoomId,
-          player3UserId: activeBattleOnJoin.player3UserId,
-          player3Name: activeBattleOnJoin.player3Name,
-          player4UserId: activeBattleOnJoin.player4UserId,
-          player4Name: activeBattleOnJoin.player4Name,
-          hostScore: activeBattleOnJoin.hostScore,
-          opponentScore: activeBattleOnJoin.opponentScore,
-          player3Score: activeBattleOnJoin.player3Score,
-          player4Score: activeBattleOnJoin.player4Score,
-          timeLeft: activeBattleOnJoin.timeLeft,
-          endsAt: activeBattleOnJoin.endsAt,
-          winner: activeBattleOnJoin.winner,
-        });
+      // Reconnect / late join: the SAME state builder as battle_get_state and
+      // battle_state_sync, reading the same live score hash. A reconnecting
+      // client cannot receive a stale score copy or start its own timer.
+      const battleStateOnJoin = await buildBattleStateForRoom(roomId);
+      if (battleStateOnJoin && battleStateOnJoin.status !== "ENDED") {
+        sendToClient(client, "battle_state_sync", battleStateOnJoin);
       }
 
       const liveGiftGoal = await getGiftGoal(roomId);

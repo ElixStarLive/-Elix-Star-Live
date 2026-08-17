@@ -99,8 +99,11 @@ describe("LIVE + battle server state-machine contracts", () => {
     const fn = wsIndex.slice(
       wsIndex.indexOf("function scheduleBattleParticipantDisconnectEnd"),
     );
-    // 2-player battle → end and compute winner; multi-creator → drop just them.
-    expect(fn).toContain("await endBattle(battleRoomId)");
+    // 2-player battle → end through the one authoritative (idempotent)
+    // finalizer; multi-creator → drop just that seat.
+    expect(fn).toContain(
+      'await finalizeBattle(battleRoomId, "participant_disconnect")',
+    );
     expect(fn).toContain("await removeBattleParticipant(battleRoomId, userId)");
     expect(fn).toContain("BATTLE_DISCONNECT_GRACE_MS");
     // The disconnect handler must actually route non-host creators here.
@@ -117,17 +120,19 @@ describe("LIVE + battle server state-machine contracts", () => {
 
   it("removeBattleParticipant drops a non-host creator without ending the match", () => {
     const fn = battle.slice(battle.indexOf("export async function removeBattleParticipant"));
-    expect(fn).toContain("if (session.hostUserId === userId) return false");
+    expect(fn).toContain("if (isBattleHost(session, userId)) return false");
     expect(fn).toContain("broadcastBattleState");
   });
 
   it("claimBattleSeat assigns an empty rival seat without starting the timer", () => {
     expect(battle).toContain("export async function claimBattleSeat");
     const start = battle.indexOf("export async function claimBattleSeat");
-    const end = battle.indexOf("export async function joinBattle", start);
-    const fn = battle.slice(start, end > start ? end : start + 800);
-    expect(fn).toContain("broadcastBattleState");
-    expect(fn).not.toContain("startBattleTimer");
+    const end = battle.indexOf("export async function confirmBattleParticipantPresence", start);
+    const fn = battle.slice(start, end > start ? end : start + 2600);
+    expect(fn).toContain("nextOpenRivalSeat");
+    // Seating never stamps the clock — only startBattleIfReady does.
+    expect(fn).not.toContain("session.endsAt =");
+    expect(fn).not.toContain('session.status = "ACTIVE"');
   });
 
   it("handlers expose battle_remove_participant and battle_invite_roster_get", () => {
@@ -149,12 +154,16 @@ describe("LIVE + battle server state-machine contracts", () => {
   it("battle clock is server-authoritative and broadcast via battle_tick", () => {
     // endsAt/timeLeft come from the server tick under a per-room distributed lock.
     expect(battle).toContain('broadcastToRoom(roomId, "battle_tick"');
-    expect(battle).toContain("s.timeLeft = Math.max(0, Math.round((s.endsAt - Date.now()) / 1000))");
+    expect(battle).toContain(
+      "timeLeft: Math.max(0, Math.round((session.endsAt - Date.now()) / 1000))",
+    );
     expect(battle).toContain("valkeySetNx(BATTLE_TICK_LOCK_KEY_PREFIX + roomId");
   });
 
   it("battle score increments are atomic (HINCRBY, no read-modify-write race)", () => {
-    expect(battle).toContain("valkeyHincrby(scoreKey, target, points)");
+    expect(battle).toContain(
+      "await valkeyHincrby(SCORE_KEY_PREFIX + req.roomId, req.seat, points)",
+    );
   });
 
   it("both live clients consume battle_tick to stay time-synced with the server", () => {
@@ -177,13 +186,19 @@ describe("LIVE + battle server state-machine contracts", () => {
     const wsIndex = read("./index.ts");
     expect(giftDelivery).toContain("emitGiftSentToTargetAudience");
     expect(giftDelivery).toContain("broadcastToCreatorAudience");
-    expect(giftDelivery).toContain("resolveGiftTargetCreatorId");
+    // The recipient is decided once, upstream, by the shared validated resolver
+    // — delivery never re-derives who was supported.
+    expect(giftDelivery).toContain('import type { GiftRecipient } from "./giftRecipient"');
+    expect(giftDelivery).toContain("const targetCreatorId = opts.recipient.creatorId");
     expect(giftDelivery).toContain(
       'broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent"',
     );
-    expect(giftDelivery).toContain("seatedBattleCreatorIds(battle)");
-    expect(giftDelivery).toContain("if (battleActive && targetCreatorId)");
+    expect(giftDelivery).toContain("seatedUserIds(battle)");
+    expect(giftDelivery).toContain(
+      'if (opts.recipient.origin === "battle_seat" && targetCreatorId)',
+    );
     expect(handlers).toContain("emitGiftSentToTargetAudience");
+    expect(handlers).toContain("resolveValidatedGiftRecipient");
     // Audience ownership follows the creator's ROLE transition, owned by the WS
     // layer (getCreatorLiveRoleRoom + battle room). What `stream_end` itself does
     // with that audience is owned by hostLiveLifecycleContract.test.ts.
@@ -197,6 +212,6 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(wsIndex).toContain("targetCreatorId");
     expect(wsIndex).toContain("audienceCreatorId");
     // Score stays room-wide; gifts do not.
-    expect(battle).toContain('broadcastToRoom(roomId, "battle_score"');
+    expect(battle).toContain('broadcastToRoom(req.roomId, "battle_score"');
   });
 });

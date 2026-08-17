@@ -81,7 +81,12 @@ import { GiftPanel } from '../../../components/GiftPanel';
 import { useWalletStore } from '../../../store/useWalletStore';
 import { GiftGoalGallery } from '../../../components/GiftGoalGallery';
 import { getPersistedTestCoinsBalance } from '../../../lib/testCoins';
-import { authorizeTestCoinIssue, formatTestCoinIssueError, mintTestCoinsViaServer } from '../../../lib/testCoinIssueApi';
+import {
+  authorizeTestCoinIssue,
+  formatTestCoinIssueError,
+  mintTestCoinsViaServer,
+  refreshTestCoinsBalance,
+} from '../../../lib/testCoinIssueApi';
 import { LiveEngagementOverlay } from '../../../components/LiveEngagementOverlay';
 import { RankingPanel } from '../../../components/RankingPanel';
 import {
@@ -482,7 +487,19 @@ export default function LiveHostScreen() {
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (user?.id) setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
+    const uid = user?.id;
+    if (!uid) return;
+    // Mirror first for an instant number, then take the server's balance as
+    // truth (the test balance is server-owned, not device-local).
+    setTestCoinBalance(getPersistedTestCoinsBalance(uid));
+    let cancelled = false;
+    void refreshTestCoinsBalance(uid).then((balance) => {
+      if (cancelled || balance === null) return;
+      setTestCoinBalance(balance);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id, showTestCoinsModal]);
 
   useEffect(() => {

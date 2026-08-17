@@ -1758,17 +1758,10 @@ export function useLiveHostController() {
       showToast('2v2 needs four creators — invite one more');
       return;
     }
-    battleCreate({
-      hostName: myCreatorName,
-      opponentUserId: opp.userId,
-      opponentName: opp.name,
-      opponentRoomId: opponentStreamKey || opp.userId,
-      player3UserId: p3?.userId ?? '',
-      player3Name: p3?.name ?? '',
-      player4UserId: p4?.userId ?? '',
-      player4Name: p4?.name ?? '',
-    });
-  }, [battleSlots, myCreatorName, opponentStreamKey]);
+    // Seats belong to the server: they come from the real invite accepts, so
+    // this message only carries the host's display name + start intent.
+    battleCreate({ hostName: myCreatorName });
+  }, [battleSlots, myCreatorName]);
 
   const battleRoleRef = useRef<ServerBattleGiftTarget | null>(null);
   const [_battleUiRole, setBattleUiRole] = useState<'host' | 'opponent'>(() =>

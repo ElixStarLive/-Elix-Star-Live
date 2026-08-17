@@ -47,7 +47,8 @@ describe("testCoinsPolicy", () => {
     expect(blockBranch).toContain("test_coins_blocked");
     expect(blockBranch).toContain("break");
     expect(blockBranch).not.toContain("broadcastToRoom");
-    expect(blockBranch).not.toContain("addBattleScoreForTarget");
+    expect(blockBranch).not.toContain("addBattleScore");
+    expect(blockBranch).not.toContain("debitTestCoins");
     expect(blockBranch).not.toContain("deliverVerifiedGift");
     expect(blockBranch).not.toContain("addMvpPoints");
     expect(blockBranch).not.toContain("neonCreditCreatorEarning");
@@ -58,11 +59,39 @@ describe("testCoinsPolicy", () => {
     const start = handlersSrc.indexOf("if (isTestCoinsGiftSource(data))");
     const end = handlersSrc.indexOf("const verified = await verifyGiftTransaction", start);
     const branch = handlersSrc.slice(start, end);
-    expect(branch).toContain("addBattleScoreForTarget");
+    expect(branch).toContain("addBattleScore(");
+    expect(branch).toContain('source: "test_gift"');
     expect(branch).toContain("emitGiftSentToTargetAudience");
     expect(branch).toContain("financialValueGbp: 0");
     expect(branch).toContain('origin: "test_coins"');
     expect(branch).not.toContain("neonCreditCreatorEarning");
     expect(branch).not.toContain("paidCoinLots");
+  });
+
+  it("debits the SERVER test balance before anything plays or scores", () => {
+    const start = handlersSrc.indexOf("if (isTestCoinsGiftSource(data))");
+    const end = handlersSrc.indexOf("const verified = await verifyGiftTransaction", start);
+    const branch = handlersSrc.slice(start, end);
+
+    const debitAt = branch.indexOf("await debitTestCoins(");
+    const emitAt = branch.indexOf("emitGiftSentToTargetAudience");
+    const scoreAt = branch.indexOf("addBattleScore(");
+    expect(debitAt).toBeGreaterThan(-1);
+    expect(debitAt).toBeLessThan(emitAt);
+    expect(debitAt).toBeLessThan(scoreAt);
+
+    // Cost comes from the server catalog, and a rejected gift is refunded.
+    expect(branch).toContain("getGiftValue");
+    expect(branch).toContain("insufficient_test_coins");
+    expect(branch).toContain("creditTestCoins");
+  });
+
+  it("resolves the test-gift recipient through the shared validated resolver", () => {
+    const start = handlersSrc.indexOf("if (isTestCoinsGiftSource(data))");
+    const end = handlersSrc.indexOf("const verified = await verifyGiftTransaction", start);
+    const branch = handlersSrc.slice(start, end);
+    expect(branch).toContain("resolveValidatedGiftRecipient");
+    // Battle seat must come from the resolver, not from the raw client field.
+    expect(branch).toContain("battleTarget: testRecipient.battleSeat");
   });
 });

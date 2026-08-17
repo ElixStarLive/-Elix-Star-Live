@@ -20,16 +20,12 @@ import {
   getGiftValue,
   getGiftIconUrl,
   battleTargetToFanSide,
-  normalizeBattleTarget,
   resolvePlayableGiftVideoUrl,
 } from "./giftRegistry";
-import {
-  isActiveBattleSession,
-  resolveGiftTargetCreatorId,
-  seatedBattleCreatorIds,
-} from "./giftAudience";
+import { seatedUserIds } from "./battleModel";
+import type { GiftRecipient } from "./giftRecipient";
 import { incrementGiftGoal } from "./giftGoal";
-import { addBattleScoreForTarget, getBattleFromStore } from "./battle";
+import { addBattleScore, getBattleFromStore } from "./battle";
 import { resolveBoosterCatch } from "../lib/booster";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
@@ -50,9 +46,12 @@ export type DeliverGiftInput = {
   coins: number;
   giftSource: "starter_coins" | "paid_coins" | "promotional_coins";
   transactionId: string;
-  battleTarget?: unknown;
-  /** When set, gift was aimed at a live co-host tile (not the stream host). */
-  cohostTargetUserId?: string | null;
+  /**
+   * Server-validated recipient from `resolveValidatedGiftRecipient`. Delivery
+   * never re-derives who was supported — the caller that moved the money and
+   * this delivery must agree on exactly one creator.
+   */
+  recipient: GiftRecipient;
   /** Prefer this animation URL (from REST gift row / client) when playable. */
   animationUrl?: string | null;
 };
@@ -61,7 +60,15 @@ export type DeliverGiftResult =
   | { delivered: true }
   | { delivered: false; reason: "duplicate" | "invalid" };
 
-async function applyActiveBattleGiftScore(opts: {
+/**
+ * Battle points for a verified gift.
+ *
+ * Only runs when the validated recipient IS a battle seat, and the score write
+ * itself goes through `addBattleScore` — the one choke point that re-checks the
+ * clock, the seat and the participant. A gift that arrives after the timer
+ * expired plays its animation but scores nothing.
+ */
+async function applyBattleGiftScore(opts: {
   roomId: string;
   userId: string;
   username: string;
@@ -69,13 +76,11 @@ async function applyActiveBattleGiftScore(opts: {
   transactionId: string;
   giftSource: DeliverGiftInput["giftSource"];
   coins: number;
-  target: "host" | "opponent" | "player3" | "player4";
+  seat: "host" | "opponent" | "player3" | "player4";
 }): Promise<Record<string, unknown> | null> {
   if (opts.giftSource !== "paid_coins" && opts.giftSource !== "promotional_coins") {
     return null;
   }
-  const activeBattle = await getBattleFromStore(opts.roomId);
-  if (!activeBattle || activeBattle.status !== "ACTIVE") return null;
 
   // ECONOMY SPLIT (locked):
   // giftEconomicValue  → Diamonds / financial ledger (credited in REST with coinCost)
@@ -92,7 +97,7 @@ async function applyActiveBattleGiftScore(opts: {
   try {
     fanMult = await fanEnergyGiftMultiplier(
       opts.roomId,
-      battleTargetToFanSide(opts.target),
+      battleTargetToFanSide(opts.seat),
     );
   } catch (err) {
     logger.warn({ err, roomId: opts.roomId }, "deliverVerifiedGift: fan multiplier failed; using 1x");
@@ -120,7 +125,7 @@ async function applyActiveBattleGiftScore(opts: {
           gift_economic_value: giftEconomicValue,
           gift_battle_score: 0,
           gift_id: opts.giftId,
-          battleTarget: opts.target,
+          battleTarget: opts.seat,
           transaction_id: opts.transactionId,
           timestamp: new Date().toISOString(),
         };
@@ -131,7 +136,19 @@ async function applyActiveBattleGiftScore(opts: {
   }
 
   const giftBattleScore = Math.max(1, Math.round(finalPoints * fanMult));
-  await addBattleScoreForTarget(opts.roomId, opts.target, giftBattleScore);
+  const scored = await addBattleScore({
+    roomId: opts.roomId,
+    seat: opts.seat,
+    points: giftBattleScore,
+    source: opts.giftSource === "paid_coins" ? "paid_gift" : "promotional_gift",
+  });
+  if (scored.ok === false) {
+    logger.info(
+      { roomId: opts.roomId, seat: opts.seat, reason: scored.reason },
+      "gift battle score refused by battle authority",
+    );
+    return null;
+  }
   if (boosterCaught) {
     boosterCaught.final_points = giftBattleScore;
     boosterCaught.gift_battle_score = giftBattleScore;
@@ -141,34 +158,22 @@ async function applyActiveBattleGiftScore(opts: {
 
 /**
  * One gift visual event → one target creator + that creator's spectators.
- * Battle score stays on broadcastToRoom (addBattleScoreForTarget). Solo live
+ * Battle score stays room-wide (`battle_score`); gift visuals do not. Solo live
  * still uses the full room because that room is already one creator's audience.
+ *
+ * The recipient is decided upstream by the validated resolver — this function
+ * only delivers to that creator's audience.
  */
 export async function emitGiftSentToTargetAudience(opts: {
   roomId: string;
   payload: Record<string, unknown>;
-  battleTarget?: unknown;
-  cohostTargetUserId?: string | null;
+  recipient: GiftRecipient;
   boosterCaught?: Record<string, unknown> | null;
 }): Promise<string | null> {
   const roomId = String(opts.roomId || "").trim();
   if (!roomId) return null;
 
-  let streamOwnerUserId: string | null = null;
-  try {
-    streamOwnerUserId = (await resolveStreamOwnerUserId(roomId)) || null;
-  } catch {
-    streamOwnerUserId = null;
-  }
-
-  const battle = await getBattleFromStore(roomId);
-  const targetCreatorId = resolveGiftTargetCreatorId({
-    battle,
-    battleTarget: normalizeBattleTarget(opts.battleTarget),
-    cohostTargetUserId: opts.cohostTargetUserId,
-    streamOwnerUserId,
-  });
-
+  const targetCreatorId = opts.recipient.creatorId;
   const payload = {
     ...opts.payload,
     ...(targetCreatorId
@@ -179,11 +184,11 @@ export async function emitGiftSentToTargetAudience(opts: {
       : {}),
   };
 
-  const battleActive = isActiveBattleSession(battle);
-  if (battleActive && targetCreatorId) {
+  if (opts.recipient.origin === "battle_seat" && targetCreatorId) {
+    const battle = await getBattleFromStore(roomId);
     broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent", payload);
-    for (const seatedId of seatedBattleCreatorIds(battle)) {
-      if (seatedId && seatedId !== targetCreatorId) {
+    for (const seatedId of battle ? seatedUserIds(battle) : []) {
+      if (seatedId !== targetCreatorId) {
         broadcastToCreatorAudience(roomId, seatedId, "gift_sent", payload);
       }
     }
@@ -195,7 +200,7 @@ export async function emitGiftSentToTargetAudience(opts: {
         opts.boosterCaught,
       );
     }
-  } else if (!battleActive) {
+  } else {
     broadcastToRoom(roomId, "gift_sent", payload);
     if (opts.boosterCaught) {
       broadcastToRoom(roomId, "booster_caught", opts.boosterCaught);
@@ -291,11 +296,10 @@ export async function deliverVerifiedGift(
   const giftIcon = getGiftIconUrl(giftId) || video?.replace(/\.(mp4|webm|mov)(\?|$)/i, ".png$2") || "🎁";
   const giftName =
     (typeof input.giftName === "string" && input.giftName.trim()) || "Gift";
-  const normalizedTarget = normalizeBattleTarget(input.battleTarget);
+  const recipient = input.recipient;
+  const battleSeat = recipient.battleSeat;
   const cohostTargetUserId =
-    typeof input.cohostTargetUserId === "string" && input.cohostTargetUserId.trim()
-      ? input.cohostTargetUserId.trim()
-      : null;
+    recipient.origin === "cohost" ? recipient.creatorId : null;
 
   if (!video) {
     logger.warn(
@@ -310,7 +314,7 @@ export async function deliverVerifiedGift(
     coins: Number(input.coins) || 0,
     giftSource: input.giftSource,
     transactionId,
-    battleTarget: normalizedTarget,
+    battleTarget: battleSeat,
     ...(cohostTargetUserId
       ? {
           cohostTargetUserId,
@@ -338,27 +342,28 @@ export async function deliverVerifiedGift(
   // so a scored gift is never shown without the score write. If the write
   // fails, release the claim so REST can retry delivery without double-pay.
   let boosterCaught: Record<string, unknown> | null = null;
-  try {
-    boosterCaught = await applyActiveBattleGiftScore({
-      roomId,
-      userId,
-      username,
-      giftId,
-      transactionId,
-      giftSource: input.giftSource,
-      coins: Number(input.coins) || 0,
-      target: normalizedTarget || "host",
-    });
-  } catch (err) {
-    await releaseTransactionClaim(transactionId);
-    throw err;
+  if (battleSeat) {
+    try {
+      boosterCaught = await applyBattleGiftScore({
+        roomId,
+        userId,
+        username,
+        giftId,
+        transactionId,
+        giftSource: input.giftSource,
+        coins: Number(input.coins) || 0,
+        seat: battleSeat,
+      });
+    } catch (err) {
+      await releaseTransactionClaim(transactionId);
+      throw err;
+    }
   }
 
   const targetCreatorId = await emitGiftSentToTargetAudience({
     roomId,
     payload,
-    battleTarget: normalizedTarget,
-    cohostTargetUserId,
+    recipient,
     boosterCaught,
   });
 
