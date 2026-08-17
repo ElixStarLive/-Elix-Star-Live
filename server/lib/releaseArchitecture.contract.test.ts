@@ -111,4 +111,16 @@ describe("release architecture contracts", () => {
     const consume = read("server/lib/googlePlayConsume.ts");
     expect(consume).toContain('type: "google_play_consume"');
   });
+
+  it("creator payout Connect uses v2 Account Links and stays in-app", () => {
+    const payout = read("server/lib/monetisation/payoutProvider.ts");
+    expect(payout).toContain("v2.core.accountLinks.create");
+    expect(payout).toContain('configurations: ["merchant", "recipient"]');
+    expect(payout).not.toContain("stripeClient.accountLinks.create");
+    const page = read("src/pages/CreatorPayout.tsx");
+    expect(page).toContain("openStripeHostedUrl");
+    expect(page).not.toContain("window.location.href");
+    const platform = read("src/lib/platform.ts");
+    expect(platform).toContain("Browser.open");
+  });
 });

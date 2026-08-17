@@ -14,6 +14,7 @@ import {
   apiCreatorPayoutOnboard,
 } from '../features/creator/creatorPayoutApi';
 import { SETTINGS_HOME, exitToFromLocationState } from '../lib/settingsNav';
+import { openStripeHostedUrl, platform } from '../lib/platform';
 
 type Balance = {
   pending_coins: number;
@@ -116,9 +117,11 @@ export default function CreatorPayout() {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [connectStatus, setConnectStatus] = useState('unknown');
   const [onboarding, setOnboarding] = useState(false);
+  const connectReturnPendingRef = useRef(false);
+  const payoutQueryHandledRef = useRef(false);
 
-  const reload = useCallback(async () => {
-    setLoading(true);
+  const reload = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const [balRes, methRes, wdRes, ledRes, acctRes] = await Promise.all([
         apiCreatorBalance(),
@@ -149,12 +152,59 @@ export default function CreatorPayout() {
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    const finishConnectReturn = () => {
+      if (!connectReturnPendingRef.current) return;
+      connectReturnPendingRef.current = false;
+      void reload({ silent: true });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') finishConnectReturn();
+    };
+    if (!platform.isNative) {
+      document.addEventListener('visibilitychange', onVisibility);
+    }
+
+    let cancelled = false;
+    let browserHandle: { remove: () => Promise<void> } | null = null;
+    let appHandle: { remove: () => Promise<void> } | null = null;
+    if (platform.isNative) {
+      void (async () => {
+        const { Browser } = await import('@capacitor/browser');
+        const { App } = await import('@capacitor/app');
+        if (cancelled) return;
+        browserHandle = await Browser.addListener('browserFinished', finishConnectReturn);
+        if (cancelled) {
+          void browserHandle.remove();
+          browserHandle = null;
+          return;
+        }
+        appHandle = await App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) finishConnectReturn();
+        });
+        if (cancelled) {
+          void appHandle.remove();
+          appHandle = null;
+        }
+      })();
+    }
+
+    return () => {
+      cancelled = true;
+      if (!platform.isNative) {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
+      void browserHandle?.remove();
+      void appHandle?.remove();
+    };
+  }, [reload]);
+
   const exit = useCallback(
     () => navigate(exitToFromLocationState(location.state, SETTINGS_HOME), { replace: true }),
     [navigate, location.state],
   );
 
-  const startConnectOnboard = async () => {
+  const startConnectOnboard = useCallback(async () => {
     setOnboarding(true);
     try {
       const { data, error } = await apiCreatorPayoutOnboard();
@@ -169,18 +219,37 @@ export default function CreatorPayout() {
           '',
       );
       if (url) {
-        window.location.href = url;
+        connectReturnPendingRef.current = true;
+        await openStripeHostedUrl(url);
         return;
       }
       const ready =
         (data as Record<string, unknown> | null)?.ok === true &&
         String((data as Record<string, unknown> | null)?.verificationStatus || '') === 'verified';
       showToast(ready ? 'Stripe Connect account ready' : 'Stripe Connect response received');
-      await reload();
+      await reload({ silent: true });
+    } catch {
+      connectReturnPendingRef.current = false;
+      showToast('Could not open Stripe Connect');
     } finally {
       setOnboarding(false);
     }
-  };
+  }, [reload]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const refresh = params.get('payout_refresh') === '1';
+    const returned = params.get('payout_return') === '1';
+    if (!refresh && !returned) return;
+    if (payoutQueryHandledRef.current) return;
+    payoutQueryHandledRef.current = true;
+    navigate({ pathname: '/creator-payout', search: '' }, { replace: true, state: location.state });
+    if (refresh) {
+      void startConnectOnboard();
+      return;
+    }
+    void reload({ silent: true });
+  }, [location.search, location.state, navigate, reload, startConnectOnboard]);
 
   const saveMethod = async () => {
     if (!accountName.trim() || !accountDetail.trim()) {

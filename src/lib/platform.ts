@@ -48,16 +48,16 @@ export function openExternalLink(url: string): void {
 }
 
 /**
- * Open a Stripe Checkout Session URL in a Google-Pay / Apple-Pay capable browser.
+ * Open a Stripe-hosted HTTPS URL in a real browser, not the Capacitor WebView.
  *
- * Android WebView cannot show Google Pay. Chrome Custom Tabs (via @capacitor/browser)
- * can. iOS uses SFSafariViewController so Apple Pay remains available.
- * Still the same Stripe-hosted Checkout Session — not a separate payment owner.
+ * Android: Chrome Custom Tabs. iOS: SFSafariViewController.
+ * Stripe Connect onboarding and Shop Checkout both require this — Stripe-hosted
+ * flows do not work inside the app WebView (infinite load / kicked to Chrome).
  */
-export async function openStripeCheckoutUrl(url: string): Promise<void> {
+export async function openStripeHostedUrl(url: string): Promise<void> {
   const safe = String(url || '').trim();
   if (!/^https:\/\//i.test(safe)) {
-    throw new Error('Invalid checkout URL');
+    throw new Error('Invalid Stripe URL');
   }
   if (platform.isNative) {
     const { Browser } = await import('@capacitor/browser');
@@ -65,6 +65,11 @@ export async function openStripeCheckoutUrl(url: string): Promise<void> {
     return;
   }
   window.open(safe, '_blank', 'noopener');
+}
+
+/** Shop Checkout Session — same in-app browser owner as Connect onboarding. */
+export async function openStripeCheckoutUrl(url: string): Promise<void> {
+  return openStripeHostedUrl(url);
 }
 
 /**

@@ -100,6 +100,46 @@ function getStripeAccountsV2(): Stripe | null {
   });
 }
 
+function payoutAppOrigin(): string {
+  const raw = (
+    process.env.CLIENT_URL ||
+    process.env.VITE_API_URL ||
+    "https://www.elixstarlive.co.uk"
+  )
+    .trim()
+    .replace(/\/+$/, "");
+  return raw || "https://www.elixstarlive.co.uk";
+}
+
+/**
+ * v2 connected accounts must use v2 Account Links. v1 accountLinks.create
+ * against a v2 account produces a hosted URL that infinite-loads.
+ * Account was created with merchant + recipient configs — both must be listed.
+ */
+async function createConnectOnboardingLink(
+  stripeV2: Stripe,
+  accountId: string,
+): Promise<string> {
+  const origin = payoutAppOrigin();
+  const link = await stripeV2.v2.core.accountLinks.create({
+    account: accountId,
+    use_case: {
+      type: "account_onboarding",
+      account_onboarding: {
+        configurations: ["merchant", "recipient"],
+        collection_options: { fields: "eventually_due" },
+        return_url: `${origin}/creator-payout?payout_return=1`,
+        refresh_url: `${origin}/creator-payout?payout_refresh=1`,
+      },
+    },
+  });
+  const url = String(link.url || "").trim();
+  if (!url.startsWith("https://")) {
+    throw new Error("missing_onboarding_url");
+  }
+  return url;
+}
+
 export function isPayoutProviderConfigured(): boolean {
   return !!getStripe();
 }
@@ -131,30 +171,31 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
   );
   if (existing.rowCount) {
     const row = existing.rows[0];
-    let onboardingUrl = row.onboarding_url as string | null;
-    if (!row.payouts_enabled && row.provider_account_id) {
-      try {
-        const link = await stripeClient.accountLinks.create({
-          account: String(row.provider_account_id),
-          refresh_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
-          return_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
-          type: "account_onboarding",
-        });
-        onboardingUrl = link.url;
-        await pool.query(
-          `UPDATE elix_creator_payout_accounts SET onboarding_url = $2, updated_at = NOW() WHERE creator_user_id = $1`,
-          [creatorUserId, onboardingUrl],
-        );
-      } catch (err) {
-        logger.warn({ err }, "payout account link refresh failed");
-      }
+    const accountId = String(row.provider_account_id);
+    if (row.payouts_enabled) {
+      return {
+        ok: true,
+        accountId,
+        onboardingUrl: null,
+        verificationStatus: String(row.verification_status),
+      };
     }
-    return {
-      ok: true,
-      accountId: String(row.provider_account_id),
-      onboardingUrl,
-      verificationStatus: String(row.verification_status),
-    };
+    try {
+      const onboardingUrl = await createConnectOnboardingLink(stripeV2, accountId);
+      await pool.query(
+        `UPDATE elix_creator_payout_accounts SET onboarding_url = $2, updated_at = NOW() WHERE creator_user_id = $1`,
+        [creatorUserId, onboardingUrl],
+      );
+      return {
+        ok: true,
+        accountId,
+        onboardingUrl,
+        verificationStatus: String(row.verification_status),
+      };
+    } catch (err) {
+      logger.warn({ err }, "payout account link refresh failed");
+      return { ok: false, error: "provider_error" };
+    }
   }
 
   try {
@@ -197,12 +238,7 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
       ],
     });
 
-    const link = await stripeClient.accountLinks.create({
-      account: account.id,
-      refresh_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_refresh=1`,
-      return_url: `${process.env.CLIENT_URL || process.env.VITE_API_URL || "https://www.elixstarlive.co.uk"}/creator-payout?payout_return=1`,
-      type: "account_onboarding",
-    });
+    const onboardingUrl = await createConnectOnboardingLink(stripeV2, account.id);
 
     const transfersStatus =
       account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers
@@ -222,13 +258,13 @@ export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
         false,
         false,
         payoutsEnabled,
-        link.url,
+        onboardingUrl,
       ],
     );
     return {
       ok: true,
       accountId: account.id,
-      onboardingUrl: link.url,
+      onboardingUrl,
       verificationStatus: "pending",
     };
   } catch (err) {
