@@ -7,12 +7,9 @@ import { captureExceptionToSentry } from "../lib/sentryInit";
  * request; error logs and API error bodies read it back here. Declared once so
  * both ends share one type instead of casting at each use site.
  */
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace Express {
-    interface Request {
-      requestId?: string;
-    }
+declare module "express-serve-static-core" {
+  interface Request {
+    requestId?: string;
   }
 }
 

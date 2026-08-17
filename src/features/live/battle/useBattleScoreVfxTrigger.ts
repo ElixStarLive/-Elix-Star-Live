@@ -43,17 +43,15 @@ export function useBattleScoreVfxTrigger(
     [setBattleMistSide],
   );
 
-  useEffect(() => {
-    return () => {
-      // Reading the ref at unmount is the point: it must clear whichever mist
-      // timeout is pending then. Copying it into the effect body (what
-      // exhaustive-deps suggests) would capture null at mount and clear nothing.
-      if (battleMistTimerRef.current != null) {
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        window.clearTimeout(battleMistTimerRef.current);
-      }
-    };
+  /** Clears whichever mist timeout is pending when it is called. */
+  const clearPendingMistTimer = useCallback(() => {
+    if (battleMistTimerRef.current != null) {
+      window.clearTimeout(battleMistTimerRef.current);
+      battleMistTimerRef.current = null;
+    }
   }, []);
+
+  useEffect(() => clearPendingMistTimer, [clearPendingMistTimer]);
 
   return {
     battleGloves,

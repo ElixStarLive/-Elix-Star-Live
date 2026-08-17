@@ -36,6 +36,9 @@ export function useHostLiveSession(opts: {
   getCameraStreamRef.current = opts.getCameraStream;
   const displayNameRef = useRef(opts.displayName);
   displayNameRef.current = opts.displayName;
+  /** Connect metadata only — `creds` is what decides when to reconnect. */
+  const roomIdRef = useRef(opts.roomId);
+  roomIdRef.current = opts.roomId;
 
   const [creds, setCreds] = useState<LiveKitCreds | null>(null);
   const [connected, setConnected] = useState(false);
@@ -101,7 +104,7 @@ export function useHostLiveSession(opts: {
         },
       }, {
         surface: 'host',
-        roomId: opts.roomId,
+        roomId: roomIdRef.current,
         publish: true,
       });
       if (cancelled) {
@@ -122,10 +125,6 @@ export function useHostLiveSession(opts: {
       setConnected(false);
       lifecycle.liveKit?.disconnect();
     };
-    // `opts.roomId` is deliberately not a dependency: it is only connect
-    // metadata, and `creds` already changes when the room does. Adding it would
-    // tear down and reconnect a running broadcast on a bare key change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [opts.enabled, creds, opts.liveKitHandlersRef, publishFromCamera]);
 
   // Republish when camera stream recreates (does not reconnect the room).
