@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { websocket } from '../lib/websocket';
 import { formatGiftDisplayName } from '../lib/giftsCatalog';
-import { LIVE_SOLO_CHAT_TOP_FROM_BOTTOM } from '../lib/profileFrame';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const ELIX_GIFT_PILL_EVENT = 'elix-gift-pill';
@@ -34,7 +33,7 @@ interface GiftAnimation {
 
 interface GiftAnimationOverlayProps {
   streamId: string;
-  /** Kept for callers; banner anchors to the top of the chat column (solo + battle). */
+  /** Kept for callers; red banner always plays on the Weekly Ranking row (solo + battle). */
   isBattleMode?: boolean;
 }
 
@@ -147,12 +146,12 @@ export default function GiftAnimationOverlay({
         <div
           className="absolute left-0 right-0"
           style={{
-            // Solo + battle: top edge of the chat column (same anchor as gift feed).
-            bottom: LIVE_SOLO_CHAT_TOP_FROM_BOTTOM,
+            // Solo + battle: Weekly Ranking row, 0.5mm down.
+            top: 'calc(env(safe-area-inset-top, 0px) + 66px + 0.5mm)',
           }}
         >
           {currentGift && (
-            <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-transparent">
+            <div className="animate-slide-in-right w-full rounded-full flex items-center gap-1.5 overflow-hidden px-2 py-0.5 bg-red-600/85 backdrop-blur-sm">
               <div className="w-4 h-4 flex-shrink-0">
                 {currentGift.giftIcon && (currentGift.giftIcon.startsWith('http') || currentGift.giftIcon.startsWith('/')) ? (
                   <img src={currentGift.giftIcon} alt="" className="w-full h-full object-contain" />
