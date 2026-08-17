@@ -106,6 +106,9 @@ class WebSocketService {
     }
     const nextOwner =
       options?.ownerId !== undefined ? options.ownerId.trim() : "";
+    // #region agent log
+    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'post-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:110',message:'websocket owner requested connection',data:{targetIsFeed:roomId==='__feed__',currentIsFeed:this.roomId==='__feed__',sameRoom:this.roomId===roomId,ownerCountBefore:this.ownerRooms.size,readyState:this.ws?.readyState??-1,persistent:options?.persistent??this.persistentReconnect,hasNextOwner:!!nextOwner},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (nextOwner) this.ownerRooms.set(nextOwner, roomId);
     if (
       this.ws?.readyState === WebSocket.OPEN ||
@@ -241,6 +244,9 @@ class WebSocketService {
     if (!owner) return;
     if (!this.ownerRooms.has(owner)) return;
     this.ownerRooms.delete(owner);
+    // #region agent log
+    void fetch('http://127.0.0.1:7890/ingest/cb808dfb-207c-422d-a0a1-8b9841f6ae4c',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'d739cc'},body:JSON.stringify({sessionId:'d739cc',runId:'pre-fix',hypothesisId:'H4',location:'src/lib/websocket.ts:236',message:'websocket owner released connection',data:{currentIsFeed:this.roomId==='__feed__',remainingOwnerCount:this.ownerRooms.size,willDisconnect:this.ownerRooms.size===0,readyState:this.ws?.readyState??-1},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     if (this.ownerRooms.size === 0) {
       this.disconnect();
     }

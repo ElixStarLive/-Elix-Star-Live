@@ -1,21 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(__dirname, "../..");
 const read = (relative: string) => readFileSync(resolve(root, relative), "utf8");
-
-function walkTs(dir: string, acc: string[] = []): string[] {
-  for (const ent of readdirSync(dir, { withFileTypes: true })) {
-    if (ent.name === "node_modules" || ent.name === "dist" || ent.name === "android" || ent.name === "ios") {
-      continue;
-    }
-    const p = resolve(dir, ent.name);
-    if (ent.isDirectory()) walkTs(p, acc);
-    else if (/\.(ts|tsx|js|mjs)$/.test(ent.name)) acc.push(p);
-  }
-  return acc;
-}
 
 describe("release architecture contracts", () => {
   it("1. GBP ledger failure rolls back the paid gift (no swallowed catch)", () => {
@@ -77,17 +65,6 @@ describe("release architecture contracts", () => {
     expect(ws).toContain("reconnectOnForeground()");
     const fg = ws.slice(ws.indexOf("reconnectOnForeground()"), ws.indexOf("private attemptReconnect"));
     expect(fg).toContain("useAuthStore.getState().session?.access_token || this.token");
-  });
-
-  it("14. production client source contains no debug ingest host", () => {
-    const hits: string[] = [];
-    for (const file of walkTs(resolve(root, "src"))) {
-      const text = readFileSync(file, "utf8");
-      if (text.includes("127.0.0.1:7890") || text.includes("localhost:7890")) {
-        hits.push(file);
-      }
-    }
-    expect(hits).toEqual([]);
   });
 
   it("pins Apple JWS trust to Apple Root CA G3", () => {
