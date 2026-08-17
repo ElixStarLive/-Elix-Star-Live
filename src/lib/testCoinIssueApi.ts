@@ -15,7 +15,8 @@ export function formatTestCoinIssueError(error: string, status: number): string 
   if (status === 401 || /not authenticated|invalid/i.test(error)) return "Sign in required";
   if (status === 429 || /too many/i.test(error)) return "Too many attempts. Try again later.";
   if (error === "FORBIDDEN") return "Wrong password";
-  if (/admin/i.test(error) || /not configured/i.test(error)) return "Try again";
+  if (/admin/i.test(error)) return "Try again";
+  if (/not configured/i.test(error)) return "Server password not set";
   return error;
 }
 

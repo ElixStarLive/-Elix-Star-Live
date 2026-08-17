@@ -1,10 +1,9 @@
 /**
  * Test-coin ISSUE/MINT — signed-in user + server password.
  *
- * Issuance (mint) requires a signed-in user. If TEST_COINS_ISSUE_PASSWORD
- * (or HASH) is set on the server, that value must match. If it is not set,
- * any non-empty password from a logged-in user is enough — test coins are
- * not money. Never an admin role.
+ * Issuance (mint) requires BOTH:
+ *   1. Authenticated user (login)
+ *   2. Correct TEST_COINS_ISSUE_PASSWORD from server env (never in the client)
  *
  * Not an admin feature. Issued balances stay TEST origin on the client
  * (localStorage) for Live/Battle gameplay. They never enter paid-coin lots,
@@ -97,17 +96,17 @@ function issuePasswordConfigured(): boolean {
   return Boolean(envPasswordHash() || envPasswordPlainHash());
 }
 
-/** True when no server password is set, or the typed value matches plain or hash env. */
+/** Owner plain env wins over hash so a leftover HASH cannot block the real password. */
+function expectedPasswordHash(): string | null {
+  return envPasswordPlainHash() || envPasswordHash();
+}
+
 function verifyIssuePassword(password: unknown): boolean {
+  const expected = expectedPasswordHash();
+  if (!expected) return false;
   const pwd = typeof password === "string" ? password : "";
   if (!pwd) return false;
-  const got = sha256Hex(pwd);
-  const fromHash = envPasswordHash();
-  const fromPlain = envPasswordPlainHash();
-  if (!fromHash && !fromPlain) return true;
-  if (fromHash && safeEqualHex(got, fromHash)) return true;
-  if (fromPlain && safeEqualHex(got, fromPlain)) return true;
-  return false;
+  return safeEqualHex(sha256Hex(pwd), expected);
 }
 
 async function auditIssue(input: {
@@ -205,6 +204,19 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     return;
   }
 
+  if (!issuePasswordConfigured()) {
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount: 0,
+      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      ip,
+      outcome: "misconfigured",
+      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
+    });
+    res.status(503).json({ error: "Test-coin issuance is not configured." });
+    return;
+  }
+
   if (!verifyIssuePassword(req.body?.password)) {
     recordFailure(failByUser, auth.userId);
     recordFailure(failByIp, ip);
@@ -248,6 +260,19 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
       reason: "mint_rate_limited",
     });
     res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
+    return;
+  }
+
+  if (!issuePasswordConfigured()) {
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount: 0,
+      balanceAfter: issuedBalances.get(auth.userId) || 0,
+      ip,
+      outcome: "misconfigured",
+      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
+    });
+    res.status(503).json({ error: "Test-coin issuance is not configured." });
     return;
   }
 
