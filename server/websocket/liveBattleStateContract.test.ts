@@ -171,18 +171,17 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(spectator).toContain("onTick: handleBattleTick");
   });
 
-  it("battle gifts route by targetCreatorId, not team-wide room broadcast", () => {
+  it("gift_sent video plays 1-1 for creator and every spectator in the room", () => {
     const giftDelivery = read("./giftDelivery.ts");
     const handlers = read("./handlers.ts");
     const wsIndex = read("./index.ts");
     expect(giftDelivery).toContain("emitGiftSentToTargetAudience");
-    expect(giftDelivery).toContain("broadcastToCreatorAudience");
+    expect(giftDelivery).toContain("broadcastToRoom");
     expect(giftDelivery).toContain("resolveGiftTargetCreatorId");
-    expect(giftDelivery).toContain(
+    expect(giftDelivery).toContain('broadcastToRoom(roomId, "gift_sent", payload)');
+    expect(giftDelivery).not.toContain(
       'broadcastToCreatorAudience(roomId, targetCreatorId, "gift_sent"',
     );
-    expect(giftDelivery).toContain("seatedBattleCreatorIds(battle)");
-    expect(giftDelivery).toContain("if (battleActive && targetCreatorId)");
     expect(handlers).toContain("emitGiftSentToTargetAudience");
     // Audience ownership now follows the creator's ROLE transition, owned by the
     // WS layer (getCreatorLiveRoleRoom + battle room), not by handlers.ts.
@@ -202,7 +201,8 @@ describe("LIVE + battle server state-machine contracts", () => {
     expect(wsIndex).toContain("export function broadcastToCreatorAudience");
     expect(wsIndex).toContain("targetCreatorId");
     expect(wsIndex).toContain("audienceCreatorId");
-    // Score stays room-wide; gifts do not.
+    // Score stays room-wide. Gift video is also room-wide so creator + every
+    // spectator play the same animation 1-1.
     expect(battle).toContain('broadcastToRoom(roomId, "battle_score"');
   });
 });

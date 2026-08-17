@@ -1,11 +1,11 @@
 /**
  * Battle gift audience ownership.
  *
- * 4-creator Battle teammates share SCORE only. Gifts, gift animations, gift
- * chat, and spectator audiences stay independent per creator.
+ * 4-creator Battle teammates share SCORE only. Gift VIDEO plays 1-1 for the
+ * creator and every spectator in the room (broadcastToRoom gift_sent).
+ * targetCreatorId still marks who received the gift for score / payout routing.
  *
- * Routing: gift → targetCreatorId → that creator + that creator's spectators.
- * Do not route by teamId. Do not broadcast gift_sent to the whole battle room.
+ * Do not route by teamId.
  */
 
 export type BattleGiftSeat = "host" | "opponent" | "player3" | "player4";

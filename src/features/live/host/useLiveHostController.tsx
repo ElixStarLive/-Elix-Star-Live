@@ -163,7 +163,6 @@ import {
   resolveBattleMvpSide,
   resolveServerBattleGiftTarget,
   resolveViewerBattleSide,
-  shouldPlayFullBattleGiftVideo,
   type ServerBattleGiftTarget,
 } from '../../../lib/liveBattleGiftTarget';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
@@ -3466,26 +3465,15 @@ export function useLiveHostController() {
         }
       }
 
-      // Creator must play spectator gift videos. Skip only our own echo
-      // (sender already queued locally).
+      // Creator must play spectator gift videos. Skip WS echo only when this
+      // device already queued that txn's video locally.
       const selfId = selfUserIdRef.current;
       const isOwnGift = !!(gifterId && selfId && gifterId === selfId);
-      if (isOwnGift) return;
+      if (isOwnGift && txnId && hasPlayedGiftVideoTxn(txnId)) return;
 
-      // Battle: full gift video only for the recipient creator. Other creators
-      // still update score from this same gift_sent event.
       const giftSlot = isBattleModeRef.current
         ? resolveServerBattleGiftTarget(battleTarget)
         : null;
-      if (
-        isBattleModeRef.current &&
-        battleStateRef.current === 'IN_BATTLE'
-      ) {
-        const myRole =
-          battleRoleRef.current ||
-          (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
-        if (!shouldPlayFullBattleGiftVideo(giftSlot, myRole)) return;
-      }
 
       enqueueFromGiftSent({
         data,
@@ -4413,17 +4401,14 @@ export function useLiveHostController() {
 
       if (gift.video && gift.video.trim()) {
         const videoUrl = resolveLocalGiftVideoUrl(gift.video);
-        const mySlot =
-          battleRoleRef.current ||
-          (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
-        const playFull =
-          !isBattleMode ||
-          shouldPlayFullBattleGiftVideo(serverBattleTarget ?? null, mySlot);
-        if (videoUrl && playFull) {
+        if (videoUrl) {
           const localBattleSide = isBattleMode
             ? normalizeBattleGiftTarget(serverBattleTarget)
             : null;
           enqueueGiftVideo(videoUrl, localBattleSide);
+          if (giftTransactionId) {
+            playedGiftVideoTxnRef.current.add(giftTransactionId);
+          }
         }
       }
       setShowGiftPanel(false);
@@ -4589,18 +4574,10 @@ export function useLiveHostController() {
                 opponentRoomId: battleStreamIdsRef.current?.opponentRoomId ?? '',
               })
             : null;
-          const mySlot =
-            battleRoleRef.current ||
-            (isBroadcast ? 'host' : isBattleJoiner ? 'opponent' : null);
-          const playFull =
-            !isBattleMode ||
-            shouldPlayFullBattleGiftVideo(comboTarget, mySlot);
-          if (playFull) {
-            enqueueGiftVideo(
-              videoUrl,
-              isBattleMode ? normalizeBattleGiftTarget(comboTarget) : null,
-            );
-          }
+          enqueueGiftVideo(
+            videoUrl,
+            isBattleMode ? normalizeBattleGiftTarget(comboTarget) : null,
+          );
           setShowGiftPanel(false);
         }
       }

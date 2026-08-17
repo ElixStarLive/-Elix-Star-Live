@@ -86,13 +86,15 @@ function GiftVideo({
       const p = el.play();
       if (!p || typeof p.then !== 'function') return;
       p.then(() => {
+        el.style.visibility = 'visible';
         // Android WebView: unmute-after-play paints a stuck white play icon.
         if (!muted && !platform.isAndroid) {
           el.muted = false;
         }
       }).catch(() => {
         el.muted = true;
-        el.play().catch(() => endAndRelease());
+        el.style.visibility = 'visible';
+        void el.play().catch(() => {});
       });
     };
     if (el.readyState >= 2) tryPlay();
