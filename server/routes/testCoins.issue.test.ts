@@ -135,4 +135,25 @@ describe("test-coin ISSUE access control", () => {
       expect.objectContaining({ minted: 10, origin: "test_coins" }),
     );
   });
+
+  it("production NODE_ENV still mints for admin + password (£0)", async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    delete process.env.ALLOW_TEST_COINS_MINT_IN_PROD;
+    try {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-prod-mint" });
+      const res = mockRes();
+      await handleMintTestCoins(
+        mockReq({ password: PASSWORD, amount: 25 }),
+        res.value,
+      );
+      expect(res.status).not.toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 25, origin: "test_coins", financialValueGbp: 0 }),
+      );
+    } finally {
+      if (prev === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = prev;
+    }
+  });
 });

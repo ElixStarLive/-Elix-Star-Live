@@ -514,21 +514,15 @@ describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
     expect(gifts.rows[0].c).toBe(0);
   });
 
-  it("Production test coins create no gift or battle records", async () => {
+  it("Production test coins create no money gift records", async () => {
     const userId = `it_tc_${Date.now()}`;
-    // Server policy: test_coins_blocked — no rows written for production gift path
+    // Test coins never write paid gift_transactions / earnings. Battle points
+    // are scoreboard-only, not wallet money.
     const gifts = await pool.query(
       `SELECT COUNT(*)::int AS c FROM elix_gift_transactions WHERE user_id = $1`,
       [userId],
     );
-    const battles = await pool
-      .query(
-        `SELECT COUNT(*)::int AS c FROM battle_fan_energy WHERE room_id = $1`,
-        [`test_coins_${userId}`],
-      )
-      .catch(() => ({ rows: [{ c: 0 }] }));
     expect(gifts.rows[0].c).toBe(0);
-    expect(battles.rows[0].c).toBe(0);
   });
 
   it("Failed Diamond credit rolls back debit", async () => {

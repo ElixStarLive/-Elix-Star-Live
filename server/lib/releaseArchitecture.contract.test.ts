@@ -123,4 +123,16 @@ describe("release architecture contracts", () => {
     const platform = read("src/lib/platform.ts");
     expect(platform).toContain("Browser.open");
   });
+
+  it("test coins stay in the app by default (battle + animation, never money)", () => {
+    const client = read("src/lib/testCoins.ts");
+    expect(client).toContain("BATTLE GAME SCORE");
+    expect(client).not.toContain("IS_STORE_BUILD");
+    const storeEnv = read(".env.store.example");
+    expect(storeEnv).toContain("VITE_ALLOW_TEST_COINS=1");
+    expect(storeEnv).not.toMatch(/VITE_ALLOW_TEST_COINS=0/);
+    const mint = read("server/routes/testCoins.ts");
+    expect(mint).not.toContain("TEST_COINS_MINT_DISABLED_IN_PRODUCTION");
+    expect(mint).toContain("financialValueGbp: 0");
+  });
 });

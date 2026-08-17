@@ -39,20 +39,15 @@ export function isProductionTestCoinsBlocked(
 
 /**
  * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only (£0 money).
- *
- * Production: OFF unless ALLOW_TEST_COINS_BATTLE_SCORE=1|true|on.
- * Non-production: ON unless ALLOW_TEST_COINS_BATTLE_SCORE=0|false|off.
+ * On by default in every environment, including production.
+ * Explicit kill switch: ALLOW_TEST_COINS_BATTLE_SCORE=0|false|off.
  */
 export function canAcceptTestCoinsBattleScore(
-  nodeEnv: string | undefined = process.env.NODE_ENV,
+  _nodeEnv: string | undefined = process.env.NODE_ENV,
 ): boolean {
   const raw = String(process.env.ALLOW_TEST_COINS_BATTLE_SCORE || "")
     .trim()
     .toLowerCase();
-  const isProd = String(nodeEnv || "").toLowerCase() === "production";
-  if (isProd) {
-    return raw === "1" || raw === "true" || raw === "on";
-  }
   if (raw === "0" || raw === "false" || raw === "off") return false;
   return true;
 }
