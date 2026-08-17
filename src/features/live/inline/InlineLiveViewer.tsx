@@ -48,10 +48,6 @@ function appUserIdFromIdentity(identity: string | null | undefined): string {
   return (m?.[1] || i).trim();
 }
 
-function isViewerOnlyIdentity(identity: string | null | undefined): boolean {
-  return /__v_[a-f0-9]{12}$/i.test((identity || "").trim());
-}
-
 function sameId(a: string | null | undefined, b: string | null | undefined): boolean {
   const na = appUserIdFromIdentity(a).toLowerCase();
   const nb = appUserIdFromIdentity(b).toLowerCase();
@@ -196,9 +192,6 @@ export default function InlineLiveViewer({
         return;
       }
 
-      // Subscribe-only spectators never drive layout.
-      if (isViewerOnlyIdentity(identity)) return;
-
       if (m === "battle") {
         if (sameId(identity, opponentIdRef.current) || !opponentIdRef.current) {
           if (!opponentIdRef.current) opponentIdRef.current = identity;
@@ -250,8 +243,11 @@ export default function InlineLiveViewer({
     const tiles: CohostTile[] = [];
     for (const [, p] of room.remoteParticipants) {
       const identity = p.identity || "";
-      if (!identity || isViewerOnlyIdentity(identity)) continue;
+      if (!identity) continue;
       if (sameId(identity, hostId) || sameId(identity, streamKey)) continue;
+      // A live video track is what makes someone a co-host tile — never the shape
+      // of their identity, which does not change when the server upgrades a
+      // spectator to publisher inside this same room.
       let liveVideo = false;
       for (const [, pub] of p.videoTrackPublications) {
         if (pub.track && pub.isSubscribed) {
@@ -392,10 +388,7 @@ export default function InlineLiveViewer({
       setHostUserId(hid);
       hostIdRef.current = hid;
       const live = tiles.filter(
-        (h) =>
-          !sameId(h.userId, hid) &&
-          !isViewerOnlyIdentity(h.userId) &&
-          (h.status === "live" || h.status === "accepted"),
+        (h) => !sameId(h.userId, hid) && (h.status === "live" || h.status === "accepted"),
       );
       setCoHosts(live);
       if (modeRef.current !== "battle") {
@@ -523,7 +516,7 @@ export default function InlineLiveViewer({
                   let stillCohost = false;
                   for (const [, p] of room.remoteParticipants) {
                     const id = p.identity || "";
-                    if (!id || isViewerOnlyIdentity(id)) continue;
+                    if (!id) continue;
                     if (sameId(id, hostId) || sameId(id, streamKey)) continue;
                     for (const [, pub] of p.videoTrackPublications) {
                       if (pub.track && pub.isSubscribed) {

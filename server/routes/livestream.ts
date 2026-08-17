@@ -754,18 +754,23 @@ export async function handleGetLiveToken(req: Request, res: Response) {
         (await hasBattlePublishGrant(roomName, auth.userId)) ||
         (await hasCohostPublishGrant(roomName, auth.userId));
       if (!authorized) {
+        // Grant set is the primary authority; the seat table is the fallback when
+        // a grant key expired mid-live. Only a seat that is actually publishing
+        // counts — an unaccepted "invited" row must not authorize publishing.
         const ownerId = await resolveStreamOwnerUserId(roomName);
         const layout = await getCohostLayout(roomName);
         authorized =
           !!ownerId &&
           layout?.hostUserId === ownerId &&
           Array.isArray(layout?.coHosts) &&
-          (layout as NonNullable<typeof layout>).coHosts.some(
-            (h) =>
-              h &&
-              typeof h === 'object' &&
-              (h as { userId?: string }).userId === auth.userId,
-          );
+          (layout as NonNullable<typeof layout>).coHosts.some((h) => {
+            if (!h || typeof h !== 'object') return false;
+            const seat = h as { userId?: string; status?: string };
+            return (
+              seat.userId === auth.userId &&
+              (seat.status === 'live' || seat.status === 'accepted')
+            );
+          });
       }
       if (!authorized) {
         return res.status(403).json({ error: 'Not authorized to publish in this room.' });

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { showToast } from '../../../lib/toast';
 import { prepareLiveVideoEl } from '../../../lib/prepareLiveVideoEl';
@@ -1088,7 +1088,18 @@ export function useLiveSpectatorController() {
     setRemoteCamOff,
   });
 
-  const [isCoHosting, setIsCoHosting] = useState(false);
+  /**
+   * Co-host role authority = the server seat table (`cohost_layout_sync`), never
+   * a URL flag. A seat the server frees therefore stands this client down on its
+   * own, and a stale link can never claim a seat the server did not grant.
+   */
+  const mySeatStatus = useMemo(() => {
+    const myId = user?.id;
+    if (!myId) return null;
+    const seat = spectatorCoHosts.find((h) => sameUserId(h.userId, myId));
+    return seat ? seat.status : null;
+  }, [spectatorCoHosts, user?.id]);
+  const isCoHosting = mySeatStatus === 'live' || mySeatStatus === 'accepted';
 
   useEffect(() => {
     if (!featuredUserId) return;
@@ -1116,11 +1127,29 @@ export function useLiveSpectatorController() {
     return () => {};
   }, [user?.id]);
 
-  // Co-host publish is invite/accept only — URL alone is not enough.
+  // Entry hint only: this viewer arrived through an accepted invite/request, so
+  // the first LiveKit token may ask to publish. The server still decides, and
+  // the seat table above is what actually makes someone a co-host.
   const cohostState = (location.state as Record<string, unknown>) || {};
   const isCoHostFromUrl =
     new URLSearchParams(location.search).get('cohost') === '1' &&
     cohostState.fromCohostInvite === true;
+
+  /** Drop the entry hint once the server says this client holds no seat. */
+  const clearCohostPublishIntent = useCallback(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('cohost')) return;
+    params.delete('cohost');
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString() ? `?${params.toString()}` : '',
+      },
+      { replace: true, state: {} },
+    );
+  }, [location.pathname, location.search, navigate]);
+  const clearCohostPublishIntentRef = useRef(clearCohostPublishIntent);
+  clearCohostPublishIntentRef.current = clearCohostPublishIntent;
 
   // Separate useLiveCamera instance from host (only one live screen mounted).
   // Enabled only while this spectator is publishing as cohost; autoAcquire false
@@ -1144,46 +1173,12 @@ export function useLiveSpectatorController() {
     setIsCamOff,
   } = liveCamera;
 
-  const _startCoHosting = async () => {
-    try {
-      setIsCoHosting(true);
-      setIsMicMuted(true);
-      setIsCamOff(false);
-      const stream = await acquireCamera();
-      if (!stream) {
-        setIsCoHosting(false);
-        showToast('Camera access denied');
-        return;
-      }
-      stream.getAudioTracks().forEach((t) => {
-        t.enabled = false;
-      });
-
-      if (myVideoRef.current) {
-        myVideoRef.current.srcObject = stream;
-        prepareLiveVideoEl(myVideoRef.current);
-      }
-
-      showToast('You are now co-hosting!');
-      setMessages(prev => appendCapped(prev, {
-        id: `cohost-${Date.now()}`,
-        username: 'System',
-        text: 'You joined as co-host',
-        isSystem: true,
-      }, LIVE_CHAT_MESSAGE_CAP));
-    } catch {
-      setIsCoHosting(false);
-      stopCamera();
-      showToast('Camera access denied');
-    }
-  };
-
+  /** Stand this client's co-host media down. The seat itself is server-owned. */
   const stopCoHosting = useCallback(() => {
     stopCamera();
     if (coHostChanRef.current) {
       coHostChanRef.current = null;
     }
-    setIsCoHosting(false);
     setIsMicMuted(true);
     setIsCamOff(false);
   }, [stopCamera, setIsMicMuted, setIsCamOff]);
@@ -1205,48 +1200,33 @@ export function useLiveSpectatorController() {
         setFeaturedUserId(null);
       }
     }
-    const params = new URLSearchParams(location.search);
-    if (params.has('cohost')) {
-      params.delete('cohost');
-      navigate(
-        {
-          pathname: location.pathname,
-          search: params.toString() ? `?${params.toString()}` : '',
-        },
-        { replace: true, state: {} },
-      );
-    }
+    clearCohostPublishIntent();
     showToast('Left co-host');
   }, [
     stopCoHosting,
     user?.id,
     featuredUserId,
-    location.pathname,
-    location.search,
-    navigate,
+    clearCohostPublishIntent,
     effectiveStreamId,
   ]);
 
+  // The seat table lost this client's seat: stand the media down and drop the
+  // publish intent, but stay connected to the same room as a spectator.
   useEffect(() => {
     if (!user?.id) return;
-    const stillSeated = spectatorCoHosts.some(
-      (h) =>
-        sameUserId(h.userId, user.id) &&
-        (h.status === 'live' ||
-          h.status === 'accepted' ||
-          h.status === 'invited' ||
-          h.status === 'pending_accept'),
-    );
-    if (stillSeated) wasCohostSeatedRef.current = true;
-    if (isCoHosting && wasCohostSeatedRef.current && !stillSeated) {
-      wasCohostSeatedRef.current = false;
-      stopCoHosting();
-      showToast('Removed from co-host');
-      if (featuredUserId && sameUserId(featuredUserId, user.id)) {
-        setFeaturedUserId(null);
-      }
+    if (isCoHosting) {
+      wasCohostSeatedRef.current = true;
+      return;
     }
-  }, [spectatorCoHosts, isCoHosting, user?.id, stopCoHosting, featuredUserId]);
+    if (!wasCohostSeatedRef.current) return;
+    wasCohostSeatedRef.current = false;
+    stopCoHosting();
+    clearCohostPublishIntentRef.current();
+    showToast('Removed from co-host');
+    if (featuredUserId && sameUserId(featuredUserId, user.id)) {
+      setFeaturedUserId(null);
+    }
+  }, [isCoHosting, user?.id, stopCoHosting, featuredUserId]);
 
   const toggleMic = () => {
     if (!isCoHosting) return;
@@ -1368,7 +1348,9 @@ export function useLiveSpectatorController() {
   const spectatorSession = useSpectatorLiveSession({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
     roomId: effectiveStreamId,
-    publish: isCoHostFromUrl,
+    // Only the seat this client already holds when the room opens. A seat granted
+    // later arrives as a LiveKit permission change on this same connection.
+    publish: isCoHostFromUrl || isCoHosting,
     retryKey: liveConnectRetryKey,
     liveKitHandlersRef: spectatorLiveKitHandlersRef,
   });
@@ -1746,12 +1728,13 @@ export function useLiveSpectatorController() {
     }
   }, [spectatorSession.connected, effectiveStreamId, liveKitRoomRef]);
 
+  // Publish once the server has both seated this client and granted publish on
+  // the open connection. No reconnect: the permission arrives on this room.
   useEffect(() => {
-    if (!spectatorSession.connected || !isCoHostFromUrl) return;
+    if (!spectatorSession.connected || !isCoHosting) return;
+    if (!spectatorSession.canPublish) return;
     let mounted = true;
     const lifecycle = spectatorLifecycleRef.current;
-    // Flip layout to split immediately; camera publish can finish after.
-    setIsCoHosting(true);
     setIsMicMuted(true);
     setIsCamOff(false);
     (async () => {
@@ -1759,7 +1742,7 @@ export function useLiveSpectatorController() {
         const stream = await acquireCamera();
         if (!mounted) return;
         if (!stream) {
-          setIsCoHosting(false);
+          setIsCamOff(true);
           showToast('Could not start camera. Host will not see your video.');
           return;
         }
@@ -1773,7 +1756,7 @@ export function useLiveSpectatorController() {
       } catch (e) {
         console.warn('[LiveKit] Co-host publish failed:', e);
         if (mounted) {
-          setIsCoHosting(false);
+          setIsCamOff(true);
           stopCamera();
         }
         showToast('Could not start camera. Host will not see your video.');
@@ -1785,7 +1768,8 @@ export function useLiveSpectatorController() {
     };
   }, [
     spectatorSession.connected,
-    isCoHostFromUrl,
+    spectatorSession.canPublish,
+    isCoHosting,
     spectatorLifecycleRef,
     acquireCamera,
     stopCamera,
@@ -2669,6 +2653,9 @@ export function useLiveSpectatorController() {
       if (!mounted) return;
       setJoinRequested(false);
       setPendingCoHostInvite(null);
+      // The server freed this seat. Drop the publish intent so a later reconnect
+      // asks for a watch token — this viewer stays in the live as a spectator.
+      clearCohostPublishIntentRef.current();
     };
 
     const handleCohostInvite = (data) => {
@@ -3325,7 +3312,6 @@ export function useLiveSpectatorController() {
     battleSidePanel,
     _setModerators: setModerators,
     _setSelectedSpectatorUserId,
-    _startCoHosting,
     acceptBattleInviteFromWatch,
     activeBooster,
     fireAutoBooster,
@@ -3505,7 +3491,6 @@ export function useLiveSpectatorController() {
     setInputValue,
     setIsCamOff,
     setIsChatVisible,
-    setIsCoHosting,
     setIsFollowing,
     setIsMicMuted,
     setIsMoreMenuOpen,

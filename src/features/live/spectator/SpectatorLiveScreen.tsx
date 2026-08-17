@@ -204,7 +204,6 @@ export default function SpectatorLiveScreen() {
     battleSidePanel,
     _setModerators,
     _setSelectedSpectatorUserId,
-    _startCoHosting,
     acceptBattleInviteFromWatch,
     activeBooster,
     fireAutoBooster,

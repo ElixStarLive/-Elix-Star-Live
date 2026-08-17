@@ -130,6 +130,48 @@ export async function revokeParticipantPublish(
   }
 }
 
+/**
+ * Raise one participant to publisher on their EXISTING connection.
+ *
+ * A co-host is a permission upgrade inside the host's room, not a new room and
+ * not a new connection. `canPublish` is baked into the join token, so a seated
+ * spectator would otherwise have to reconnect with a fresh token; updating the
+ * participant server-side pushes the new permission down the open signal
+ * connection instead, and LiveKit lets them publish immediately.
+ *
+ * Returns true when a connected participant was upgraded. False means the user
+ * is not in the room yet — their next token carries the grant, so the seat is
+ * still honoured on join.
+ */
+export async function grantParticipantPublish(
+  roomName: string,
+  userId: string,
+): Promise<boolean> {
+  const client = getRoomService();
+  if (!client || !roomName || !userId) return false;
+  let upgraded = false;
+  try {
+    const participants = await client.listParticipants(roomName);
+    for (const p of participants) {
+      const identity = p?.identity || '';
+      if (!identity || userIdFromLiveKitIdentity(identity) !== userId) continue;
+      await client.updateParticipant(roomName, identity, undefined, {
+        canPublish: true,
+        canSubscribe: true,
+        canPublishData: true,
+      });
+      upgraded = true;
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!/not found|does not exist|404/i.test(msg)) {
+      logger.warn({ err, roomName, userId }, 'grantParticipantPublish failed');
+    }
+    return false;
+  }
+  return upgraded;
+}
+
 export type RoomOccupancy = 'occupied' | 'empty' | 'unknown';
 
 /**

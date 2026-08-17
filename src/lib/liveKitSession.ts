@@ -48,6 +48,11 @@ export interface LiveKitSessionHandlers {
   onActiveSpeakers?: (identities: string[]) => void;
   onParticipantConnected?: (participant: RemoteParticipant) => void;
   onParticipantDisconnected?: (participant: RemoteParticipant) => void;
+  /**
+   * This client's own publish permission changed on the open connection —
+   * the server seated (or released) it as a co-host without a reconnect.
+   */
+  onLocalPublishPermissionChanged?: (canPublish: boolean) => void;
 }
 
 export class LiveKitSession {
@@ -66,6 +71,11 @@ export class LiveKitSession {
 
   get raw(): Room | null {
     return this.room;
+  }
+
+  /** Publish permission LiveKit currently grants this client in this room. */
+  get canPublish(): boolean {
+    return this.room?.localParticipant?.permissions?.canPublish === true;
   }
 
   async connect(url: string, token: string): Promise<void> {
@@ -135,6 +145,13 @@ export class LiveKitSession {
         if (generation !== this.connectGeneration) return;
         this.handlers.onParticipantConnected?.(p);
       })
+      .on(RoomEvent.ParticipantPermissionsChanged, (_prev, participant) => {
+        if (generation !== this.connectGeneration) return;
+        if (participant !== room.localParticipant) return;
+        this.handlers.onLocalPublishPermissionChanged?.(
+          participant.permissions?.canPublish === true,
+        );
+      })
       .on(RoomEvent.Reconnecting, () => {
         if (generation !== this.connectGeneration) return;
         this.handlers.onReconnecting?.();
@@ -169,6 +186,7 @@ export class LiveKitSession {
       return;
     }
     this.handlers.onConnected?.();
+    this.handlers.onLocalPublishPermissionChanged?.(this.canPublish);
   }
 
   /**

@@ -40,7 +40,12 @@ import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
 import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost, listActiveLiveStreams } from "../routes/livestream";
-import { isLiveKitConfigured, isUserPublishingInRoom, revokeParticipantPublish } from "../services/livekit";
+import {
+  grantParticipantPublish,
+  isLiveKitConfigured,
+  isUserPublishingInRoom,
+  revokeParticipantPublish,
+} from "../services/livekit";
 import {
   wsRateCheck,
   setCohostLayout,
@@ -1322,6 +1327,10 @@ export async function handleMessage(
         if (hostStreamKey) {
           await setCreatorCohostRoom(client.userId, hostStreamKey);
           await deleteCohostJoinRequest(hostStreamKey, client.userId);
+          // Accepting is the moment the invited seat becomes a publisher. If they
+          // are already watching this room, upgrade that live connection rather
+          // than forcing a reconnect for a new publish token.
+          await grantParticipantPublish(hostStreamKey, client.userId);
           const currentLayout = await getCohostLayout(hostStreamKey);
           const normalizedSlots = normalizeCohostSlots(
             currentLayout?.coHosts,
@@ -1471,8 +1480,11 @@ export async function handleMessage(
           break;
         }
         // Host accepted this viewer's co-host request → grant publish for the room.
+        // They are already connected as a spectator, so raise their permission on
+        // that same LiveKit connection instead of making them reconnect.
         if (client.roomId) {
           await grantCohostPublish(client.roomId, requesterUserId);
+          await grantParticipantPublish(client.roomId, requesterUserId);
           await setCreatorCohostRoom(requesterUserId, client.roomId);
         }
         if (upserted.changed) {
