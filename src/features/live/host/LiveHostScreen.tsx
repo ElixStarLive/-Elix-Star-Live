@@ -31,6 +31,7 @@ import {
   Sparkles,
   Timer,
   BarChart3,
+  ArrowLeftRight,
   Lock,
   Coins,
 } from 'lucide-react';
@@ -256,6 +257,8 @@ export default function LiveHostScreen() {
     endCoHostMode,
     engagementOpen,
     engagementPanel,
+    featuredBigVideoRef,
+    featuredHost,
     featuredUserId,
     filteredCreators,
     floatingHearts,
@@ -281,6 +284,7 @@ export default function LiveHostScreen() {
     hasJoinedToday,
     hasOpponentStream,
     heartMembers,
+    hostSmallVideoRef,
     inputValue,
     inviteCoHostFromViewer,
     inviteCreatorToSlot,
@@ -378,6 +382,7 @@ export default function LiveHostScreen() {
     setBattleScoreBarHidden,
     setEngagementOpen,
     setEngagementPanel,
+    setFeaturedUserId,
     setGiftSource,
     setGoalPick,
     setGoalTargetCount,
@@ -429,6 +434,7 @@ export default function LiveHostScreen() {
     toggleCam,
     toggleCoHostCamera,
     toggleCoHostMute,
+    toggleFeaturedUser,
     toggleHostPoll,
     toggleHostPollFromMore,
     toggleMic,
@@ -674,7 +680,7 @@ export default function LiveHostScreen() {
               if (now - last <= 320) handleComboClick();
             }}
           >
-            {/* Host camera — 50% when co-hosts present, else full */}
+            {/* Host camera (or featured co-host) */}
             <div
               className={`${
                 hasAnyCoHost
@@ -702,11 +708,49 @@ export default function LiveHostScreen() {
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                   style={isBroadcast ? {
                     transform: 'scaleX(-1)',
-                    opacity: isCamOff ? 0 : 1,
+                    opacity: featuredHost || isCamOff ? 0 : 1,
                     transition: 'opacity 0.3s ease',
+                    pointerEvents: featuredHost ? 'none' : undefined,
                   } : undefined}
                 />
-                {isCamOff && (
+                {featuredHost && (
+                  <>
+                    <video
+                      ref={featuredBigVideoRef}
+                      className={`absolute inset-0 w-full h-full object-cover z-[4] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                      autoPlay
+                      playsInline
+                      muted
+                      controls={false}
+                      poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                      style={{ backgroundColor: 'transparent' }}
+                    />
+                    <div className="absolute top-1 left-1 z-20 flex items-center gap-1 pointer-events-auto">
+                      <button
+                        type="button"
+                        title="Remove co-host"
+                        aria-label="Remove co-host"
+                        onClick={(e) => { e.stopPropagation(); removeCoHost(featuredHost.id); }}
+                        className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                      >
+                        <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Back to host on big screen"
+                        onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                        className="elix-live-tile-ctrl flex items-center gap-0.5 px-1.5 py-0.5 border-0 bg-transparent active:scale-95"
+                      >
+                        <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                        <span className="text-[8px] font-bold text-[#F5F5F7]">Host</span>
+                      </button>
+                    </div>
+                    <span className="absolute bottom-1 left-1 z-20 text-white/90 text-[9px] font-bold bg-black/55 rounded px-1 truncate max-w-[90%]">
+                      {featuredHost.name}
+                    </span>
+                  </>
+                )}
+                {isCamOff && !featuredHost && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border border-[#D8D9DD]/70 object-cover object-center" />
@@ -716,7 +760,7 @@ export default function LiveHostScreen() {
                     <span className="text-white font-bold text-xs">{creatorName || user?.username || user?.name || 'Me'}</span>
                   </div>
                 )}
-                {isBroadcast && hasAnyCoHost && (
+                {isBroadcast && hasAnyCoHost && !featuredHost && (
                   <>
                     <button
                       type="button"
@@ -779,17 +823,70 @@ export default function LiveHostScreen() {
             )}
             </div>
 
-            {/* Co-host seats — original 8-slot 2×4 grid (host stays on the big pane) */}
+            {/* Co-host seats — original 8-slot 2×4 grid (host on the big pane unless a co-host is featured) */}
             {hasAnyCoHost && (() => {
+              // Self is in the big box unless a co-host is featured (then host moves to a small tile).
               const list = coHosts.filter(h => !sameUserId(h.userId, user?.id));
               const liveList = list.filter(h => h.status === 'live' || h.status === 'accepted');
+              const featured = featuredUserId
+                ? liveList.find((h) => sameUserId(h.userId, featuredUserId)) || null
+                : null;
+              const restLive = featured
+                ? liveList.filter((h) => !sameUserId(h.userId, featured.userId))
+                : liveList;
               const invitedPending = list.filter(h => h.status === 'invited' || h.status === 'pending_accept');
-              const smallSlots: Array<{ type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
-              liveList.forEach(h => smallSlots.push({ type: 'live', host: h }));
+              const smallSlots: Array<{ type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
+              if (featured) smallSlots.push({ type: 'host_main' });
+              restLive.forEach(h => smallSlots.push({ type: 'live', host: h }));
               invitedPending.forEach(h => smallSlots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
               while (smallSlots.length < 8) smallSlots.push({ type: 'empty' });
 
-              const renderCoHostCell = (slot: { type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
+              const renderCoHostCell = (slot: { type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
+                if (slot.type === 'host_main') {
+                  return (
+                    <>
+                      <video
+                        ref={hostSmallVideoRef}
+                        className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                        autoPlay
+                        playsInline
+                        muted
+                        controls={false}
+                        poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: 'transparent' }}
+                      />
+                      {isCamOff && (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
+                          {(user?.avatar || myAvatar) ? (
+                            <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
+                          )}
+                        </div>
+                      )}
+                      <div className="absolute top-0.5 left-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
+                        <button
+                          type="button"
+                          title="End co-host"
+                          aria-label="End co-host"
+                          onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
+                        >
+                          <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                        </button>
+                        <button
+                          type="button"
+                          title="Host on big screen"
+                          onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
+                        >
+                          <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                        </button>
+                      </div>
+                      <span className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</span>
+                    </>
+                  );
+                }
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
                   const camOff = coHostCameraOff[host.id] || [...remoteCamOff].some((id) => sameUserId(id, host.userId));
@@ -831,6 +928,14 @@ export default function LiveHostScreen() {
                             className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
                           >
                             <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
+                          </button>
+                          <button
+                            type="button"
+                            title="Put on big screen"
+                            onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
+                            className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
+                          >
+                            <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                           </button>
                         </div>
                         <button

@@ -29,6 +29,7 @@ import {
   PlusCircle,
   Play,
   BarChart3,
+  ArrowLeftRight,
   RefreshCw,
   X,
 } from 'lucide-react';
@@ -226,6 +227,8 @@ export default function SpectatorLiveScreen() {
     effectiveStreamId,
     engagementOpen,
     engagementPanel,
+    featuredBigVideoRef,
+    featuredUserId,
     floatingHearts,
     followHost,
     sendMembershipHeartJoin,
@@ -252,6 +255,7 @@ export default function SpectatorLiveScreen() {
     hostAvatar,
     hostLevel,
     hostName,
+    hostSmallVideoRef,
     hostUserId,
     hostUserIdRef,
     hostTotalGiftCoins,
@@ -307,6 +311,7 @@ export default function SpectatorLiveScreen() {
     setBattleScoreBarHidden,
     setEngagementOpen,
     setEngagementPanel,
+    setFeaturedUserId,
     setGiftSource,
     setInputValue,
     setIsChatVisible,
@@ -371,6 +376,7 @@ export default function SpectatorLiveScreen() {
     testCoinsStep,
     toggleCam,
     flipCamera,
+    toggleFeaturedUser,
     toggleMic,
     user,
     userLevel,
@@ -958,22 +964,69 @@ export default function SpectatorLiveScreen() {
             );
           }
 
-          type SlotType = { type: 'self' | 'live' | 'invited' | 'pending' | 'empty'; host?: typeof spectatorCoHosts[0] };
+          type SlotType = { type: 'host_main' | 'self' | 'live' | 'invited' | 'pending' | 'empty'; host?: typeof spectatorCoHosts[0] };
 
           const buildSlots = (): SlotType[] => {
             const slots: SlotType[] = [];
             const liveOthers = externalCoHosts.filter(h => h.userId !== myUserId && (h.status === 'live' || h.status === 'accepted'));
-            if (isCoHosting) {
+            const featured = featuredUserId
+              ? liveOthers.find((h) => sameUserId(h.userId, featuredUserId)) || null
+              : null;
+            if (featured) slots.push({ type: 'host_main' });
+            if (isCoHosting && !(featured && sameUserId(myUserId, featured.userId))) {
               slots.push({ type: 'self' });
             }
+            const restLive = featured
+              ? liveOthers.filter((h) => !sameUserId(h.userId, featured.userId))
+              : liveOthers;
             const invitedPending = externalCoHosts.filter(h => h.userId !== myUserId && (h.status === 'invited' || h.status === 'pending_accept'));
-            liveOthers.forEach(h => slots.push({ type: 'live', host: h }));
+            restLive.forEach(h => slots.push({ type: 'live', host: h }));
             invitedPending.forEach(h => slots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
             while (slots.length < 8) slots.push({ type: 'empty' });
             return slots.slice(0, 8);
           };
 
           const renderSlot = (slot: SlotType) => {
+            if (slot.type === 'host_main') {
+              const hid = hostUserIdRef.current || hostUserId || effectiveStreamId;
+              const hostCamOff = [...remoteCamOff].some((id) => sameUserId(id, hid) || sameUserId(id, effectiveStreamId));
+              return (
+                <>
+                  <video
+                    ref={hostSmallVideoRef}
+                    className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                    autoPlay
+                    playsInline
+                    muted
+                    controls={false}
+                    poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                    style={{ opacity: hostCamOff ? 0 : 1, backgroundColor: 'transparent' }}
+                  />
+                  {hostCamOff && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
+                      {hostAvatar ? (
+                        <img src={hostAvatar} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)] flex items-center justify-center">
+                          <span className="text-[#F5F5F7]/60 text-sm font-bold">{hostName.slice(0, 1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    title="Host on big screen"
+                    onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
+                  >
+                    <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                  </button>
+                  <span className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">
+                    {hostName}
+                  </span>
+                </>
+              );
+            }
             if (slot.type === 'self') {
               return (
                 <>
@@ -1021,6 +1074,14 @@ export default function SpectatorLiveScreen() {
                       {isMicMuted
                         ? <MicOff className="text-white/60 w-3.5 h-3.5" strokeWidth={2.5} />
                         : <Mic className="text-white w-3.5 h-3.5" strokeWidth={2.5} />}
+                    </button>
+                    <button
+                      type="button"
+                      title="Put on big screen"
+                      onClick={(e) => { e.stopPropagation(); if (user?.id) toggleFeaturedUser(user.id); }}
+                      className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
+                    >
+                      <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                     </button>
                   </div>
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</p>
@@ -1090,6 +1151,14 @@ export default function SpectatorLiveScreen() {
                       backgroundColor: 'transparent',
                     }}
                   />
+                  <button
+                    type="button"
+                    title="Put on big screen"
+                    onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(h.userId); }}
+                    className="absolute top-0.5 left-0.5 z-10 elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 pointer-events-auto active:scale-95"
+                  >
+                    <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                  </button>
                   <p className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1 truncate max-w-[90%]">{h.name}</p>
                   {(lastGiftIcon || score > 0) && (
                     <div className="absolute bottom-0.5 right-0.5 z-10 flex items-center pointer-events-none">
@@ -1150,6 +1219,9 @@ export default function SpectatorLiveScreen() {
           };
 
           const slots = buildSlots();
+          const featuredLive = featuredUserId
+            ? liveCoHosts.find((h) => sameUserId(h.userId, featuredUserId)) || null
+            : null;
 
           return (
             <div
@@ -1167,7 +1239,7 @@ export default function SpectatorLiveScreen() {
                     : 'relative flex w-full h-full min-h-0 flex-row overflow-hidden rounded-none'
                 }
               >
-              {/* Left/main: host video — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
+              {/* Left/main: host video (or featured co-host) — tap/double-tap to like (Aprecieri); hearts render in chat panel */}
               <div
                 className={`touch-manipulation overflow-hidden rounded-none min-w-0 relative ${
                   showGrid ? 'w-1/2 elix-cohost-pill' : 'w-full'
@@ -1195,12 +1267,39 @@ export default function SpectatorLiveScreen() {
                   controls={false}
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                   style={{
-                    opacity: hasStream && !hostCamOff ? 1 : 0,
+                    opacity: featuredLive ? 0 : (hasStream && !hostCamOff ? 1 : 0),
                     transition: 'opacity 0.4s ease',
                     backgroundColor: 'transparent',
+                    pointerEvents: featuredLive ? 'none' : undefined,
                   }}
                 />
-                {hostCamOff && (
+                {featuredLive && (
+                  <>
+                    <video
+                      ref={featuredBigVideoRef}
+                      className={`absolute inset-0 w-full h-full object-cover rounded-none z-[7] ${LIVE_WEBRTC_VIDEO_CLASS}`}
+                      playsInline
+                      autoPlay
+                      muted
+                      controls={false}
+                      poster={LIVE_VIDEO_TRANSPARENT_POSTER}
+                      style={{ backgroundColor: 'transparent' }}
+                    />
+                    <button
+                      type="button"
+                      title="Back to host on big screen"
+                      onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
+                      className="absolute top-1 left-1 z-20 flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-transparent border border-[#D8D9DD]/50 pointer-events-auto active:scale-95"
+                    >
+                      <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
+                      <span className="text-[8px] font-bold text-[#F5F5F7]">Host</span>
+                    </button>
+                    <span className="absolute bottom-1 left-1 z-20 text-white/90 text-[9px] font-bold bg-black/55 rounded px-1 truncate max-w-[90%]">
+                      {featuredLive.name}
+                    </span>
+                  </>
+                )}
+                {hostCamOff && !featuredLive && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {hostAvatar ? (
                       <img src={hostAvatar} alt="" className="w-16 h-16 rounded-full object-cover object-center border border-[#D8D9DD]/70" />
@@ -1212,7 +1311,7 @@ export default function SpectatorLiveScreen() {
                     <span className="text-white font-bold text-sm">{hostName}</span>
                   </div>
                 )}
-                {!hasStream && !hostCamOff && (
+                {!hasStream && !hostCamOff && !featuredLive && (
                   <div className="w-full h-full flex flex-col items-center justify-center gap-4" style={{ transform: 'translateX(15mm)' }}>
                     <div className="w-24 h-24 rounded-full overflow-hidden">
                       {hostAvatar ? (
@@ -1272,7 +1371,8 @@ export default function SpectatorLiveScreen() {
                       (slot.type === 'self' && isSpeakingUser(user?.id)) ||
                       (slot.type === 'live' && !!slot.host && isSpeakingUser(slot.host.userId));
                     const liveHost = slot.type === 'live' ? slot.host : undefined;
-                    const canOpenGift = !spectatorBattle?.active && !!liveHost;
+                    const canOpenGift =
+                      !spectatorBattle?.active && (!!liveHost || slot.type === 'host_main');
                     return (
                       <div
                         key={i}
