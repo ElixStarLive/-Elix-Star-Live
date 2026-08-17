@@ -14,7 +14,6 @@ import {
   tryClaimTransaction,
   releaseTransactionClaim,
   sendToUserGlobal,
-  isUserInRoomAudience,
 } from "./index";
 import {
   getGiftValue,
@@ -202,10 +201,10 @@ export async function emitGiftSentToTargetAudience(opts: {
     }
   }
 
-  if (
-    targetCreatorId &&
-    !(await isUserInRoomAudience(roomId, targetCreatorId))
-  ) {
+  // Creator must always receive gift_sent on their own sockets. Room/audience
+  // broadcast can miss them (audience stamp, instance split). Client txn gate
+  // drops a duplicate if they also got the room event.
+  if (targetCreatorId) {
     sendToUserGlobal(targetCreatorId, "gift_sent", payload);
   }
 

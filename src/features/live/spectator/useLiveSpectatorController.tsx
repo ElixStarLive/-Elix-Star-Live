@@ -3179,18 +3179,11 @@ export function useLiveSpectatorController() {
     if (gift.video && gift.video.trim()) {
       const videoUrl = resolveLocalGiftVideoUrl(gift.video);
       if (videoUrl) {
-        const localSlot = spectatorBattle?.active
-          ? resolveServerBattleGiftTarget(spectatorGiftBattleTarget)
-          : null;
-        const playFull =
-          !spectatorBattle?.active ||
-          shouldPlayFullBattleGiftVideo(localSlot, battleAudienceSlotRef.current);
-        if (playFull) {
-          enqueueGiftVideo(
-            videoUrl,
-            spectatorBattle?.active ? spectatorGiftBattleTarget : null,
-          );
-        }
+        // Sender always plays the gift they just sent to the target.
+        enqueueGiftVideo(
+          videoUrl,
+          spectatorBattle?.active ? spectatorGiftBattleTarget : null,
+        );
       }
     }
 

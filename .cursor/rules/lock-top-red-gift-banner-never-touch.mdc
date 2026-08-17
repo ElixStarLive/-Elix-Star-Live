@@ -1,0 +1,34 @@
+---
+description: LOCK — Top red gift banner final; never edit without explicit owner order
+globs: src/components/GiftAnimationOverlay.tsx
+alwaysApply: true
+---
+
+# Top red gift banner — LOCKED (owner 2026-08-16)
+
+The **top red gift banner** is the **global** gift banner. It is **done**. Do **not** change it.
+
+This is **not** the gift capsule that plays above chat (`LiveGiftFeedStack`). Those are two different things. Never move, restyle, or replace this global bar to “fix” the chat capsule.
+
+## Locked file
+
+- `src/components/GiftAnimationOverlay.tsx` — the Weekly Ranking red sender bar only
+- Do not `git restore` this file unless the owner types restore
+
+## Approved bar (memorize)
+
+- `top: calc(env(safe-area-inset-top, 0px) + 66px + 0.5mm)`
+- Solo + battle: Weekly Ranking row
+- `bg-red-600/85 backdrop-blur-sm`
+- Full width `left-0 right-0`, `rounded-full`, `px-2 py-0.5`
+- Black text: “X sent Y to Z”
+
+## Forbidden unless the owner names this banner in that message
+
+- No transparent fill
+- No move to chat top
+- No remove
+- No restyle, resize, or recolor
+- No drive-by while fixing combo, capsule, Follow, or gift video
+
+Default: **never touch the top red gift banner.**

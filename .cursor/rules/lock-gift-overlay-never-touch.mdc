@@ -25,9 +25,34 @@ Approved solo gift video framing in `GiftOverlay`:
 - Solo mask: fade at top (`linear-gradient` mask as committed)
 - Battle uses the **same** chat-anchored frame as solo (no half-pane on battle tiles). Owner 2026-08-10.
 
-Red banner (`GiftAnimationOverlay`): full column width, edge-to-edge (`left-0 right-0`, no side padding on the bar wrapper).
-- Solo: Weekly Ranking top row.
-- Battle: bottom inside battle video stage (above MVP strip). Owner 2026-08-10.
+## TOP RED BANNER — LOCKED (owner 2026-08-16 23:47)
+
+`GiftAnimationOverlay` red sender bar. **Do not touch.** Owner: “put the top red banner back” + “do not fucking touch that shit.”
+
+Exact approved bar:
+
+- Position: Weekly Ranking row — `top: calc(env(safe-area-inset-top, 0px) + 66px + 0.5mm)`
+- Solo **and** battle: this same top row (not chat top, not battle stage bottom)
+- Fill: `bg-red-600/85 backdrop-blur-sm` — **never** `bg-transparent`
+- Width: `left-0 right-0`, full column, `rounded-full`, `px-2 py-0.5`
+- Text: black, “X sent Y to Z”
+- File: `src/components/GiftAnimationOverlay.tsx`
+
+Hard bans (even if a later message talks about a transparent banner, a capsule, chat-top, or x1):
+
+- Do **not** move this bar
+- Do **not** make it transparent
+- Do **not** remove it
+- Do **not** restyle it
+- Do **not** “fix” it while doing any other gift / live / Follow / combo work
+
+Only if the owner names **top red banner** / **red gift banner** and a specific change in the **same message**.
+
+## ABOVE-CHAT GIFT CAPSULE — LOCKED (owner 2026-08-16 23:52)
+
+`LiveGiftFeedStack` rounded capsule above chat. **Do not touch.** Owner: “lock that and never touch it again.”
+
+This is **not** the top red global banner. Never mix them. Never strip this capsule to x1 writing.
 
 ## Creator + spectator must stay identical
 

@@ -1,0 +1,38 @@
+---
+description: LOCK — Above-chat gift capsule final; never edit without explicit owner order
+globs: src/components/LiveGiftFeedStack.tsx
+alwaysApply: true
+---
+
+# Above-chat gift capsule — LOCKED (owner 2026-08-16)
+
+The gift **capsule that plays above chat** is **done**. Do **not** change it.
+
+Owner: “lock that and never touch it again.”
+
+## Locked file
+
+- `src/components/LiveGiftFeedStack.tsx`
+- Do not `git restore` this file unless the owner types restore
+
+## What this is
+
+- The rounded gift capsule (avatar + name + sent gift + icon) that plays **above the chat**
+- Not writing-only x1
+- **Not** the top red **global** banner (`GiftAnimationOverlay`) — that is a different lock; never mix them
+
+## Approved placement
+
+- Solo: `bottom: calc(LIVE_SOLO_CHAT_TOP_FROM_BOTTOM - 23mm)`, `translateY(-100%)`, `left-2`, `maxWidth: 220px`
+- Capsule: `rounded-full bg-black/75`, avatar 28px, gift icon 24px
+- xN beside the capsule only when quantity is greater than 1
+
+## Forbidden unless the owner names this capsule in that message
+
+- No remove
+- No restyle
+- No move
+- No strip down to x1 writing
+- No drive-by while fixing the top red banner, gift video, Follow, or combo
+
+Default: **never touch the above-chat gift capsule.**

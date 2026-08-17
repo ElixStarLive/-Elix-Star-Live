@@ -107,7 +107,6 @@ import { liveChatSend } from '../chat/liveChatActions';
 import { liveBoosterActivated, liveMistActivated } from '../room/liveRoomActions';
 import { EngagementDrawer } from '../../../components/engagement/EngagementDrawer';
 import { reportFailure } from '../../../lib/reportFailure';
-import { platform } from '../../../lib/platform';
 import { MembershipBuySection } from '../../membership/MembershipBuySection';
 import { stashPendingMembershipPurchase } from '../../membership/membershipPurchaseFlow';
 import { useLiveHostController } from './useLiveHostController';
@@ -1797,19 +1796,16 @@ export default function LiveHostScreen() {
 
           <div className="relative flex flex-col h-full pointer-events-none">
             {/* TOP AREA: Overlays (Top Bar & Floating Buttons) */}
-            <div className="flex-[0_0_50dvh] relative pointer-events-none">
-              {/* Top Bar â€” always show creator layout for everyone */}
+            <div className="flex-[0_0_50dvh] relative pointer-events-none overflow-visible">
+              {/* Top Bar — same creator capsule as spectator (solo + battle, iOS + Android) */}
                 <div
-                  className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none elix-live-top-chrome ${isBattleMode ? 'elix-battle-top-fundal' : ''}`}
+                  className={`absolute top-0 left-0 right-0 z-[110] pointer-events-none overflow-visible elix-live-top-chrome ${isBattleMode ? 'elix-battle-top-fundal' : ''}`}
                 >
                   <div className="px-3 pb-1.5" style={{ paddingTop: 'max(2px, calc(var(--safe-top) + 6px))' }}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="pointer-events-auto flex flex-col gap-2">
-                        {/* BROADCASTER INFO â€” photo profile (MVP circles untouched) */}
-                        <div
-                          className="px-0 py-1 animate-luxury-fade-in relative"
-                          style={platform.isIOS ? { transform: 'translateX(1mm)' } : undefined}
-                        >
+                        {/* BROADCASTER INFO — photo profile (MVP circles untouched) */}
+                        <div className="px-0 py-1 animate-luxury-fade-in relative">
                           <LiveHostProfileHeader
                             name={myCreatorName}
                             avatar={resolveCircleAvatar(myAvatar, myCreatorName)}

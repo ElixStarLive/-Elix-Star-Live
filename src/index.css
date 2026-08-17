@@ -238,13 +238,11 @@
   /*
    * Android-only layout owner:
    * - entire app shell 5mm up (transform also re-parents fixed Live/Battle/Spectator)
-   * - shared live profile oval 2mm right (Live + Battle + Spectator)
+   * Follow + user capsule move together via .elix-live-follow-join-lock (LOCKED).
+   * Do not shift .elix-live-host-oval alone — that splits Follow from Join.
    */
   html.native-app.android .elix-app-shell {
     transform: translateY(-5mm);
-  }
-  html.native-app.android #root .elix-live-host-oval {
-    transform: translateX(2mm);
   }
 
   /* Same width for For You top bar, video container, and bottom home bar */
@@ -1952,11 +1950,16 @@ svg.lucide,
   border-radius: 9999px !important;
   overflow: visible !important;
 }
-/* Locked name width — long names truncate; do not extend capsule. */
+/* Locked name width — long names cut; "..." stays, transparent writing (not solid). */
 #root .elix-live-host-oval [data-elix-profile-name='true'] {
   max-width: calc(64px + 3mm) !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  white-space: nowrap !important;
+}
+#root .elix-live-host-oval .elix-live-name-text {
   overflow: hidden !important;
-  text-overflow: ellipsis !important;
+  text-overflow: clip !important;
   white-space: nowrap !important;
 }
 
@@ -1965,6 +1968,9 @@ svg.lucide,
 #root button.elix-live-join-capsule {
   height: calc(36px + 0.5mm) !important;
   min-height: calc(36px + 0.5mm) !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
   padding-left: 8px !important;
   padding-right: 10px !important;
   border-radius: 9999px !important;
@@ -1976,6 +1982,26 @@ svg.lucide,
   margin-top: 0 !important;
   position: relative !important;
   top: 1mm !important;
+  left: -3mm !important;
+}
+/* LOCKED owner 2026-08-16 — Follow on Join. Same box as Join. Do not move. */
+#root button[data-elix-follow='true'] {
+  height: calc(36px + 0.5mm) !important;
+  min-height: calc(36px + 0.5mm) !important;
+  width: 70px !important;
+  min-width: 70px !important;
+  max-width: 70px !important;
+  padding-left: 8px !important;
+  padding-right: 10px !important;
+  border-radius: 9999px !important;
+  box-sizing: border-box !important;
+  position: absolute !important;
+  top: auto !important;
+  bottom: calc(100% - 12mm) !important;
+  right: calc(8px + 1mm) !important;
+  left: auto !important;
+  margin: 0 !important;
+  z-index: 50 !important;
 }
 #root button[data-elix-join='true'] > span,
 #root button[data-elix-join='true'] svg,

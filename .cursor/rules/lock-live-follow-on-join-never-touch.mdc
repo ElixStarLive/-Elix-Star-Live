@@ -1,0 +1,49 @@
+---
+description: LOCK — Follow on Join final; never edit without explicit owner order
+globs: src/components/LiveMarkedTopUi.tsx,src/index.css
+alwaysApply: true
+---
+
+# Follow on Join — LOCKED (owner 2026-08-16)
+
+Red **Follow** on top of **Join** in the live user capsule is **done and approved**. Do **not** change it.
+
+## Locked placement (memorize — never “improve”)
+
+Shared header: `LiveHostProfileHeader` in `src/components/LiveMarkedTopUi.tsx`.
+
+Used by **creator** (`LiveHostScreen`) and **spectator** (`SpectatorLiveScreen`). Same component. Same CSS. iOS, Android, and web.
+
+Approved Follow box (must match Join):
+
+- Size: `70px` × `calc(36px + 0.5mm)`
+- Padding: `8px` / `10px`
+- Position: `absolute`
+- `bottom: calc(100% - 12mm)`
+- `right: calc(8px + 1mm)`
+- Red fill: `elix-solid-red` / `#EF4444`
+- Wrapper: `.elix-live-follow-join-lock` (`left: -7mm`, `translateX(2mm)`)
+- Follow sits **outside** the oval (do not put Follow inside `.elix-live-host-oval` — that stretches the capsule)
+- After follow: Follow hides, Join stays
+- **No Co-host** on this stack
+- Same top-left slot on **creator live**, **spectator live**, and **battle** (iOS, Android, web)
+- Do **not** copy this oval onto `Profile.tsx`, `UserProfileModal`, or the live mini User Profile sheet
+
+CSS lock: `#root button[data-elix-follow='true']` in `src/index.css`.
+
+## Forbidden unless the owner explicitly asks in that message
+
+- No moving Follow (mm, top, bottom, left, right, transform)
+- No size / color / padding changes
+- No putting Follow inside the user oval
+- No putting Co-host on Join
+- No Android-only or iOS-only extra shift on `.elix-live-host-oval` or the header wrapper that splits Follow from Join
+- No forking a second Follow for creator vs spectator
+- No putting this capsule on the Profile page
+- No `git restore` of this placement unless the owner types restore
+
+## Allowed only with an explicit new order
+
+If the owner names **Follow** / **Follow on Join** and a specific change in the **same message**, do **only** that change.
+
+Default: **never touch Follow on Join.**

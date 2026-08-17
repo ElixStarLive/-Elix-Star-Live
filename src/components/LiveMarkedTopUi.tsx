@@ -33,6 +33,37 @@ function displayNameFull(name: string): string {
   return raw || 'User';
 }
 
+/** Live header name — keep "..." but draw them with transparent writing (native ellipsis is solid). */
+function LiveHostTruncatedName({ name }: { name: string }) {
+  const textRef = React.useRef<HTMLSpanElement>(null);
+  const [truncated, setTruncated] = React.useState(false);
+  React.useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+    setTruncated(el.scrollWidth > el.clientWidth + 1);
+  }, [name]);
+  return (
+    <span
+      data-elix-profile-name="true"
+      className="inline-flex items-baseline min-w-0"
+      style={{ maxWidth: 'calc(64px + 3mm)' }}
+      title={name}
+    >
+      <span
+        ref={textRef}
+        className="elix-live-name-text elix-silver-red-text text-[12px] font-bold leading-tight min-w-0 overflow-hidden whitespace-nowrap"
+      >
+        {name}
+      </span>
+      {truncated ? (
+        <span className="elix-live-name-dots elix-silver-red-text text-[12px] font-bold leading-tight flex-shrink-0" aria-hidden>
+          ...
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 /** Live ranking chips — transparent fill + capsule border (writing sits on clear). */
 const THIN_CAPSULE_STYLE: React.CSSProperties = {
   background: 'transparent',
@@ -168,11 +199,29 @@ export function LiveHostProfileHeader({
 }) {
   const likesLabel = formatLikesShort(likes);
   const displayName = displayNameFull(name);
-  /** Follow sits above Join (absolute). Do not clip the oval while Follow is up. */
   const followAboveJoin = Boolean(showFollow && !isFollowing && joinSlot);
-  const ovalClip = followAboveJoin ? 'none' : 'inset(0 0 0 3mm round 9999px)';
 
   return (
+    <div
+      className="elix-live-follow-join-lock relative w-max max-w-full pointer-events-auto overflow-visible"
+      style={{
+        left: '-7mm',
+        transform: 'translateX(2mm)',
+      }}
+    >
+      {followAboveJoin ? (
+        <button
+          type="button"
+          data-elix-follow="true"
+          className={`elix-solid-red ${ACTION_PILL_CLASS} border border-[#EF4444] bg-[#EF4444]`}
+          onClick={onFollow}
+          aria-label="Follow"
+        >
+          <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">
+            Follow
+          </span>
+        </button>
+      ) : null}
     <div
       className="elix-live-host-oval flex items-center gap-1.5 min-w-0 w-max max-w-full pointer-events-auto rounded-full pl-[2px] pr-2 py-[2px]"
       style={{
@@ -181,17 +230,14 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        /* Capsule longer 3mm — padding only. */
-        paddingRight: 'calc(8px + 3mm)',
-        /* Capsule shell left; content cancel keeps circle + Join put. */
+        /* Capsule width −3mm (owner). */
+        paddingRight: '8px',
         position: 'relative',
-        left: '-7mm',
-        /* Profile + Join locked as one group — move together, never split. */
-        transform: 'translateX(2mm)',
-        /* Shrink FRONT only to meet ring — back look (right/Join) unchanged. */
+        left: 0,
+        transform: 'none',
         overflow: 'visible',
-        clipPath: ovalClip,
-        WebkitClipPath: ovalClip,
+        clipPath: 'inset(0 0 0 3mm round 9999px)',
+        WebkitClipPath: 'inset(0 0 0 3mm round 9999px)',
       }}
     >
       {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
@@ -214,43 +260,13 @@ export function LiveHostProfileHeader({
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
         <div className="flex items-center gap-1 min-w-0 overflow-visible">
-          <span
-            data-elix-profile-name="true"
-            className="elix-silver-red-text text-[12px] font-bold leading-tight block truncate overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
-            style={{ maxWidth: 'calc(64px + 3mm)' }}
-            title={displayName}
-          >
-            {displayName}
-          </span>
+          <LiveHostTruncatedName name={displayName} />
           {/* Join keeps the header footprint. Follow sits ABOVE Join (not overlapping). */}
           {(showFollow || joinSlot) ? (
             <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30 overflow-visible">
               {joinSlot ? (
-                <span className="relative inline-flex flex-shrink-0 overflow-visible">
+                <span className="relative inline-flex flex-shrink-0 w-[70px]">
                   {joinSlot}
-                  {showFollow && !isFollowing ? (
-                    <button
-                      type="button"
-                      className={`${ACTION_PILL_CLASS} absolute left-0 right-0 z-50 border border-[#EF4444] bg-[#EF4444]`}
-                        style={{
-                        /* ABOVE Join with a gap — same width/height, no overlap, no flow height. */
-                        ...ACTION_PILL_STYLE,
-                        position: 'absolute',
-                        top: 'auto',
-                        bottom: 'calc(100% + 4px)',
-                        left: 0,
-                        right: 0,
-                        width: '100%',
-                        marginTop: 0,
-                      }}
-                      onClick={onFollow}
-                      aria-label="Follow"
-                    >
-                      <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">
-                        Follow
-                      </span>
-                    </button>
-                  ) : null}
                 </span>
               ) : showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
@@ -277,6 +293,7 @@ export function LiveHostProfileHeader({
         </button>
       </div>
       </div>
+    </div>
     </div>
   );
 }

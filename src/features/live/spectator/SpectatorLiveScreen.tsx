@@ -15,7 +15,6 @@ import {
   Gift,
   MoreVertical,
   Copy,
-  UserPlus,
   Eye,
   MessageCircle,
   Flag,
@@ -2027,31 +2026,6 @@ export default function SpectatorLiveScreen() {
                 </div>
                 <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">Poll</span>
               </button>
-              {/* Co-host is a NORMAL-LIVE feature only. During a battle a
-                  spectator can only watch, gift and comment — never co-host. */}
-              {!spectatorBattle?.active && (
-              <button
-                type="button"
-                title={spectatorCoHostRequestSent ? 'Request sent' : 'Request to co-host'}
-                disabled={spectatorCoHostRequestSent || !user?.id}
-                onClick={() => { sendCohostJoinRequest(); }}
-                className="flex flex-col items-center justify-center w-12 active:scale-95 transition-transform select-none flex-shrink-0 disabled:opacity-60"
-              >
-                <div className="relative w-10 h-10 flex items-center justify-center rounded-full bg-transparent border-0">
-                  <span className="royce-glow-disc relative z-[2]">
-                    <UserPlus
-                      size={18}
-                      className="text-[#F5F5F7] shrink-0"
-                      strokeWidth={2.25}
-                      style={{ transform: 'translateX(0.5mm)' }}
-                    />
-                  </span>
-                </div>
-                <span className="elix-silver-red-text text-[10px] font-semibold mt-0.5">
-                  {spectatorCoHostRequestSent ? 'Sent' : 'Co-host'}
-                </span>
-              </button>
-              )}
               <button
                 type="button"
                 title="Send gift"
