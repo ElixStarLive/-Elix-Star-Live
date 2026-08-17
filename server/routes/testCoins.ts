@@ -1,9 +1,10 @@
 /**
  * Test-coin ISSUE/MINT — signed-in user + server password.
  *
- * Issuance (mint) requires BOTH:
- *   1. Authenticated user (login)
- *   2. Correct TEST_COINS_ISSUE_PASSWORD (server env — never in client)
+ * Issuance (mint) requires a signed-in user. If TEST_COINS_ISSUE_PASSWORD
+ * (or HASH) is set on the server, that value must match. If it is not set,
+ * any non-empty password from a logged-in user is enough — test coins are
+ * not money. Never an admin role.
  *
  * Not an admin feature. Issued balances stay TEST origin on the client
  * (localStorage) for Live/Battle gameplay. They never enter paid-coin lots,
@@ -82,20 +83,31 @@ function clearFailures(userId: string, ip: string): void {
   failByIp.delete(ip);
 }
 
-function expectedPasswordHash(): string | null {
-  const plain = String(process.env.TEST_COINS_ISSUE_PASSWORD || "").trim();
+function envPasswordHash(): string | null {
   const hash = String(process.env.TEST_COINS_ISSUE_PASSWORD_HASH || "").trim().toLowerCase();
-  if (hash && /^[0-9a-f]{64}$/.test(hash)) return hash;
-  if (plain) return sha256Hex(plain);
-  return null;
+  return hash && /^[0-9a-f]{64}$/.test(hash) ? hash : null;
 }
 
+function envPasswordPlainHash(): string | null {
+  const plain = String(process.env.TEST_COINS_ISSUE_PASSWORD || "").trim();
+  return plain ? sha256Hex(plain) : null;
+}
+
+function issuePasswordConfigured(): boolean {
+  return Boolean(envPasswordHash() || envPasswordPlainHash());
+}
+
+/** True when no server password is set, or the typed value matches plain or hash env. */
 function verifyIssuePassword(password: unknown): boolean {
-  const expected = expectedPasswordHash();
-  if (!expected) return false;
   const pwd = typeof password === "string" ? password : "";
   if (!pwd) return false;
-  return safeEqualHex(sha256Hex(pwd), expected);
+  const got = sha256Hex(pwd);
+  const fromHash = envPasswordHash();
+  const fromPlain = envPasswordPlainHash();
+  if (!fromHash && !fromPlain) return true;
+  if (fromHash && safeEqualHex(got, fromHash)) return true;
+  if (fromPlain && safeEqualHex(got, fromPlain)) return true;
+  return false;
 }
 
 async function auditIssue(input: {
@@ -193,19 +205,6 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     return;
   }
 
-  if (!expectedPasswordHash()) {
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
-      ip,
-      outcome: "misconfigured",
-      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
-    });
-    res.status(503).json({ error: "Test-coin issuance is not configured." });
-    return;
-  }
-
   if (!verifyIssuePassword(req.body?.password)) {
     recordFailure(failByUser, auth.userId);
     recordFailure(failByIp, ip);
@@ -215,7 +214,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
       balanceAfter: issuedBalances.get(auth.userId) || 0,
       ip,
       outcome: "denied",
-      reason: "bad_password",
+      reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
     });
     res.status(403).json({ error: "FORBIDDEN" });
     return;
@@ -252,19 +251,6 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     return;
   }
 
-  if (!expectedPasswordHash()) {
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: issuedBalances.get(auth.userId) || 0,
-      ip,
-      outcome: "misconfigured",
-      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
-    });
-    res.status(503).json({ error: "Test-coin issuance is not configured." });
-    return;
-  }
-
   if (!verifyIssuePassword(req.body?.password)) {
     recordFailure(failByUser, auth.userId);
     recordFailure(failByIp, ip);
@@ -274,7 +260,7 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
       balanceAfter: issuedBalances.get(auth.userId) || 0,
       ip,
       outcome: "denied",
-      reason: "bad_password",
+      reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
     });
     res.status(403).json({ error: "FORBIDDEN" });
     return;

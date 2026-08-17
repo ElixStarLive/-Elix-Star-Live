@@ -118,6 +118,22 @@ describe("test-coin ISSUE access control", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "FORBIDDEN" });
   });
 
+  it("logged-in user mints when server password env is not set", async () => {
+    delete process.env.TEST_COINS_ISSUE_PASSWORD;
+    delete process.env.TEST_COINS_ISSUE_PASSWORD_HASH;
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-env-pwd" });
+    const res = mockRes();
+    await handleMintTestCoins(
+      mockReq({ password: "anything-typed", amount: 7 }),
+      res.value,
+    );
+    expect(res.status).not.toHaveBeenCalledWith(403);
+    expect(res.status).not.toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ minted: 7, origin: "test_coins", financialValueGbp: 0 }),
+    );
+  });
+
   it("accepts TEST_COINS_ISSUE_PASSWORD_HASH (sha256) instead of plain env", async () => {
     delete process.env.TEST_COINS_ISSUE_PASSWORD;
     process.env.TEST_COINS_ISSUE_PASSWORD_HASH = sha256Hex(PASSWORD);

@@ -10,11 +10,12 @@ export type TestCoinIssueResult =
   | { ok: true; balance: number; minted: number }
   | { ok: false; status: number; error: string };
 
-/** Never show leftover admin-role copy. 403 is wrong password (or stale server). */
+/** Never show leftover admin-role copy. Only FORBIDDEN means the password was wrong. */
 export function formatTestCoinIssueError(error: string, status: number): string {
   if (status === 401 || /not authenticated|invalid/i.test(error)) return "Sign in required";
   if (status === 429 || /too many/i.test(error)) return "Too many attempts. Try again later.";
-  if (status === 403 || error === "FORBIDDEN" || /admin/i.test(error)) return "Wrong password";
+  if (error === "FORBIDDEN") return "Wrong password";
+  if (/admin/i.test(error) || /not configured/i.test(error)) return "Try again";
   return error;
 }
 
