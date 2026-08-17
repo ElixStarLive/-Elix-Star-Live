@@ -12,7 +12,7 @@ Test coins stay in the app on **iOS**, **Android**, and **Google Play** store bu
 - Keep `areTestCoinsEnabled()` on (do not gate store builds off)
 - Keep `VITE_ALLOW_TEST_COINS=1` in `.env.store` / `.env.store.example`
 - Keep battle score + gift animation for `giftSource=test_coins` in production
-- Keep More Options password mint (admin + server password)
+- Keep More Options password mint (login + server password, not admin)
 - Keep them in spectator **and** creator live More Options
 
 ## Still never money

@@ -54,7 +54,7 @@ export function mountRoutes(app: Express): void {
   app.use("/api/stories", storiesRouter);
   app.use("/api/media", mediaRouter);
 
-  // Test-coin ISSUE — mounted in all envs. Mint requires admin + server password.
+  // Test-coin ISSUE — mounted in all envs. Mint requires login + server password.
   // Gameplay spend of already-issued test coins stays client-local (giftSource=test_coins).
   app.get("/api/test-coins/balance", handleGetTestCoinBalance);
   app.post("/api/test-coins/authorize", handleAuthorizeTestCoins);

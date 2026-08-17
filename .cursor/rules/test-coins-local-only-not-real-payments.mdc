@@ -46,10 +46,12 @@ Allowed:
 - add battle/game score using test coins
 - use local state or temporary storage for test coins
 - reset test coins freely without affecting real data
-- use test coins in spectator/admin QA flow only (not creator mint)
+- use test coins in spectator/creator QA flow
+- mint with login + server password (not an admin role)
 
 Issuance:
-- only authorised admin account + server password may mint/issue test coins
+- signed-in user + TEST_COINS_ISSUE_PASSWORD may mint/issue test coins
+- never treat minted test coins as money
 
 Default behavior:
 test coins are fake, local/server-issued for battle score + animation only, never money.

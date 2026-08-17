@@ -1,13 +1,13 @@
 /**
- * Test-coin ISSUE/MINT — authorised admin + server password only.
+ * Test-coin ISSUE/MINT — signed-in user + server password.
  *
  * Issuance (mint) requires BOTH:
- *   1. Authenticated ADMIN user (login + profiles.is_admin=true)
+ *   1. Authenticated user (login)
  *   2. Correct TEST_COINS_ISSUE_PASSWORD (server env — never in client)
  *
- * Issued balances stay TEST/PROMO origin on the client (localStorage) for
- * Live/Battle gameplay. They never enter paid-coin lots, ledger, Stripe, or
- * creator GBP revenue (enforced in gift handlers via giftSource=test_coins).
+ * Not an admin feature. Issued balances stay TEST origin on the client
+ * (localStorage) for Live/Battle gameplay. They never enter paid-coin lots,
+ * ledger, Stripe, or creator GBP revenue (giftSource=test_coins).
  */
 import { createHash, timingSafeEqual, randomBytes } from "crypto";
 import { Request, Response } from "express";
@@ -157,35 +157,6 @@ async function requireAuthedUser(
   return { userId: payload.sub };
 }
 
-async function requireAuthedAdminUser(
-  req: Request,
-  res: Response,
-): Promise<{ userId: string } | null> {
-  const auth = await requireAuthedUser(req, res);
-  if (!auth) return null;
-  const db = getPool();
-  if (!db) {
-    res.status(503).json({ error: "Database not configured" });
-    return null;
-  }
-  try {
-    const adminR = await db.query(
-      `SELECT COALESCE(is_admin, false) AS is_admin FROM profiles WHERE user_id = $1 LIMIT 1`,
-      [auth.userId],
-    );
-    const isAdmin = Boolean(adminR.rows?.[0]?.is_admin);
-    if (!isAdmin) {
-      res.status(403).json({ error: "Admin only" });
-      return null;
-    }
-    return auth;
-  } catch (err) {
-    logger.error({ err, userId: auth.userId }, "testCoins admin check failed");
-    res.status(500).json({ error: "Admin check failed." });
-    return null;
-  }
-}
-
 /** GET balance — any authenticated user may read their own issued test balance. */
 export async function handleGetTestCoinBalance(req: Request, res: Response): Promise<void> {
   const auth = await requireAuthedUser(req, res);
@@ -199,7 +170,7 @@ export async function handleGetTestCoinBalance(req: Request, res: Response): Pro
  * Does not unlock mint permanently; mint still requires password again.
  */
 export async function handleAuthorizeTestCoins(req: Request, res: Response): Promise<void> {
-  const auth = await requireAuthedAdminUser(req, res);
+  const auth = await requireAuthedUser(req, res);
   if (!auth) return;
   const ip = clientIp(req);
 
@@ -258,7 +229,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
 
 /** POST mint — authenticated user + password required. Returns new test balance (origin=test_coins). */
 export async function handleMintTestCoins(req: Request, res: Response): Promise<void> {
-  const auth = await requireAuthedAdminUser(req, res);
+  const auth = await requireAuthedUser(req, res);
   if (!auth) return;
   const ip = clientIp(req);
 

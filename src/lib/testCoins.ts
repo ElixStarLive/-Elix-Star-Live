@@ -3,7 +3,7 @@
 /**
  * Test coins stay in the app on iOS, Android, and Play Store.
  * Battle score + gift animation only (£0). Never creator revenue / IAP / Stripe.
- * Password-gated admin mint from live More Options. Do not disable.
+ * Password-gated mint from live More Options (login + server password). Do not disable.
  */
 export function areTestCoinsEnabled(): boolean {
   return true;
