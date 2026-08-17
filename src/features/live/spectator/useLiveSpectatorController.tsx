@@ -134,7 +134,7 @@ import {
 } from '../battle/liveBattleScore';
 import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
-import { cohostRequestSend } from '../cohost/liveCohostActions';
+import { cohostRequestSend, cohostSeatLeave } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
 import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
@@ -1193,6 +1193,10 @@ export function useLiveSpectatorController() {
 
   /** Leave the co-host seat but keep watching this live (never /feed). */
   const exitCohostStayWatching = useCallback(() => {
+    const sid = String(effectiveStreamId || '').trim();
+    if (sid) {
+      cohostSeatLeave({ roomId: sid });
+    }
     stopCoHosting();
     wasCohostSeatedRef.current = false;
     if (user?.id) {
@@ -1220,6 +1224,7 @@ export function useLiveSpectatorController() {
     location.pathname,
     location.search,
     navigate,
+    effectiveStreamId,
   ]);
 
   useEffect(() => {

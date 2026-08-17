@@ -1982,7 +1982,8 @@ svg.lucide,
   margin-top: 0 !important;
   position: relative !important;
   top: 1mm !important;
-  left: -3mm !important;
+  /* Join + Follow 1mm right (owner 2026-08-17). */
+  left: -2mm !important;
 }
 /* LOCKED owner 2026-08-16 — Follow on Join. Same box as Join. Do not move. */
 #root button[data-elix-follow='true'] {
@@ -1998,7 +1999,8 @@ svg.lucide,
   position: absolute !important;
   top: auto !important;
   bottom: calc(100% - 12mm) !important;
-  right: calc(8px + 1mm) !important;
+  /* Join + Follow 1mm right (owner 2026-08-17). */
+  right: 8px !important;
   left: auto !important;
   margin: 0 !important;
   z-index: 50 !important;

@@ -1624,6 +1624,57 @@ export async function handleMessage(
         break;
       }
 
+      // Seated co-host leaves their own seat and remains a spectator. Host live,
+      // other seats, spectator roster and the request queue stay intact.
+      case "cohost_seat_leave": {
+        if (!ensureCohostInfra(client)) break;
+        const roomId = client.roomId;
+        if (!roomId) break;
+        const ownerId = await resolveStreamOwnerUserId(roomId);
+        if (!ownerId) break;
+        if (ownerId === client.userId) break;
+        const targetUserId = client.userId;
+        const current = await getCohostLayout(roomId);
+        const seats = normalizeCohostSlots(
+          current?.coHosts,
+          ownerId,
+          MAX_COHOST_SLOTS,
+        );
+        if (!seats.some((seat) => seat.userId === targetUserId)) break;
+        const released = removeCohostSlot(seats, targetUserId);
+        await revokeCohostPublish(roomId, targetUserId);
+        await revokeParticipantPublish(roomId, targetUserId);
+        await deleteCohostJoinRequest(roomId, targetUserId);
+        const featuredUserId =
+          typeof current?.featuredUserId === "string" &&
+          current.featuredUserId.trim() &&
+          current.featuredUserId.trim() !== targetUserId
+            ? current.featuredUserId.trim()
+            : null;
+        const layoutId =
+          typeof current?.layoutId === "string" && current.layoutId.trim()
+            ? current.layoutId.trim()
+            : undefined;
+        await setCohostLayout(
+          roomId,
+          released.slots,
+          ownerId,
+          layoutId ?? null,
+          featuredUserId,
+        );
+        sendToUserGlobal(targetUserId, "cohost_seat_released", {
+          roomId,
+          hostUserId: ownerId,
+        });
+        broadcastToRoom(roomId, "cohost_layout_sync", {
+          coHosts: released.slots,
+          hostUserId: ownerId,
+          featuredUserId,
+          ...(layoutId ? { layoutId } : {}),
+        });
+        break;
+      }
+
       // Host's explicit "End co-host": every seat is released and each seated
       // participant loses publish individually. Spectators stay connected.
       case "cohost_seats_clear": {
