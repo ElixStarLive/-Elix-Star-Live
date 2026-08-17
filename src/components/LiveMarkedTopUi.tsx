@@ -230,8 +230,8 @@ export function LiveHostProfileHeader({
         border: '1px solid #2A2D33',
         boxShadow: 'none',
         minHeight: avatarSize + 4,
-        /* LOCKED owner 2026-08-17 — capsule width. Do not shorten. */
-        paddingRight: 'calc(8px + 3mm)',
+        /* Capsule width −3mm (owner). */
+        paddingRight: '8px',
         position: 'relative',
         left: 0,
         transform: 'none',
