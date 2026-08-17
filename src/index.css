@@ -1950,6 +1950,7 @@ svg.lucide,
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   border-radius: 9999px !important;
+  overflow: visible !important;
 }
 /* Locked name width — long names truncate; do not extend capsule. */
 #root .elix-live-host-oval [data-elix-profile-name='true'] {

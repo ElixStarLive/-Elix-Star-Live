@@ -168,11 +168,9 @@ export function LiveHostProfileHeader({
 }) {
   const likesLabel = formatLikesShort(likes);
   const displayName = displayNameFull(name);
-  /** Follow sits above Join (absolute); open the oval clip upward so it is not cropped. */
+  /** Follow sits above Join (absolute). Do not clip the oval while Follow is up. */
   const followAboveJoin = Boolean(showFollow && !isFollowing && joinSlot);
-  const ovalClip = followAboveJoin
-    ? 'inset(-48px 0 0 3mm round 9999px)'
-    : 'inset(0 0 0 3mm round 9999px)';
+  const ovalClip = followAboveJoin ? 'none' : 'inset(0 0 0 3mm round 9999px)';
 
   return (
     <div
@@ -191,6 +189,7 @@ export function LiveHostProfileHeader({
         /* Profile + Join locked as one group — move together, never split. */
         transform: 'translateX(2mm)',
         /* Shrink FRONT only to meet ring — back look (right/Join) unchanged. */
+        overflow: 'visible',
         clipPath: ovalClip,
         WebkitClipPath: ovalClip,
       }}
@@ -214,7 +213,7 @@ export function LiveHostProfileHeader({
       </button>
 
       <div className="flex flex-col justify-center min-w-0 gap-[2px] pr-0.5">
-        <div className="flex items-center gap-1 min-w-0">
+        <div className="flex items-center gap-1 min-w-0 overflow-visible">
           <span
             data-elix-profile-name="true"
             className="elix-silver-red-text text-[12px] font-bold leading-tight block truncate overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
@@ -225,14 +224,14 @@ export function LiveHostProfileHeader({
           </span>
           {/* Join keeps the header footprint. Follow sits ABOVE Join (not overlapping). */}
           {(showFollow || joinSlot) ? (
-            <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
+            <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30 overflow-visible">
               {joinSlot ? (
-                <span className="relative inline-flex flex-shrink-0">
+                <span className="relative inline-flex flex-shrink-0 overflow-visible">
                   {joinSlot}
                   {showFollow && !isFollowing ? (
                     <button
                       type="button"
-                      className={`${ACTION_PILL_CLASS} absolute left-0 right-0 z-10 border border-[#EF4444] bg-[#EF4444]`}
+                      className={`${ACTION_PILL_CLASS} absolute left-0 right-0 z-50 border border-[#EF4444] bg-[#EF4444]`}
                         style={{
                         /* ABOVE Join with a gap — same width/height, no overlap, no flow height. */
                         ...ACTION_PILL_STYLE,
