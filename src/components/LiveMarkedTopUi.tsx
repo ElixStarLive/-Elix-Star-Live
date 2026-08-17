@@ -168,6 +168,11 @@ export function LiveHostProfileHeader({
 }) {
   const likesLabel = formatLikesShort(likes);
   const displayName = displayNameFull(name);
+  /** Follow sits above Join (absolute); open the oval clip upward so it is not cropped. */
+  const followAboveJoin = Boolean(showFollow && !isFollowing && joinSlot);
+  const ovalClip = followAboveJoin
+    ? 'inset(-48px 0 0 3mm round 9999px)'
+    : 'inset(0 0 0 3mm round 9999px)';
 
   return (
     <div
@@ -186,8 +191,8 @@ export function LiveHostProfileHeader({
         /* Profile + Join locked as one group — move together, never split. */
         transform: 'translateX(2mm)',
         /* Shrink FRONT only to meet ring — back look (right/Join) unchanged. */
-        clipPath: 'inset(0 0 0 3mm round 9999px)',
-        WebkitClipPath: 'inset(0 0 0 3mm round 9999px)',
+        clipPath: ovalClip,
+        WebkitClipPath: ovalClip,
       }}
     >
       {/* Content cancel: circle + Join (+ name/likes) stay on screen while border moves left. */}
@@ -218,14 +223,36 @@ export function LiveHostProfileHeader({
           >
             {displayName}
           </span>
-          {/* One slot: Follow first → after Follow, Join. Never both, never stacked. */}
+          {/* Join keeps the header footprint. Follow sits ABOVE Join (not overlapping). */}
           {(showFollow || joinSlot) ? (
             <div className="flex-shrink-0 flex items-center justify-center ml-0.5 relative z-30">
-              {showFollow && !isFollowing ? (
+              {joinSlot ? (
+                <span className="relative inline-flex flex-shrink-0">
+                  {joinSlot}
+                  {showFollow && !isFollowing ? (
+                    <button
+                      type="button"
+                      className={`${ACTION_PILL_CLASS} absolute left-0 right-0 z-10 border border-[#EF4444] bg-[#EF4444]`}
+                      style={{
+                        /* ABOVE Join with a gap — same width/height, no overlap, no flow height. */
+                        ...ACTION_PILL_STYLE,
+                        top: 'auto',
+                        bottom: 'calc(100% + 4px)',
+                        width: '100%',
+                        marginTop: 0,
+                      }}
+                      onClick={onFollow}
+                      aria-label="Follow"
+                    >
+                      <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">
+                        Follow
+                      </span>
+                    </button>
+                  ) : null}
+                </span>
+              ) : showFollow && !isFollowing ? (
                 <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
-              ) : (
-                joinSlot ?? null
-              )}
+              ) : null}
             </div>
           ) : null}
         </div>
