@@ -526,7 +526,7 @@ export default function LiveHostScreen() {
     setTestCoinsBusy(true);
     try {
       const result = await authorizeTestCoinIssue(testCoinsPwd);
-      if (!result.ok) {
+      if (result.ok === false) {
         setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         setTestCoinsPwd('');
         return;
@@ -561,7 +561,7 @@ export default function LiveHostScreen() {
     setTestCoinsBusy(true);
     try {
       const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, amount);
-      if (!result.ok) {
+      if (result.ok === false) {
         setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         if (result.status === 403) setTestCoinsStep('password');
         return;
@@ -582,7 +582,7 @@ export default function LiveHostScreen() {
     setTestCoinsBusy(true);
     try {
       const result = await mintTestCoinsViaServer(user.id, testCoinsPwd, 100000000);
-      if (!result.ok) {
+      if (result.ok === false) {
         setTestCoinsError(result.error === 'FORBIDDEN' ? 'Wrong password' : result.error);
         return;
       }
