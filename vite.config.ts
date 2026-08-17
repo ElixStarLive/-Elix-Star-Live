@@ -50,6 +50,16 @@ export default defineConfig(({ mode }) => ({
     https: true,
     host: true,
     cors: true,
+    // Capacitor sync and Gradle rewrite android/** and ios/** on every build, so
+    // watching them makes the dev server fire bursts of full page reloads.
+    watch: {
+      ignored: [
+        '**/android/**',
+        '**/ios/**',
+        '**/dist/**',
+        '**/docs/**',
+      ],
+    },
     proxy: {
       // Local backend needs Valkey; when it is down, proxy to production so login works.
       // Strip localhost Origin — production currently 500s on that Origin header.

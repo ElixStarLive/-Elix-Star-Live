@@ -31,6 +31,13 @@ export const FRIENDS_HOME = '/friends';
 /** Inbox hub — named parent for chat threads, alerts, and screens opened from Inbox. */
 export const INBOX_HOME = '/inbox';
 
+function hasUnsafePathCharacters(path: string): boolean {
+  return Array.from(path).some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || code === 127 || character === '\\';
+  });
+}
+
 /**
  * Read a safe in-app returnTo from React Router location.state.
  * Screens opened from a container must pass `{ returnTo }` and honor this on close.
@@ -43,7 +50,7 @@ export function returnToFromLocationState(state: unknown): string | null {
   if (
     !path.startsWith('/') ||
     path.startsWith('//') ||
-    /[\u0000-\u001F\u007F\\]/.test(path)
+    hasUnsafePathCharacters(path)
   ) {
     return null;
   }
@@ -56,7 +63,7 @@ export function containerReturnState(path: string): { returnTo: string } {
   const safe =
     trimmed.startsWith('/') &&
     !trimmed.startsWith('//') &&
-    !/[\u0000-\u001F\u007F\\]/.test(trimmed)
+    !hasUnsafePathCharacters(trimmed)
       ? trimmed
       : FEED_HOME;
   return { returnTo: safe };
