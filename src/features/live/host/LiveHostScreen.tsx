@@ -31,8 +31,6 @@ import {
   Sparkles,
   Timer,
   BarChart3,
-  ArrowLeftRight,
-  LayoutGrid,
   Lock,
   Coins,
 } from 'lucide-react';
@@ -102,9 +100,6 @@ import {
 import { isPlaceholderLiveAvatar } from '../../../lib/liveCreatorDisplay';
 import { formatCompactNumber } from '../../../lib/formatCompactNumber';
 import { engagementFlags } from '../../../config/engagementFlags';
-import { CohostLayoutChooser } from '../cohost/CohostLayoutChooser';
-import { COHOST_LAYOUT_THUMBS } from '../cohost/cohostLayoutPresets';
-import { isClassicStackLayout } from '../cohost/cohostLayoutSlots';
 import { LIVE_HOST_COHOST_STAGE_BOTTOM } from '../cohost/cohostStageGeometry';
 import { apiLiveGetDailyHearts, apiLiveMembership } from '../engagement/liveEngagementApi';
 import { sendLiveDailyMembershipHeart } from '../engagement/sendLiveDailyMembershipHeart';
@@ -243,8 +238,6 @@ export default function LiveHostScreen() {
     coHosts,
     cohostGiftScores,
     cohostLastGifts,
-    cohostLayoutId,
-    selectCohostLayout,
     coinBalance,
     comboCount,
     creatorName,
@@ -263,8 +256,6 @@ export default function LiveHostScreen() {
     endCoHostMode,
     engagementOpen,
     engagementPanel,
-    featuredBigVideoRef,
-    featuredHost,
     featuredUserId,
     filteredCreators,
     floatingHearts,
@@ -290,7 +281,6 @@ export default function LiveHostScreen() {
     hasJoinedToday,
     hasOpponentStream,
     heartMembers,
-    hostSmallVideoRef,
     inputValue,
     inviteCoHostFromViewer,
     inviteCreatorToSlot,
@@ -388,7 +378,6 @@ export default function LiveHostScreen() {
     setBattleScoreBarHidden,
     setEngagementOpen,
     setEngagementPanel,
-    setFeaturedUserId,
     setGiftSource,
     setGoalPick,
     setGoalTargetCount,
@@ -440,7 +429,6 @@ export default function LiveHostScreen() {
     toggleCam,
     toggleCoHostCamera,
     toggleCoHostMute,
-    toggleFeaturedUser,
     toggleHostPoll,
     toggleHostPollFromMore,
     toggleMic,
@@ -608,8 +596,6 @@ export default function LiveHostScreen() {
   /** Auto cycle x2 → x3 → x5 for gift-panel buster (no manual tier pick). */
   const hostAutoBoosterTierRef = useRef(0);
 
-  const [showCohostLayoutPicker, setShowCohostLayoutPicker] = useState(false);
-
   // Cosmic fundal behind chat/bottom ONLY in co-host or battle — never normal solo live.
   const hasCoHostLowerFundal =
     isBattleMode ||
@@ -660,17 +646,11 @@ export default function LiveHostScreen() {
                 h.status === 'pending_accept') &&
               !sameUserId(h.userId, user?.id),
           );
-          const useClassicStack = !hasAnyCoHost || isClassicStackLayout(cohostLayoutId);
-          const layoutThumb = COHOST_LAYOUT_THUMBS[cohostLayoutId];
-          const hostGridArea = layoutThumb.cells.find((c) => c.kind === 'h')?.area;
-          const seatAreas = layoutThumb.cells.filter((c) => c.kind === 's').map((c) => c.area);
           return (
           <div
             className={
               hasAnyCoHost
-                ? useClassicStack
-                  ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]'
-                  : 'absolute inset-x-0 z-[25] grid'
+                ? 'absolute inset-x-0 z-[25] flex flex-row gap-[2px]'
                 : 'absolute inset-0 w-full h-full'
             }
             style={
@@ -679,9 +659,6 @@ export default function LiveHostScreen() {
                     top: 'calc(90px + 9mm)',
                     height: 'calc(36dvh + 10mm)',
                     filter: liveFilterCss !== 'none' ? liveFilterCss : undefined,
-                    ...(useClassicStack
-                      ? {}
-                      : { gridTemplate: layoutThumb.grid, gap: '2px' }),
                   }
                 : { filter: liveFilterCss !== 'none' ? liveFilterCss : undefined }
             }
@@ -697,20 +674,13 @@ export default function LiveHostScreen() {
               if (now - last <= 320) handleComboClick();
             }}
           >
-            {/* Host camera (or featured co-host) */}
+            {/* Host camera — 50% when co-hosts present, else full */}
             <div
               className={`${
                 hasAnyCoHost
-                  ? useClassicStack
-                    ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-white/5'
-                    : 'min-w-0 relative elix-cohost-pill bg-white/5'
+                  ? 'w-1/2 min-w-0 relative elix-cohost-pill bg-white/5'
                   : 'absolute inset-0 w-full h-full'
               }`}
-              style={
-                hasAnyCoHost && !useClassicStack && hostGridArea
-                  ? { gridArea: hostGridArea }
-                  : undefined
-              }
               onPointerDown={isBroadcast ? (e) => {
                 if (e.target instanceof Element && e.target.closest('button, a, input, textarea, select, [role="button"]')) return;
                 handleLikeTap(e);
@@ -732,49 +702,11 @@ export default function LiveHostScreen() {
                   poster={LIVE_VIDEO_TRANSPARENT_POSTER}
                   style={isBroadcast ? {
                     transform: 'scaleX(-1)',
-                    opacity: featuredHost || isCamOff ? 0 : 1,
+                    opacity: isCamOff ? 0 : 1,
                     transition: 'opacity 0.3s ease',
-                    pointerEvents: featuredHost ? 'none' : undefined,
                   } : undefined}
                 />
-                {featuredHost && (
-                  <>
-                    <video
-                      ref={featuredBigVideoRef}
-                      className={`absolute inset-0 w-full h-full object-cover z-[4] ${LIVE_WEBRTC_VIDEO_CLASS}`}
-                      autoPlay
-                      playsInline
-                      muted
-                      controls={false}
-                      poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                      style={{ backgroundColor: 'transparent' }}
-                    />
-                    <div className="absolute top-1 left-1 z-20 flex items-center gap-1 pointer-events-auto">
-                      <button
-                        type="button"
-                        title="Remove co-host"
-                        aria-label="Remove co-host"
-                        onClick={(e) => { e.stopPropagation(); removeCoHost(featuredHost.id); }}
-                        className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
-                      >
-                        <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
-                      </button>
-                      <button
-                        type="button"
-                        title="Back to host on big screen"
-                        onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                        className="elix-live-tile-ctrl flex items-center gap-0.5 px-1.5 py-0.5 border-0 bg-transparent active:scale-95"
-                      >
-                        <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
-                        <span className="text-[8px] font-bold text-[#F5F5F7]">Host</span>
-                      </button>
-                    </div>
-                    <span className="absolute bottom-1 left-1 z-20 text-white/90 text-[9px] font-bold bg-black/55 rounded px-1 truncate max-w-[90%]">
-                      {featuredHost.name}
-                    </span>
-                  </>
-                )}
-                {isCamOff && !featuredHost && (
+                {isCamOff && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 elix-panel z-[5]">
                     {(user?.avatar || myAvatar) ? (
                       <img src={user?.avatar || myAvatar || ''} alt="" className="w-16 h-16 rounded-full border border-[#D8D9DD]/70 object-cover object-center" />
@@ -784,7 +716,7 @@ export default function LiveHostScreen() {
                     <span className="text-white font-bold text-xs">{creatorName || user?.username || user?.name || 'Me'}</span>
                   </div>
                 )}
-                {isBroadcast && hasAnyCoHost && !featuredHost && (
+                {isBroadcast && hasAnyCoHost && (
                   <>
                     <button
                       type="button"
@@ -847,71 +779,17 @@ export default function LiveHostScreen() {
             )}
             </div>
 
-            {/* Co-host seats */}
+            {/* Co-host seats — original 8-slot 2×4 grid (host stays on the big pane) */}
             {hasAnyCoHost && (() => {
-              // Self is in the big box unless a co-host is featured (then host moves to a small tile).
               const list = coHosts.filter(h => !sameUserId(h.userId, user?.id));
               const liveList = list.filter(h => h.status === 'live' || h.status === 'accepted');
-              const featured = featuredUserId
-                ? liveList.find((h) => sameUserId(h.userId, featuredUserId)) || null
-                : null;
-              const restLive = featured
-                ? liveList.filter((h) => !sameUserId(h.userId, featured.userId))
-                : liveList;
               const invitedPending = list.filter(h => h.status === 'invited' || h.status === 'pending_accept');
-              const smallSlots: Array<{ type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
-              if (featured && useClassicStack) smallSlots.push({ type: 'host_main' });
-              restLive.forEach(h => smallSlots.push({ type: 'live', host: h }));
+              const smallSlots: Array<{ type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }> = [];
+              liveList.forEach(h => smallSlots.push({ type: 'live', host: h }));
               invitedPending.forEach(h => smallSlots.push({ type: h.status === 'invited' ? 'invited' : 'pending', host: h }));
-              while (smallSlots.length < seatAreas.length) smallSlots.push({ type: 'empty' });
-              const seatsForLayout = smallSlots.slice(0, seatAreas.length);
+              while (smallSlots.length < 8) smallSlots.push({ type: 'empty' });
 
-              const renderCoHostCell = (slot: { type: 'host_main' | 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
-                if (slot.type === 'host_main') {
-                  return (
-                    <>
-                      <video
-                        ref={hostSmallVideoRef}
-                        className={`absolute inset-0 w-full h-full object-cover z-[6] ${LIVE_WEBRTC_VIDEO_CLASS}`}
-                        autoPlay
-                        playsInline
-                        muted
-                        controls={false}
-                        poster={LIVE_VIDEO_TRANSPARENT_POSTER}
-                        style={{ opacity: isCamOff ? 0 : 1, transform: 'scaleX(-1)', backgroundColor: 'transparent' }}
-                      />
-                      {isCamOff && (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 elix-panel z-[5]">
-                          {(user?.avatar || myAvatar) ? (
-                            <img src={user?.avatar || myAvatar || ''} alt="" className="w-10 h-10 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-[rgba(0,0,0,0.35)]" />
-                          )}
-                        </div>
-                      )}
-                      <div className="absolute top-0.5 left-0.5 z-10 flex items-center gap-0.5 pointer-events-auto">
-                        <button
-                          type="button"
-                          title="End co-host"
-                          aria-label="End co-host"
-                          onClick={(e) => { e.stopPropagation(); endCoHostMode(); }}
-                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
-                        >
-                          <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
-                        </button>
-                        <button
-                          type="button"
-                          title="Host on big screen"
-                          onClick={(e) => { e.stopPropagation(); setFeaturedUserId(null); }}
-                          className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
-                        >
-                          <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
-                        </button>
-                      </div>
-                      <span className="absolute bottom-0.5 left-0.5 z-10 text-white/80 text-[8px] font-bold bg-black/50 rounded px-1">You</span>
-                    </>
-                  );
-                }
+              const renderCoHostCell = (slot: { type: 'live' | 'invited' | 'pending' | 'empty'; host?: (typeof coHosts)[0] }) => {
                 if (slot.type === 'live' && slot.host) {
                   const host = slot.host;
                   const camOff = coHostCameraOff[host.id] || [...remoteCamOff].some((id) => sameUserId(id, host.userId));
@@ -953,14 +831,6 @@ export default function LiveHostScreen() {
                             className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 hover:opacity-90 active:scale-95"
                           >
                             <X size={14} strokeWidth={2.35} className="text-[#F5F5F7]" />
-                          </button>
-                          <button
-                            type="button"
-                            title="Put on big screen"
-                            onClick={(e) => { e.stopPropagation(); toggleFeaturedUser(host.userId); }}
-                            className="elix-live-tile-ctrl flex items-center justify-center border-0 bg-transparent p-0.5 active:scale-95"
-                          >
-                            <ArrowLeftRight className="w-3 h-3 text-[#F5F5F7]" strokeWidth={2.5} />
                           </button>
                         </div>
                         <button
@@ -1059,9 +929,9 @@ export default function LiveHostScreen() {
                 );
               };
 
-              return useClassicStack ? (
+              return (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-4 gap-[2px] bg-transparent">
-                  {seatsForLayout.slice(0, 8).map((slot, i) => {
+                  {smallSlots.slice(0, 8).map((slot, i) => {
                     const cellHost = slot.type === 'live' ? slot.host : undefined;
                     const cellSpeaking = !!cellHost && isSpeakingUser(cellHost.userId);
                     return (
@@ -1084,34 +954,6 @@ export default function LiveHostScreen() {
                     );
                   })}
                 </div>
-              ) : (
-                <>
-                  {seatsForLayout.map((slot, i) => {
-                    const cellHost = slot.type === 'live' ? slot.host : undefined;
-                    const cellSpeaking = !!cellHost && isSpeakingUser(cellHost.userId);
-                    const area = seatAreas[i];
-                    if (!area) return null;
-                    return (
-                      <div
-                        key={`seat-${i}`}
-                        role={cellHost && !isBattleMode ? 'button' : undefined}
-                        tabIndex={cellHost && !isBattleMode ? 0 : undefined}
-                        onClick={() => { if (cellHost) openCoHostGiftFromGrid(cellHost.userId); }}
-                        onKeyDown={(e) => {
-                          if (!cellHost || isBattleMode) return;
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            openGiftPanelForCohost(cellHost.userId);
-                          }
-                        }}
-                        style={{ gridArea: area }}
-                        className={`relative elix-cohost-pill bg-white/5 flex flex-col items-center justify-center overflow-hidden p-0 min-h-0 pointer-events-auto ${cellSpeaking ? 'elix-speaking-pulse' : ''} ${cellHost && !isBattleMode ? 'cursor-pointer' : ''}`}
-                      >
-                        {renderCoHostCell(slot)}
-                      </div>
-                    );
-                  })}
-                </>
               );
             })()}
           </div>
@@ -2700,32 +2542,6 @@ export default function LiveHostScreen() {
         )}
       </AnimatePresence>
 
-      {/* ═══ CO-HOST LAYOUT PICKER (host only — not inside Spectators) ═══ */}
-      {showCohostLayoutPicker && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/35 pointer-events-auto"
-            style={{ zIndex: 99998 }}
-            onClick={() => setShowCohostLayoutPicker(false)}
-          />
-          <div className="fixed bottom-0 left-0 right-0 z-[999999] pointer-events-auto max-w-[480px] mx-auto">
-            <div className="elix-panel backdrop-blur-md rounded-t-2xl flex flex-col shadow-2xl overflow-hidden px-4 pt-2 pb-4">
-              <div className="flex justify-center pb-2" aria-hidden>
-                <div className="w-10 h-1 rounded-full bg-white/25" />
-              </div>
-              <h3 className="text-[#F5F5F7] font-bold text-sm text-center w-full mb-2">Layout</h3>
-              <CohostLayoutChooser
-                value={cohostLayoutId}
-                onChange={(id) => {
-                  selectCohostLayout(id);
-                  setShowCohostLayoutPicker(false);
-                }}
-              />
-            </div>
-          </div>
-        </>
-      )}
-
       {/* ═══ VIEWER LIST: Top gifters (MVP) OR spectators + join requests (invite to co-host) ═══ */}
       {showViewerList && (
         <>
@@ -2756,21 +2572,6 @@ export default function LiveHostScreen() {
                           : 'Top viewers & gifters'
                       : 'Spectators'}
                   </h3>
-                  {viewerListMode !== 'topGifters' ? (
-                    <button
-                      type="button"
-                      title="Layout"
-                      aria-label="Layout"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowViewerList(false);
-                        setShowCohostLayoutPicker(true);
-                      }}
-                      className="absolute right-0 inset-y-0 z-10 flex items-center justify-center px-1.5 active:scale-95"
-                    >
-                      <LayoutGrid size={18} className="text-[#F5F5F7]" strokeWidth={2.2} />
-                    </button>
-                  ) : null}
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto no-scrollbar px-4 pb-4 min-h-0">

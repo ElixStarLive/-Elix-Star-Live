@@ -115,11 +115,7 @@ import {
   cohostSeatsClear,
 } from '../cohost/liveCohostActions';
 import { syncBroadcastCohostLayout } from '../cohost/syncBroadcastCohostLayout';
-import {
-  DEFAULT_COHOST_LAYOUT_ID,
-  parseCohostLayoutId,
-  type CohostLayoutId,
-} from '../cohost/cohostLayoutPresets';
+import { DEFAULT_COHOST_LAYOUT_ID } from '../cohost/cohostLayoutPresets';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
 import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
@@ -944,9 +940,6 @@ export function useLiveHostController() {
     _streamKey?: string;
   };
   const [coHosts, setCoHosts] = useState<CoHost[]>([]);
-  /** Host-chosen co-host stage layout (pill presets); synced to spectators. */
-  const [cohostLayoutId, setCohostLayoutId] = useState<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
-  const cohostLayoutIdRef = useRef<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
   const [hostSearchQuery, _setHostSearchQuery] = useState('');
   /** Co-host userId shown on the left big screen (null = host). */
   const [featuredUserId, setFeaturedUserId] = useState<string | null>(null);
@@ -968,28 +961,19 @@ export function useLiveHostController() {
     isBattleJoinerRef.current = isBattleJoiner;
     selfUserIdRef.current = user?.id ?? null;
     featuredUserIdRef.current = featuredUserId;
-    cohostLayoutIdRef.current = cohostLayoutId;
-  }, [coHosts, isBroadcast, isBattleJoiner, user?.id, featuredUserId, cohostLayoutId]);
+  }, [coHosts, isBroadcast, isBattleJoiner, user?.id, featuredUserId]);
 
-  // Broadcast the host's presentation choices (layout preset + featured tile) so
-  // spectators render the same stage. Seats are server-owned and are never sent
-  // from here.
+  // Broadcast featured-tile presentation. Seats are server-owned.
+  // Stage layout is locked to host-big-pane + 8 seats (no picker).
   useEffect(() => {
     syncBroadcastCohostLayout({
       isBroadcast,
       roomId: effectiveStreamId,
       hostUserId: user?.id,
       featuredUserId: featuredUserId || null,
-      layoutId: cohostLayoutId,
+      layoutId: DEFAULT_COHOST_LAYOUT_ID,
     });
-  }, [isBroadcast, effectiveStreamId, user?.id, featuredUserId, cohostLayoutId]);
-
-  // Inviting seats while on Solo → switch to Normal (1 big + 8). Choosing Solo clears seats (see selectCohostLayout).
-  useEffect(() => {
-    if (coHosts.length > 0 && cohostLayoutId === 'solo_big') {
-      setCohostLayoutId(DEFAULT_COHOST_LAYOUT_ID);
-    }
-  }, [coHosts.length, cohostLayoutId]);
+  }, [isBroadcast, effectiveStreamId, user?.id, featuredUserId]);
 
   // Drop featured big-screen target if that co-host leaves.
   useEffect(() => {
@@ -1162,11 +1146,7 @@ export function useLiveHostController() {
   /** Host big-table X: clear every co-host seat and return to solo live — stay on this broadcast (never /feed). */
   const endCoHostMode = useCallback(() => {
     if (cohostEndInFlightRef.current) return;
-    if (
-      coHostsRef.current.length === 0 &&
-      !featuredUserIdRef.current &&
-      cohostLayoutIdRef.current === 'solo_big'
-    ) {
+    if (coHostsRef.current.length === 0 && !featuredUserIdRef.current) {
       return;
     }
     cohostEndInFlightRef.current = true;
@@ -1178,7 +1158,6 @@ export function useLiveHostController() {
     setCoHosts([]);
     setFeaturedUserId(null);
     setSelectedCohostGiftUserId(null);
-    setCohostLayoutId('solo_big');
     // Next paint: grid unmounts — put host camera back on the full live preview.
     window.requestAnimationFrame(() => restoreHostCameraPreview());
     setMessages((prev) =>
@@ -1197,19 +1176,6 @@ export function useLiveHostController() {
       cohostEndInFlightRef.current = false;
     }, 0);
   }, [restoreHostCameraPreview, setMessages]);
-
-  /** Spectators panel layout buttons — Solo clears seats and stays on normal live. */
-  const selectCohostLayout = useCallback(
-    (id: CohostLayoutId) => {
-      if (id === 'solo_big') {
-        endCoHostMode();
-        setCohostLayoutId('solo_big');
-        return;
-      }
-      setCohostLayoutId(id);
-    },
-    [endCoHostMode],
-  );
 
   const toggleCoHostMute = (hostId: string) => {
     setCoHosts(prev => prev.map(h => {
@@ -3177,7 +3143,7 @@ export function useLiveHostController() {
         roomId: effectiveStreamId,
         hostUserId: user?.id,
         featuredUserId: featuredUserIdRef.current || null,
-        layoutId: cohostLayoutIdRef.current,
+        layoutId: DEFAULT_COHOST_LAYOUT_ID,
       });
 
       // Opponent: once connected to the room, tell the server we're joining the battle
@@ -3265,7 +3231,7 @@ export function useLiveHostController() {
         roomId: effectiveStreamId,
         hostUserId: user?.id,
         featuredUserId: featuredUserIdRef.current || null,
-        layoutId: cohostLayoutIdRef.current,
+        layoutId: DEFAULT_COHOST_LAYOUT_ID,
       });
     };
 
@@ -4102,11 +4068,6 @@ export function useLiveHostController() {
       if ((featuredUserIdRef.current || null) !== nextFeatured) {
         setFeaturedUserId(nextFeatured);
       }
-
-      const nextLayout = parseCohostLayoutId(data?.layoutId);
-      if (nextLayout && nextLayout !== cohostLayoutIdRef.current) {
-        setCohostLayoutId(nextLayout);
-      }
     };
 
     const unbindBattleInviteWs = bindLiveBattleInviteWs({
@@ -4710,7 +4671,7 @@ export function useLiveHostController() {
           h.status === 'pending_accept') &&
         !sameUserId(h.userId, user?.id),
     );
-    if (isBroadcast && (hasCoHostSeats || featuredUserId || cohostLayoutId !== 'solo_big')) {
+    if (isBroadcast && (hasCoHostSeats || featuredUserId)) {
       endCoHostMode();
       return;
     }
@@ -4732,7 +4693,6 @@ export function useLiveHostController() {
     coHosts,
     featuredUserId,
     user?.id,
-    cohostLayoutId,
     endCoHostMode,
   ]);
 
@@ -5567,9 +5527,6 @@ export function useLiveHostController() {
     coHostsRef,
     cohostGiftScores,
     cohostLastGifts,
-    cohostLayoutId,
-    selectCohostLayout,
-    setCohostLayoutId,
     coinBalance,
     comboCount,
     comboTimerRef,

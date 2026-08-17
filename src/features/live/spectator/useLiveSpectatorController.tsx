@@ -73,11 +73,6 @@ import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import {
-  DEFAULT_COHOST_LAYOUT_ID,
-  parseCohostLayoutId,
-  type CohostLayoutId,
-} from '../cohost/cohostLayoutPresets';
-import {
   battleSideFromAudienceCreatorId,
   normalizeBattleGiftTarget,
   parseAudienceCreatorId,
@@ -1051,7 +1046,6 @@ export function useLiveSpectatorController() {
   // ═══════════════════════════════════════════════════
   type SpectatorCoHost = { id: string; userId: string; name: string; avatar: string; status: string };
   const [spectatorCoHosts, setSpectatorCoHosts] = useState<SpectatorCoHost[]>([]);
-  const [cohostLayoutId, setCohostLayoutId] = useState<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const currentMainTrackRef = useRef<import('livekit-client').Track | null>(null);
   // A non-host track shown provisionally in the big/main box, kept only until the
@@ -2627,8 +2621,6 @@ export function useLiveSpectatorController() {
         // Always apply so a prior local-only toggle cannot stick.
         setFeaturedUserId(null);
       }
-      const layoutParsed = parseCohostLayoutId(data.layoutId);
-      if (layoutParsed) setCohostLayoutId(layoutParsed);
     };
 
     const handleCohostRequestAccepted = (data) => {
@@ -3583,7 +3575,6 @@ export function useLiveSpectatorController() {
     spectatorChatHeartsRef,
     spectatorCoHostRequestSent,
     spectatorCoHosts,
-    cohostLayoutId,
     spectatorGate,
     spectatorGiftBattleTarget,
     spectatorLifecycleRef,
