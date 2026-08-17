@@ -1277,7 +1277,7 @@ export function useLiveHostController() {
         track.attach(featuredBigVideoRef.current);
         prepareLiveVideoEl(featuredBigVideoRef.current);
       }
-      let coHostEl = findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
+      const coHostEl = findCoHostVideoElByIdentity(coHostVideoRefs.current, identity);
       if (coHostEl) {
         track.attach(coHostEl);
         prepareLiveVideoEl(coHostEl);
@@ -2206,7 +2206,7 @@ export function useLiveHostController() {
   useEffect(() => {
     if (!showGiftPanel || !user?.id) return;
     refreshLiveGiftPanelBalances({ walletCoinBalanceRef });
-  }, [showGiftPanel, user?.id]);
+  }, [showGiftPanel, user?.id, walletCoinBalanceRef]);
   const [showPromotePanel, setShowPromotePanel] = useState(false);
   const [shareQuery, setShareQuery] = useState('');
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
@@ -4298,7 +4298,12 @@ export function useLiveHostController() {
       missionWatchGoal: missionsUi.missionWatchGoal,
       setMissionWatchMin: missionsUi.setMissionWatchMin,
     });
-  }, [isBroadcast, effectiveStreamId, missionsUi.missionWatchGoal]);
+  }, [
+    isBroadcast,
+    effectiveStreamId,
+    missionsUi.missionWatchGoal,
+    missionsUi.setMissionWatchMin,
+  ]);
   useEffect(() => {
     if (!isBattleMode || !effectiveStreamId) return;
     void apiLiveEngagementProgress({

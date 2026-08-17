@@ -43,7 +43,6 @@ import { openMountedLiveGiftSentParsed } from '../gifts/openMountedLiveGiftSent'
 import { resolveLiveGiftSpendableBalance } from '../gifts/resolveLiveGiftSpendableBalance';
 import { useLiveWalletBootstrapOnUser } from '../gifts/useLiveWalletBootstrapOnUser';
 import { reportLiveCommentEngagement } from '../engagement/reportLiveCommentEngagement';
-import { findCoHostVideoElByIdentity } from '../cohost/findCoHostVideoElByIdentity';
 import { useLiveCohostFeaturedControls } from '../cohost/useLiveCohostFeaturedControls';
 import { createLiveKitSpeakerAndMuteHandlers } from '../cohost/createLiveKitSpeakerAndMuteHandlers';
 import { attachRemoteParticipantVideoByIds } from '../cohost/attachRemoteParticipantVideo';
@@ -232,9 +231,6 @@ export function useLiveSpectatorController() {
     giftSource,
     setGiftSource,
     walletCoinBalanceRef,
-    storePaidBalance,
-    storeStarterBalance,
-    storePromoBalance,
   } = useLiveWalletDisplay(user?.id);
 
   const [showGiftPanel, setShowGiftPanel] = useState(false);
@@ -972,10 +968,6 @@ export function useLiveSpectatorController() {
     spectatorBattle?.opponentName,
   ]);
 
-  const _openOpponentPanel = useCallback(() => {
-    openBattleSidePanel('opponent');
-  }, [openBattleSidePanel]);
-
   // Stay on the host stream during battle. Dual LiveKit already shows both
   // creators — navigating away mixes WS/LiveKit rooms and kills the live.
 
@@ -1056,7 +1048,6 @@ export function useLiveSpectatorController() {
   const [spectatorCoHosts, setSpectatorCoHosts] = useState<SpectatorCoHost[]>([]);
   const [cohostLayoutId, setCohostLayoutId] = useState<CohostLayoutId>(DEFAULT_COHOST_LAYOUT_ID);
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const [selectedSpectatorUserId, _setSelectedSpectatorUserId] = useState<string | null>(null);
   const currentMainTrackRef = useRef<import('livekit-client').Track | null>(null);
   // A non-host track shown provisionally in the big/main box, kept only until the
   // host's track is identified or the co-host's own tile mounts. This guarantees a
@@ -1112,7 +1103,6 @@ export function useLiveSpectatorController() {
     if (!still && !selfFeatured) setFeaturedUserId(null);
   }, [spectatorCoHosts, featuredUserId, user?.id, isCoHosting]);
 
-  const coHostChanRef = useRef<unknown>(null);
   const [pendingCoHostInvite, setPendingCoHostInvite] = useState<{ notifId: string; hostName: string; hostAvatar: string; streamKey: string; hostUserId: string } | null>(null);
   const [showCoHostPanel, setShowCoHostPanel] = useState(false);
   // A creator watching another creator can be invited into a BATTLE. That invite
@@ -1176,9 +1166,6 @@ export function useLiveSpectatorController() {
   /** Stand this client's co-host media down. The seat itself is server-owned. */
   const stopCoHosting = useCallback(() => {
     stopCamera();
-    if (coHostChanRef.current) {
-      coHostChanRef.current = null;
-    }
     setIsMicMuted(true);
     setIsCamOff(false);
   }, [stopCamera, setIsMicMuted, setIsCamOff]);
@@ -1454,7 +1441,12 @@ export function useLiveSpectatorController() {
       missionWatchGoal: missionsUi.missionWatchGoal,
       setMissionWatchMin: missionsUi.setMissionWatchMin,
     });
-  }, [effectiveStreamId, hasStream, missionsUi.missionWatchGoal]);
+  }, [
+    effectiveStreamId,
+    hasStream,
+    missionsUi.missionWatchGoal,
+    missionsUi.setMissionWatchMin,
+  ]);
 
   // Fetch host / stream state. Join must NOT depend only on /api/live/streams —
   // that list is publishing-gated and can be stale, so other spectators would
@@ -1699,7 +1691,7 @@ export function useLiveSpectatorController() {
     };
   }
 
-  // Attach already-subscribed remotes once session connects; cohost publish if invited.
+  // Attach already-subscribed remotes once session connects.
   useEffect(() => {
     if (!spectatorSession.connected) return;
     const room = liveKitRoomRef.current;
@@ -1778,13 +1770,13 @@ export function useLiveSpectatorController() {
     myVideoRef,
   ]);
 
-  // When user selects a spectator slot, show that participant on the main (big) screen; otherwise show creator.
+  // Creator holds the main (big) screen. Featuring a co-host there is owned by
+  // useLiveCohostFeaturedControls, not by a second selection state here.
   useEffect(() => {
     const room = liveKitRoomRef.current;
     const videoEl = videoRef.current;
     if (!room || !videoEl || !hasStream) return;
-    const hostId = hostUserIdRef.current || effectiveStreamId;
-    const targetIdentity = selectedSpectatorUserId != null ? selectedSpectatorUserId : hostId;
+    const targetIdentity = hostUserIdRef.current || effectiveStreamId;
     const participant = targetIdentity === room.localParticipant?.identity
       ? room.localParticipant
       : room.remoteParticipants.get(targetIdentity);
@@ -1800,7 +1792,7 @@ export function useLiveSpectatorController() {
     videoTrack.attach(videoEl);
     prepareLiveVideoEl(videoEl);
     currentMainTrackRef.current = videoTrack;
-  }, [selectedSpectatorUserId, hasStream, effectiveStreamId, liveKitRoomRef]);
+  }, [hasStream, effectiveStreamId, liveKitRoomRef]);
 
   // Re-attach host LiveKit track when DOM video element is recreated (e.g. battle mode toggle)
   useEffect(() => {
@@ -2054,7 +2046,7 @@ export function useLiveSpectatorController() {
     if (!showGiftPanel || !user?.id) return;
     setTestCoinBalance(getPersistedTestCoinsBalance(user.id));
     refreshLiveGiftPanelBalances({ walletCoinBalanceRef });
-  }, [showGiftPanel, user?.id]);
+  }, [showGiftPanel, user?.id, walletCoinBalanceRef]);
 
   // Reset gift txn dedupe when switching to a different live room.
   useEffect(() => {
@@ -3307,11 +3299,8 @@ export function useLiveSpectatorController() {
     heartMembers,
     topGifters,
     _lastBattleScoreUpdateTraceSigRef,
-    _openOpponentPanel,
     openBattleSidePanel,
     battleSidePanel,
-    _setModerators: setModerators,
-    _setSelectedSpectatorUserId,
     acceptBattleInviteFromWatch,
     activeBooster,
     fireAutoBooster,
@@ -3331,7 +3320,6 @@ export function useLiveSpectatorController() {
     boosterActivations,
     boosterCatches,
     engagementState,
-    coHostChanRef,
     coHostPublishStreamRef,
     coHostStream,
     coHostVideoRefs,
@@ -3416,8 +3404,6 @@ export function useLiveSpectatorController() {
     mistFog,
     mistHidesMyScore,
     moderators,
-    mvpGiftScoresHostRef,
-    mvpGiftScoresOpponentRef,
     mvpGiftScoresRef,
     mvpIdentityRef,
     mvpSlots,
@@ -3451,7 +3437,6 @@ export function useLiveSpectatorController() {
     roseCountRef,
     seenGiftTxnRef,
     selectedCohostGiftUserId,
-    selectedSpectatorUserId,
     sendCohostJoinRequest,
     setActiveBooster,
     setActiveLikes,

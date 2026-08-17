@@ -200,10 +200,7 @@ export default function SpectatorLiveScreen() {
     submitTestCoinsAmount,
     submitTestCoinsPasswordUnlock,
     _lastBattleScoreUpdateTraceSigRef,
-    _openOpponentPanel,
     battleSidePanel,
-    _setModerators,
-    _setSelectedSpectatorUserId,
     acceptBattleInviteFromWatch,
     activeBooster,
     fireAutoBooster,
@@ -294,8 +291,6 @@ export default function SpectatorLiveScreen() {
     missionWatchMin,
     mistFog,
     mistHidesMyScore,
-    mvpGiftScoresHostRef,
-    mvpGiftScoresOpponentRef,
     mvpGiftScoresRef,
     mvpIdentityRef,
     mvpSlots,
@@ -393,7 +388,6 @@ export default function SpectatorLiveScreen() {
     hostRemoteAudioRef,
     viewerAvatar,
     viewerCount,
-    viewerName,
     viewersList,
     votePoll,
     walletCoinBalanceRef,
@@ -536,8 +530,6 @@ export default function SpectatorLiveScreen() {
             });
             const total = redTeamScore + blueTeamScore;
             const leftPct = total > 0 ? Math.max(5, Math.min(95, (redTeamScore / total) * 100)) : 50;
-            const hS = spectatorBattle.hostScore || 0;
-            const oS = spectatorBattle.opponentScore || 0;
             const p3s = spectatorBattle.player3Score ?? 0;
             const p4s = spectatorBattle.player4Score ?? 0;
             const is4Player =

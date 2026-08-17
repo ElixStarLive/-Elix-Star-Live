@@ -203,7 +203,6 @@ export default function LiveHostScreen() {
     battleHideScores,
     battleMistSide,
     battleScoreBarHidden,
-    battleServerTotals,
     battleSlots,
     battleSpectatorOverlayRef,
     battleState,
