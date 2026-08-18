@@ -58,7 +58,7 @@ export type DeliverGiftInput = {
 
 export type DeliverGiftResult =
   | { delivered: true }
-  | { delivered: false; reason: "duplicate" | "invalid" };
+  | { delivered: false; reason: "duplicate" | "invalid" | "dedupe_unavailable" };
 
 /**
  * Battle points for a verified gift.
@@ -270,7 +270,13 @@ export async function deliverVerifiedGift(
 
   const now = Date.now();
   const claim = await tryClaimTransaction(transactionId, now);
-  if (!claim.claimed) {
+  if (claim.status === "unavailable") {
+    // Money for this gift is already committed. Saying "duplicate" here would
+    // make the caller report a delivery that never happened, so report the
+    // unknown state instead and let the caller surface it.
+    return { delivered: false, reason: "dedupe_unavailable" };
+  }
+  if (claim.status === "duplicate") {
     return { delivered: false, reason: "duplicate" };
   }
 

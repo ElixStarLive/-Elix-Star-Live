@@ -42,7 +42,16 @@ async function deliverGiftToLiveRoom(
   try {
     const delivered = await deliverVerifiedGift(input);
     if (delivered.delivered === true) return true;
+    // A confirmed duplicate means the effect is already applied, so the gift did
+    // reach the room. "dedupe_unavailable" means Valkey could not tell us either
+    // way, and the money is already committed — that must not read as delivered.
     if (delivered.delivered === false && delivered.reason === "duplicate") return true;
+    if (delivered.delivered === false && delivered.reason === "dedupe_unavailable") {
+      logger.error(
+        { roomId: input.roomId, transactionId: input.transactionId },
+        "handleSendGift: gift paid but delivery unconfirmed — transaction dedupe unavailable",
+      );
+    }
     return false;
   } catch (err) {
     logger.error({ err, roomId: input.roomId }, "handleSendGift: room delivery failed");

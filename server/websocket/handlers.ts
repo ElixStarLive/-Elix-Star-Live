@@ -674,7 +674,11 @@ export async function handleMessage(
         // If REST already claimed the txn (possibly without a playable URL),
         // still push a gift_sent with giftId (+ video when available) so the
         // creator GiftOverlay can play for paid and starter gifts.
-        if (delivered.delivered === false && delivered.reason === "duplicate") {
+        if (
+          delivered.delivered === false &&
+          (delivered.reason === "duplicate" ||
+            delivered.reason === "dedupe_unavailable")
+        ) {
           try {
             const { resolvePlayableGiftVideoUrl } = await import("./giftRegistry");
             const video = await resolvePlayableGiftVideoUrl(

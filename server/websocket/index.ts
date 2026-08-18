@@ -39,7 +39,7 @@ import {
   valkeySadd,
   valkeySrem,
   valkeySmembers,
-  valkeySetNx,
+  valkeyTrySetNx,
   valkeyExpire,
   valkeyExistsBatch,
   valkeyHincrby,
@@ -417,12 +417,20 @@ async function readStampedAudienceOwner(
 
 /**
  * Atomic claim: SET NX ensures only one worker/request can claim a transaction.
- * Returns { claimed: true } on first call, { claimed: false } on duplicates.
+ *
+ * Three outcomes, deliberately distinct. "duplicate" means someone already holds
+ * the claim, so the effect has been (or is being) applied and reporting success is
+ * honest. "unavailable" means Valkey could not answer, so nothing is known: the
+ * caller must not report the gift as delivered, because the money is already
+ * committed by then.
  */
 export async function tryClaimTransaction(
   transactionId: string,
   timestamp: number,
-): Promise<{ claimed: boolean; existingTimestamp?: number }> {
+): Promise<{
+  status: "claimed" | "duplicate" | "unavailable";
+  existingTimestamp?: number;
+}> {
   if (!isValkeyConfigured()) {
     if (!_warnedTryClaimNoValkey) {
       _warnedTryClaimNoValkey = true;
@@ -430,13 +438,20 @@ export async function tryClaimTransaction(
         "tryClaimTransaction: Valkey not configured — dedupe unavailable.",
       );
     }
-    return { claimed: false };
+    return { status: "unavailable" };
   }
   const key = `txn:${transactionId}`;
-  const claimed = await valkeySetNx(key, String(timestamp), 300_000);
-  if (claimed) return { claimed: true };
+  const outcome = await valkeyTrySetNx(key, String(timestamp), 300_000);
+  if (outcome === "set") return { status: "claimed" };
+  if (outcome === "unavailable") {
+    logger.error(
+      { transactionId },
+      "tryClaimTransaction: Valkey unreachable — cannot claim or confirm duplicate",
+    );
+    return { status: "unavailable" };
+  }
   const val = await valkeyGet(key);
-  return { claimed: false, existingTimestamp: val ? Number(val) : undefined };
+  return { status: "duplicate", existingTimestamp: val ? Number(val) : undefined };
 }
 
 export async function releaseTransactionClaim(transactionId: string): Promise<void> {

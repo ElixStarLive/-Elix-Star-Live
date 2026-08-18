@@ -303,6 +303,32 @@ describe("paid gift creator attribution", () => {
       .toBe("tx-1");
   });
 
+  it("does not report delivery when transaction dedupe is unavailable", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: PLAYER4,
+        battleSeat: "player4" as const,
+        teamId: "teamB" as const,
+        origin: "battle_seat" as const,
+      },
+    });
+    // Valkey could not answer the claim, so nothing is known about whether the
+    // gift was broadcast or scored. The money is already committed by this point,
+    // so the response must not claim the room received it.
+    deliveryMocks.deliverVerifiedGift.mockResolvedValue({
+      delivered: false,
+      reason: "dedupe_unavailable",
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), res.value);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ room_delivered: false }),
+    );
+  });
+
   it("test coins can never enter the REST money path", async () => {
     const res = mockRes();
     await handleSendGift(

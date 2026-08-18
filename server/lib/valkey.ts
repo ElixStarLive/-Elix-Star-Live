@@ -510,6 +510,29 @@ export async function valkeySetNx(key: string, value: string, ttlMs: number): Pr
   }
 }
 
+/**
+ * SET NX for callers that must tell "someone else holds this key" apart from
+ * "Valkey could not answer". `valkeySetNx` collapses both into `false`, which is
+ * safe for locks (a missed lock just means no work) but not for the paid-gift
+ * transaction claim, where a failed claim read as a duplicate makes the money
+ * path report a delivery that never happened.
+ */
+export async function valkeyTrySetNx(
+  key: string,
+  value: string,
+  ttlMs: number,
+): Promise<"set" | "exists" | "unavailable"> {
+  const v = getValkey();
+  if (!v) return "unavailable";
+  try {
+    const result = await v.set(key, value, "PX", ttlMs, "NX");
+    return result === "OK" ? "set" : "exists";
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyTrySetNx failed");
+    return "unavailable";
+  }
+}
+
 // ── Cache stampede protection ────────────────────────────────────
 
 const STAMPEDE_LOCK_TTL_MS = 15_000;
