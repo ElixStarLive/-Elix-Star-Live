@@ -6,7 +6,7 @@ import { getPool, deleteVideoFromDb } from "../lib/postgres";
 import { insertNotification } from "../lib/notifications";
 import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
-import { disconnectUserSessions } from "../websocket/index";
+import { disconnectUserSessions, sendToUserGlobal } from "../websocket/index";
 import { invalidateUserSessionCache } from "./auth";
 import { z } from "zod";
 import { validateBody } from "../middleware/validate";
@@ -71,13 +71,19 @@ async function enforceReportAction(
       ownerId = r.rows[0]?.user_id ? String(r.rows[0].user_id) : "";
     }
     if (ownerId) {
+      const warningBody =
+        "Your content was reviewed by moderators and may violate our community guidelines. Repeated violations can lead to a ban.";
       await insertNotification({
         userId: ownerId,
         type: "moderation_warning",
         title: "Content warning",
-        body: "Your content was reviewed by moderators and may violate our community guidelines. Repeated violations can lead to a ban.",
+        body: warningBody,
         data: { target_type: type, target_id: targetId },
       }).catch((e) => logger.warn({ err: e, ownerId }, "moderation warning notify failed"));
+      // The live overlay listens for this event; without it a warning issued
+      // while the creator is broadcasting is only visible after they reopen
+      // notifications.
+      sendToUserGlobal(ownerId, "moderation_warning", { message: warningBody });
     }
   }
 }
