@@ -114,34 +114,36 @@ async function applyCreatorWalletDelta(
     // paid / reversed handled by dedicated flows
     return;
   }
-  // Negative creator amount (reversal): reduce pending/available/held; remainder → reversed
+  // Negative creator amount (reversal): claw back from pending, then available.
+  //
+  // held_pence is not available to claw back: it is reserved for a withdrawal
+  // that is already on its way to Stripe and will still be transferred. Taking
+  // it here would leave that payout to subtract from a balance that no longer
+  // holds it, and the shortfall would vanish from the books instead of being
+  // recorded as money the platform has to recover.
   const abs = Math.abs(creatorAmountPence);
   const bal = await client.query(
-    `SELECT pending_pence, available_pence, held_pence
+    `SELECT pending_pence, available_pence
        FROM elix_creator_wallet_gbp WHERE user_id = $1 FOR UPDATE`,
     [creatorUserId],
   );
   let remaining = abs;
   const pending = Math.max(0, Number(bal.rows[0]?.pending_pence) || 0);
   const available = Math.max(0, Number(bal.rows[0]?.available_pence) || 0);
-  const held = Math.max(0, Number(bal.rows[0]?.held_pence) || 0);
   const fromPending = Math.min(pending, remaining);
   remaining -= fromPending;
   const fromAvailable = Math.min(available, remaining);
   remaining -= fromAvailable;
-  const fromHeld = Math.min(held, remaining);
-  remaining -= fromHeld;
   const recovered = abs - remaining;
   await client.query(
     `UPDATE elix_creator_wallet_gbp SET
        pending_pence = GREATEST(0, pending_pence - $2),
        available_pence = GREATEST(0, available_pence - $3),
-       held_pence = GREATEST(0, held_pence - $4),
-       reversed_pence = reversed_pence + $5,
-       recoverable_pence = recoverable_pence + $6,
+       reversed_pence = reversed_pence + $4,
+       recoverable_pence = recoverable_pence + $5,
        updated_at = NOW()
      WHERE user_id = $1`,
-    [creatorUserId, fromPending, fromAvailable, fromHeld, recovered, remaining],
+    [creatorUserId, fromPending, fromAvailable, recovered, remaining],
   );
 }
 

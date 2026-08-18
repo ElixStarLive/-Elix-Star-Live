@@ -381,7 +381,11 @@ router.post(
       payoutProviderRef: req.body.payoutProviderRef,
       failureReason: req.body.failureReason,
     });
-    if (!result.ok) return res.status(400).json(result);
+    if (!result.ok) {
+      const status =
+        result.error === "invalid_transition" ? 409 : result.error === "database_error" ? 503 : 400;
+      return res.status(status).json(result);
+    }
     return res.json({ ok: true });
   },
 );
@@ -393,7 +397,9 @@ router.post("/withdrawals-gbp/:id/submit-provider", async (req: Request, res: Re
     withdrawalId: String(req.params.id),
     adminUserId: adminId,
   });
-  if (!result.ok) return res.status(400).json(result);
+  // A retryable outcome is not a rejection — the payout may still be in flight
+  // at Stripe, and the reserved pence are still held for it.
+  if (!result.ok) return res.status(result.retryable ? 503 : 400).json(result);
   return res.json(result);
 });
 

@@ -238,6 +238,26 @@ export const shopCheckoutLimiter = rateLimitBySubject({
   onMissingSubject: "allow",
 });
 
+/**
+ * Creator withdrawals and Stripe Connect onboarding.
+ *
+ * Keyed per creator, not per IP: these are authenticated and carriers/offices
+ * share one public IP, so an IP bucket would 429 an honest payout. The cap is
+ * abuse-only — a real creator never requests payouts this fast.
+ */
+export const creatorPayoutLimiter = rateLimitBySubject({
+  windowMs: 60 * 60_000,
+  max: 20,
+  keyPrefix: "creator_payout_user",
+  resolveSubject: (req) => {
+    const token = getTokenFromRequest(req);
+    if (!token) return null;
+    return verifyAuthToken(token)?.sub ?? null;
+  },
+  // Unauthenticated → the handler answers 401 (do not IP-throttle real creators).
+  onMissingSubject: "allow",
+});
+
 export const verifyPurchaseLimiter = rateLimit({
   windowMs: 60 * 60_000,
   max: 40,

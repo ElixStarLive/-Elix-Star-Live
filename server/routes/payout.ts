@@ -11,6 +11,39 @@ function getUserId(req: Request): string | null {
   return payload?.sub ?? null;
 }
 
+/**
+ * Withdrawals require a confirmed email when mail is configured.
+ *
+ * Both withdrawal rails share this gate. Returns the refusal to send, or null
+ * when the creator may proceed. A check that throws is not a pass — a broken
+ * query would otherwise hand every unverified account a payout.
+ */
+async function withdrawalEmailGate(
+  db: NonNullable<ReturnType<typeof getPool>>,
+  userId: string,
+): Promise<{ status: number; error: string } | null> {
+  if (!isEmailConfigured()) return null;
+  try {
+    const conf = await db.query(
+      `SELECT email_confirmed_at FROM elix_auth_users WHERE id = $1 LIMIT 1`,
+      [userId],
+    );
+    if (!conf.rows[0]?.email_confirmed_at) {
+      return {
+        status: 403,
+        error: 'Please confirm your email before requesting a payout.',
+      };
+    }
+    return null;
+  } catch (err) {
+    logger.error({ err, userId }, 'payout email-confirm check failed — withdrawal refused');
+    return {
+      status: 503,
+      error: 'Could not verify your email confirmation. Please try again.',
+    };
+  }
+}
+
 export async function handleGetCreatorBalance(req: Request, res: Response) {
   const db = getPool();
   if (!db) return res.status(503).json({ error: 'Database not configured' });
@@ -41,23 +74,21 @@ export async function handleGetCreatorBalance(req: Request, res: Response) {
       reversed_pence: 0,
       held_pence: 0,
     };
-    try {
-      const g = await db.query(
-        `SELECT pending_pence, available_pence, withdrawn_pence, reversed_pence, held_pence
-           FROM elix_creator_wallet_gbp WHERE user_id = $1`,
-        [userId],
-      );
-      if (g.rows[0]) {
-        gbp = {
-          pending_pence: Number(g.rows[0].pending_pence) || 0,
-          available_pence: Number(g.rows[0].available_pence) || 0,
-          withdrawn_pence: Number(g.rows[0].withdrawn_pence) || 0,
-          reversed_pence: Number(g.rows[0].reversed_pence) || 0,
-          held_pence: Number(g.rows[0].held_pence) || 0,
-        };
-      }
-    } catch {
-      /* migration may not be applied yet */
+    // This is the withdrawable balance. A failed read must surface as an error —
+    // reporting £0 for a broken query tells a creator their earnings are gone.
+    const g = await db.query(
+      `SELECT pending_pence, available_pence, withdrawn_pence, reversed_pence, held_pence
+         FROM elix_creator_wallet_gbp WHERE user_id = $1`,
+      [userId],
+    );
+    if (g.rows[0]) {
+      gbp = {
+        pending_pence: Number(g.rows[0].pending_pence) || 0,
+        available_pence: Number(g.rows[0].available_pence) || 0,
+        withdrawn_pence: Number(g.rows[0].withdrawn_pence) || 0,
+        reversed_pence: Number(g.rows[0].reversed_pence) || 0,
+        held_pence: Number(g.rows[0].held_pence) || 0,
+      };
     }
 
     let rewards = {
@@ -172,25 +203,12 @@ export async function handleCreatorWithdraw(req: Request, res: Response) {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    // Withdrawals require a confirmed email when mail is configured.
-    try {
-      if (isEmailConfigured()) {
-        const conf = await db.query(
-          `SELECT email_confirmed_at FROM elix_auth_users WHERE id = $1 LIMIT 1`,
-          [userId],
-        );
-        const confirmed = conf.rows[0]?.email_confirmed_at;
-        if (!confirmed) {
-          return res.status(403).json({
-            error: 'Please confirm your email before requesting a payout.',
-          });
-        }
-      }
-    } catch (err) {
-      logger.warn({ err, userId }, 'payout email-confirm check skipped');
+    const emailGate = await withdrawalEmailGate(db, userId);
+    if (emailGate) {
+      return res.status(emailGate.status).json({ error: emailGate.error });
     }
 
-      const { coins_amount, payout_method_id } = req.body;
+    const { coins_amount, payout_method_id } = req.body;
     const amt = Math.floor(Number(coins_amount));
     if (!Number.isFinite(amt) || amt <= 0) {
       return res.status(400).json({ error: 'Invalid amount' });
@@ -737,9 +755,18 @@ export async function handleAdminChargeback(req: Request, res: Response) {
 
 /** POST /api/creator/withdraw-gbp — withdraw available GBP earnings only. */
 export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
+  const db = getPool();
+  if (!db) return res.status(503).json({ error: 'Database not configured' });
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  const amountPence = Math.floor(Number(req.body?.amount_pence) || 0);
+  const rawAmount = Number(req.body?.amount_pence);
+  if (!Number.isFinite(rawAmount)) {
+    return res.status(400).json({ error: 'invalid_amount' });
+  }
+  const amountPence = Math.floor(rawAmount);
+  if (amountPence <= 0 || !Number.isSafeInteger(amountPence)) {
+    return res.status(400).json({ error: 'invalid_amount' });
+  }
   const rawKey =
     typeof req.body?.idempotency_key === 'string' ? req.body.idempotency_key.trim() : '';
   if (!rawKey) {
@@ -747,6 +774,10 @@ export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
   }
   const idempotencyKey = rawKey.slice(0, 120);
   try {
+    const emailGate = await withdrawalEmailGate(db, userId);
+    if (emailGate) {
+      return res.status(emailGate.status).json({ error: emailGate.error });
+    }
     const { requestGbpWithdrawal } = await import('../lib/monetisation/gbpWithdrawals');
     const result = await requestGbpWithdrawal({
       creatorUserId: userId,
@@ -755,13 +786,11 @@ export async function handleCreatorWithdrawGbp(req: Request, res: Response) {
     });
     if (result.ok === false) {
       const status =
-        result.error === 'insufficient_available'
-          ? 400
-          : result.error === 'no_payout_method'
-            ? 400
-            : result.error === 'below_minimum' || result.error === 'above_maximum'
-              ? 400
-              : 500;
+        result.error === 'idempotency_key_conflict'
+          ? 409
+          : result.error === 'database_error'
+            ? 503
+            : 400;
       return res.status(status).json({ error: result.error });
     }
     return res.json({

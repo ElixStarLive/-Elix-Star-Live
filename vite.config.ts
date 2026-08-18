@@ -126,6 +126,9 @@ export default defineConfig(({ mode }) => ({
       '**/monetisation/paidGift.db.test.ts',
       '**/monetisation/appleIapPaidLot.db.test.ts',
       '**/monetisation/googleIapPaidLot.db.test.ts',
+      // Rewrites the shared monetisation config row (settlement hours, withdraw
+      // limits), so it must not run beside other money files.
+      '**/monetisation/creatorPayout.db.test.ts',
     ],
   },
 }))

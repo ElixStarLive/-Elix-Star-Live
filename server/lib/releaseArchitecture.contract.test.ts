@@ -125,6 +125,129 @@ describe("release architecture contracts", () => {
     expect(platform).toContain("Browser.open");
   });
 
+  it("an unknown Stripe transfer outcome never releases the reserved payout", () => {
+    const payout = read("server/lib/monetisation/payoutProvider.ts");
+    const submit = payout.slice(
+      payout.indexOf("export async function submitWithdrawalToProvider"),
+      payout.indexOf("async function recordTransferOutcome"),
+    );
+    // A timeout or 5xx may have created the transfer. Only a definite refusal
+    // may hand the money back, and only after asking Stripe what happened.
+    expect(submit).toContain('classifyStripeFailure(err) === "unknown"');
+    expect(submit).toContain("provider_outcome_unknown");
+    expect(submit.indexOf("provider_outcome_unknown")).toBeLessThan(
+      submit.indexOf('toStatus: "failed"'),
+    );
+    expect(submit).toContain("findTransferForWithdrawal");
+    expect(payout).toContain("transfer_group: withdrawalId");
+    // Only these four Stripe errors prove nothing was created.
+    const classify = payout.slice(
+      payout.indexOf("export function classifyStripeFailure"),
+      payout.indexOf("async function findTransferForWithdrawal"),
+    );
+    expect(classify).toMatch(/default:\s*return "unknown";/);
+    expect(classify.match(/return "refused";/g)?.length).toBe(1);
+  });
+
+  it("a withdrawal that already returned its money cannot be submitted or paid", () => {
+    const payout = read("server/lib/monetisation/payoutProvider.ts");
+    expect(payout).toContain("withdrawal_not_payable");
+    const withdrawals = read("server/lib/monetisation/gbpWithdrawals.ts");
+    // One transition table owns every status change, so a stale provider event
+    // cannot resurrect a failed payout or pay a cancelled one.
+    expect(withdrawals).toContain("const ALLOWED_TRANSITIONS");
+    expect(withdrawals).toContain('failed: ["failed"]');
+    expect(withdrawals).toContain('rejected: ["rejected"]');
+    expect(withdrawals).toContain('cancelled: ["cancelled"]');
+    expect(withdrawals).toContain('paid: ["paid", "failed"]');
+    expect(withdrawals).toContain('return { ok: false, error: "invalid_transition" }');
+  });
+
+  it("a reversed payout gives the creator their money back", () => {
+    const withdrawals = read("server/lib/monetisation/gbpWithdrawals.ts");
+    expect(withdrawals).toContain('revenueSource: "PAYOUT_REVERSAL"');
+    expect(withdrawals).toContain("withdrawn_pence = GREATEST(0, withdrawn_pence - $2)");
+    expect(withdrawals).toContain("idempotencyKey: `payout_reversal:${input.withdrawalId}`");
+    expect(withdrawals).toContain("if (!reversal.alreadyExisted)");
+  });
+
+  it("a refund cannot claw back pence reserved for a payout in flight", () => {
+    const ledger = read("server/lib/monetisation/ledger.ts");
+    const reversal = ledger.slice(
+      ledger.indexOf("// Negative creator amount (reversal)"),
+      ledger.indexOf("/** Platform GBP books"),
+    );
+    // held_pence belongs to a transfer that will still settle. Taking it here
+    // makes the payout subtract from a balance that no longer holds it.
+    expect(reversal).not.toContain("held_pence - ");
+    expect(reversal).not.toContain("fromHeld");
+    expect(reversal).toContain("recoverable_pence = recoverable_pence + $5");
+  });
+
+  it("the withdrawal function validates the amount itself", () => {
+    const withdrawals = read("server/lib/monetisation/gbpWithdrawals.ts");
+    // Infinity survives `Number(x) || 0`, so the guard must be explicit.
+    expect(withdrawals).toContain("if (!Number.isFinite(requested))");
+    expect(withdrawals).toContain("!Number.isSafeInteger(amount)");
+    expect(withdrawals).not.toContain("Math.floor(Number(input.amountPence) || 0)");
+  });
+
+  it("withdrawal idempotency keys are bound to the creator, amount and currency", () => {
+    const withdrawals = read("server/lib/monetisation/gbpWithdrawals.ts");
+    expect(withdrawals).toContain("idempotency_key_conflict");
+    expect(withdrawals).toContain("settled.creatorUserId !== input.creatorUserId");
+    expect(withdrawals).toContain("settled.amountPence !== amount");
+    expect(withdrawals).toContain("settled.currency !== currency");
+  });
+
+  it("both withdrawal rails share one email gate that fails closed", () => {
+    const payout = read("server/routes/payout.ts");
+    expect(payout).toContain("async function withdrawalEmailGate");
+    expect(payout).toContain("isEmailConfigured()");
+    expect(payout).toContain("Please confirm your email before requesting a payout");
+    // Coins and GBP both go through the gate, and a broken check refuses.
+    expect(payout.match(/await withdrawalEmailGate\(db, userId\)/g)?.length).toBe(2);
+    expect(payout.match(/if \(emailGate\) \{/g)?.length).toBe(2);
+    expect(payout).toContain("payout email-confirm check failed — withdrawal refused");
+  });
+
+  it("withdrawals and Connect onboarding are rate limited per creator", () => {
+    const router = read("server/routes/payout.router.ts");
+    expect(router.match(/creatorPayoutLimiter/g)?.length).toBe(4);
+    const limits = read("server/middleware/rateLimit.ts");
+    expect(limits).toContain("export const creatorPayoutLimiter");
+    expect(limits).toContain('keyPrefix: "creator_payout_user"');
+  });
+
+  it("Connect account identity comes from our records, not from event metadata", () => {
+    const payout = read("server/lib/monetisation/payoutProvider.ts");
+    const resolver = payout.slice(
+      payout.indexOf("async function creatorForProviderAccount"),
+      payout.indexOf("export async function handleStripeConnectPayoutWebhook"),
+    );
+    expect(resolver).toContain("FROM elix_creator_payout_accounts");
+    expect(resolver).toContain("provider_account_id = $1");
+    const hook = payout.slice(payout.indexOf('if (eventType === "account.updated")'));
+    expect(hook).toContain("creatorForProviderAccount");
+    // A capability change we failed to store must be redelivered.
+    expect(hook).toContain("return { ok: refreshed.ok }");
+  });
+
+  it("payout provider events are recorded durably for failures as well as payments", () => {
+    const payout = read("server/lib/monetisation/payoutProvider.ts");
+    expect(payout).toContain("async function recordProviderEvent");
+    expect(payout).toContain("ON CONFLICT (provider, event_id) DO NOTHING");
+    expect(payout).toContain("async function failPayoutFromProvider");
+    const fail = payout.slice(
+      payout.indexOf("async function failPayoutFromProvider"),
+      payout.indexOf("async function creatorForProviderAccount"),
+    );
+    expect(fail).toContain("recordProviderEvent");
+    // A database failure is a retry; an impossible event is acknowledged.
+    expect(fail).toContain("isPermanentSettlementError");
+    expect(fail).toContain('retryable: true');
+  });
+
   it("test coins stay in the app by default (battle + animation, never money)", () => {
     const client = read("src/lib/testCoins.ts");
     expect(client).toContain("BATTLE GAME SCORE");

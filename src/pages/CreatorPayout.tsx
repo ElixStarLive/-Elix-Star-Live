@@ -110,7 +110,7 @@ export default function CreatorPayout() {
   const [saving, setSaving] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const withdrawInFlightRef = useRef(false);
-  const withdrawIdemRef = useRef<string | null>(null);
+  const withdrawIdemRef = useRef<{ key: string; amountPence: number } | null>(null);
   const [methodType, setMethodType] = useState<'bank' | 'paypal'>('bank');
   const [accountName, setAccountName] = useState('');
   const [accountDetail, setAccountDetail] = useState('');
@@ -288,8 +288,13 @@ export default function CreatorPayout() {
       return;
     }
     if (withdrawInFlightRef.current) return;
-    if (!withdrawIdemRef.current) withdrawIdemRef.current = crypto.randomUUID();
-    const idempotencyKey = withdrawIdemRef.current;
+    // Retrying the same amount must reuse the key so a timed-out request settles
+    // once. A corrected amount is a different request and needs its own key —
+    // the server refuses a key reused for different terms.
+    if (withdrawIdemRef.current?.amountPence !== amountPence) {
+      withdrawIdemRef.current = { key: crypto.randomUUID(), amountPence };
+    }
+    const idempotencyKey = withdrawIdemRef.current.key;
     withdrawInFlightRef.current = true;
     setWithdrawing(true);
     try {

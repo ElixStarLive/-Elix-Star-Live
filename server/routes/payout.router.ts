@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { logger } from "../lib/logger";
+import { creatorPayoutLimiter } from "../middleware/rateLimit";
 import {
   handleGetCreatorBalance, handleGetCreatorEarnings, handleCreatorWithdraw,
   handleGetCreatorPayouts, handleSetPayoutMethod, handleGetPayoutMethods,
@@ -14,15 +15,15 @@ import {
 const creatorRouter = Router();
 creatorRouter.get("/balance", handleGetCreatorBalance);
 creatorRouter.get("/earnings", handleGetCreatorEarnings);
-creatorRouter.post("/withdraw", handleCreatorWithdraw);
-creatorRouter.post("/withdraw-gbp", handleCreatorWithdrawGbp);
+creatorRouter.post("/withdraw", creatorPayoutLimiter, handleCreatorWithdraw);
+creatorRouter.post("/withdraw-gbp", creatorPayoutLimiter, handleCreatorWithdrawGbp);
 creatorRouter.get("/withdrawals-gbp", handleGetCreatorGbpWithdrawals);
 creatorRouter.get("/ledger", handleGetCreatorLedgerHistory);
 creatorRouter.get("/payouts", handleGetCreatorPayouts);
 creatorRouter.post("/payout-method", handleSetPayoutMethod);
 creatorRouter.get("/payout-methods", handleGetPayoutMethods);
 
-creatorRouter.post("/payout-account/onboard", async (req, res) => {
+creatorRouter.post("/payout-account/onboard", creatorPayoutLimiter, async (req, res) => {
   try {
     const { getTokenFromRequest, verifyAuthToken } = await import("./auth");
     const token = getTokenFromRequest(req);
@@ -132,8 +133,47 @@ adminPayoutRouter.post("/unfreeze/:userId", async (req, res) => {
     const adminR = await db.query(`SELECT is_admin FROM profiles WHERE user_id = $1`, [payload.sub]);
     if (!adminR.rows.length || !adminR.rows[0].is_admin) return res.status(403).json({ error: "Admin only" });
     const { userId } = req.params;
-    await db.query(`UPDATE elix_creator_balances SET locked_coins = 0, updated_at = NOW() WHERE user_id = $1`, [userId]);
-    return res.json({ ok: true, userId });
+    // Release only coins no open payout request still reserves. Zeroing
+    // locked_coins destroyed a creator's reserved earnings, and left open
+    // requests able to approve against a lock that no longer existed.
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const reservedR = await client.query(
+        `SELECT COALESCE(SUM(coins_amount), 0)::bigint AS reserved
+           FROM elix_payout_requests
+          WHERE user_id = $1
+            AND status IN ('pending', 'under_review', 'approved')`,
+        [userId],
+      );
+      const reserved = Math.max(0, Math.floor(Number(reservedR.rows[0]?.reserved) || 0));
+      const balR = await client.query(
+        `SELECT locked_coins FROM elix_creator_balances WHERE user_id = $1 FOR UPDATE`,
+        [userId],
+      );
+      if (!balR.rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Creator balance not found" });
+      }
+      const locked = Math.max(0, Math.floor(Number(balR.rows[0].locked_coins) || 0));
+      const released = Math.max(0, locked - reserved);
+      await client.query(
+        `UPDATE elix_creator_balances
+            SET locked_coins = $2,
+                available_coins = available_coins + $3,
+                updated_at = NOW()
+          WHERE user_id = $1`,
+        [userId, reserved, released],
+      );
+      await client.query("COMMIT");
+      logger.info({ userId, adminId: payload.sub, released, reserved }, "admin unfreeze released stuck locked coins");
+      return res.json({ ok: true, userId, released, still_reserved: reserved });
+    } catch (e) {
+      await client.query("ROLLBACK").catch((re) => logger.warn({ err: re }, "ROLLBACK failed"));
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     logger.error({ err }, "admin/unfreeze failed");
     return res.status(500).json({ error: "DATABASE_ERROR" });
