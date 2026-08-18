@@ -673,12 +673,26 @@ export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
 // "?cohost=1" URL flag. An invite on its own is an offer and grants nothing.
 const COHOST_GRANT_TTL_MS = 6 * 60 * 60 * 1000; // matches LiveKit token TTL
 
-export async function grantCohostPublish(roomId: string, userId: string): Promise<void> {
-  if (!roomId || !userId) return;
-  if (!isValkeyConfigured()) return;
+/**
+ * Store the grant that authorises this co-host's next publish token.
+ *
+ * Reports whether the grant is actually there afterwards. The write is the only
+ * thing that makes a seat mean anything to the token endpoint, so a write that
+ * quietly went nowhere would leave a co-host sitting on the stage whose next
+ * token comes back subscribe-only — with nothing anywhere saying why. Verified
+ * the same way the battle grant is.
+ */
+export async function grantCohostPublish(
+  roomId: string,
+  userId: string,
+): Promise<boolean> {
+  if (!roomId || !userId) return false;
+  if (!isValkeyConfigured()) return false;
   await valkeySet(`cohost_grant:${roomId}:${userId}`, "1", COHOST_GRANT_TTL_MS);
+  if (!(await hasCohostPublishGrant(roomId, userId))) return false;
   await valkeySadd(`cohost_grants:${roomId}`, userId);
   await valkeyExpire(`cohost_grants:${roomId}`, Math.ceil(COHOST_GRANT_TTL_MS / 1000));
+  return true;
 }
 
 export async function hasCohostPublishGrant(roomId: string, userId: string): Promise<boolean> {

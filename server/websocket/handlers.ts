@@ -169,12 +169,12 @@ async function resolveCreatorOwnStreamKey(userId: string): Promise<string> {
  *
  * A seat and a publish permission are one decision recorded in two systems: the
  * stored grant authorises the next token, and the LiveKit upgrade lets the
- * connection they are already watching from go live. If the media half cannot
- * be confirmed, seating them anyway would put a tile on everyone's stage for
+ * connection they are already watching from go live. If either half cannot be
+ * confirmed, seating them anyway would put a tile on everyone's stage for
  * someone who may never be able to speak — a co-host in the seat table and a
  * muted spectator in the room. So the seat is withdrawn and the host is left
- * able to try again, instead of the stage carrying a promise the media layer
- * never made.
+ * able to try again, instead of the stage carrying a promise the rest of the
+ * system never made.
  *
  * A user who has not joined yet is not a failure: their join token reads the
  * stored grant, so the seat is honoured the moment they arrive.
@@ -194,12 +194,16 @@ async function seatCohostPublish(
   hostUserId: string,
   cohostUserId: string,
 ): Promise<CohostSeatGrant> {
-  await grantCohostPublish(roomId, cohostUserId);
-  const upgrade = await grantParticipantPublish(roomId, cohostUserId);
+  const stored = await grantCohostPublish(roomId, cohostUserId);
+  const upgrade = stored
+    ? await grantParticipantPublish(roomId, cohostUserId)
+    : "unconfirmed";
   if (upgrade !== "unconfirmed") return { upgrade, rolledBack: null };
   logger.error(
-    { roomId, hostUserId, cohostUserId },
-    "cohost seat rolled back: LiveKit publish upgrade unconfirmed",
+    { roomId, hostUserId, cohostUserId, stored },
+    stored
+      ? "cohost seat rolled back: LiveKit publish upgrade unconfirmed"
+      : "cohost seat rolled back: publish grant was not stored",
   );
   await releaseCohostPublish(roomId, cohostUserId);
   const withdrawn = await mutateCohostSeats(roomId, hostUserId, (seats) => {

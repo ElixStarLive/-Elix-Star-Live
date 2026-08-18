@@ -23,6 +23,9 @@ type Layout = {
   featuredUserId?: string | null;
 };
 
+/** Whether Valkey can actually keep the publish grant it is handed. */
+let grantStorable = true;
+
 /** Server state the handlers read and write, observable to the tests. */
 const layouts = new Map<string, Layout>();
 const roomOwners = new Map<string, string>();
@@ -72,7 +75,9 @@ vi.mock("./index", () => ({
   }),
   listCohostJoinRequests: vi.fn(async (roomId: string) => joinRequests.get(roomId) ?? []),
   grantCohostPublish: vi.fn(async (roomId: string, userId: string) => {
+    if (!grantStorable) return false;
     cohostGrants.push({ roomId, userId });
+    return true;
   }),
   releaseCohostPublish: vi.fn(async (roomId: string, userId: string) => {
     released.push({ roomId, userId });
@@ -202,6 +207,7 @@ describe("co-host publish authority", () => {
     sentToUser.length = 0;
     roomBroadcasts.length = 0;
     participantUpgradeResult = "granted";
+    grantStorable = true;
     blockedPairs.clear();
   });
 
@@ -611,6 +617,19 @@ describe("co-host publish authority", () => {
         userId: "viewer-3",
         event: "cohost_request_declined",
       });
+    });
+
+    it("withdraws the seat when the grant was not stored", async () => {
+      await invite("viewer-1");
+      // The stored grant is the only thing the token endpoint reads, so a write
+      // that went nowhere means their next token comes back subscribe-only.
+      grantStorable = false;
+
+      await accept(invitee);
+
+      expect(seats()).toEqual([]);
+      expect(participantUpgrades).toEqual([]);
+      expect(sentToUser.some((s) => s.event === "cohost_invite_accepted")).toBe(false);
     });
 
     it("keeps the seat when the co-host simply has not joined the room yet", async () => {

@@ -68,8 +68,11 @@ vi.mock("./index", () => ({
   upsertCohostJoinRequest: vi.fn(async () => {}),
   deleteCohostJoinRequest: vi.fn(async () => {}),
   listCohostJoinRequests: vi.fn(async () => []),
-  grantCohostPublish: vi.fn(async (roomId: string, userId: string) => {
+  grantCohostPublish: vi.fn(async (roomId: string, userId: string): Promise<boolean> => {
+    // The grant only survives when Valkey can keep it.
+    if (!valkey.writable) return false;
     cohostGrants.push({ roomId, userId });
+    return true;
   }),
   releaseCohostPublish: vi.fn(async (roomId: string, userId: string) => {
     released.push({ roomId, userId });

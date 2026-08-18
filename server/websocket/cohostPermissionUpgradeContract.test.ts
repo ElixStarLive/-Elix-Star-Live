@@ -40,8 +40,10 @@ describe("cohost LiveKit permission upgrade contracts", () => {
     const block = handlers.slice(start, start + 1600);
     expect(block).toContain("await grantCohostPublish(roomId, cohostUserId)");
     expect(block).toContain("await grantParticipantPublish(roomId, cohostUserId)");
-    // An unconfirmed media upgrade takes the seat back rather than leaving a
-    // co-host tile on stage for someone who may be unable to publish.
+    // Neither half may be assumed: a grant that was not stored is treated the
+    // same as an unconfirmed media upgrade, and both take the seat back rather
+    // than leaving a co-host tile on stage for someone who cannot publish.
+    expect(block).toContain(': "unconfirmed"');
     expect(block).toContain('if (upgrade !== "unconfirmed")');
     expect(block).toContain("await releaseCohostPublish(roomId, cohostUserId)");
     expect(block).toContain("removeCohostSlot(seats, cohostUserId)");
