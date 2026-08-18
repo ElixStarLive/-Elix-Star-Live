@@ -38,8 +38,10 @@ import {
   appAccountTokenForUserId,
 } from '../lib/monetisation/storeProductCatalogs';
 
+// Dev/test only: local in-memory window when Valkey is off (never in production).
 const rateLimits = new Map<string, { count: number; timestamp: number }>();
 const MAX_LOCAL_RATE_ENTRIES = 20_000;
+const allowLocalRateLimit = process.env.NODE_ENV !== "production";
 
 function providerTransactionKey(
   provider: 'apple' | 'google',
@@ -52,23 +54,36 @@ function providerTransactionKey(
   return `token_sha256:${createHash('sha256').update(token).digest('hex')}`;
 }
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of rateLimits) {
-    if (now - v.timestamp > 120_000) rateLimits.delete(k);
-  }
-}, 60_000).unref();
+if (allowLocalRateLimit) {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of rateLimits) {
+      if (now - v.timestamp > 120_000) rateLimits.delete(k);
+    }
+  }, 60_000).unref();
+}
 
 async function checkRateLimit(userId: string, action: string, limit: number, windowMs: number) {
   const key = `${userId}:${action}`;
+  const retryAfter = Math.ceil(windowMs / 1000);
 
   if (isValkeyConfigured()) {
     try {
       const allowed = await valkeyRateCheck(`rl:${key}`, windowMs, limit);
-      return { allowed, retryAfter: Math.ceil(windowMs / 1000) };
-    } catch {
-      // Valkey unavailable — fall through to local
+      return { allowed, retryAfter };
+    } catch (err) {
+      // These limits guard IAP verify, promote and membership purchases. A
+      // per-process window would multiply the real limit by the instance count,
+      // so a Valkey failure must not quietly loosen it. Same rule as the main
+      // API limiter and wsRateCheck: fail closed in production.
+      if (!allowLocalRateLimit) {
+        logger.error({ err, action }, "checkRateLimit: Valkey unavailable — failing closed");
+        return { allowed: false, retryAfter };
+      }
     }
+  } else if (!allowLocalRateLimit) {
+    logger.error({ action }, "checkRateLimit: Valkey required in production");
+    return { allowed: false, retryAfter };
   }
 
   const now = Date.now();
