@@ -12,6 +12,7 @@ const strings = new Map<string, string>();
 const sets = new Map<string, Set<string>>();
 const hashes = new Map<string, Map<string, number>>();
 let hashesReachable = true;
+let hashesWritable = true;
 let stringsWritable = true;
 let stringsReadable = true;
 let setsWritable = true;
@@ -22,6 +23,7 @@ export function resetValkeyFake(): void {
   sets.clear();
   hashes.clear();
   hashesReachable = true;
+  hashesWritable = true;
   stringsWritable = true;
   stringsReadable = true;
   setsWritable = true;
@@ -31,6 +33,14 @@ export function resetValkeyFake(): void {
 /** Simulate Valkey being unable to serve the score hash. */
 export function setValkeyFakeHashesReachable(reachable: boolean): void {
   hashesReachable = reachable;
+}
+
+/**
+ * Simulate a hash counter that can be READ but not incremented, so a test can
+ * reach the "this failure was not counted" path on its own.
+ */
+export function setValkeyFakeHashesWritable(writable: boolean): void {
+  hashesWritable = writable;
 }
 
 /** Simulate a confirmed-write helper failing (the session value itself). */
@@ -145,6 +155,16 @@ export const valkeyFake = {
     const current = hashes.get(key)?.get(field);
     return current === undefined ? null : String(current);
   },
+  valkeyTryHget: async (
+    key: string,
+    field: string,
+  ): Promise<
+    { status: "ok"; value: string | null } | { status: "unavailable" }
+  > => {
+    if (!hashesReachable) return { status: "unavailable" };
+    const current = hashes.get(key)?.get(field);
+    return { status: "ok", value: current === undefined ? null : String(current) };
+  },
   valkeyHincrby: async (
     key: string,
     field: string,
@@ -168,7 +188,7 @@ export const valkeyFake = {
     field: string,
     increment: number,
   ): Promise<{ status: "ok"; value: number } | { status: "unavailable" }> => {
-    if (!hashesReachable) return { status: "unavailable" };
+    if (!hashesReachable || !hashesWritable) return { status: "unavailable" };
     const hash = hashes.get(key) ?? new Map<string, number>();
     const next = (hash.get(field) ?? 0) + increment;
     hash.set(field, next);

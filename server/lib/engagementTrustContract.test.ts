@@ -46,9 +46,15 @@ describe("Engagement claim and trust contracts", () => {
     expect(router).toContain("SPAWN_SERVER_ONLY");
   });
 
-  it("test-coin battle scoring is policy-gated (battle points only, never money)", () => {
-    expect(testCoins).toContain('=== "production"');
+  it("test-coin battle scoring is policy-gated (battle points only, never money)", async () => {
+    const { canAcceptTestCoinsBattleScore } = await import(
+      "../websocket/testCoinsPolicy"
+    );
+    // Test coins stay on for store builds: battle points + animation, never money.
+    expect(canAcceptTestCoinsBattleScore("production")).toBe(true);
+    expect(canAcceptTestCoinsBattleScore("development")).toBe(true);
     expect(testCoins).toContain("canAcceptTestCoinsBattleScore");
+    expect(testCoins).not.toContain("neonCreditCreatorEarning");
   });
 
   it("feed track-view is rate-limited before accepting views", () => {

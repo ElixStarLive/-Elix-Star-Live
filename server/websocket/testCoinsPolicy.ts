@@ -27,17 +27,6 @@ export function isTestCoinsGiftSource(data: {
 }
 
 /**
- * True when running in production. Retained for reference / future money-path gating.
- * Does NOT block test-coin BATTLE SCORE — money separation is enforced in the gift
- * handler and REST path (test coins never credit earnings).
- */
-export function isProductionTestCoinsBlocked(
-  nodeEnv: string | undefined = process.env.NODE_ENV,
-): boolean {
-  return String(nodeEnv || "").toLowerCase() === "production";
-}
-
-/**
  * Whether a test-coin gift may apply BATTLE SCORE + ANIMATION only (£0 money).
  * Always on (iOS / Android / Play Store / production). Never money.
  */

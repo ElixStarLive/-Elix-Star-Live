@@ -1,7 +1,13 @@
 import { createHash } from "crypto";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
-import { resetValkeyFake, valkeyFake } from "../websocket/battleValkeyFake";
+import {
+  resetValkeyFake,
+  setValkeyFakeHashesReachable,
+  setValkeyFakeHashesWritable,
+  setValkeyFakeLocksAvailable,
+  valkeyFake,
+} from "../websocket/battleValkeyFake";
 
 const authMocks = vi.hoisted(() => ({
   getTokenFromRequest: vi.fn(),
@@ -30,6 +36,7 @@ vi.mock("../lib/valkey", () => ({
 
 import {
   handleAuthorizeTestCoins,
+  handleGetTestCoinBalance,
   handleMintTestCoins,
 } from "./testCoins";
 
@@ -44,12 +51,23 @@ function mockRes() {
   return { value: { status, json } as unknown as Response, status, json };
 }
 
+let requestSeq = 0;
+
 function mockReq(body: Record<string, unknown> = {}, ip = "127.0.0.1"): Request {
   return {
     body,
     headers: {},
     socket: { remoteAddress: ip },
   } as unknown as Request;
+}
+
+/** A mint carries the identity of the attempt; a new press is a new id. */
+function mintReq(
+  body: Record<string, unknown>,
+  ip = "127.0.0.1",
+): Request {
+  requestSeq += 1;
+  return mockReq({ requestId: `req-${requestSeq}`, ...body }, ip);
 }
 
 function mockAuditQuery() {
@@ -73,7 +91,7 @@ describe("test-coin ISSUE access control", () => {
   it("unauthenticated mint → 401", async () => {
     authMocks.getTokenFromRequest.mockReturnValue(null);
     const res = mockRes();
-    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 100 }), res.value);
+    await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 100 }), res.value);
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
@@ -81,7 +99,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-ok-mint" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: PASSWORD, amount: 5000 }),
+      mintReq({ password: PASSWORD, amount: 5000 }),
       res.value,
     );
     expect(res.status).not.toHaveBeenCalledWith(403);
@@ -99,7 +117,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-not-admin" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: PASSWORD, amount: 5 }),
+      mintReq({ password: PASSWORD, amount: 5 }),
       res.value,
     );
     expect(res.status).not.toHaveBeenCalledWith(403);
@@ -121,7 +139,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-wrong-pwd" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: "not-the-password", amount: 1000 }),
+      mintReq({ password: "not-the-password", amount: 1000 }),
       res.value,
     );
     expect(res.status).toHaveBeenCalledWith(403);
@@ -134,7 +152,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-env-pwd" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: "anything-typed", amount: 7 }),
+      mintReq({ password: "anything-typed", amount: 7 }),
       res.value,
     );
     expect(res.status).toHaveBeenCalledWith(503);
@@ -146,7 +164,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-plain-wins" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: PASSWORD, amount: 3 }),
+      mintReq({ password: PASSWORD, amount: 3 }),
       res.value,
     );
     expect(res.json).toHaveBeenCalledWith(
@@ -160,7 +178,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-hash-mint" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: PASSWORD, amount: 10 }),
+      mintReq({ password: PASSWORD, amount: 10 }),
       res.value,
     );
     expect(res.json).toHaveBeenCalledWith(
@@ -173,7 +191,7 @@ describe("test-coin ISSUE access control", () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-store" });
     const res = mockRes();
     await handleMintTestCoins(
-      mockReq({ password: PASSWORD, amount: 100 }),
+      mintReq({ password: PASSWORD, amount: 100 }),
       res.value,
     );
     expect(res.status).toHaveBeenCalledWith(503);
@@ -184,12 +202,105 @@ describe("test-coin ISSUE access control", () => {
 
   it("mint credits the server balance so it survives the device", async () => {
     authMocks.verifyAuthToken.mockReturnValue({ sub: "user-server-balance" });
-    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 40 }), mockRes().value);
+    await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 40 }), mockRes().value);
     const res = mockRes();
-    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 60 }), res.value);
+    await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 60 }), res.value);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({ minted: 60, balance: 100 }),
     );
+  });
+
+  it("refuses a mint that does not say which attempt it is", async () => {
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-request-id" });
+    const res = mockRes();
+    await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 50 }), res.value);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("refuses a mint request id that is not an opaque token", async () => {
+    authMocks.verifyAuthToken.mockReturnValue({ sub: "user-bad-request-id" });
+    const res = mockRes();
+    await handleMintTestCoins(
+      mockReq({ password: PASSWORD, amount: 50, requestId: "no spaces allowed" }),
+      res.value,
+    );
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  /**
+   * A retry of one attempt is still one mint. The claim lives in Valkey, so the
+   * instance that answers the retry does not have to be the one that credited.
+   */
+  describe("mint idempotency", () => {
+    it("credits once when the same request is replayed", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-replay" });
+      const body = { password: PASSWORD, amount: 250, requestId: "attempt-a" };
+
+      const first = mockRes();
+      await handleMintTestCoins(mockReq(body), first.value);
+      expect(first.json).toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 250, balance: 250 }),
+      );
+
+      const replay = mockRes();
+      await handleMintTestCoins(mockReq(body), replay.value);
+      expect(replay.json).toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 0, duplicate: true, balance: 250 }),
+      );
+
+      const read = mockRes();
+      await handleGetTestCoinBalance(mockReq(), read.value);
+      expect(read.json).toHaveBeenCalledWith(
+        expect.objectContaining({ balance: 250 }),
+      );
+    });
+
+    it("still mints again for a new attempt", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-two-attempts" });
+      await handleMintTestCoins(
+        mockReq({ password: PASSWORD, amount: 100, requestId: "attempt-1" }),
+        mockRes().value,
+      );
+      const res = mockRes();
+      await handleMintTestCoins(
+        mockReq({ password: PASSWORD, amount: 100, requestId: "attempt-2" }),
+        res.value,
+      );
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 100, balance: 200 }),
+      );
+    });
+
+    it("lets a genuinely failed mint be retried with the same id", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-failed-then-retry" });
+      const body = { password: PASSWORD, amount: 75, requestId: "attempt-retry" };
+
+      setValkeyFakeHashesWritable(false);
+      const failed = mockRes();
+      await handleMintTestCoins(mockReq(body), failed.value);
+      expect(failed.status).toHaveBeenCalledWith(503);
+
+      setValkeyFakeHashesWritable(true);
+      const retried = mockRes();
+      await handleMintTestCoins(mockReq(body), retried.value);
+      expect(retried.json).toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 75, balance: 75 }),
+      );
+    });
+
+    it("refuses the mint when the claim itself cannot be taken", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-claim" });
+      setValkeyFakeLocksAvailable(false);
+      const res = mockRes();
+      await handleMintTestCoins(
+        mockReq({ password: PASSWORD, amount: 10, requestId: "attempt-noclaim" }),
+        res.value,
+      );
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.json).not.toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 10 }),
+      );
+    });
   });
 
   /**
@@ -202,7 +313,7 @@ describe("test-coin ISSUE access control", () => {
     it("records failures where another instance can see them", async () => {
       authMocks.verifyAuthToken.mockReturnValue({ sub: "user-shared-count" });
       await handleMintTestCoins(
-        mockReq({ password: "wrong", amount: 1 }),
+        mintReq({ password: "wrong", amount: 1 }),
         mockRes().value,
       );
 
@@ -217,7 +328,7 @@ describe("test-coin ISSUE access control", () => {
       authMocks.verifyAuthToken.mockReturnValue({ sub: "user-elsewhere" });
       const res = mockRes();
 
-      await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 10 }), res.value);
+      await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 10 }), res.value);
 
       expect(res.status).toHaveBeenCalledWith(429);
       expect(res.json).not.toHaveBeenCalledWith(
@@ -227,23 +338,89 @@ describe("test-coin ISSUE access control", () => {
 
     it("clears the shared count once the right password is given", async () => {
       authMocks.verifyAuthToken.mockReturnValue({ sub: "user-recovers" });
-      await handleMintTestCoins(mockReq({ password: "wrong", amount: 1 }), mockRes().value);
+      await handleMintTestCoins(mintReq({ password: "wrong", amount: 1 }), mockRes().value);
 
       await handleAuthorizeTestCoins(mockReq({ password: PASSWORD }), mockRes().value);
 
       expect(await valkeyFake.valkeyHget("test_coins:fail:user:user-recovers", "n")).toBeNull();
+    });
+
+    /**
+     * An uncounted guess is an unlimited guess. With the counter down the
+     * endpoint has to close, not answer "wrong password" forever.
+     */
+    it("refuses every attempt while the shared counter cannot be read", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-counter-unreadable" });
+      setValkeyFakeHashesReachable(false);
+
+      const mint = mockRes();
+      await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 10 }), mint.value);
+      expect(mint.status).toHaveBeenCalledWith(503);
+      expect(mint.json).not.toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 10 }),
+      );
+
+      const authz = mockRes();
+      await handleAuthorizeTestCoins(mockReq({ password: PASSWORD }), authz.value);
+      expect(authz.status).toHaveBeenCalledWith(503);
+      expect(authz.json).not.toHaveBeenCalledWith(
+        expect.objectContaining({ ok: true }),
+      );
+    });
+
+    it("does not answer 'wrong password' when the failure could not be counted", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-uncounted-guess" });
+      setValkeyFakeHashesWritable(false);
+
+      const res = mockRes();
+      await handleMintTestCoins(mintReq({ password: "wrong", amount: 1 }), res.value);
+
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.status).not.toHaveBeenCalledWith(403);
+    });
+
+    it("closes issuance entirely when Valkey is not configured", async () => {
+      store.available = false;
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-no-valkey" });
+      const res = mockRes();
+      await handleAuthorizeTestCoins(mockReq({ password: PASSWORD }), res.value);
+      expect(res.status).toHaveBeenCalledWith(503);
+    });
+  });
+
+  describe("balance read", () => {
+    it("returns the server balance for the signed-in user", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-balance-read" });
+      await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 30 }), mockRes().value);
+      const res = mockRes();
+      await handleGetTestCoinBalance(mockReq(), res.value);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ balance: 30, origin: "test_coins" }),
+      );
+    });
+
+    it("says unavailable instead of reporting a balance of zero", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-balance-unreadable" });
+      await handleMintTestCoins(mintReq({ password: PASSWORD, amount: 30 }), mockRes().value);
+      setValkeyFakeHashesReachable(false);
+
+      const res = mockRes();
+      await handleGetTestCoinBalance(mockReq(), res.value);
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(res.json).not.toHaveBeenCalledWith(
+        expect.objectContaining({ balance: 0 }),
+      );
     });
   });
 
   it("production NODE_ENV still mints for login + password (£0)", async () => {
     const prev = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";
-    delete process.env.ALLOW_TEST_COINS_MINT_IN_PROD;
     try {
       authMocks.verifyAuthToken.mockReturnValue({ sub: "user-prod-mint" });
       const res = mockRes();
       await handleMintTestCoins(
-        mockReq({ password: PASSWORD, amount: 25 }),
+        mintReq({ password: PASSWORD, amount: 25 }),
         res.value,
       );
       expect(res.status).not.toHaveBeenCalledWith(403);

@@ -478,6 +478,26 @@ export async function valkeyHget(key: string, field: string): Promise<string | n
   }
 }
 
+/**
+ * HGET for callers that must tell a missing field apart from a Valkey failure.
+ * `valkeyHget` answers `null` for both, which reads as "this counter is zero" —
+ * fine for a hint, wrong for a balance or a wrong-password count, where zero is
+ * the one answer that opens the gate.
+ */
+export async function valkeyTryHget(
+  key: string,
+  field: string,
+): Promise<{ status: "ok"; value: string | null } | { status: "unavailable" }> {
+  const v = getValkey();
+  if (!v) return { status: "unavailable" };
+  try {
+    return { status: "ok", value: await v.hget(key, field) };
+  } catch (err) {
+    logger.warn({ err: err?.message, key, field }, "valkeyTryHget failed");
+    return { status: "unavailable" };
+  }
+}
+
 export async function valkeyHdel(key: string, ...fields: string[]): Promise<void> {
   const v = getValkey();
   if (!v || fields.length === 0) return;

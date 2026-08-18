@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   canAcceptTestCoinsBattleScore,
-  isProductionTestCoinsBlocked,
   isTestCoinsGiftSource,
 } from "./testCoinsPolicy";
 
@@ -21,10 +20,6 @@ describe("testCoinsPolicy", () => {
   });
 
   it("keeps test-coin battle scoring on; never a production off switch", () => {
-    expect(isProductionTestCoinsBlocked("production")).toBe(true);
-    expect(isProductionTestCoinsBlocked("development")).toBe(false);
-    expect(isProductionTestCoinsBlocked(undefined)).toBe(false);
-
     const prev = process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     delete process.env.ALLOW_TEST_COINS_BATTLE_SCORE;
     expect(canAcceptTestCoinsBattleScore("production")).toBe(true);

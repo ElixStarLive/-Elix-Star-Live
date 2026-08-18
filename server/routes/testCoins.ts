@@ -9,7 +9,7 @@
  * lib/testCoinsBalance.ts) and stay TEST origin: they never enter paid-coin
  * lots, ledger, Stripe, or creator GBP revenue (giftSource=test_coins).
  */
-import { createHash, timingSafeEqual, randomBytes } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool } from "../lib/postgres";
@@ -17,13 +17,14 @@ import {
   isValkeyConfigured,
   valkeyDel,
   valkeyExpire,
-  valkeyHget,
-  valkeyHincrby,
+  valkeyTryHget,
+  valkeyTryHincrby,
+  valkeyTrySetNx,
 } from "../lib/valkey";
 import { logger } from "../lib/logger";
 import {
   creditTestCoins,
-  getTestCoinsBalance,
+  readTestCoinsBalance,
   isTestCoinsStoreAvailable,
 } from "../lib/testCoinsBalance";
 
@@ -31,12 +32,12 @@ const MAX_MINT = 100_000_000;
 const FAIL_WINDOW_MS = 15 * 60 * 1000;
 const FAIL_MAX = 5;
 const LOCK_MS = 15 * 60 * 1000;
-
-type FailState = { count: number; windowStart: number; lockedUntil: number };
-// Dev/test only: the shared counter lives in Valkey (see failureKey below).
-const failByUser = new Map<string, FailState>();
-const failByIp = new Map<string, FailState>();
-const allowLocalLockout = process.env.NODE_ENV !== "production";
+/**
+ * How long a mint request id is remembered. The client makes a new id per
+ * attempt, so this only has to outlive the retries of one attempt.
+ */
+const MINT_REQUEST_TTL_MS = 60 * 60 * 1000;
+const MAX_MINT_REQUEST_ID = 64;
 
 /**
  * Wrong-password attempts are counted in Valkey, not in this process.
@@ -45,11 +46,16 @@ const allowLocalLockout = process.env.NODE_ENV !== "production";
  * unlimited minting, and per-process counters give an attacker one full budget
  * per instance — five tries becomes five times the fleet size, and hitting a
  * different instance each time resets nothing because nothing shared was ever
- * written. Production refuses the attempt outright when the counter cannot be
- * read or written, rather than falling back to a count that does not bind.
+ * written. There is no local fallback: when the shared counter cannot be read or
+ * written the attempt is refused, because an uncounted guess is an unlimited one.
  */
 function failureKey(scope: "user" | "ip", id: string): string {
   return `test_coins:fail:${scope}:${id}`;
+}
+
+/** One mint request = one credit, whichever instance answers the retry. */
+function mintRequestKey(userId: string, requestId: string): string {
+  return `test_coins:mint:req:${userId}:${requestId}`;
 }
 
 function sha256Hex(value: string): string {
@@ -73,97 +79,50 @@ function clientIp(req: Request): string {
   return req.socket?.remoteAddress || "unknown";
 }
 
-function checkLocalRateLimit(
-  map: Map<string, FailState>,
-  key: string,
-): { ok: true } | { ok: false; retryAfterSec: number } {
-  const now = Date.now();
-  const state = map.get(key);
-  if (!state) return { ok: true };
-  if (state.lockedUntil > now) {
-    return { ok: false, retryAfterSec: Math.ceil((state.lockedUntil - now) / 1000) };
+type AttemptGate =
+  | { ok: true }
+  | { ok: false; kind: "locked"; retryAfterSec: number }
+  | { ok: false; kind: "unavailable" };
+
+async function checkAttemptGate(
+  scope: "user" | "ip",
+  id: string,
+): Promise<AttemptGate> {
+  if (!isValkeyConfigured()) {
+    logger.error({ scope }, "test-coin lockout: Valkey required — refusing attempt");
+    return { ok: false, kind: "unavailable" };
   }
-  if (now - state.windowStart > FAIL_WINDOW_MS) {
-    map.delete(key);
-    return { ok: true };
+  const read = await valkeyTryHget(failureKey(scope, id), "n");
+  if (read.status === "unavailable") {
+    logger.error({ scope }, "test-coin lockout: counter unreadable — refusing attempt");
+    return { ok: false, kind: "unavailable" };
   }
-  if (state.count >= FAIL_MAX) {
-    state.lockedUntil = now + LOCK_MS;
-    return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
+  const count = Number(read.value) || 0;
+  if (count >= FAIL_MAX) {
+    return { ok: false, kind: "locked", retryAfterSec: Math.ceil(LOCK_MS / 1000) };
   }
   return { ok: true };
 }
 
-async function checkRateLimit(
-  scope: "user" | "ip",
-  map: Map<string, FailState>,
-  key: string,
-): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
-  if (isValkeyConfigured()) {
-    try {
-      const raw = await valkeyHget(failureKey(scope, key), "n");
-      const count = Number(raw) || 0;
-      if (count >= FAIL_MAX) {
-        return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
-      }
-      return { ok: true };
-    } catch (err) {
-      if (!allowLocalLockout) {
-        logger.error({ err, scope }, "test-coin lockout: Valkey unavailable — refusing attempt");
-        return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
-      }
-    }
-  } else if (!allowLocalLockout) {
-    logger.error({ scope }, "test-coin lockout: Valkey required in production");
-    return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
+/** Count a wrong password. Reports whether the shared counter really moved. */
+async function recordFailure(scope: "user" | "ip", id: string): Promise<boolean> {
+  if (!isValkeyConfigured()) return false;
+  const key = failureKey(scope, id);
+  // Each failure restarts the window, so five wrong answers inside any
+  // fifteen minutes lock the next fifteen.
+  const next = await valkeyTryHincrby(key, "n", 1);
+  if (next.status === "unavailable") {
+    logger.error({ scope }, "test-coin lockout: failure not recorded");
+    return false;
   }
-  return checkLocalRateLimit(map, key);
-}
-
-function recordLocalFailure(map: Map<string, FailState>, key: string): void {
-  const now = Date.now();
-  const state = map.get(key);
-  if (!state || now - state.windowStart > FAIL_WINDOW_MS) {
-    map.set(key, { count: 1, windowStart: now, lockedUntil: 0 });
-    return;
-  }
-  state.count += 1;
-  if (state.count >= FAIL_MAX) state.lockedUntil = now + LOCK_MS;
-}
-
-async function recordFailure(
-  scope: "user" | "ip",
-  map: Map<string, FailState>,
-  key: string,
-): Promise<void> {
-  if (isValkeyConfigured()) {
-    try {
-      const k = failureKey(scope, key);
-      // Each failure restarts the window, so five wrong answers inside any
-      // fifteen minutes lock the next fifteen.
-      await valkeyHincrby(k, "n", 1);
-      await valkeyExpire(k, Math.ceil(FAIL_WINDOW_MS / 1000));
-      return;
-    } catch (err) {
-      logger.error({ err, scope }, "test-coin lockout: failure not recorded");
-      if (!allowLocalLockout) return;
-    }
-  } else if (!allowLocalLockout) {
-    return;
-  }
-  recordLocalFailure(map, key);
+  await valkeyExpire(key, Math.ceil(FAIL_WINDOW_MS / 1000));
+  return true;
 }
 
 async function clearFailures(userId: string, ip: string): Promise<void> {
-  failByUser.delete(userId);
-  failByIp.delete(ip);
   if (!isValkeyConfigured()) return;
-  try {
-    await valkeyDel(failureKey("user", userId));
-    await valkeyDel(failureKey("ip", ip));
-  } catch (err) {
-    logger.warn({ err }, "test-coin lockout: counters not cleared after success");
-  }
+  await valkeyDel(failureKey("user", userId));
+  await valkeyDel(failureKey("ip", ip));
 }
 
 function envPasswordHash(): string | null {
@@ -196,18 +155,20 @@ function verifyIssuePassword(password: unknown): boolean {
 async function auditIssue(input: {
   adminUserId: string;
   amount: number;
-  balanceAfter: number;
+  /** Only meaningful for outcome "ok" — a refused attempt changes no balance. */
+  balanceAfter?: number;
   ip: string;
-  outcome: "ok" | "forbidden" | "denied" | "rate_limited" | "misconfigured";
+  outcome: "ok" | "denied" | "rate_limited" | "misconfigured" | "unavailable";
   reason?: string;
 }): Promise<void> {
+  const balanceAfter = input.balanceAfter ?? 0;
   logger.info(
     {
       event: "test_coin_issue",
       origin: "test_coins",
       adminUserId: input.adminUserId,
       amount: input.amount,
-      balanceAfter: input.balanceAfter,
+      balanceAfter,
       ip: input.ip,
       outcome: input.outcome,
       reason: input.reason || null,
@@ -224,7 +185,7 @@ async function auditIssue(input: {
       [
         input.adminUserId,
         input.amount,
-        input.balanceAfter,
+        balanceAfter,
         input.outcome,
         input.reason ?? null,
         input.ip,
@@ -252,12 +213,112 @@ async function requireAuthedUser(
   return { userId: payload.sub };
 }
 
+/**
+ * The one gate every issue attempt passes: shared lockout, configured password,
+ * then the password itself. A wrong password that could not be counted is
+ * answered as unavailable rather than FORBIDDEN — telling an attacker "wrong"
+ * while nothing is counting the guesses is an unlimited oracle.
+ */
+async function guardIssueAttempt(
+  res: Response,
+  opts: { userId: string; ip: string; password: unknown; action: "authorize" | "mint" },
+): Promise<boolean> {
+  const [userGate, ipGate] = await Promise.all([
+    checkAttemptGate("user", opts.userId),
+    checkAttemptGate("ip", opts.ip),
+  ]);
+
+  if (userGate.ok === false && userGate.kind === "unavailable") {
+    await auditIssue({
+      adminUserId: opts.userId,
+      amount: 0,
+      ip: opts.ip,
+      outcome: "unavailable",
+      reason: `${opts.action}_lockout_unavailable`,
+    });
+    res.status(503).json({ error: "Test-coin issuance is unavailable." });
+    return false;
+  }
+  if (ipGate.ok === false && ipGate.kind === "unavailable") {
+    await auditIssue({
+      adminUserId: opts.userId,
+      amount: 0,
+      ip: opts.ip,
+      outcome: "unavailable",
+      reason: `${opts.action}_lockout_unavailable`,
+    });
+    res.status(503).json({ error: "Test-coin issuance is unavailable." });
+    return false;
+  }
+  if (userGate.ok === false || ipGate.ok === false) {
+    const retry = Math.max(
+      userGate.ok === false ? userGate.retryAfterSec : 0,
+      ipGate.ok === false ? ipGate.retryAfterSec : 0,
+    );
+    await auditIssue({
+      adminUserId: opts.userId,
+      amount: 0,
+      ip: opts.ip,
+      outcome: "rate_limited",
+      reason: `${opts.action}_rate_limited`,
+    });
+    res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
+    return false;
+  }
+
+  if (!issuePasswordConfigured()) {
+    await auditIssue({
+      adminUserId: opts.userId,
+      amount: 0,
+      ip: opts.ip,
+      outcome: "misconfigured",
+      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
+    });
+    res.status(503).json({ error: "Test-coin issuance is not configured." });
+    return false;
+  }
+
+  if (!verifyIssuePassword(opts.password)) {
+    const [userCounted, ipCounted] = await Promise.all([
+      recordFailure("user", opts.userId),
+      recordFailure("ip", opts.ip),
+    ]);
+    if (!userCounted || !ipCounted) {
+      await auditIssue({
+        adminUserId: opts.userId,
+        amount: 0,
+        ip: opts.ip,
+        outcome: "unavailable",
+        reason: `${opts.action}_failure_uncounted`,
+      });
+      res.status(503).json({ error: "Test-coin issuance is unavailable." });
+      return false;
+    }
+    await auditIssue({
+      adminUserId: opts.userId,
+      amount: 0,
+      ip: opts.ip,
+      outcome: "denied",
+      reason: "bad_password",
+    });
+    res.status(403).json({ error: "FORBIDDEN" });
+    return false;
+  }
+
+  return true;
+}
+
 /** GET balance — any authenticated user may read their own issued test balance. */
 export async function handleGetTestCoinBalance(req: Request, res: Response): Promise<void> {
   const auth = await requireAuthedUser(req, res);
   if (!auth) return;
-  const balance = await getTestCoinsBalance(auth.userId);
-  res.json({ balance, userId: auth.userId, origin: "test_coins" });
+  const read = await readTestCoinsBalance(auth.userId);
+  if (read.status === "unavailable") {
+    // A balance that cannot be read is not a balance of zero.
+    res.status(503).json({ error: "Test-coin balance is unavailable.", origin: "test_coins" });
+    return;
+  }
+  res.json({ balance: read.balance, userId: auth.userId, origin: "test_coins" });
 }
 
 /**
@@ -269,57 +330,43 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
   if (!auth) return;
   const ip = clientIp(req);
 
-  const userLimit = await checkRateLimit("user", failByUser, auth.userId);
-  const ipLimit = await checkRateLimit("ip", failByIp, ip);
-  if (userLimit.ok === false || ipLimit.ok === false) {
-    const retry = Math.max(
-      userLimit.ok === false ? userLimit.retryAfterSec : 0,
-      ipLimit.ok === false ? ipLimit.retryAfterSec : 0,
-    );
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "rate_limited",
-      reason: "authorize_rate_limited",
-    });
-    res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
-    return;
-  }
-
-  if (!issuePasswordConfigured()) {
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "misconfigured",
-      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
-    });
-    res.status(503).json({ error: "Test-coin issuance is not configured." });
-    return;
-  }
-
-  if (!verifyIssuePassword(req.body?.password)) {
-    await recordFailure("user", failByUser, auth.userId);
-    await recordFailure("ip", failByIp, ip);
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "denied",
-      reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
-    });
-    res.status(403).json({ error: "FORBIDDEN" });
+  if (!(await guardIssueAttempt(res, {
+    userId: auth.userId,
+    ip,
+    password: req.body?.password,
+    action: "authorize",
+  }))) {
     return;
   }
 
   await clearFailures(auth.userId, ip);
-  // Opaque nonce — proves authorize succeeded this session; mint still needs password.
-  const nonce = randomBytes(16).toString("hex");
-  res.json({ ok: true, origin: "test_coins", nonce });
+  res.json({ ok: true, origin: "test_coins" });
+}
+
+/**
+ * A mint carries the identity of the attempt that asked for it, so a retried or
+ * replayed request credits once. The id is opaque to the server; it only has to
+ * be stable across the retries of one attempt and unique to it.
+ */
+function parseMintRequestId(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const id = value.trim();
+  if (!id || id.length > MAX_MINT_REQUEST_ID) return null;
+  return /^[A-Za-z0-9_-]+$/.test(id) ? id : null;
+}
+
+async function claimMintRequest(
+  userId: string,
+  requestId: string,
+): Promise<"claimed" | "duplicate" | "unavailable"> {
+  const claim = await valkeyTrySetNx(
+    mintRequestKey(userId, requestId),
+    "1",
+    MINT_REQUEST_TTL_MS,
+  );
+  if (claim === "set") return "claimed";
+  if (claim === "exists") return "duplicate";
+  return "unavailable";
 }
 
 /** POST mint — authenticated user + password required. Returns new test balance (origin=test_coins). */
@@ -328,50 +375,12 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   if (!auth) return;
   const ip = clientIp(req);
 
-  const userLimit = await checkRateLimit("user", failByUser, auth.userId);
-  const ipLimit = await checkRateLimit("ip", failByIp, ip);
-  if (userLimit.ok === false || ipLimit.ok === false) {
-    const retry = Math.max(
-      userLimit.ok === false ? userLimit.retryAfterSec : 0,
-      ipLimit.ok === false ? ipLimit.retryAfterSec : 0,
-    );
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "rate_limited",
-      reason: "mint_rate_limited",
-    });
-    res.status(429).json({ error: "Too many attempts. Try again later.", retryAfterSec: retry });
-    return;
-  }
-
-  if (!issuePasswordConfigured()) {
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "misconfigured",
-      reason: "TEST_COINS_ISSUE_PASSWORD_missing",
-    });
-    res.status(503).json({ error: "Test-coin issuance is not configured." });
-    return;
-  }
-
-  if (!verifyIssuePassword(req.body?.password)) {
-    await recordFailure("user", failByUser, auth.userId);
-    await recordFailure("ip", failByIp, ip);
-    await auditIssue({
-      adminUserId: auth.userId,
-      amount: 0,
-      balanceAfter: await getTestCoinsBalance(auth.userId),
-      ip,
-      outcome: "denied",
-      reason: issuePasswordConfigured() ? "bad_password" : "empty_password",
-    });
-    res.status(403).json({ error: "FORBIDDEN" });
+  if (!(await guardIssueAttempt(res, {
+    userId: auth.userId,
+    ip,
+    password: req.body?.password,
+    action: "mint",
+  }))) {
     return;
   }
 
@@ -381,32 +390,81 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
     return;
   }
 
+  const requestId = parseMintRequestId(req.body?.requestId);
+  if (!requestId) {
+    res.status(400).json({ error: "Mint request id is required." });
+    return;
+  }
+
   if (!isTestCoinsStoreAvailable()) {
     await auditIssue({
       adminUserId: auth.userId,
       amount,
-      balanceAfter: 0,
       ip,
-      outcome: "misconfigured",
+      outcome: "unavailable",
       reason: "test_coin_balance_store_unavailable",
     });
     res.status(503).json({ error: "Test-coin balance store is unavailable." });
     return;
   }
 
-  const newBalance = await creditTestCoins(auth.userId, amount);
+  const claim = await claimMintRequest(auth.userId, requestId);
+  if (claim === "unavailable") {
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount,
+      ip,
+      outcome: "unavailable",
+      reason: "mint_request_claim_unavailable",
+    });
+    res.status(503).json({ error: "Test-coin balance store is unavailable." });
+    return;
+  }
+  if (claim === "duplicate") {
+    // This exact request already credited. Report the balance it produced and
+    // mint nothing more, on whichever instance the retry lands.
+    const read = await readTestCoinsBalance(auth.userId);
+    if (read.status === "unavailable") {
+      res.status(503).json({ error: "Test-coin balance store is unavailable." });
+      return;
+    }
+    res.json({
+      balance: read.balance,
+      minted: 0,
+      duplicate: true,
+      origin: "test_coins",
+      financialValueGbp: 0,
+    });
+    return;
+  }
+
+  const credited = await creditTestCoins(auth.userId, amount);
+  if (credited.status === "unavailable") {
+    // Nothing was credited, so this request id must not block the retry.
+    await valkeyDel(mintRequestKey(auth.userId, requestId));
+    await auditIssue({
+      adminUserId: auth.userId,
+      amount,
+      ip,
+      outcome: "unavailable",
+      reason: "test_coin_credit_failed",
+    });
+    res.status(503).json({ error: "Test-coin balance store is unavailable." });
+    return;
+  }
+
   await clearFailures(auth.userId, ip);
 
   await auditIssue({
     adminUserId: auth.userId,
     amount,
-    balanceAfter: newBalance,
+    balanceAfter: credited.balance,
     ip,
     outcome: "ok",
   });
 
   res.json({
-    balance: newBalance,
+    balance: credited.balance,
     minted: amount,
     origin: "test_coins",
     financialValueGbp: 0,

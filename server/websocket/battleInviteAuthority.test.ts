@@ -434,6 +434,43 @@ describe("battle invite authority", () => {
       expect(acks.every((a) => a.data.financialValueGbp === 0)).toBe(true);
     });
 
+    it("gives no second +5 to the same account on another device", async () => {
+      await tap();
+      // Same account, second connection: the claim is per account, not per socket.
+      await handleMessage(client("viewer-1", HOST_ROOM), "battle_spectator_vote", {
+        target: "player3",
+      });
+
+      const acks = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(acks.map((a) => a.data.status)).toEqual(["ok", "already_awarded"]);
+      expect(acks.map((a) => a.data.points)).toEqual([5, 0]);
+    });
+
+    it("gives every other viewer their own +5", async () => {
+      await tap();
+      await handleMessage(client("viewer-2", HOST_ROOM), "battle_spectator_vote", {
+        target: "player3",
+      });
+
+      const acks = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(acks.map((a) => a.data.points)).toEqual([5, 5]);
+    });
+
+    it("opens a fresh tap for the next battle", async () => {
+      await tap();
+      battleSessions.set(HOST_ROOM, {
+        id: "battle-2",
+        status: "ACTIVE",
+        endsAt: Date.now() + 60_000,
+        participants: [],
+      });
+
+      await tap();
+
+      const acks = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(acks.map((a) => a.data.points)).toEqual([5, 5]);
+    });
+
     it("gives the tap back when the points did not land", async () => {
       scoreResult = { ok: false, reason: "unavailable" };
 

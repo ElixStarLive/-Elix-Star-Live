@@ -661,12 +661,10 @@ export async function getRoomLiveLikes(roomId: string): Promise<number> {
 export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
   if (!roomId) return 0;
   if (!isValkeyConfigured()) return 0;
-  if (isValkeyConfigured()) {
-    const next = await valkeyHincrby(`room:meta:${roomId}`, "live_likes", 1);
-    if (next > 0) {
-      void valkeyExpire(`room:meta:${roomId}`, LIVE_LIKES_TTL_SEC);
-      return next;
-    }
+  const next = await valkeyHincrby(`room:meta:${roomId}`, "live_likes", 1);
+  if (next > 0) {
+    void valkeyExpire(`room:meta:${roomId}`, LIVE_LIKES_TTL_SEC);
+    return next;
   }
   return 0;
 }

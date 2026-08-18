@@ -581,7 +581,11 @@ export async function handleMessage(
                 testDebit.reason === "unavailable"
                   ? "test_coins_unavailable"
                   : "insufficient_test_coins",
-              testCoinsBalance: testDebit.balance,
+              // Only sent when the server really knows the balance. A store that
+              // could not answer must not tell the panel the balance is zero.
+              ...(testDebit.reason === "insufficient"
+                ? { testCoinsBalance: testDebit.balance }
+                : {}),
               origin: "test_coins",
               financialValueGbp: 0,
               timestamp: Date.now(),
@@ -600,11 +604,19 @@ export async function handleMessage(
           if (resolvedTest.ok === false) {
             // Nothing was shown or scored — give the test coins back.
             const restored = await creditTestCoins(client.userId, testPoints);
+            if (restored.status === "unavailable") {
+              logger.error(
+                { userId: client.userId, roomId: client.roomId, points: testPoints },
+                "test-coin refund failed after rejected recipient",
+              );
+            }
             sendToClient(client, "gift_ack", {
               transactionId: null,
               requestId: giftRequestId,
               status: resolvedTest.error,
-              testCoinsBalance: restored,
+              ...(restored.status === "ok"
+                ? { testCoinsBalance: restored.balance }
+                : {}),
               origin: "test_coins",
               financialValueGbp: 0,
               timestamp: Date.now(),
