@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync } from "node:fs";
+import { relative, resolve } from "node:path";
 
 const root = resolve(__dirname, "../..");
 const read = (relative: string) => readFileSync(resolve(root, relative), "utf8");
@@ -262,5 +262,40 @@ describe("release architecture contracts", () => {
     const host = read("src/features/live/host/LiveHostScreen.tsx");
     expect(spec).toContain('aria-label="Test coins"');
     expect(host).toContain('aria-label="Test coins"');
+  });
+
+  it("every client module the server imports is shipped in the runtime image", () => {
+    // The production image runs the server from TypeScript, so an import that
+    // resolves at build time but is absent from the runner stage does not fail
+    // the build — it kills every worker on boot with ERR_MODULE_NOT_FOUND.
+    const serverFiles: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(resolve(root, dir), { withFileTypes: true })) {
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(rel);
+        else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) serverFiles.push(rel);
+      }
+    };
+    walk("server");
+
+    const reached = new Set<string>();
+    for (const file of serverFiles) {
+      const source = read(file);
+      for (const match of source.matchAll(/from\s+["']((?:\.\.\/)+src\/[^"']+)["']/g)) {
+        // Resolve the relative specifier against the importing file's directory
+        // so the result is the repo-relative path Docker has to copy.
+        const fromDir = resolve(root, file, "..");
+        const abs = resolve(fromDir, match[1]);
+        reached.add(relative(root, abs).split("\\").join("/"));
+      }
+    }
+
+    const dockerfile = read("Dockerfile");
+    for (const target of reached) {
+      expect(
+        dockerfile.includes(`${target}.ts`),
+        `server imports ${target} but the Dockerfile runner stage never copies it`,
+      ).toBe(true);
+    }
   });
 });

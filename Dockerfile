@@ -49,6 +49,12 @@ COPY --from=builder /app/package-lock.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/server ./server
+# The server runs from TypeScript, so anything it imports has to exist at
+# runtime — not just at build time. This is the one client module the server
+# re-exports instead of duplicating the store SKU lists. Without it every
+# worker dies on ERR_MODULE_NOT_FOUND. `releaseArchitecture.contract.test.ts`
+# fails if another server import starts reaching into src/ without being added.
+COPY --from=builder /app/src/lib/storeProductCatalogs.ts ./src/lib/storeProductCatalogs.ts
 COPY --from=builder /app/tsconfig.json ./
 COPY --from=builder /app/tsconfig.server.json ./
 
