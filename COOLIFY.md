@@ -13,6 +13,13 @@ This is the only repository that may be deployed. It is the working repo and the
 
 To correct a deployment pointing at the wrong repository: open the application in Coolify → **Source** (or **Configuration → Source**) → set the repository and branch above → **Save** → **Redeploy**. The Git source lives only in Coolify, not in this repo, so it cannot be fixed by a commit.
 
+### First deploy after switching the source
+
+This repo is hundreds of commits newer than the old one, so the first deploy is not a normal redeploy. Two things must be right or the app will crash-loop instead of starting:
+
+1. **Migrations.** The database has never had this release's schema. `npm run migrate` must be set as the **Release command** (see below) and must succeed before workers start.
+2. **Environment.** This release fails fast on missing or unsafe production config rather than booting in a half-configured state. `server/lib/envValidate.ts` is the authority for what is required — it lists every variable and every banned value, and the container logs each failure as `fatal` before exiting. Read it against the app's Coolify env vars **before** redeploying, because the old deploy predates the IAP, Play, Connect and audio-scan requirements and will be missing several of them.
+
 ## Migrations (required — do not skip)
 
 If workers crash-loop with `MIGRATIONS_REQUIRED: public.elix_schema_migrations is missing`, the database has not been migrated for this release.
