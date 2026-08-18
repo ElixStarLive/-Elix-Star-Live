@@ -92,34 +92,52 @@ class WebSocketService {
   private persistentReconnect = false;
   /** Battle: which creator's gift/chat audience this socket belongs to. */
   private audienceCreatorId: string | null = null;
-  /** Ownership tokens for singleton handoff safety (inline/watch/host/feed). */
-  private ownerIds = new Set<string>();
+  /**
+   * Ownership claims for singleton handoff safety (inline/watch/host/feed),
+   * mapped owner → the room that owner claimed. A plain Set of owner ids cannot
+   * survive a room switch: the switch tears the old transport down, and clearing
+   * every claim there also erased the owner that had just arrived, so that
+   * owner's own cleanup became a no-op and the room stayed connected — and kept
+   * reconnecting — after the user had left it.
+   */
+  private owners = new Map<string, string>();
 
   connect(
     roomId: string,
     token: string,
     options?: { persistent?: boolean; audienceCreatorId?: string; ownerId?: string },
   ) {
-    if (options?.audienceCreatorId !== undefined) {
-      const next = options.audienceCreatorId.trim();
-      this.audienceCreatorId = next || null;
-    }
+    const providedAudience =
+      options?.audienceCreatorId !== undefined
+        ? options.audienceCreatorId.trim() || null
+        : undefined;
+    if (providedAudience !== undefined) this.audienceCreatorId = providedAudience;
     const nextOwner =
       options?.ownerId !== undefined ? options.ownerId.trim() : "";
-    if (nextOwner) this.ownerIds.add(nextOwner);
-    if (
+    if (nextOwner) this.owners.set(nextOwner, roomId);
+
+    const transportLive =
       this.ws?.readyState === WebSocket.OPEN ||
-      this.ws?.readyState === WebSocket.CONNECTING
-    ) {
-      if (this.roomId === roomId) {
+      this.ws?.readyState === WebSocket.CONNECTING;
+    if (this.roomId === roomId) {
+      if (transportLive) {
         this.persistentReconnect = options?.persistent ?? this.persistentReconnect;
-        if (options?.audienceCreatorId !== undefined) {
-          const next = options.audienceCreatorId.trim();
-          this.audienceCreatorId = next || null;
-        }
         return;
       }
-      this.disconnect();
+      // Same room, dead transport: this is a reconnect, so the room's pending
+      // messages and owner claims are still valid and must be kept.
+    } else if (this.roomId !== null) {
+      // Leaving a room. This has to happen whether or not the old socket was
+      // still live: one that is closed and mid-backoff still holds that room's
+      // pending messages, reconnect timer and owner claims, and none of those
+      // belong to the room being joined. Only the claim this caller just made
+      // survives.
+      this.teardownTransport();
+      this.releaseOwnersOtherThan(roomId);
+      // The old room's audience must not leak into the new one, but an audience
+      // this caller passed for the new room must survive the switch.
+      this.audienceCreatorId = providedAudience ?? null;
+      this.persistentReconnect = false;
     }
 
     this.roomId = roomId;
@@ -159,12 +177,16 @@ class WebSocketService {
     };
 
     this.ws.onmessage = (event) => {
+      let message: WebSocketMessage;
       try {
-        const message: WebSocketMessage = JSON.parse(event.data);
-        this.handleMessage(message);
+        message = JSON.parse(event.data);
       } catch {
-        /* ignored — malformed WS frame */
+        // Protocol-level discard: an unparseable frame carries no event to
+        // dispatch. Dispatch is deliberately outside this catch so a throwing
+        // consumer is not misreported as a malformed frame.
+        return;
       }
+      this.handleMessage(message);
     };
 
     this.ws.onerror = () => {
@@ -180,7 +202,12 @@ class WebSocketService {
     };
   }
 
-  disconnect() {
+  /**
+   * Close the transport and stop its timers. Deliberately leaves ownership
+   * claims alone so a room switch can reuse it without erasing the incoming
+   * owner; `disconnect()` is the call that also gives up ownership.
+   */
+  private teardownTransport() {
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -194,13 +221,31 @@ class WebSocketService {
       this.ws.close();
       this.ws = null;
     }
+    this.reconnectAttempts = 0;
+    this.pendingMessages = [];
+  }
+
+  private releaseOwnersOtherThan(roomId: string) {
+    for (const [owner, claimed] of this.owners) {
+      if (claimed !== roomId) this.owners.delete(owner);
+    }
+  }
+
+  private hasOwnerForCurrentRoom(): boolean {
+    if (!this.roomId) return false;
+    for (const claimed of this.owners.values()) {
+      if (claimed === this.roomId) return true;
+    }
+    return false;
+  }
+
+  disconnect() {
+    this.teardownTransport();
     this.roomId = null;
     this.token = null;
     this.persistentReconnect = false;
     this.audienceCreatorId = null;
-    this.ownerIds.clear();
-    this.reconnectAttempts = 0;
-    this.pendingMessages = [];
+    this.owners.clear();
   }
 
   isConnected(): boolean {
@@ -226,9 +271,9 @@ class WebSocketService {
   disconnectIfOwner(ownerId: string) {
     const owner = ownerId.trim();
     if (!owner) return;
-    if (!this.ownerIds.has(owner)) return;
-    this.ownerIds.delete(owner);
-    if (this.ownerIds.size === 0) {
+    if (!this.owners.has(owner)) return;
+    this.owners.delete(owner);
+    if (!this.hasOwnerForCurrentRoom()) {
       this.disconnect();
     }
   }
@@ -259,21 +304,44 @@ class WebSocketService {
 
   private handleMessage(message: WebSocketMessage) {
     const listeners = this.listeners.get(message.event as string);
-    if (listeners) {
-      listeners.forEach((callback) => callback(message.data));
+    if (!listeners) return;
+    // Snapshot first: a consumer may bind or unbind during dispatch, and
+    // iterating the live Set would visit listeners added mid-dispatch.
+    for (const callback of Array.from(listeners)) {
+      try {
+        callback(message.data);
+      } catch (err) {
+        // One failing consumer must not stop the rest of the room from seeing
+        // this event, and must not disappear either — rethrow out of band so
+        // global error reporting still receives it.
+        setTimeout(() => {
+          throw err;
+        }, 0);
+      }
     }
   }
 
   reconnectOnForeground() {
+    if (!this.roomId) return;
     if (
-      this.roomId &&
-      this.token &&
-      this.ws?.readyState !== WebSocket.OPEN &&
-      this.ws?.readyState !== WebSocket.CONNECTING
+      this.ws?.readyState === WebSocket.OPEN ||
+      this.ws?.readyState === WebSocket.CONNECTING
     ) {
-      this.reconnectAttempts = 0;
-      this.connect(this.roomId, this.token);
+      return;
     }
+    // Same token policy as the backoff reconnect: the session may have rotated
+    // while the app was backgrounded, and the token this socket first connected
+    // with can already be expired.
+    const token = useAuthStore.getState().session?.access_token || this.token;
+    if (!token) return;
+    // A pending backoff attempt would otherwise fire a second connect after this
+    // one; foregrounding is the more current signal.
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+    this.connect(this.roomId, token);
   }
 
   private attemptReconnect(code?: number) {
