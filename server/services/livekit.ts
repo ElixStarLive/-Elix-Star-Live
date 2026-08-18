@@ -155,16 +155,24 @@ export async function revokeParticipantPublish(
  * participant server-side pushes the new permission down the open signal
  * connection instead, and LiveKit lets them publish immediately.
  *
- * Returns true when a connected participant was upgraded. False means the user
- * is not in the room yet — their next token carries the grant, so the seat is
- * still honoured on join.
+ * The result mirrors the revocation side, because "nobody to upgrade" and
+ * "LiveKit did not answer" are opposite outcomes that a boolean hid behind the
+ * same `false`: 'granted' is a connected participant who can publish now,
+ * 'absent' is a user who has not joined yet — their next token carries the
+ * grant, so the seat is still honoured on join — and 'unconfirmed' means the
+ * upgrade may not have landed, so the caller must not seat them as a publisher
+ * on the strength of it.
  */
+export type PublishUpgrade = 'granted' | 'absent' | 'unconfirmed';
+
 export async function grantParticipantPublish(
   roomName: string,
   userId: string,
-): Promise<boolean> {
+): Promise<PublishUpgrade> {
   const client = getRoomService();
-  if (!client || !roomName || !userId) return false;
+  // Without LiveKit there is no live connection to upgrade; the token issued on
+  // join is the only path, and it reads the stored grant.
+  if (!client || !roomName || !userId) return 'absent';
   let upgraded = false;
   try {
     const participants = await client.listParticipants(roomName);
@@ -180,12 +188,15 @@ export async function grantParticipantPublish(
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (!/not found|does not exist|404/i.test(msg)) {
-      logger.warn({ err, roomName, userId }, 'grantParticipantPublish failed');
+    // Room or participant gone: there is no open connection to upgrade, and the
+    // join token will carry the grant instead.
+    if (/not found|does not exist|404/i.test(msg)) {
+      return upgraded ? 'granted' : 'absent';
     }
-    return false;
+    logger.error({ err, roomName, userId }, 'grantParticipantPublish unconfirmed');
+    return 'unconfirmed';
   }
-  return upgraded;
+  return upgraded ? 'granted' : 'absent';
 }
 
 export type RoomOccupancy = 'occupied' | 'empty' | 'unknown';

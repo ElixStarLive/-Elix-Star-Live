@@ -11,6 +11,7 @@
 import { Request, Response } from 'express';
 import { WebhookReceiver } from 'livekit-server-sdk';
 import {
+  readLiveSessionId,
   removeActiveStream,
   resolveLivePublishAuthority,
   resolveStreamOwnerUserId,
@@ -35,7 +36,10 @@ const receiver =
 const ROOM_FINISHED_GRACE_MS = 20_000;
 const pendingRoomFinished = new Map<string, ReturnType<typeof setTimeout>>();
 
-async function finalizeRoomFinished(roomName: string): Promise<void> {
+async function finalizeRoomFinished(
+  roomName: string,
+  sessionId: string,
+): Promise<void> {
   try {
     const rooms = await listActiveRoomsFromLiveKit();
     if (rooms.some((r) => r.name === roomName)) {
@@ -60,7 +64,10 @@ async function finalizeRoomFinished(roomName: string): Promise<void> {
       );
       return;
     }
-    await removeActiveStream(roomName);
+    // The room id is the creator's own id, so the live that ended and the live
+    // they started thirty seconds later share it. Ending "the live in this room"
+    // without saying which one would take the new one off the air.
+    if (!(await removeActiveStream(roomName, undefined, sessionId))) return;
     broadcastToFeedSubscribers('stream_ended', { stream_key: roomName });
     logger.info({ roomName }, '[livekit-webhook] room_finished applied after grace');
   } catch (err) {
@@ -140,16 +147,17 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
           // host publisher and emit room_finished while the host app recovers.
           const existing = pendingRoomFinished.get(roomName);
           if (existing) clearTimeout(existing);
+          // Remember which live this is about, so the delayed cleanup cannot end
+          // a different one that has taken the room over in the meantime.
+          const sessionId = await readLiveSessionId(roomName);
           pendingRoomFinished.set(
             roomName,
             setTimeout(() => {
               pendingRoomFinished.delete(roomName);
-              void finalizeRoomFinished(roomName);
+              void finalizeRoomFinished(roomName, sessionId);
             }, ROOM_FINISHED_GRACE_MS),
           );
-          if (process.env.NODE_ENV !== 'production') {
-            console.log('[livekit-webhook] room_finished scheduled:', roomName);
-          }
+          logger.debug({ roomName, sessionId }, '[livekit-webhook] room_finished scheduled');
         }
         break;
       case 'room_started':
@@ -160,9 +168,7 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
             pendingRoomFinished.delete(event.room.name);
           }
         }
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[livekit-webhook] room_started:', event.room?.name);
-        }
+        logger.debug({ roomName: event.room?.name }, '[livekit-webhook] room_started');
         break;
       case 'participant_joined':
         await reverifyJoinedPublisher(event.room?.name, event.participant);

@@ -175,3 +175,56 @@ describe("co-host state lifecycle across a live session", () => {
     expect(deleteCohostLayout).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Ending a live is decided at one moment and carried out at another: the LiveKit
+ * room_finished webhook waits out a grace period, and so does the host
+ * disconnect timer. In between, the same creator can be live again in the same
+ * room id — and "end the live in room X" would then take the new one off the air
+ * and wipe the stage it had already built.
+ */
+describe("a delayed end belongs to the live that scheduled it", () => {
+  it("ends the live it was asked to end", async () => {
+    activeStreams.set("creator-1", { userId: "creator-1", startedAt: "session-a" });
+    const scheduledFor = await livestream.readLiveSessionId("creator-1");
+
+    const removed = await livestream.removeActiveStream(
+      "creator-1",
+      undefined,
+      scheduledFor,
+    );
+
+    expect(removed).toBe(true);
+    expect(deleteCohostLayout).toHaveBeenCalledWith("creator-1");
+  });
+
+  it("leaves a live that has since been restarted alone", async () => {
+    activeStreams.set("creator-1", { userId: "creator-1", startedAt: "session-a" });
+    const scheduledFor = await livestream.readLiveSessionId("creator-1");
+    // Creator ends and goes live again inside the grace window.
+    activeStreams.set("creator-1", { userId: "creator-1", startedAt: "session-b" });
+
+    const removed = await livestream.removeActiveStream(
+      "creator-1",
+      undefined,
+      scheduledFor,
+    );
+
+    expect(removed).toBe(false);
+    // The new live keeps its registration and its stage.
+    expect(activeStreams.get("creator-1")?.startedAt).toBe("session-b");
+    expect(deleteCohostLayout).not.toHaveBeenCalled();
+  });
+
+  it("still ends a live nothing has replaced", async () => {
+    activeStreams.set("creator-1", { userId: "creator-1", startedAt: "session-a" });
+    const scheduledFor = await livestream.readLiveSessionId("creator-1");
+    activeStreams.delete("creator-1");
+
+    // No current session to compare against: the end is not blocked, so the DB
+    // row cannot be left saying this creator is live.
+    expect(
+      await livestream.removeActiveStream("creator-1", undefined, scheduledFor),
+    ).toBe(true);
+  });
+});

@@ -119,9 +119,43 @@ export async function resolveStreamOwnerUserId(roomOrUserId: string): Promise<st
   return raw;
 }
 
-/** Remove active stream from Valkey + DB. Returns true if removed. */
-export async function removeActiveStream(roomId: string, userId?: string): Promise<boolean> {
+/**
+ * Which run of this room is live right now.
+ *
+ * A room id is the creator's own id, so every live they ever start reuses it.
+ * `startedAt` is what tells two of those runs apart, and a deferred cleanup that
+ * remembers the run it was scheduled for can tell whether it is about to end the
+ * live it saw or the one that replaced it. Empty means no live is registered.
+ */
+export async function readLiveSessionId(roomId: string): Promise<string> {
+  if (!roomId || !isValkeyConfigured()) return '';
+  const startedAt = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'startedAt');
+  return startedAt?.trim() || '';
+}
+
+/**
+ * Remove active stream from Valkey + DB. Returns true if removed.
+ *
+ * `expectSessionId` is for callers that decided to end a live earlier and are
+ * only now acting on it: pass the session that was live when the decision was
+ * made, and a live that has since been restarted is left alone.
+ */
+export async function removeActiveStream(
+  roomId: string,
+  userId?: string,
+  expectSessionId?: string,
+): Promise<boolean> {
   try {
+    if (expectSessionId) {
+      const current = await readLiveSessionId(roomId);
+      if (current && current !== expectSessionId) {
+        logger.info(
+          { roomId, expectSessionId, current },
+          'removeActiveStream skipped — this live was already replaced by a newer one',
+        );
+        return false;
+      }
+    }
     if (isValkeyConfigured()) {
       if (userId) {
         const storedUserId = await valkeyHget(STREAM_KEY_PREFIX + roomId, 'userId');

@@ -58,6 +58,7 @@ import {
   isLiveKitConfigured,
   isUserPublishingInRoom,
   revokeParticipantPublish,
+  type PublishUpgrade,
 } from "../services/livekit";
 import {
   wsRateCheck,
@@ -160,6 +161,60 @@ async function resolveCreatorOwnStreamKey(userId: string): Promise<string> {
     logger.warn({ err, userId }, "resolveCreatorOwnStreamKey lookup failed");
   }
   return userId;
+}
+
+/**
+ * Turn a written co-host seat into real publishing rights, or give the seat
+ * back.
+ *
+ * A seat and a publish permission are one decision recorded in two systems: the
+ * stored grant authorises the next token, and the LiveKit upgrade lets the
+ * connection they are already watching from go live. If the media half cannot
+ * be confirmed, seating them anyway would put a tile on everyone's stage for
+ * someone who may never be able to speak — a co-host in the seat table and a
+ * muted spectator in the room. So the seat is withdrawn and the host is left
+ * able to try again, instead of the stage carrying a promise the media layer
+ * never made.
+ *
+ * A user who has not joined yet is not a failure: their join token reads the
+ * stored grant, so the seat is honoured the moment they arrive.
+ */
+type CohostSeatGrant = {
+  upgrade: PublishUpgrade;
+  /** The seat table after withdrawal, or null when the seat still stands. */
+  rolledBack: {
+    seats: unknown[];
+    featuredUserId?: string | null;
+    layoutId?: string;
+  } | null;
+};
+
+async function seatCohostPublish(
+  roomId: string,
+  hostUserId: string,
+  cohostUserId: string,
+): Promise<CohostSeatGrant> {
+  await grantCohostPublish(roomId, cohostUserId);
+  const upgrade = await grantParticipantPublish(roomId, cohostUserId);
+  if (upgrade !== "unconfirmed") return { upgrade, rolledBack: null };
+  logger.error(
+    { roomId, hostUserId, cohostUserId },
+    "cohost seat rolled back: LiveKit publish upgrade unconfirmed",
+  );
+  await releaseCohostPublish(roomId, cohostUserId);
+  const withdrawn = await mutateCohostSeats(roomId, hostUserId, (seats) => {
+    const next = removeCohostSlot(seats, cohostUserId);
+    return { slots: next.slots, changed: next.removed };
+  });
+  return {
+    upgrade,
+    rolledBack: {
+      seats: withdrawn.status === "applied" ? withdrawn.seats : [],
+      featuredUserId:
+        withdrawn.status === "applied" ? withdrawn.featuredUserId : null,
+      layoutId: withdrawn.status === "applied" ? withdrawn.layoutId : undefined,
+    },
+  };
 }
 
 function ensureBattleInfra(client: Client): boolean {
@@ -1435,6 +1490,13 @@ export async function handleMessage(
         // before any publish grant. Without it this case took the room from the
         // payload and seated the sender as a publisher in any live they named.
         if (!hostStreamKey) break;
+        // Eligibility is REVALIDATED here — the invite is not proof the offer is
+        // still good. An invite banner survives the thing it points at: the host
+        // can end the live, or either side can block the other, while the offer
+        // sits on screen waiting to be tapped. Both are checked against live
+        // state rather than against the invite.
+        if (!(await isStreamHost(hostStreamKey, hostUserId))) break;
+        if (await dbIsBlockedEitherWay(client.userId, hostUserId)) break;
         // The invite is resolved and the seat is taken in one locked step, so a
         // seat the host has just cancelled cannot be accepted through a snapshot
         // read a moment earlier.
@@ -1487,8 +1549,23 @@ export async function handleMessage(
         // the grant, so there is no reconnect either way. The seat is written
         // first: an accepted seat is itself publish authority, so this order can
         // never leave a grant without a seat behind it.
-        await grantCohostPublish(hostStreamKey, client.userId);
-        await grantParticipantPublish(hostStreamKey, client.userId);
+        const granted = await seatCohostPublish(
+          hostStreamKey,
+          hostUserId,
+          client.userId,
+        );
+        if (granted.rolledBack) {
+          // The seat is gone again, so the stage must not keep showing it.
+          broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
+            coHosts: granted.rolledBack.seats,
+            hostUserId,
+            featuredUserId: granted.rolledBack.featuredUserId,
+            ...(granted.rolledBack.layoutId
+              ? { layoutId: granted.rolledBack.layoutId }
+              : {}),
+          });
+          break;
+        }
         if (seated.status === "applied") {
           broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
             coHosts: seated.seats,
@@ -1612,6 +1689,12 @@ export async function handleMessage(
             ? data.requesterUserId.trim()
             : "";
         if (!requesterUserId || requesterUserId === client.userId) break;
+        // Revalidated at the moment of seating, not when the request arrived: a
+        // block placed while the request sat in the queue has to stop it.
+        if (await dbIsBlockedEitherWay(client.userId, requesterUserId)) {
+          await deleteCohostJoinRequest(client.roomId, requesterUserId);
+          break;
+        }
         // Seat first, under the room lock: two accepts for the last free seat can
         // no longer both pass the capacity check and both be granted publish.
         const seated = await mutateCohostSeats(
@@ -1656,8 +1739,27 @@ export async function handleMessage(
         // Host accepted this viewer's co-host request → grant publish for the room.
         // They are already connected as a spectator, so raise their permission on
         // that same LiveKit connection instead of making them reconnect.
-        await grantCohostPublish(client.roomId, requesterUserId);
-        await grantParticipantPublish(client.roomId, requesterUserId);
+        const granted = await seatCohostPublish(
+          client.roomId,
+          client.userId,
+          requesterUserId,
+        );
+        if (granted.rolledBack) {
+          broadcastToRoom(client.roomId, "cohost_layout_sync", {
+            coHosts: granted.rolledBack.seats,
+            hostUserId: client.userId,
+            featuredUserId: granted.rolledBack.featuredUserId,
+            ...(granted.rolledBack.layoutId
+              ? { layoutId: granted.rolledBack.layoutId }
+              : {}),
+          });
+          sendToUserGlobal(requesterUserId, "cohost_request_declined", {
+            hostUserId: client.userId,
+            hostName: data.hostName || client.displayName,
+            reason: "cohost_state_unavailable",
+          });
+          break;
+        }
         await setCreatorCohostRoom(requesterUserId, client.roomId);
         if (seated.status === "applied") {
           broadcastToRoom(client.roomId, "cohost_layout_sync", {

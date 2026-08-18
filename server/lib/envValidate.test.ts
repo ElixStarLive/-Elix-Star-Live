@@ -60,4 +60,36 @@ describe("production environment boot gate", () => {
   it("non-production does not fail the boot gate", () => {
     expect(collectProductionEnvironmentFailures({ NODE_ENV: "development" })).toEqual([]);
   });
+
+  /**
+   * With no provider key the upload fingerprint scan allows every video without
+   * looking at it, so shipping without the key has to be a decision someone
+   * typed, not the default nobody notices.
+   */
+  describe("upload audio fingerprint scan", () => {
+    it("production refuses to start with no Pex key and no explicit opt-out", () => {
+      const failures = collectProductionEnvironmentFailures(prodEnv());
+      expect(failures.some((m) => m.includes("PEX_API_KEY"))).toBe(true);
+    });
+
+    it("starts when the key is configured", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key" }),
+      );
+      expect(failures.some((m) => m.includes("PEX_API_KEY"))).toBe(false);
+    });
+
+    it("starts when scanning is explicitly turned off", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ AUDIO_SCAN_ENABLED: "0" }),
+      );
+      expect(failures.some((m) => m.includes("PEX_API_KEY"))).toBe(false);
+    });
+
+    it("a healthy production environment has nothing left to report", () => {
+      expect(
+        collectProductionEnvironmentFailures(prodEnv({ PEX_API_KEY: "pex-live-key" })),
+      ).toEqual([]);
+    });
+  });
 });

@@ -13,6 +13,13 @@ import { createHash, timingSafeEqual, randomBytes } from "crypto";
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { getPool } from "../lib/postgres";
+import {
+  isValkeyConfigured,
+  valkeyDel,
+  valkeyExpire,
+  valkeyHget,
+  valkeyHincrby,
+} from "../lib/valkey";
 import { logger } from "../lib/logger";
 import {
   creditTestCoins,
@@ -26,8 +33,24 @@ const FAIL_MAX = 5;
 const LOCK_MS = 15 * 60 * 1000;
 
 type FailState = { count: number; windowStart: number; lockedUntil: number };
+// Dev/test only: the shared counter lives in Valkey (see failureKey below).
 const failByUser = new Map<string, FailState>();
 const failByIp = new Map<string, FailState>();
+const allowLocalLockout = process.env.NODE_ENV !== "production";
+
+/**
+ * Wrong-password attempts are counted in Valkey, not in this process.
+ *
+ * The lockout is the only thing standing between a guessable issue password and
+ * unlimited minting, and per-process counters give an attacker one full budget
+ * per instance — five tries becomes five times the fleet size, and hitting a
+ * different instance each time resets nothing because nothing shared was ever
+ * written. Production refuses the attempt outright when the counter cannot be
+ * read or written, rather than falling back to a count that does not bind.
+ */
+function failureKey(scope: "user" | "ip", id: string): string {
+  return `test_coins:fail:${scope}:${id}`;
+}
 
 function sha256Hex(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
@@ -50,7 +73,10 @@ function clientIp(req: Request): string {
   return req.socket?.remoteAddress || "unknown";
 }
 
-function checkRateLimit(map: Map<string, FailState>, key: string): { ok: true } | { ok: false; retryAfterSec: number } {
+function checkLocalRateLimit(
+  map: Map<string, FailState>,
+  key: string,
+): { ok: true } | { ok: false; retryAfterSec: number } {
   const now = Date.now();
   const state = map.get(key);
   if (!state) return { ok: true };
@@ -68,7 +94,33 @@ function checkRateLimit(map: Map<string, FailState>, key: string): { ok: true } 
   return { ok: true };
 }
 
-function recordFailure(map: Map<string, FailState>, key: string): void {
+async function checkRateLimit(
+  scope: "user" | "ip",
+  map: Map<string, FailState>,
+  key: string,
+): Promise<{ ok: true } | { ok: false; retryAfterSec: number }> {
+  if (isValkeyConfigured()) {
+    try {
+      const raw = await valkeyHget(failureKey(scope, key), "n");
+      const count = Number(raw) || 0;
+      if (count >= FAIL_MAX) {
+        return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
+      }
+      return { ok: true };
+    } catch (err) {
+      if (!allowLocalLockout) {
+        logger.error({ err, scope }, "test-coin lockout: Valkey unavailable — refusing attempt");
+        return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
+      }
+    }
+  } else if (!allowLocalLockout) {
+    logger.error({ scope }, "test-coin lockout: Valkey required in production");
+    return { ok: false, retryAfterSec: Math.ceil(LOCK_MS / 1000) };
+  }
+  return checkLocalRateLimit(map, key);
+}
+
+function recordLocalFailure(map: Map<string, FailState>, key: string): void {
   const now = Date.now();
   const state = map.get(key);
   if (!state || now - state.windowStart > FAIL_WINDOW_MS) {
@@ -79,9 +131,39 @@ function recordFailure(map: Map<string, FailState>, key: string): void {
   if (state.count >= FAIL_MAX) state.lockedUntil = now + LOCK_MS;
 }
 
-function clearFailures(userId: string, ip: string): void {
+async function recordFailure(
+  scope: "user" | "ip",
+  map: Map<string, FailState>,
+  key: string,
+): Promise<void> {
+  if (isValkeyConfigured()) {
+    try {
+      const k = failureKey(scope, key);
+      // Each failure restarts the window, so five wrong answers inside any
+      // fifteen minutes lock the next fifteen.
+      await valkeyHincrby(k, "n", 1);
+      await valkeyExpire(k, Math.ceil(FAIL_WINDOW_MS / 1000));
+      return;
+    } catch (err) {
+      logger.error({ err, scope }, "test-coin lockout: failure not recorded");
+      if (!allowLocalLockout) return;
+    }
+  } else if (!allowLocalLockout) {
+    return;
+  }
+  recordLocalFailure(map, key);
+}
+
+async function clearFailures(userId: string, ip: string): Promise<void> {
   failByUser.delete(userId);
   failByIp.delete(ip);
+  if (!isValkeyConfigured()) return;
+  try {
+    await valkeyDel(failureKey("user", userId));
+    await valkeyDel(failureKey("ip", ip));
+  } catch (err) {
+    logger.warn({ err }, "test-coin lockout: counters not cleared after success");
+  }
 }
 
 function envPasswordHash(): string | null {
@@ -187,8 +269,8 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
   if (!auth) return;
   const ip = clientIp(req);
 
-  const userLimit = checkRateLimit(failByUser, auth.userId);
-  const ipLimit = checkRateLimit(failByIp, ip);
+  const userLimit = await checkRateLimit("user", failByUser, auth.userId);
+  const ipLimit = await checkRateLimit("ip", failByIp, ip);
   if (userLimit.ok === false || ipLimit.ok === false) {
     const retry = Math.max(
       userLimit.ok === false ? userLimit.retryAfterSec : 0,
@@ -220,8 +302,8 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
   }
 
   if (!verifyIssuePassword(req.body?.password)) {
-    recordFailure(failByUser, auth.userId);
-    recordFailure(failByIp, ip);
+    await recordFailure("user", failByUser, auth.userId);
+    await recordFailure("ip", failByIp, ip);
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
@@ -234,7 +316,7 @@ export async function handleAuthorizeTestCoins(req: Request, res: Response): Pro
     return;
   }
 
-  clearFailures(auth.userId, ip);
+  await clearFailures(auth.userId, ip);
   // Opaque nonce — proves authorize succeeded this session; mint still needs password.
   const nonce = randomBytes(16).toString("hex");
   res.json({ ok: true, origin: "test_coins", nonce });
@@ -246,8 +328,8 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   if (!auth) return;
   const ip = clientIp(req);
 
-  const userLimit = checkRateLimit(failByUser, auth.userId);
-  const ipLimit = checkRateLimit(failByIp, ip);
+  const userLimit = await checkRateLimit("user", failByUser, auth.userId);
+  const ipLimit = await checkRateLimit("ip", failByIp, ip);
   if (userLimit.ok === false || ipLimit.ok === false) {
     const retry = Math.max(
       userLimit.ok === false ? userLimit.retryAfterSec : 0,
@@ -279,8 +361,8 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   }
 
   if (!verifyIssuePassword(req.body?.password)) {
-    recordFailure(failByUser, auth.userId);
-    recordFailure(failByIp, ip);
+    await recordFailure("user", failByUser, auth.userId);
+    await recordFailure("ip", failByIp, ip);
     await auditIssue({
       adminUserId: auth.userId,
       amount: 0,
@@ -313,7 +395,7 @@ export async function handleMintTestCoins(req: Request, res: Response): Promise<
   }
 
   const newBalance = await creditTestCoins(auth.userId, amount);
-  clearFailures(auth.userId, ip);
+  await clearFailures(auth.userId, ip);
 
   await auditIssue({
     adminUserId: auth.userId,

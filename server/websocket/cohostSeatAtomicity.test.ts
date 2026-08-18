@@ -395,3 +395,54 @@ describe("Valkey failure is never a seat", () => {
     expect(released).toEqual([]);
   });
 });
+
+/**
+ * The app runs on more than one server process, and which one a socket lands on
+ * is not something the room decides. If any part of the stage lived in process
+ * memory, the eight-seat limit would be eight seats per instance and a co-host
+ * seated on one box would be invisible on the other.
+ *
+ * A second copy of the handler module, sharing only Valkey, stands in for that
+ * second instance.
+ */
+describe("the stage is shared between server instances", () => {
+  /** A handler module that shares nothing with the first except Valkey. */
+  async function otherInstance() {
+    vi.resetModules();
+    const mod = await import("./handlers");
+    // Guard the premise: a cached re-import would share this process's memory
+    // and prove nothing about two boxes.
+    expect(mod.handleMessage).not.toBe(handleMessage);
+    return (actor: Actor, event: string, data: Record<string, unknown> = {}) =>
+      mod.handleMessage(client(actor), event, data);
+  }
+
+  it("sees a seat claimed on the other instance", async () => {
+    await acceptRequest("viewer-1");
+    const sendElsewhere = await otherInstance();
+
+    await sendElsewhere(host, "cohost_request_accept", { requesterUserId: "viewer-2" });
+
+    expect(seats().map((s) => s.userId).sort()).toEqual(["viewer-1", "viewer-2"]);
+  });
+
+  it("counts the eight seats once, not once per instance", async () => {
+    await fillSeats(MAX_COHOST_SLOTS);
+    const sendElsewhere = await otherInstance();
+
+    await sendElsewhere(host, "cohost_request_accept", { requesterUserId: "viewer-9" });
+
+    expect(seats()).toHaveLength(MAX_COHOST_SLOTS);
+    expect(seatOf("viewer-9")).toBeUndefined();
+  });
+
+  it("lets a co-host leave through whichever instance holds their socket", async () => {
+    await fillSeats(2);
+    const sendElsewhere = await otherInstance();
+
+    await sendElsewhere(viewer("viewer-1"), "cohost_seat_leave", {});
+
+    expect(seatOf("viewer-1")).toBeUndefined();
+    expect(seatOf("viewer-2")).toBeDefined();
+  });
+});

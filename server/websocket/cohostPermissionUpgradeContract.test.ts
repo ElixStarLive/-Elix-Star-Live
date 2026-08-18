@@ -20,8 +20,8 @@ describe("cohost LiveKit permission upgrade contracts", () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     const block = handlers.slice(start, end);
-    expect(block).toContain("await grantCohostPublish(client.roomId, requesterUserId)");
-    expect(block).toContain("await grantParticipantPublish(client.roomId, requesterUserId)");
+    expect(block).toContain("await seatCohostPublish(");
+    expect(block).toContain("requesterUserId,");
   });
 
   it("accepting a host invite is the moment the invited seat may publish", () => {
@@ -30,7 +30,21 @@ describe("cohost LiveKit permission upgrade contracts", () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     const block = handlers.slice(start, end);
-    expect(block).toContain("await grantParticipantPublish(hostStreamKey, client.userId)");
+    expect(block).toContain("await seatCohostPublish(");
+    expect(block).toContain("hostStreamKey,");
+  });
+
+  it("the seat and the publish permission are written by one shared step", () => {
+    const start = handlers.indexOf("async function seatCohostPublish(");
+    expect(start).toBeGreaterThan(-1);
+    const block = handlers.slice(start, start + 1600);
+    expect(block).toContain("await grantCohostPublish(roomId, cohostUserId)");
+    expect(block).toContain("await grantParticipantPublish(roomId, cohostUserId)");
+    // An unconfirmed media upgrade takes the seat back rather than leaving a
+    // co-host tile on stage for someone who may be unable to publish.
+    expect(block).toContain('if (upgrade !== "unconfirmed")');
+    expect(block).toContain("await releaseCohostPublish(roomId, cohostUserId)");
+    expect(block).toContain("removeCohostSlot(seats, cohostUserId)");
   });
 
   it("the upgrade targets exactly one participant, never the whole room", () => {

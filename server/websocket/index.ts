@@ -22,7 +22,12 @@ import {
   removeFeedSubscriber,
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
-import { isStreamHost, removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
+import {
+  isStreamHost,
+  readLiveSessionId,
+  removeActiveStream,
+  resolveStreamOwnerUserId,
+} from "../routes/livestream";
 import {
   isLiveKitConfigured,
   isUserPublishingInRoom,
@@ -1073,6 +1078,10 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
   const key = hostDisconnectKey(roomId, userId);
   const existing = hostDisconnectTimers.get(key);
   if (existing) clearTimeout(existing);
+  // Which live this grace period belongs to, read now rather than when the timer
+  // fires. A creator who drops off and starts again inside the window is running
+  // a new live in the same room id, and this timer must not end that one.
+  const sessionAtDisconnect = readLiveSessionId(roomId).catch(() => "");
   const timer = setTimeout(() => {
     hostDisconnectTimers.delete(key);
     void (async () => {
@@ -1107,7 +1116,9 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
           );
           return;
         }
-        await removeActiveStream(roomId, userId);
+        if (!(await removeActiveStream(roomId, userId, await sessionAtDisconnect))) {
+          return;
+        }
         broadcastToRoom(roomId, "stream_ended", {
           stream_key: roomId,
           host_user_id: userId,

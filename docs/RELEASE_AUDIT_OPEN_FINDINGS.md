@@ -3,48 +3,12 @@
 Ledger of findings raised in one audit step whose fix belongs to a later step.
 A finding leaves this file only when it is fixed, with the commit recorded.
 
-## Carried to Step 19 (auth / security)
-
-### OPEN — P3 — process-local send throttle
-
-`server/routes/liveShareInbox.ts` — `postRate` Map plus a module `setInterval`.
-
-Always process-local by design (it never consults Valkey), so it is not a
-Valkey-failure fallback and cannot manufacture business state. With more than one
-instance the effective live-share send limit is multiplied by the instance count.
-Spam control only, no money. Fixing it means introducing a Valkey-backed limiter
-and choosing fail-open vs fail-closed, which is a Step 19 decision.
-
-### OPEN — P3 — process-local mint-password lockout
-
-`server/routes/testCoins.ts` — `failByUser` / `failByIp`.
-
-Brute-force lockout (5 failures → 15 min) for the test-coin issue password, held
-per process, so N instances allow N × 5 attempts per window. Gates £0 QA issuance
-only; the balance itself is Valkey-authoritative (`test_coins:balances`, HINCRBY)
-and never touches the wallet, ledger, Stripe or IAP. Also review whether these
-routes should sit behind the shared Express limiter.
-
-### OPEN — boot validation of `PEX_API_KEY`
-
-Raised during the Step 6 sweep. Needs the Step 19 env/secret pass to decide
-whether a missing value should fail boot or degrade a named feature.
-
-## Carried to Step 10 (co-host architecture)
-
-### OPEN — alleged co-host accept / publish-grant defects
-
-Reported by an audit subagent, **not yet confirmed from source**. Do not accept
-the finding without reading the accept and grant paths directly.
-
-Step 7 established one related fact from source: `effectiveStreamId` is derived
-only from route params and the signed-in user id in both live controllers, so a
-spectator becoming a co-host does **not** change or reconnect the WebSocket room.
-Publish permission is a LiveKit concern. That part is not a defect.
-
-## Carried to Step 13 (other live indicators) — raised in Step 8
+## Still open
 
 ### OPEN — P2 — live indicators that snapshot once and never refresh
+
+Raised in Step 8, assigned to Step 13. **Needs an owner decision before it can be
+fixed**, for the reason below.
 
 For You and Live Discover share one presence authority (authoritative
 `/api/live/streams` snapshot + `stream_started` / `stream_ended` +
@@ -59,37 +23,25 @@ until it is reopened:
 - `src/components/ShareModal.tsx` — contact rings (open-time fetch)
 - `src/pages/ChatThread.tsx` — "live now" row (mount only)
 - `src/components/RankingPanel.tsx` — LIVE Popular tab (mount only)
-- `src/pages/Inbox.tsx` — follower / suggested circles (mount only; the
-  notification filter is applied at load)
+- `src/pages/Inbox.tsx` — follower / suggested circles (mount only)
 - `src/pages/alerts/AlertsPage.tsx` — live rows (page load)
 - host + spectator share panels via `loadSharePanelContactsWithLive`
 - `src/components/LiveNotifyBanner.tsx` — the *started* banner has no
   `stream_ended` handler (auto-dismisses after 6s)
 
-None of these invent live truth: every one derives from the same server
-snapshot, and none persists it to storage. The gap is refresh, not authority.
-Closing it means subscribing more surfaces to feed presence, which changes what
-those screens re-render and when — a decision for the Step 13 pass, not a
-drive-by.
+None of these invent live truth: every one derives from the same server snapshot,
+and none persists it to storage. The gap is refresh, not authority.
+
+Why it is still open after the Steps 1–10 cleanup gate: the fix has to be
+app-wide (a per-screen version is exactly the piecemeal behaviour the owner
+banned), and two of the nine surfaces are under owner locks that say never touch
+the file — `src/pages/Inbox.tsx` and `src/pages/ChatThread.tsx`. Subscribing them
+to `stream_ended` also changes when those screens re-render. Both need the owner
+to say go, naming those files.
 
 `src/pages/Profile.tsx` repost tiles use `is_live` / `content_kind` from the
 reposts API rather than the live registry. That is a stored property of the
 reposted item, not a presence claim; confirm the product intent in Step 13.
-
-### OPEN — P3 — host-disconnect grace has source-contract tests only
-
-`scheduleHostDisconnectStreamEnd` in `server/websocket/index.ts` is private and
-its re-verification chain (local room map → Valkey `room:members` →
-`isUserPublishingInRoom` → `roomHasActivePublisher` → `isStreamHost` → creator
-role room) was verified by reading the source. Coverage in
-`server/websocket/liveBattleStateContract.test.ts` asserts the source contract,
-not behaviour. Making it behavioural means restructuring a correct live-lifecycle
-path purely for testability, which is not a Step 8 fix.
-
-### OPEN — P3 — `server/scripts/_env.ts` orphan approved for deletion in Step 4
-
-Still present, still has no importers. Approved for removal by the owner in
-Step 4; not deleted here because Step 8 must not carry unrelated changes.
 
 ## Closed
 
@@ -99,10 +51,48 @@ Step 4; not deleted here because Step 8 must not carry unrelated changes.
 multiplying the real hourly limit by the instance count on `iap:verify`,
 `promote:iap` and `membership:iap`.
 
-Fixed in `7df58f55` (Step 6, before Step 7 began): production fails closed and
-logs; the local window is gated behind `allowLocalRateLimit`, matching
-`server/middleware/rateLimit.ts` and `wsRateCheck`. Behavioural coverage in
+Fixed in `7df58f55`: production fails closed and logs; the local window is gated
+behind `allowLocalRateLimit`, matching `server/middleware/rateLimit.ts` and
+`wsRateCheck`. Behavioural coverage in
 `server/routes/iapRateLimitFailClosed.test.ts`.
 
-This entry is kept because the Step 7 brief still listed it as open. The two
-process-local throttles above are the remaining rate-limit work for Step 19.
+### CLOSED in the Steps 1–10 cleanup gate — P3 — process-local send throttle
+
+`server/routes/liveShareInbox.ts` held its send window in a process-local Map, so
+the real limit was the ceiling times the instance count. Now a Valkey window
+(`rl:live-share:{userId}`) that fails closed in production, with the local window
+kept only for single-instance development. Behavioural coverage in
+`server/routes/liveShareRateLimit.test.ts`.
+
+### CLOSED in the Steps 1–10 cleanup gate — P3 — process-local mint lockout
+
+`server/routes/testCoins.ts` counted wrong-password attempts per process, so N
+instances allowed N × 5 tries per window. The counters now live in Valkey
+(`test_coins:fail:{scope}:{id}`) and fail closed in production. Behavioural
+coverage in `server/routes/testCoins.issue.test.ts`.
+
+### CLOSED in the Steps 1–10 cleanup gate — boot validation of `PEX_API_KEY`
+
+A missing key made the upload audio fingerprint scan allow every video silently.
+Production now refuses to boot without it unless `AUDIO_SCAN_ENABLED=0` says
+out loud that scanning is off. Coverage in `server/lib/envValidate.test.ts`.
+
+### CLOSED in Step 10 — alleged co-host accept / publish-grant defects
+
+Confirmed from source and fixed: the invite no longer grants publish (the grant
+moved to accept), accept verifies the invite the host actually issued, seats are
+claimed under a per-room Valkey lock, and a declined or undeliverable invite
+gives its seat back. Commits `87d5f811`, `1bc58d66`.
+
+### CLOSED in the Steps 1–10 cleanup gate — P3 — `server/scripts/_env.ts` orphan
+
+Deleted. No importers, approved for removal by the owner in Step 4.
+
+### CLOSED in the Steps 1–10 cleanup gate — P3 — host-disconnect grace behaviour
+
+The concern was that a deferred end had source-contract tests only. The gap that
+mattered turned out to be real and is now fixed: both deferred end paths (host
+disconnect grace and the LiveKit `room_finished` grace) remember which live they
+were scheduled for and refuse to end a live that has since been restarted in the
+same room id. Behavioural coverage in
+`server/routes/liveCohostSessionCleanup.test.ts`.

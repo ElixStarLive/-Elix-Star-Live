@@ -192,6 +192,49 @@ describe("test-coin ISSUE access control", () => {
     );
   });
 
+  /**
+   * The lockout is all that stands between a guessable issue password and
+   * unlimited minting. Counting failures in process memory hands an attacker a
+   * fresh budget per instance, so the count has to live where every instance
+   * reads it.
+   */
+  describe("wrong-password lockout is shared, not per process", () => {
+    it("records failures where another instance can see them", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-shared-count" });
+      await handleMintTestCoins(
+        mockReq({ password: "wrong", amount: 1 }),
+        mockRes().value,
+      );
+
+      expect(await valkeyFake.valkeyHget("test_coins:fail:user:user-shared-count", "n")).toBe(
+        "1",
+      );
+    });
+
+    it("locks out an attempt this process has never seen fail", async () => {
+      // Five failures recorded by a different instance.
+      await valkeyFake.valkeyHincrby("test_coins:fail:user:user-elsewhere", "n", 5);
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-elsewhere" });
+      const res = mockRes();
+
+      await handleMintTestCoins(mockReq({ password: PASSWORD, amount: 10 }), res.value);
+
+      expect(res.status).toHaveBeenCalledWith(429);
+      expect(res.json).not.toHaveBeenCalledWith(
+        expect.objectContaining({ minted: 10 }),
+      );
+    });
+
+    it("clears the shared count once the right password is given", async () => {
+      authMocks.verifyAuthToken.mockReturnValue({ sub: "user-recovers" });
+      await handleMintTestCoins(mockReq({ password: "wrong", amount: 1 }), mockRes().value);
+
+      await handleAuthorizeTestCoins(mockReq({ password: PASSWORD }), mockRes().value);
+
+      expect(await valkeyFake.valkeyHget("test_coins:fail:user:user-recovers", "n")).toBeNull();
+    });
+  });
+
   it("production NODE_ENV still mints for login + password (£0)", async () => {
     const prev = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";

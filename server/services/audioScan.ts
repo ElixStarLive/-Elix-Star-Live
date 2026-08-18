@@ -30,9 +30,9 @@ const VIDEO_TYPES = new Set([
 ]);
 
 export function isAudioScanEnabled(): boolean {
+  // Opting out is explicit; otherwise the scan runs whenever a provider key is
+  // configured, and production boot refuses a missing key (see envValidate).
   if (process.env.AUDIO_SCAN_ENABLED === "0") return false;
-  if (process.env.AUDIO_SCAN_ENABLED === "1") return isAudioScanConfigured();
-  // Default: scan when a provider key is configured.
   return isAudioScanConfigured();
 }
 

@@ -100,10 +100,13 @@ vi.mock("./index", () => ({
   transferLiveAudienceToBattleRoom: vi.fn(async () => {}),
 }));
 
+/** What LiveKit answers when asked to upgrade a participant. */
+let participantUpgradeResult: "granted" | "absent" | "unconfirmed" = "granted";
+
 vi.mock("../services/livekit", () => ({
   grantParticipantPublish: vi.fn(async (roomId: string, userId: string) => {
     participantUpgrades.push({ roomId, userId });
-    return true;
+    return participantUpgradeResult;
   }),
   revokeParticipantPublish: vi.fn(async () => "revoked" as const),
   isLiveKitConfigured: vi.fn(() => true),
@@ -118,6 +121,16 @@ vi.mock("../routes/livestream", () => ({
 }));
 
 vi.mock("./liveCreatorRole", () => ({ setCreatorCohostRoom: vi.fn(async () => {}) }));
+/** Pairs who have blocked each other, in either direction. */
+const blockedPairs = new Set<string>();
+const blockKey = (a: string, b: string) => [a, b].sort().join("|");
+vi.mock("../lib/postgres", () => ({
+  dbIsBlockedEitherWay: vi.fn(async (a: string, b: string) =>
+    blockedPairs.has(blockKey(a, b)),
+  ),
+  dbGetLiveStreams: vi.fn(async () => []),
+  getPool: vi.fn(() => null),
+}));
 /**
  * The seat lock is real here (single holder, owner-checked release), so these
  * tests run the same mutual exclusion production does.
@@ -188,6 +201,8 @@ describe("co-host publish authority", () => {
     participantUpgrades.length = 0;
     sentToUser.length = 0;
     roomBroadcasts.length = 0;
+    participantUpgradeResult = "granted";
+    blockedPairs.clear();
   });
 
   describe("invite is an offer, not a grant", () => {
@@ -515,6 +530,130 @@ describe("co-host publish authority", () => {
 
       expect(seats()).toEqual([]);
       expect(cohostGrants).toEqual([]);
+    });
+  });
+
+  /**
+   * An invite banner outlives the thing it points at. It sits on screen while
+   * the host ends the live or someone hits block, and tapping Join then would
+   * seat a publisher on a stage that no longer exists — or one of the two
+   * people has just said they want nothing to do with the other.
+   */
+  describe("the offer is rechecked at the moment it is taken", () => {
+    it("refuses an invite accepted after the host's live ended", async () => {
+      await invite("viewer-1");
+      roomOwners.delete(HOST_ROOM);
+
+      await accept(invitee);
+
+      expect(seatOf("viewer-1")?.status).toBe("invited");
+      expect(cohostGrants).toEqual([]);
+      expect(sentToUser.some((s) => s.event === "cohost_invite_accepted")).toBe(false);
+    });
+
+    it("refuses an invite when the two have blocked each other since", async () => {
+      await invite("viewer-1");
+      blockedPairs.add(blockKey("host-1", "viewer-1"));
+
+      await accept(invitee);
+
+      expect(seatOf("viewer-1")?.status).toBe("invited");
+      expect(cohostGrants).toEqual([]);
+    });
+
+    it("refuses a queued request from someone the host has since blocked", async () => {
+      await send({ userId: "viewer-3", roomId: HOST_ROOM }, "cohost_request_send", {
+        hostUserId: HOST_ROOM,
+      });
+      blockedPairs.add(blockKey("host-1", "viewer-3"));
+
+      await send(host, "cohost_request_accept", { requesterUserId: "viewer-3" });
+
+      expect(seats()).toEqual([]);
+      expect(cohostGrants).toEqual([]);
+      // The stale request leaves the queue rather than sitting there unanswerable.
+      expect(joinRequests.get(HOST_ROOM) ?? []).toEqual([]);
+    });
+  });
+
+  /**
+   * A seat and a publish permission are one decision written into two systems.
+   * If LiveKit cannot confirm the upgrade, seating them anyway puts a co-host
+   * tile on everyone's stage for someone who may be unable to speak — the seat
+   * table would say co-host while the room says muted spectator.
+   */
+  describe("a seat is only kept when the media half is real", () => {
+    it("withdraws an accepted seat when LiveKit does not confirm", async () => {
+      await invite("viewer-1");
+      participantUpgradeResult = "unconfirmed";
+
+      await accept(invitee);
+
+      expect(seats()).toEqual([]);
+      // The grant that would authorize their next token goes back too.
+      expect(released).toEqual([{ roomId: HOST_ROOM, userId: "viewer-1" }]);
+      const sync = roomBroadcasts.filter((b) => b.event === "cohost_layout_sync").pop();
+      expect(sync?.data.coHosts).toEqual([]);
+      expect(sentToUser.some((s) => s.event === "cohost_invite_accepted")).toBe(false);
+    });
+
+    it("withdraws an accepted request and tells the viewer it did not happen", async () => {
+      await send({ userId: "viewer-3", roomId: HOST_ROOM }, "cohost_request_send", {
+        hostUserId: HOST_ROOM,
+      });
+      participantUpgradeResult = "unconfirmed";
+
+      await send(host, "cohost_request_accept", { requesterUserId: "viewer-3" });
+
+      expect(seats()).toEqual([]);
+      expect(sentToUser.some((s) => s.event === "cohost_request_accepted")).toBe(false);
+      expect(sentToUser).toContainEqual({
+        userId: "viewer-3",
+        event: "cohost_request_declined",
+      });
+    });
+
+    it("keeps the seat when the co-host simply has not joined the room yet", async () => {
+      await invite("viewer-1");
+      // 'absent' is not a failure: the token they fetch on join carries the grant.
+      participantUpgradeResult = "absent";
+
+      await accept(invitee);
+
+      expect(seatOf("viewer-1")?.status).toBe("live");
+      expect(released).toEqual([]);
+      expect(sentToUser).toContainEqual({
+        userId: "host-1",
+        event: "cohost_invite_accepted",
+      });
+    });
+  });
+
+  /**
+   * Seats are held by an account, not by a connection. Accepting from a phone
+   * and a tablet is one person walking onto the stage twice, and each extra row
+   * would eat one of the eight slots.
+   */
+  describe("one account holds at most one seat", () => {
+    it("does not add a second row when the same user accepts twice", async () => {
+      await invite("viewer-1");
+
+      await accept(invitee);
+      await accept({ userId: "viewer-1", roomId: "second-device-room" });
+
+      expect(seats().filter((s) => s.userId === "viewer-1")).toHaveLength(1);
+      expect(seatOf("viewer-1")?.status).toBe("live");
+    });
+
+    it("does not spend a second slot when the host re-invites a seated co-host", async () => {
+      await invite("viewer-1");
+      await accept(invitee);
+
+      await invite("viewer-1");
+
+      expect(seats()).toHaveLength(1);
+      // Re-inviting must not knock a publishing co-host back to "invited".
+      expect(seatOf("viewer-1")?.status).toBe("live");
     });
   });
 });

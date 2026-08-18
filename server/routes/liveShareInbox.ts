@@ -7,21 +7,27 @@ import type { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { listLiveShareRequestsNonFollowing } from "../lib/postgres";
 import { executeLiveShareSend } from "../lib/liveShareOps";
+import { isValkeyConfigured, valkeyRateCheck } from "../lib/valkey";
 import { logger } from "../lib/logger";
 
+// Dev/test only: local in-memory window when Valkey is off (never in production),
+// matching the main API limiter and checkRateLimit.
 const postRate = new Map<string, number[]>();
 const MAX_POST_RATE_ENTRIES = 10_000;
+const allowLocalRateLimit = process.env.NODE_ENV !== "production";
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, v] of postRate) {
-    const fresh = v.filter((t) => now - t < 60_000);
-    if (fresh.length === 0) postRate.delete(k);
-    else postRate.set(k, fresh);
-  }
-}, 60_000).unref();
+if (allowLocalRateLimit) {
+  setInterval(() => {
+    const now = Date.now();
+    for (const [k, v] of postRate) {
+      const fresh = v.filter((t) => now - t < 60_000);
+      if (fresh.length === 0) postRate.delete(k);
+      else postRate.set(k, fresh);
+    }
+  }, 60_000).unref();
+}
 
-function allowPost(userId: string, max: number, windowMs: number): boolean {
+function allowPostLocal(userId: string, max: number, windowMs: number): boolean {
   const now = Date.now();
   const prev = postRate.get(userId) || [];
   const fresh = prev.filter((t) => now - t < windowMs);
@@ -35,6 +41,30 @@ function allowPost(userId: string, max: number, windowMs: number): boolean {
   return true;
 }
 
+/**
+ * A per-process window is not a limit once more than one instance is running:
+ * the real send ceiling becomes the limit times the instance count, which is the
+ * whole point of the limit for a message that lands in someone else's inbox.
+ * Valkey holds the window, and production refuses rather than quietly loosening
+ * it when Valkey cannot answer.
+ */
+async function allowPost(userId: string, max: number, windowMs: number): Promise<boolean> {
+  if (isValkeyConfigured()) {
+    try {
+      return await valkeyRateCheck(`rl:live-share:${userId}`, windowMs, max);
+    } catch (err) {
+      if (!allowLocalRateLimit) {
+        logger.error({ err, userId }, "live-share rate limit: Valkey unavailable — failing closed");
+        return false;
+      }
+    }
+  } else if (!allowLocalRateLimit) {
+    logger.error({ userId }, "live-share rate limit: Valkey required in production");
+    return false;
+  }
+  return allowPostLocal(userId, max, windowMs);
+}
+
 export async function handlePostLiveShare(req: Request, res: Response): Promise<void> {
   const token = getTokenFromRequest(req);
   if (!token) {
@@ -46,7 +76,7 @@ export async function handlePostLiveShare(req: Request, res: Response): Promise<
     res.status(401).json({ error: "Invalid session" });
     return;
   }
-  if (!allowPost(jwt.sub, 40, 60_000)) {
+  if (!(await allowPost(jwt.sub, 40, 60_000))) {
     res.status(429).json({ error: "Too many shares" });
     return;
   }

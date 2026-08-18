@@ -108,6 +108,16 @@ export function collectProductionEnvironmentFailures(
     );
   }
 
+  // Pex is the only implemented fingerprint provider, and with no key every
+  // upload is allowed unscanned — a copyright gate that silently is not there.
+  // `.env.example` documents the key as required and `AUDIO_SCAN_ENABLED=0` as
+  // the way to turn scanning off, so opting out has to be said out loud.
+  if (env.AUDIO_SCAN_ENABLED !== "0" && !env.PEX_API_KEY?.trim()) {
+    failures.push(
+      "PEX_API_KEY is required in production for the upload audio fingerprint scan — set it, or set AUDIO_SCAN_ENABLED=0 to ship without copyright scanning",
+    );
+  }
+
   if (env.ALLOW_LOADTEST_IN_PROD === "1") {
     failures.push(
       "ALLOW_LOADTEST_IN_PROD must not be set in production — remove it so rate-limit bypass cannot be enabled against live traffic",
