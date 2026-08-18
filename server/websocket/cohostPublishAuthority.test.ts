@@ -29,12 +29,20 @@ const roomOwners = new Map<string, string>();
 const cohostGrants: Array<{ roomId: string; userId: string }> = [];
 const released: Array<{ roomId: string; userId: string }> = [];
 const participantUpgrades: Array<{ roomId: string; userId: string }> = [];
+const joinRequests = new Map<string, Array<{ requesterUserId: string }>>();
+/** Users with no open socket, so a per-user send reaches nobody. */
+const offlineUsers = new Set<string>();
 const sentToUser: Array<{ userId: string; event: string }> = [];
+const sentToClient: Array<{ event: string; delivered: unknown }> = [];
 const roomBroadcasts: Array<{ roomId: string; event: string; data: Record<string, unknown> }> = [];
 
 vi.mock("./index", () => ({
   wsRateCheck: vi.fn(async () => true),
   getCohostLayout: vi.fn(async (roomId: string) => layouts.get(roomId) ?? null),
+  tryGetCohostLayout: vi.fn(async (roomId: string) => ({
+    status: "ok" as const,
+    layout: layouts.get(roomId) ?? null,
+  })),
   setCohostLayout: vi.fn(
     async (
       roomId: string,
@@ -44,12 +52,25 @@ vi.mock("./index", () => ({
       featuredUserId?: string | null,
     ) => {
       layouts.set(roomId, { coHosts, hostUserId, layoutId, featuredUserId });
+      return "ok" as const;
     },
   ),
   deleteCohostLayout: vi.fn(async (roomId: string) => layouts.delete(roomId)),
-  upsertCohostJoinRequest: vi.fn(async () => {}),
-  deleteCohostJoinRequest: vi.fn(async () => {}),
-  listCohostJoinRequests: vi.fn(async () => []),
+  upsertCohostJoinRequest: vi.fn(async (roomId: string, requesterUserId: string) => {
+    const queue = joinRequests.get(roomId) ?? [];
+    if (!queue.some((r) => r.requesterUserId === requesterUserId)) {
+      queue.push({ requesterUserId });
+    }
+    joinRequests.set(roomId, queue);
+  }),
+  deleteCohostJoinRequest: vi.fn(async (roomId: string, requesterUserId: string) => {
+    const queue = joinRequests.get(roomId) ?? [];
+    joinRequests.set(
+      roomId,
+      queue.filter((r) => r.requesterUserId !== requesterUserId),
+    );
+  }),
+  listCohostJoinRequests: vi.fn(async (roomId: string) => joinRequests.get(roomId) ?? []),
   grantCohostPublish: vi.fn(async (roomId: string, userId: string) => {
     cohostGrants.push({ roomId, userId });
   }),
@@ -63,8 +84,14 @@ vi.mock("./index", () => ({
   broadcastToRoom: vi.fn((roomId: string, event: string, data: Record<string, unknown>) => {
     roomBroadcasts.push({ roomId, event, data });
   }),
-  sendToClient: vi.fn(),
+  sendToClient: vi.fn(
+    (_client: unknown, event: string, data?: Record<string, unknown>) => {
+      sentToClient.push({ event, delivered: data?.delivered });
+    },
+  ),
   sendToUserGlobal: vi.fn((userId: string, event: string) => {
+    // Delivery count of 0 is how the server learns nobody was listening.
+    if (offlineUsers.has(userId)) return 0;
     sentToUser.push({ userId, event });
     return 1;
   }),
@@ -91,7 +118,22 @@ vi.mock("../routes/livestream", () => ({
 }));
 
 vi.mock("./liveCreatorRole", () => ({ setCreatorCohostRoom: vi.fn(async () => {}) }));
-vi.mock("../lib/valkey", () => ({ isValkeyConfigured: vi.fn(() => true) }));
+/**
+ * The seat lock is real here (single holder, owner-checked release), so these
+ * tests run the same mutual exclusion production does.
+ */
+const locks = new Map<string, string>();
+vi.mock("../lib/valkey", () => ({
+  isValkeyConfigured: vi.fn(() => true),
+  valkeyTrySetNx: vi.fn(async (key: string, token: string) => {
+    if (locks.has(key)) return "exists" as const;
+    locks.set(key, token);
+    return "set" as const;
+  }),
+  valkeyReleaseLock: vi.fn(async (key: string, token: string) => {
+    if (locks.get(key) === token) locks.delete(key);
+  }),
+}));
 vi.mock("../lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -135,6 +177,10 @@ describe("co-host publish authority", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     layouts.clear();
+    locks.clear();
+    joinRequests.clear();
+    offlineUsers.clear();
+    sentToClient.length = 0;
     roomOwners.clear();
     roomOwners.set(HOST_ROOM, "host-1");
     cohostGrants.length = 0;
@@ -162,6 +208,30 @@ describe("co-host publish authority", () => {
 
       expect(cohostGrants).toEqual([]);
       expect(seats()).toHaveLength(1);
+    });
+
+    it("gives the seat back when the invite reached nobody", async () => {
+      offlineUsers.add("viewer-1");
+
+      await invite("viewer-1");
+
+      // The seat is written before delivery is attempted, so an invite nobody
+      // received must not hold one of the eight slots for the rest of the live.
+      expect(seats()).toEqual([]);
+      expect(sentToClient).toContainEqual({
+        event: "cohost_invite_ack",
+        delivered: false,
+      });
+    });
+
+    it("keeps a seated co-host when re-inviting them fails to deliver", async () => {
+      await invite("viewer-1");
+      await accept(invitee);
+      offlineUsers.add("viewer-1");
+
+      await invite("viewer-1");
+
+      expect(seatOf("viewer-1")?.status).toBe("live");
     });
 
     it("only the host of the room may offer a seat", async () => {
@@ -325,6 +395,67 @@ describe("co-host publish authority", () => {
       expect(seatOf("viewer-1")?.status).toBe("live");
     });
 
+    it("a declined invite gives the seat back to the stage", async () => {
+      await invite("viewer-1");
+      roomBroadcasts.length = 0;
+
+      await send(invitee, "cohost_invite_decline", { streamKey: HOST_ROOM });
+
+      // Without this the seat stayed "invited" for the rest of the live: it held
+      // one of the eight slots, showed on the stage, and blocked a re-invite.
+      expect(seats()).toEqual([]);
+      expect(cohostGrants).toEqual([]);
+      const sync = roomBroadcasts.find((b) => b.event === "cohost_layout_sync");
+      expect(sync?.data.coHosts).toEqual([]);
+      expect(sync?.data.hostUserId).toBe("host-1");
+    });
+
+    it("lets the host offer the freed seat to the same viewer again", async () => {
+      await invite("viewer-1");
+      await send(invitee, "cohost_invite_decline", { streamKey: HOST_ROOM });
+
+      await invite("viewer-1");
+      await accept(invitee);
+
+      expect(seatOf("viewer-1")?.status).toBe("live");
+      expect(cohostGrants).toEqual([{ roomId: HOST_ROOM, userId: "viewer-1" }]);
+    });
+
+    it("cannot take a seated co-host off the stage", async () => {
+      await invite("viewer-1");
+      await accept(invitee);
+      released.length = 0;
+
+      // A decline arriving after the same user accepted (stale banner, second
+      // device) must not read as standing down — that is cohost_seat_leave.
+      await send(invitee, "cohost_invite_decline", { streamKey: HOST_ROOM });
+
+      expect(seatOf("viewer-1")?.status).toBe("live");
+      expect(released).toEqual([]);
+    });
+
+    it("does nothing for a sender who holds no seat", async () => {
+      await invite("viewer-1");
+
+      await send({ userId: "attacker-1", roomId: HOST_ROOM }, "cohost_invite_decline", {
+        streamKey: HOST_ROOM,
+      });
+
+      expect(seatOf("viewer-1")?.status).toBe("invited");
+    });
+
+    it("cannot clear a seat in a live it names but has no invite from", async () => {
+      roomOwners.set("other-room", "other-host");
+      layouts.set("other-room", {
+        coHosts: [{ userId: "viewer-9", name: "Nine", avatar: "", status: "live" }],
+        hostUserId: "other-host",
+      });
+
+      await send(invitee, "cohost_invite_decline", { streamKey: "other-room" });
+
+      expect(seats("other-room")).toHaveLength(1);
+    });
+
     it("ending co-host mode stands every seat down individually", async () => {
       await invite("viewer-1");
       await accept(invitee);
@@ -338,6 +469,52 @@ describe("co-host publish authority", () => {
         { roomId: HOST_ROOM, userId: "viewer-2" },
       ]);
       expect(seats()).toEqual([]);
+    });
+  });
+
+  /**
+   * The request queue is host state: it is what the host answers from. A viewer
+   * who can delete another viewer's request can keep anyone off the stage, and a
+   * decline notice carries the sender's id as the host's, so the queue has to be
+   * gated on room ownership like every other host action.
+   */
+  describe("only the host answers the request queue", () => {
+    const requester: Actor = { userId: "viewer-3", roomId: HOST_ROOM };
+    const queued = (roomId = HOST_ROOM) => joinRequests.get(roomId) ?? [];
+
+    it("keeps a stranger from declining another viewer's request", async () => {
+      await send(requester, "cohost_request_send", { hostUserId: HOST_ROOM });
+      expect(queued()).toHaveLength(1);
+
+      await send({ userId: "attacker-1", roomId: HOST_ROOM }, "cohost_request_decline", {
+        requesterUserId: "viewer-3",
+      });
+
+      expect(queued()).toHaveLength(1);
+      expect(sentToUser.some((s) => s.event === "cohost_request_declined")).toBe(false);
+    });
+
+    it("lets the host decline and tells the requester once", async () => {
+      await send(requester, "cohost_request_send", { hostUserId: HOST_ROOM });
+
+      await send(host, "cohost_request_decline", { requesterUserId: "viewer-3" });
+
+      expect(queued()).toEqual([]);
+      expect(sentToUser).toContainEqual({
+        userId: "viewer-3",
+        event: "cohost_request_declined",
+      });
+    });
+
+    it("keeps a stranger from accepting a request into a seat", async () => {
+      await send(requester, "cohost_request_send", { hostUserId: HOST_ROOM });
+
+      await send({ userId: "attacker-1", roomId: HOST_ROOM }, "cohost_request_accept", {
+        requesterUserId: "viewer-3",
+      });
+
+      expect(seats()).toEqual([]);
+      expect(cohostGrants).toEqual([]);
     });
   });
 });

@@ -14,9 +14,24 @@ describe("cohost server authority contracts", () => {
   });
 
   it("rejects accept/invite when cohost seats are full", () => {
-    expect(handlers).toContain("if (upserted.full)");
+    expect(handlers).toContain('if (seated.status === "full")');
     expect(handlers).toContain('reason: "cohost_full"');
     expect(handlers).toContain("max: MAX_COHOST_SLOTS");
+  });
+
+  it("writes seats only through the locked seat store", () => {
+    // A seat change is a read-modify-write of one Valkey value. Done outside the
+    // room lock, two of them racing can both pass the capacity check for the
+    // last seat or undo each other, so no handler may write the table directly.
+    expect(handlers).not.toContain("await setCohostLayout(");
+    expect(handlers).not.toContain("await getCohostLayout(");
+    expect(handlers).toContain("mutateCohostSeats(");
+    const store = read("./cohostSeatStore.ts");
+    expect(store).toContain("valkeyTrySetNx(lockKey, token, SEAT_LOCK_TTL_MS)");
+    expect(store).toContain("valkeyReleaseLock(lockKey, token)");
+    // A read or write Valkey could not answer must not look like an empty stage.
+    expect(store).toContain('if (read.status === "unavailable") return { status: "unavailable" }');
+    expect(store).toContain('if (written !== "ok")');
   });
 
   it("accepting one request removes only that requester and pushes the next queued user", () => {
@@ -38,8 +53,9 @@ describe("cohost server authority contracts", () => {
     expect(end).toBeGreaterThan(start);
     const block = handlers.slice(start, end);
     // Seats are read back from server state, never taken from the host payload.
-    expect(block).toContain("const current = await getCohostLayout(roomId)");
-    expect(block).toContain("normalizeCohostSlots(");
+    expect(block).toContain("mutateCohostSeats(roomId, hostUserId, (seats) => ({");
+    expect(block).toContain("slots: seats,");
+    expect(block).toContain("changed: false,");
     expect(block).not.toContain("data.coHosts");
     expect(block).not.toContain("releaseCohostPublish");
     expect(block).not.toContain("grantCohostPublish");
@@ -55,6 +71,10 @@ describe("cohost server authority contracts", () => {
     // One authority for both halves of a release: the stored grant that
     // authorizes the next token AND the permission on the open connection.
     expect(block).toContain("await releaseCohostPublish(roomId, targetUserId)");
+    // Publishing is only stood down once the seat is proven gone.
+    expect(block).toContain(
+      'if (released.status !== "applied" && released.status !== "unchanged") break',
+    );
     expect(block).toContain('sendToUserGlobal(targetUserId, "cohost_seat_released"');
     expect(block).toContain('broadcastToRoom(roomId, "cohost_layout_sync"');
     // Host-only, and never a room-wide grant sweep.
@@ -85,9 +105,11 @@ describe("cohost server authority contracts", () => {
     expect(start).toBeGreaterThan(-1);
     const block = handlers.slice(start, start + 1600);
     expect(block).toContain("if (!ownerId || ownerId !== client.userId) break");
-    expect(block).toContain("for (const seat of seats)");
+    // Exactly the seats the cleared table held are stood down — not a snapshot
+    // read before the clear, which could miss a co-host who joined in between.
+    expect(block).toContain("for (const seat of cleared.previousSeats)");
     expect(block).toContain("await releaseCohostPublish(roomId, seat.userId)");
-    expect(block).toContain("await setCohostLayout(roomId, [], client.userId");
+    expect(block).toContain("slots: [],");
   });
 
   it("declining one request removes only that requester and preserves queue progression", () => {

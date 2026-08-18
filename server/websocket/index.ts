@@ -40,7 +40,9 @@ import {
   valkeyUnsubscribe,
   valkeyRateCheck as valkeyRateCheckFn,
   valkeySet,
+  valkeyTrySet,
   valkeyGet,
+  valkeyTryGet,
   valkeyDel,
   valkeySadd,
   valkeySrem,
@@ -497,15 +499,48 @@ export async function getCohostLayout(
   return null;
 }
 
+/**
+ * Read the seat table for a caller that is about to rewrite it.
+ *
+ * `getCohostLayout` answers `null` both for "this room has no seats" and for
+ * "Valkey did not answer", which is safe for a reader but not for a writer: a
+ * failed read taken as an empty stage would let the next write erase every
+ * occupied seat.
+ */
+export async function tryGetCohostLayout(roomId: string): Promise<
+  | {
+      status: "ok";
+      layout: {
+        coHosts: unknown[];
+        hostUserId: string;
+        layoutId?: string;
+        featuredUserId?: string | null;
+      } | null;
+    }
+  | { status: "unavailable" }
+> {
+  if (!isValkeyConfigured()) return { status: "unavailable" };
+  const read = await valkeyTryGet(`cohost:${roomId}`);
+  if (read.status === "unavailable") return { status: "unavailable" };
+  if (!read.value) return { status: "ok", layout: null };
+  try {
+    return { status: "ok", layout: JSON.parse(read.value) };
+  } catch {
+    // Unparseable value: the room has no usable seat table, which is a real
+    // (empty) state rather than an outage.
+    return { status: "ok", layout: null };
+  }
+}
+
 export async function setCohostLayout(
   roomId: string,
   coHosts: unknown[],
   hostUserId: string,
   layoutId?: string | null,
   featuredUserId?: string | null,
-): Promise<void> {
-  if (!isValkeyConfigured()) return;
-  await valkeySet(
+): Promise<"ok" | "unavailable"> {
+  if (!isValkeyConfigured()) return "unavailable";
+  return valkeyTrySet(
     `cohost:${roomId}`,
     JSON.stringify({
       coHosts,
@@ -1073,7 +1108,6 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
           return;
         }
         await removeActiveStream(roomId, userId);
-        await deleteCohostLayout(roomId);
         broadcastToRoom(roomId, "stream_ended", {
           stream_key: roomId,
           host_user_id: userId,

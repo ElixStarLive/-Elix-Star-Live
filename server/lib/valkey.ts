@@ -296,6 +296,32 @@ export async function valkeySet(
   }
 }
 
+/**
+ * SET for callers that must know the write landed. `valkeySet` logs and returns
+ * void, so a failed write is indistinguishable from a stored one — fine for
+ * caches, wrong for state a client is told to trust (a seat table whose write
+ * was dropped would still be reported as the new stage).
+ */
+export async function valkeyTrySet(
+  key: string,
+  value: string,
+  ttlMs?: number,
+): Promise<"ok" | "unavailable"> {
+  const v = getValkey();
+  if (!v) return "unavailable";
+  try {
+    if (ttlMs) {
+      await v.set(key, value, "PX", ttlMs);
+    } else {
+      await v.set(key, value);
+    }
+    return "ok";
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyTrySet failed");
+    return "unavailable";
+  }
+}
+
 export async function valkeyGet(key: string): Promise<string | null> {
   const v = getValkey();
   if (!v) return null;
@@ -549,6 +575,26 @@ export async function valkeyTrySetNx(
   } catch (err) {
     logger.warn({ err: err?.message, key }, "valkeyTrySetNx failed");
     return "unavailable";
+  }
+}
+
+/**
+ * Release a lock taken with `valkeyTrySetNx`, but only if this caller still owns
+ * it. A plain DEL would also delete the lock of the next holder in the case the
+ * first one's TTL expired mid-work, letting two writers believe they are alone.
+ */
+export async function valkeyReleaseLock(key: string, token: string): Promise<void> {
+  const v = getValkey();
+  if (!v || !token) return;
+  try {
+    await v.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+      1,
+      key,
+      token,
+    );
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyReleaseLock failed");
   }
 }
 

@@ -61,8 +61,6 @@ import {
 } from "../services/livekit";
 import {
   wsRateCheck,
-  setCohostLayout,
-  deleteCohostLayout,
   upsertCohostJoinRequest,
   deleteCohostJoinRequest,
   listCohostJoinRequests,
@@ -71,11 +69,10 @@ import {
   grantCohostPublish,
   revokeBattlePublish,
   releaseCohostPublish,
-  getCohostLayout,
 } from "./index";
+import { mutateCohostSeats } from "./cohostSeatStore";
 import {
   MAX_COHOST_SLOTS,
-  normalizeCohostSlots,
   removeCohostSlot,
   upsertCohostSlot,
 } from "./cohostSlots";
@@ -1258,7 +1255,6 @@ export async function handleMessage(
       case "stream_end": {
         const removed = await removeActiveStream(client.roomId, client.userId);
         if (removed) {
-          await deleteCohostLayout(client.roomId);
           // Host is moving into a battle room (accepted an invite): their
           // spectators must transition into the battle, not get kicked to feed.
           let battleRedirect: string | null = null;
@@ -1317,26 +1313,42 @@ export async function handleMessage(
           if (!rawTarget && fromStream) targetUserId = fromStream;
         }
         if (!targetUserId || targetUserId === client.userId) break;
-        const currentLayout = await getCohostLayout(client.roomId);
-        const normalizedSlots = normalizeCohostSlots(
-          currentLayout?.coHosts,
+        // No publish grant here: an invite is an offer, and the token endpoint
+        // treats a grant as authority to publish. Granting on send let an invited
+        // user publish into this room before accepting — and keep that right if
+        // they never answered. The grant is issued on accept instead.
+        const seated = await mutateCohostSeats(
+          client.roomId,
           client.userId,
-          MAX_COHOST_SLOTS,
-        );
-        const upserted = upsertCohostSlot(
-          normalizedSlots,
-          {
-            userId: targetUserId,
-            name:
-              (typeof data.targetName === "string" && data.targetName.trim()) ||
-              "Co-host",
-            avatar:
-              (typeof data.targetAvatar === "string" && data.targetAvatar) || "",
-            status: "invited",
+          (seats) => {
+            const existing = seats.find((s) => s.userId === targetUserId);
+            // Already on stage: writing "invited" over a live seat would drop a
+            // publishing co-host off the stage while their publish stays granted.
+            if (existing && existing.status !== "invited") return null;
+            return upsertCohostSlot(
+              seats,
+              {
+                userId: targetUserId,
+                name:
+                  (typeof data.targetName === "string" && data.targetName.trim()) ||
+                  "Co-host",
+                avatar:
+                  (typeof data.targetAvatar === "string" && data.targetAvatar) || "",
+                status: "invited",
+              },
+              MAX_COHOST_SLOTS,
+            );
           },
-          MAX_COHOST_SLOTS,
         );
-        if (upserted.full) {
+        if (seated.status === "rejected") {
+          sendToClient(client, "cohost_invite_ack", {
+            targetUserId,
+            delivered: false,
+            reason: "cohost_already_seated",
+          });
+          break;
+        }
+        if (seated.status === "full") {
           sendToClient(client, "cohost_invite_ack", {
             targetUserId,
             delivered: false,
@@ -1345,31 +1357,22 @@ export async function handleMessage(
           });
           break;
         }
-        // No publish grant here: an invite is an offer, and the token endpoint
-        // treats a grant as authority to publish. Granting on send let an invited
-        // user publish into this room before accepting — and keep that right if
-        // they never answered. The grant is issued on accept instead.
-        if (upserted.changed) {
-          await setCohostLayout(
-            client.roomId,
-            upserted.slots,
-            client.userId,
-            typeof currentLayout?.layoutId === "string" ? currentLayout.layoutId : null,
-            typeof currentLayout?.featuredUserId === "string"
-              ? currentLayout.featuredUserId
-              : null,
-          );
+        // Contended or unavailable: the invite was not recorded, so do not tell
+        // the host it was delivered — the invitee could not accept it anyway.
+        if (seated.status !== "applied" && seated.status !== "unchanged") {
+          sendToClient(client, "cohost_invite_ack", {
+            targetUserId,
+            delivered: false,
+            reason: "cohost_state_unavailable",
+          });
+          break;
+        }
+        if (seated.status === "applied") {
           broadcastToRoom(client.roomId, "cohost_layout_sync", {
-            coHosts: upserted.slots,
+            coHosts: seated.seats,
             hostUserId: client.userId,
-            featuredUserId:
-              typeof currentLayout?.featuredUserId === "string"
-                ? currentLayout.featuredUserId
-                : null,
-            ...(typeof currentLayout?.layoutId === "string" &&
-            currentLayout.layoutId.trim()
-              ? { layoutId: currentLayout.layoutId.trim() }
-              : {}),
+            featuredUserId: seated.featuredUserId,
+            ...(seated.layoutId ? { layoutId: seated.layoutId } : {}),
           });
         }
         const invitePayload = {
@@ -1382,6 +1385,31 @@ export async function handleMessage(
         let cohostSent = sendToUserGlobal(targetUserId, "cohost_invite", invitePayload);
         if (cohostSent === 0 && rawTarget && rawTarget !== targetUserId) {
           cohostSent = sendToUserGlobal(rawTarget, "cohost_invite", invitePayload);
+        }
+        if (cohostSent === 0) {
+          // The seat is reserved before delivery is attempted, so an invite that
+          // reached nobody would hold one of the eight slots for the rest of the
+          // live — for someone who was never even asked. Give it back.
+          const rolledBack = await mutateCohostSeats(
+            client.roomId,
+            client.userId,
+            (seats) => {
+              const seat = seats.find((s) => s.userId === targetUserId);
+              // Only the unanswered offer is rolled back: a co-host already on
+              // stage keeps their seat if the host re-invites them and it fails.
+              if (!seat || seat.status !== "invited") return null;
+              const next = removeCohostSlot(seats, targetUserId);
+              return { slots: next.slots, changed: next.removed };
+            },
+          );
+          if (rolledBack.status === "applied") {
+            broadcastToRoom(client.roomId, "cohost_layout_sync", {
+              coHosts: rolledBack.seats,
+              hostUserId: client.userId,
+              featuredUserId: rolledBack.featuredUserId,
+              ...(rolledBack.layoutId ? { layoutId: rolledBack.layoutId } : {}),
+            });
+          }
         }
         sendToClient(client, "cohost_invite_ack", {
           targetUserId,
@@ -1407,75 +1435,66 @@ export async function handleMessage(
         // before any publish grant. Without it this case took the room from the
         // payload and seated the sender as a publisher in any live they named.
         if (!hostStreamKey) break;
-        const currentLayout = await getCohostLayout(hostStreamKey);
-        // hostUserId on the layout is written by cohost_invite_send only after
-        // that caller was verified as this room's owner, so it is server-proven.
-        if (!currentLayout || currentLayout.hostUserId !== hostUserId) break;
-        const normalizedSlots = normalizeCohostSlots(
-          currentLayout.coHosts,
+        // The invite is resolved and the seat is taken in one locked step, so a
+        // seat the host has just cancelled cannot be accepted through a snapshot
+        // read a moment earlier.
+        const seated = await mutateCohostSeats(
+          hostStreamKey,
           hostUserId,
-          MAX_COHOST_SLOTS,
+          (seats, layout) => {
+            // hostUserId on the layout is written by cohost_invite_send only
+            // after that caller was verified as this room's owner, so it is
+            // server-proven. A claim that does not match it is not an invite.
+            if (!layout || layout.hostUserId !== hostUserId) return null;
+            const invitedSeat = seats.find((seat) => seat.userId === client.userId);
+            // No seat means this user was never invited to this room. "accepted"
+            // and "live" are allowed so a repeated accept stays idempotent.
+            if (
+              !invitedSeat ||
+              (invitedSeat.status !== "invited" &&
+                invitedSeat.status !== "accepted" &&
+                invitedSeat.status !== "live")
+            ) {
+              return null;
+            }
+            return upsertCohostSlot(
+              seats,
+              {
+                userId: client.userId,
+                name:
+                  (typeof data.cohostName === "string" && data.cohostName.trim()) ||
+                  client.displayName ||
+                  "Co-host",
+                avatar:
+                  (typeof data.cohostAvatar === "string" && data.cohostAvatar) ||
+                  client.avatarUrl ||
+                  "",
+                status: "live",
+              },
+              MAX_COHOST_SLOTS,
+            );
+          },
         );
-        const invitedSeat = normalizedSlots.find(
-          (seat) => seat.userId === client.userId,
-        );
-        // No seat means this user was never invited to this room. "accepted" and
-        // "live" are allowed so a repeated accept stays idempotent.
-        if (
-          !invitedSeat ||
-          (invitedSeat.status !== "invited" &&
-            invitedSeat.status !== "accepted" &&
-            invitedSeat.status !== "live")
-        ) {
-          break;
-        }
+        // Only a confirmed seat authorizes publishing. Anything else — no invite,
+        // lock contention, Valkey down — leaves the user a spectator instead of
+        // handing out a grant for a seat that was never recorded.
+        if (seated.status !== "applied" && seated.status !== "unchanged") break;
         await setCreatorCohostRoom(client.userId, hostStreamKey);
         await deleteCohostJoinRequest(hostStreamKey, client.userId);
         // Acceptance — never the invite — is the moment publishing is authorized:
         // for the next token, and on the connection they are already watching
         // from. If they have not joined yet, the token they fetch on join carries
-        // the grant, so there is no reconnect either way.
+        // the grant, so there is no reconnect either way. The seat is written
+        // first: an accepted seat is itself publish authority, so this order can
+        // never leave a grant without a seat behind it.
         await grantCohostPublish(hostStreamKey, client.userId);
         await grantParticipantPublish(hostStreamKey, client.userId);
-        const upserted = upsertCohostSlot(
-          normalizedSlots,
-          {
-            userId: client.userId,
-            name:
-              (typeof data.cohostName === "string" && data.cohostName.trim()) ||
-              client.displayName ||
-              "Co-host",
-            avatar:
-              (typeof data.cohostAvatar === "string" && data.cohostAvatar) ||
-              client.avatarUrl ||
-              "",
-            status: "live",
-          },
-          MAX_COHOST_SLOTS,
-        );
-        if (upserted.changed) {
-          await setCohostLayout(
-            hostStreamKey,
-            upserted.slots,
-            hostUserId,
-            typeof currentLayout.layoutId === "string"
-              ? currentLayout.layoutId
-              : null,
-            typeof currentLayout.featuredUserId === "string"
-              ? currentLayout.featuredUserId
-              : null,
-          );
+        if (seated.status === "applied") {
           broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
-            coHosts: upserted.slots,
+            coHosts: seated.seats,
             hostUserId,
-            featuredUserId:
-              typeof currentLayout.featuredUserId === "string"
-                ? currentLayout.featuredUserId
-                : null,
-            ...(typeof currentLayout.layoutId === "string" &&
-            currentLayout.layoutId.trim()
-              ? { layoutId: currentLayout.layoutId.trim() }
-              : {}),
+            featuredUserId: seated.featuredUserId,
+            ...(seated.layoutId ? { layoutId: seated.layoutId } : {}),
           });
         }
         sendToUserGlobal(hostUserId, "cohost_invite_accepted", {
@@ -1483,6 +1502,51 @@ export async function handleMessage(
           cohostName: data.cohostName || client.displayName,
           cohostAvatar: data.cohostAvatar || client.avatarUrl || "",
           streamKey: data.streamKey || client.roomId,
+        });
+        break;
+      }
+
+      // Saying no gives the seat back. Without this the seat stayed "invited"
+      // for the rest of the live: it held one of the eight slots, showed on the
+      // stage, blocked the host from inviting that user again, and kept them out
+      // of the spectator list — all for someone who had already declined.
+      case "cohost_invite_decline": {
+        if (!ensureCohostInfra(client)) break;
+        if (
+          !(await wsRateCheck(client.userId, "cohost_invite_decline", 200, 60_000))
+        )
+          break;
+        const hostStreamKey =
+          typeof data.streamKey === "string" && data.streamKey.trim()
+            ? data.streamKey.trim()
+            : client.roomId;
+        if (!hostStreamKey) break;
+        // The room's owner is resolved here, never taken from the payload: the
+        // decliner is not the host, so they cannot be trusted to name one.
+        const ownerId = await resolveStreamOwnerUserId(hostStreamKey);
+        if (!ownerId || ownerId === client.userId) break;
+        const declined = await mutateCohostSeats(
+          hostStreamKey,
+          ownerId,
+          (seats, layout) => {
+            if (!layout || layout.hostUserId !== ownerId) return null;
+            const seat = seats.find((s) => s.userId === client.userId);
+            // Only an unanswered invite is declinable. A co-host who is already
+            // on stage stands down through cohost_seat_leave, so a late decline
+            // can never take a seated participant off the stage.
+            if (!seat || seat.status !== "invited") return null;
+            const next = removeCohostSlot(seats, client.userId);
+            return { slots: next.slots, changed: next.removed };
+          },
+        );
+        if (declined.status !== "applied") break;
+        // The host's seat table is the state update: their panel drops the
+        // invited row from this broadcast, and the freed slot is reusable.
+        broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
+          coHosts: declined.seats,
+          hostUserId: ownerId,
+          featuredUserId: declined.featuredUserId,
+          ...(declined.layoutId ? { layoutId: declined.layoutId } : {}),
         });
         break;
       }
@@ -1548,28 +1612,28 @@ export async function handleMessage(
             ? data.requesterUserId.trim()
             : "";
         if (!requesterUserId || requesterUserId === client.userId) break;
-        await deleteCohostJoinRequest(client.roomId, requesterUserId);
-        const currentLayout = await getCohostLayout(client.roomId);
-        const normalizedSlots = normalizeCohostSlots(
-          currentLayout?.coHosts,
+        // Seat first, under the room lock: two accepts for the last free seat can
+        // no longer both pass the capacity check and both be granted publish.
+        const seated = await mutateCohostSeats(
+          client.roomId,
           client.userId,
-          MAX_COHOST_SLOTS,
+          (seats) =>
+            upsertCohostSlot(
+              seats,
+              {
+                userId: requesterUserId,
+                name:
+                  (typeof data.requesterName === "string" && data.requesterName.trim()) ||
+                  "Co-host",
+                avatar:
+                  (typeof data.requesterAvatar === "string" && data.requesterAvatar) ||
+                  "",
+                status: "accepted",
+              },
+              MAX_COHOST_SLOTS,
+            ),
         );
-        const upserted = upsertCohostSlot(
-          normalizedSlots,
-          {
-            userId: requesterUserId,
-            name:
-              (typeof data.requesterName === "string" && data.requesterName.trim()) ||
-              "Co-host",
-            avatar:
-              (typeof data.requesterAvatar === "string" && data.requesterAvatar) ||
-              "",
-            status: "accepted",
-          },
-          MAX_COHOST_SLOTS,
-        );
-        if (upserted.full) {
+        if (seated.status === "full") {
           sendToUserGlobal(requesterUserId, "cohost_request_declined", {
             hostUserId: client.userId,
             hostName: data.hostName || client.displayName,
@@ -1578,35 +1642,29 @@ export async function handleMessage(
           });
           break;
         }
+        // The seat is the authority for publishing, so an unconfirmed write must
+        // not grant anything: the request stays queued and the host can retry.
+        if (seated.status !== "applied" && seated.status !== "unchanged") {
+          sendToUserGlobal(requesterUserId, "cohost_request_declined", {
+            hostUserId: client.userId,
+            hostName: data.hostName || client.displayName,
+            reason: "cohost_state_unavailable",
+          });
+          break;
+        }
+        await deleteCohostJoinRequest(client.roomId, requesterUserId);
         // Host accepted this viewer's co-host request → grant publish for the room.
         // They are already connected as a spectator, so raise their permission on
         // that same LiveKit connection instead of making them reconnect.
-        if (client.roomId) {
-          await grantCohostPublish(client.roomId, requesterUserId);
-          await grantParticipantPublish(client.roomId, requesterUserId);
-          await setCreatorCohostRoom(requesterUserId, client.roomId);
-        }
-        if (upserted.changed) {
-          await setCohostLayout(
-            client.roomId,
-            upserted.slots,
-            client.userId,
-            typeof currentLayout?.layoutId === "string" ? currentLayout.layoutId : null,
-            typeof currentLayout?.featuredUserId === "string"
-              ? currentLayout.featuredUserId
-              : null,
-          );
+        await grantCohostPublish(client.roomId, requesterUserId);
+        await grantParticipantPublish(client.roomId, requesterUserId);
+        await setCreatorCohostRoom(requesterUserId, client.roomId);
+        if (seated.status === "applied") {
           broadcastToRoom(client.roomId, "cohost_layout_sync", {
-            coHosts: upserted.slots,
+            coHosts: seated.seats,
             hostUserId: client.userId,
-            featuredUserId:
-              typeof currentLayout?.featuredUserId === "string"
-                ? currentLayout.featuredUserId
-                : null,
-            ...(typeof currentLayout?.layoutId === "string" &&
-            currentLayout.layoutId.trim()
-              ? { layoutId: currentLayout.layoutId.trim() }
-              : {}),
+            featuredUserId: seated.featuredUserId,
+            ...(seated.layoutId ? { layoutId: seated.layoutId } : {}),
           });
         }
         sendToUserGlobal(requesterUserId, "cohost_request_accepted", {
@@ -1638,6 +1696,12 @@ export async function handleMessage(
           ))
         )
           break;
+        // Declining is the host answering their own queue. Unguarded, any
+        // spectator could drop another viewer's pending request and send them a
+        // decline stamped with the sender's id — the queue is host state, so the
+        // sender has to be proven to own this room like every other host case.
+        const ownerId = await resolveStreamOwnerUserId(client.roomId);
+        if (!ownerId || ownerId !== client.userId) break;
         const requesterUserId =
           typeof data.requesterUserId === "string"
             ? data.requesterUserId
@@ -1672,12 +1736,6 @@ export async function handleMessage(
         const ownerId = await resolveStreamOwnerUserId(roomId);
         if (!ownerId || ownerId !== client.userId) break;
         const hostUserId = client.userId;
-        const current = await getCohostLayout(roomId);
-        const seats = normalizeCohostSlots(
-          current?.coHosts,
-          hostUserId,
-          MAX_COHOST_SLOTS,
-        );
         const featuredUserId =
           typeof data.featuredUserId === "string" && data.featuredUserId.trim()
             ? data.featuredUserId.trim()
@@ -1686,18 +1744,20 @@ export async function handleMessage(
           typeof data.layoutId === "string" && data.layoutId.trim()
             ? data.layoutId.trim()
             : undefined;
-        await setCohostLayout(
-          roomId,
-          seats,
-          hostUserId,
-          layoutId ?? null,
+        // Seats are read back from server state and written straight through, so
+        // a render arriving while someone joins cannot drop the new seat.
+        const synced = await mutateCohostSeats(roomId, hostUserId, (seats) => ({
+          slots: seats,
+          changed: false,
+          layoutId: layoutId ?? null,
           featuredUserId,
-        );
+        }));
+        if (synced.status !== "applied" && synced.status !== "unchanged") break;
         broadcastToRoom(roomId, "cohost_layout_sync", {
-          coHosts: seats,
+          coHosts: synced.seats,
           hostUserId,
-          featuredUserId,
-          ...(layoutId ? { layoutId } : {}),
+          featuredUserId: synced.featuredUserId,
+          ...(synced.layoutId ? { layoutId: synced.layoutId } : {}),
         });
         break;
       }
@@ -1714,41 +1774,36 @@ export async function handleMessage(
         const targetUserId =
           typeof data.targetUserId === "string" ? data.targetUserId.trim() : "";
         if (!targetUserId || targetUserId === client.userId) break;
-        const current = await getCohostLayout(roomId);
-        const seats = normalizeCohostSlots(
-          current?.coHosts,
+        const released = await mutateCohostSeats(
+          roomId,
           client.userId,
-          MAX_COHOST_SLOTS,
+          (seats, layout) => {
+            const next = removeCohostSlot(seats, targetUserId);
+            return {
+              slots: next.slots,
+              changed: next.removed,
+              // A removed co-host cannot stay the featured pane.
+              featuredUserId:
+                layout?.featuredUserId && layout.featuredUserId !== targetUserId
+                  ? layout.featuredUserId
+                  : null,
+            };
+          },
         );
-        const released = removeCohostSlot(seats, targetUserId);
+        // Publishing is only stood down for a seat that is really gone; a
+        // contended or failed write leaves the co-host exactly as they were.
+        if (released.status !== "applied" && released.status !== "unchanged") break;
         await releaseCohostPublish(roomId, targetUserId);
         await deleteCohostJoinRequest(roomId, targetUserId);
-        const featuredUserId =
-          typeof current?.featuredUserId === "string" &&
-          current.featuredUserId.trim() &&
-          current.featuredUserId.trim() !== targetUserId
-            ? current.featuredUserId.trim()
-            : null;
-        const layoutId =
-          typeof current?.layoutId === "string" && current.layoutId.trim()
-            ? current.layoutId.trim()
-            : undefined;
-        await setCohostLayout(
-          roomId,
-          released.slots,
-          client.userId,
-          layoutId ?? null,
-          featuredUserId,
-        );
         sendToUserGlobal(targetUserId, "cohost_seat_released", {
           roomId,
           hostUserId: client.userId,
         });
         broadcastToRoom(roomId, "cohost_layout_sync", {
-          coHosts: released.slots,
+          coHosts: released.seats,
           hostUserId: client.userId,
-          featuredUserId,
-          ...(layoutId ? { layoutId } : {}),
+          featuredUserId: released.featuredUserId,
+          ...(released.layoutId ? { layoutId: released.layoutId } : {}),
         });
         break;
       }
@@ -1763,42 +1818,31 @@ export async function handleMessage(
         if (!ownerId) break;
         if (ownerId === client.userId) break;
         const targetUserId = client.userId;
-        const current = await getCohostLayout(roomId);
-        const seats = normalizeCohostSlots(
-          current?.coHosts,
-          ownerId,
-          MAX_COHOST_SLOTS,
-        );
-        if (!seats.some((seat) => seat.userId === targetUserId)) break;
-        const released = removeCohostSlot(seats, targetUserId);
+        const released = await mutateCohostSeats(roomId, ownerId, (seats, layout) => {
+          // Nothing to leave: not seated (any more) in this room.
+          if (!seats.some((seat) => seat.userId === targetUserId)) return null;
+          const next = removeCohostSlot(seats, targetUserId);
+          return {
+            slots: next.slots,
+            changed: next.removed,
+            featuredUserId:
+              layout?.featuredUserId && layout.featuredUserId !== targetUserId
+                ? layout.featuredUserId
+                : null,
+          };
+        });
+        if (released.status !== "applied" && released.status !== "unchanged") break;
         await releaseCohostPublish(roomId, targetUserId);
         await deleteCohostJoinRequest(roomId, targetUserId);
-        const featuredUserId =
-          typeof current?.featuredUserId === "string" &&
-          current.featuredUserId.trim() &&
-          current.featuredUserId.trim() !== targetUserId
-            ? current.featuredUserId.trim()
-            : null;
-        const layoutId =
-          typeof current?.layoutId === "string" && current.layoutId.trim()
-            ? current.layoutId.trim()
-            : undefined;
-        await setCohostLayout(
-          roomId,
-          released.slots,
-          ownerId,
-          layoutId ?? null,
-          featuredUserId,
-        );
         sendToUserGlobal(targetUserId, "cohost_seat_released", {
           roomId,
           hostUserId: ownerId,
         });
         broadcastToRoom(roomId, "cohost_layout_sync", {
-          coHosts: released.slots,
+          coHosts: released.seats,
           hostUserId: ownerId,
-          featuredUserId,
-          ...(layoutId ? { layoutId } : {}),
+          featuredUserId: released.featuredUserId,
+          ...(released.layoutId ? { layoutId: released.layoutId } : {}),
         });
         break;
       }
@@ -1811,13 +1855,17 @@ export async function handleMessage(
         if (!roomId) break;
         const ownerId = await resolveStreamOwnerUserId(roomId);
         if (!ownerId || ownerId !== client.userId) break;
-        const current = await getCohostLayout(roomId);
-        const seats = normalizeCohostSlots(
-          current?.coHosts,
-          client.userId,
-          MAX_COHOST_SLOTS,
-        );
-        for (const seat of seats) {
+        // Clear the table first, then stand down exactly the seats it held: a
+        // co-host who joins while this runs is either in the snapshot that was
+        // cleared or arrives after it, never silently left publishing.
+        const cleared = await mutateCohostSeats(roomId, client.userId, () => ({
+          slots: [],
+          changed: true,
+          layoutId: "solo_big",
+          featuredUserId: null,
+        }));
+        if (cleared.status !== "applied" && cleared.status !== "unchanged") break;
+        for (const seat of cleared.previousSeats) {
           await releaseCohostPublish(roomId, seat.userId);
           await deleteCohostJoinRequest(roomId, seat.userId);
           sendToUserGlobal(seat.userId, "cohost_seat_released", {
@@ -1825,7 +1873,6 @@ export async function handleMessage(
             hostUserId: client.userId,
           });
         }
-        await setCohostLayout(roomId, [], client.userId, "solo_big", null);
         broadcastToRoom(roomId, "cohost_layout_sync", {
           coHosts: [],
           hostUserId: client.userId,

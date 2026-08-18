@@ -134,7 +134,7 @@ import {
 } from '../battle/liveBattleScore';
 import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
-import { cohostRequestSend, cohostSeatLeave } from '../cohost/liveCohostActions';
+import { cohostInviteDecline, cohostRequestSend, cohostSeatLeave } from '../cohost/liveCohostActions';
 import { liveChatSend, liveHeartSend } from '../chat/liveChatActions';
 import { useLiveStreamChatMessages } from '../chat/useLiveStreamChatMessages';
 import { useLiveEngagementMissionsUi } from '../engagement/useLiveEngagementMissionsUi';
@@ -1208,6 +1208,21 @@ export function useLiveSpectatorController() {
     clearCohostPublishIntent,
     effectiveStreamId,
   ]);
+
+  /**
+   * Refuse an invite. The host reserved a seat when they invited, so dismissing
+   * the banner alone would leave that seat "invited" for the rest of their live —
+   * holding one of the eight slots and blocking a later invite to this viewer.
+   */
+  const declineCoHostInvite = useCallback(() => {
+    const streamKey =
+      String(pendingCoHostInvite?.streamKey || effectiveStreamId || '').trim();
+    if (streamKey) {
+      cohostInviteDecline({ streamKey });
+    }
+    setPendingCoHostInvite(null);
+    setShowCoHostPanel(false);
+  }, [pendingCoHostInvite, effectiveStreamId]);
 
   // The seat table lost this client's seat: stand the media down and drop the
   // publish intent, but stay connected to the same room as a spectator.
@@ -3505,6 +3520,7 @@ export function useLiveSpectatorController() {
     pageExiting,
     pendingBattleInvite,
     pendingCoHostInvite,
+    declineCoHostInvite,
     prevMvpHostSpectatorRef,
     prevMvpOpponentSpectatorRef,
     prevSpectatorBattleActiveRef,

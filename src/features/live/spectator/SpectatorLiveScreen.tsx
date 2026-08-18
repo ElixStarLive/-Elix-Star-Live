@@ -305,6 +305,7 @@ export default function SpectatorLiveScreen() {
     pageExiting,
     pendingBattleInvite,
     pendingCoHostInvite,
+    declineCoHostInvite,
     promotionalCoinBalance,
     rankingInitialTab,
     remoteCamOff,
@@ -2141,7 +2142,7 @@ export default function SpectatorLiveScreen() {
                         <p className="text-white/40 text-[10px]">wants you to co-host</p>
                       </div>
                       <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                        <button type="button" onClick={() => { setPendingCoHostInvite(null); setShowCoHostPanel(false); }} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer">
+                        <button type="button" onClick={declineCoHostInvite} className="h-6 px-3 rounded-full bg-red-500/25 border border-red-400/50 inline-flex items-center justify-center active:scale-95 transition-transform cursor-pointer">
                           <span className="text-red-300 text-[10px] font-bold leading-none whitespace-nowrap">Reject</span>
                         </button>
                         <button

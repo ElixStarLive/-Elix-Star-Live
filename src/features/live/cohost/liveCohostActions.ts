@@ -16,6 +16,15 @@ export function cohostInviteAccept(payload: CohostPayload): void {
   liveWsSend(LIVE_WS_OUT.cohost_invite_accept, payload);
 }
 
+/**
+ * Invitee declines. Clearing the banner locally is not enough: the seat the host
+ * reserved stays "invited" server-side, holding one of the eight slots and
+ * blocking a re-invite, so the refusal has to reach the server.
+ */
+export function cohostInviteDecline(payload: { streamKey?: string }): void {
+  liveWsSend(LIVE_WS_OUT.cohost_invite_decline, payload);
+}
+
 export function cohostRequestSend(payload: CohostPayload): void {
   liveWsSend(LIVE_WS_OUT.cohost_request_send, payload);
 }

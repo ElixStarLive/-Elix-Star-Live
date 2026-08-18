@@ -107,6 +107,7 @@ import { useBattleServerTotals } from '../battle/useBattleServerTotals';
 import { runBattleInviteAccept, runBattleInviteDecline } from '../battle/liveBattleInviteHandshake';
 import {
   cohostInviteAccept,
+  cohostInviteDecline,
   cohostInviteSend,
   cohostRequestAccept,
   cohostRequestDecline,
@@ -1045,9 +1046,14 @@ export function useLiveHostController() {
   }, [pendingCohostInvite]);
 
   const declineCohostInvite = useCallback(() => {
+    // Tell the inviting host: their reserved seat is freed instead of sitting
+    // "invited" for the rest of their live.
+    if (pendingCohostInvite?.streamKey) {
+      cohostInviteDecline({ streamKey: pendingCohostInvite.streamKey });
+    }
     setPendingCohostInvite(null);
     closeAllBottomPanels();
-  }, [closeAllBottomPanels]);
+  }, [closeAllBottomPanels, pendingCohostInvite]);
 
   const acceptCohostInvite = useCallback(async () => {
     if (!pendingCohostInvite || !user?.id) return;

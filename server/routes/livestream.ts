@@ -33,7 +33,12 @@ import {
   waitForCachePopulate,
 } from '../lib/valkey';
 import { bumpCacheLayer } from '../lib/cacheLayerMetrics';
-import { hasBattlePublishGrant, hasCohostPublishGrant, getCohostLayout } from '../websocket/index';
+import {
+  hasBattlePublishGrant,
+  hasCohostPublishGrant,
+  getCohostLayout,
+  deleteCohostLayout,
+} from '../websocket/index';
 import { getCreatorLiveRoleRoom } from '../websocket/liveCreatorRole';
 import { insertNotification, deleteLiveStartedNotificationsForRoom } from '../lib/notifications';
 import { getFollowerIdsAsync } from './profiles';
@@ -127,6 +132,22 @@ export async function removeActiveStream(roomId: string, userId?: string): Promi
       // lingers (up to ROOM_MEMBER_TTL) as a ghost count after the stream ends
       // and can inflate the count if the room id is reused.
       await valkeyDel(`room:members:${roomId}`);
+      // The stage dies with the stream. Room ids are the creator's own id, so
+      // they are reused by their next live: seats, pending invites, the request
+      // queue and publish grants left behind here would be inherited by that
+      // live — a stale invite could be accepted into it, and an old grant would
+      // still read as publish authority. Every end path funnels through here
+      // (creator ends, WS stream_end, host disconnect grace, LiveKit
+      // room_finished), so this is where that state is cleaned once.
+      //
+      // Ending the stream itself must not depend on it: if the stage cannot be
+      // cleared, the DB row still has to stop saying this creator is live, or the
+      // live would keep showing in For You with nobody in it.
+      try {
+        await deleteCohostLayout(roomId);
+      } catch (err) {
+        logger.error({ err, roomId }, "removeActiveStream: co-host stage not cleared");
+      }
     } else if (userId) {
       // No Valkey: enforce host ownership from the DB so a non-host cannot end another user's stream.
       const ownerUserId = await resolveStreamOwnerUserId(roomId);
@@ -506,6 +527,23 @@ export async function handleLiveStart(req: Request, res: Response) {
       canPublish: true,
       name: auth.userId,
     });
+
+    // A new live must never inherit the previous one's stage. Room ids are the
+    // creator's own id, so this room was theirs before; if that live ended
+    // without its cleanup running (crashed worker, missed webhook) its seats,
+    // pending invites, request queue and publish grants would still be readable
+    // here, and an old invite could be accepted into this live. A reconnect is
+    // the same live continuing, so its stage is left exactly as it is.
+    // Going live must not fail over this: while Valkey is unreachable no seat can
+    // be claimed at all, so a stage that could not be purged cannot be joined
+    // either — it is logged and the creator still gets on air.
+    if (!isReconnect) {
+      try {
+        await deleteCohostLayout(roomName);
+      } catch (err) {
+        logger.error({ err, roomName }, "handleLiveStart: previous co-host stage not cleared");
+      }
+    }
 
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
     try {

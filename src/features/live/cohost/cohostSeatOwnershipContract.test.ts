@@ -13,6 +13,8 @@ describe("co-host seat ownership contract (client)", () => {
   const layoutSync = read("./syncBroadcastCohostLayout.ts");
   const actions = read("./liveCohostActions.ts");
   const hostController = read("../host/useLiveHostController.tsx");
+  const spectatorController = read("../spectator/useLiveSpectatorController.tsx");
+  const spectatorScreen = read("../spectator/SpectatorLiveScreen.tsx");
 
   it("host layout broadcast carries presentation only, never seat membership", () => {
     expect(layoutSync).toContain("featuredUserId");
@@ -51,5 +53,72 @@ describe("co-host seat ownership contract (client)", () => {
     expect(hostController).toContain(
       "if (prev.some((r) => sameUserId(r.requesterId, requesterId))) return prev;",
     );
+  });
+
+  /**
+   * The host reserves a seat the moment they invite, so refusing has to reach the
+   * server. Clearing the banner alone left that seat "invited" for the rest of the
+   * live — one of the eight slots held, and a re-invite blocked — for someone who
+   * had already said no.
+   */
+  describe("declining an invite gives the seat back", () => {
+    const banner = read("../../../components/LiveNotifyBanner.tsx");
+
+    it("offers a decline intent alongside accept", () => {
+      expect(actions).toContain("export function cohostInviteDecline");
+    });
+
+    it("tells the server when a creator refuses another creator's invite", () => {
+      const start = hostController.indexOf("const declineCohostInvite = useCallback");
+      expect(start).toBeGreaterThan(-1);
+      const block = hostController.slice(start, start + 500);
+      expect(block).toContain("cohostInviteDecline({ streamKey:");
+    });
+
+    it("tells the server when a viewer refuses from the live page", () => {
+      const start = spectatorController.indexOf("const declineCoHostInvite = useCallback");
+      expect(start).toBeGreaterThan(-1);
+      const block = spectatorController.slice(start, start + 600);
+      expect(block).toContain("cohostInviteDecline({ streamKey })");
+      expect(block).toContain("setPendingCoHostInvite(null)");
+      // The Reject control must go through that one handler, not clear state inline.
+      expect(spectatorScreen).toContain("onClick={declineCoHostInvite}");
+    });
+
+    it("tells the server when a viewer refuses from the global banner", () => {
+      const start = banner.indexOf("const rejectInvite = useCallback");
+      expect(start).toBeGreaterThan(-1);
+      const block = banner.slice(start, start + 700);
+      expect(block).toContain("cohostInviteDecline({ streamKey: inviteBanner.streamKey })");
+    });
+  });
+
+  /**
+   * Eight seats are independent, so one viewer taking a seat must not disable the
+   * co-host control for everyone else. Each request button may read only the
+   * viewer's own state — their pending request, their own seat, their sign-in.
+   */
+  describe("asking to co-host is per viewer", () => {
+    const disabledExpressions = [
+      ...spectatorScreen.matchAll(/disabled=\{([^}]*(?:joinRequested|CoHostRequestSent)[^}]*)\}/g),
+    ].map((m) => m[1]);
+
+    it("gates the co-host buttons on the viewer's own state only", () => {
+      expect(disabledExpressions.length).toBeGreaterThan(0);
+      for (const expression of disabledExpressions) {
+        // Room-wide inputs would make one viewer's seat silence everyone else.
+        expect(expression).not.toContain("spectatorCoHosts.length");
+        expect(expression).not.toContain("MAX_CO_HOST");
+        expect(expression).not.toContain("coHosts.length");
+      }
+    });
+
+    it("sends a request only for the viewer who pressed it", () => {
+      const start = spectatorController.indexOf("const sendCohostJoinRequest = useCallback");
+      expect(start).toBeGreaterThan(-1);
+      const block = spectatorController.slice(start, start + 700);
+      expect(block).toContain("if (!user?.id || joinRequested) return false;");
+      expect(block).not.toContain("spectatorCoHosts.length");
+    });
   });
 });

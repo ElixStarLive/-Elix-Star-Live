@@ -75,6 +75,8 @@ vi.mock("../websocket/index", () => ({
   hasBattlePublishGrant: vi.fn(async () => false),
   hasCohostPublishGrant: vi.fn(async () => false),
   getCohostLayout: vi.fn(async () => null),
+  // A new live purges the previous stage before registering (see handleLiveStart).
+  deleteCohostLayout: vi.fn(async () => {}),
 }));
 vi.mock("../websocket/liveCreatorRole", () => ({
   getCreatorLiveRoleRoom: vi.fn(async () => null),

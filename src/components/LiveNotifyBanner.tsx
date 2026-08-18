@@ -28,7 +28,7 @@ import {
   runBattleInviteDecline,
   type PendingBattleInvite,
 } from '../features/live/battle/liveBattleInviteHandshake';
-import { cohostInviteAccept } from '../features/live/cohost/liveCohostActions';
+import { cohostInviteAccept, cohostInviteDecline } from '../features/live/cohost/liveCohostActions';
 
 interface StartedBanner {
   kind: 'started';
@@ -299,6 +299,9 @@ export function LiveNotifyBanner() {
         streamKey: inviteBanner.streamKey,
         hostUserId: inviteBanner.hostUserId,
       });
+    } else {
+      // Hand the reserved seat back, exactly like declining on the live pages.
+      cohostInviteDecline({ streamKey: inviteBanner.streamKey });
     }
     dismissInvite();
   }, [inviteBanner, dismissInvite]);

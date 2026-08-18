@@ -70,6 +70,8 @@ export const LIVE_WS_OUT = {
   battle_remove_participant: 'battle_remove_participant',
   cohost_invite_send: 'cohost_invite_send',
   cohost_invite_accept: 'cohost_invite_accept',
+  /** Invitee says no: the server gives that seat back to the stage. */
+  cohost_invite_decline: 'cohost_invite_decline',
   cohost_request_send: 'cohost_request_send',
   cohost_request_accept: 'cohost_request_accept',
   cohost_request_decline: 'cohost_request_decline',

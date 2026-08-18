@@ -54,6 +54,8 @@ vi.mock("../websocket/index", () => ({
   hasBattlePublishGrant: vi.fn(async () => false),
   hasCohostPublishGrant: vi.fn(async () => false),
   getCohostLayout: vi.fn(async () => null),
+  // Ending a stream clears its co-host stage (see removeActiveStream).
+  deleteCohostLayout: vi.fn(async () => {}),
 }));
 vi.mock("../lib/notifications", () => ({
   insertNotification: vi.fn(async () => {}),
