@@ -69,6 +69,42 @@ export async function neonIsIapProcessed(
   }
 }
 
+/**
+ * Who a store transaction already settled for, from the durable purchase
+ * record. Used to refuse a replay from another account or against another
+ * product instead of answering it with somebody else's "already processed".
+ * Throws when the database is unavailable — never guesses "nobody owns it".
+ */
+export async function neonSettledIapPurchase(
+  provider: string,
+  providerTransactionId: string,
+): Promise<{ userId: string; productId: string | null } | null> {
+  const pool = getPool();
+  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
+  try {
+    const r = await pool.query(
+      `SELECT l.user_id, l.product_id
+         FROM elix_wallet_ledger l
+        WHERE l.kind = 'iap_purchase'
+          AND l.provider = $1
+          AND l.provider_transaction_id = $2
+        LIMIT 1`,
+      [provider, providerTransactionId],
+    );
+    if (!r.rows.length) return null;
+    return {
+      userId: String(r.rows[0].user_id),
+      productId: r.rows[0].product_id != null ? String(r.rows[0].product_id) : null,
+    };
+  } catch (e) {
+    logger.error(
+      { err: e, provider, providerTransactionId },
+      "neonSettledIapPurchase: database error — failing closed (throwing)",
+    );
+    throw e;
+  }
+}
+
 /** Promote purchases are keyed on provider_transaction_id — not coin IAP ledger. */
 export async function neonIsPromoteProcessed(
   providerTransactionId: string,
@@ -103,6 +139,14 @@ export async function neonCreditIap(input: {
   verification: Record<string, unknown>;
   applePayload?: AppleTxPayload | Record<string, unknown> | null;
   googlePurchaseToken?: string | null;
+  /**
+   * Store evidence says the buyer paid nothing (Play license test, promo code,
+   * rewarded product). The coins are real; the money is not, so the lot must
+   * carry no GBP for paid gifts or creator revenue to attribute later.
+   */
+  unpaidPurchase?: boolean;
+  /** Store-verified units bought. Multiplies both coins and the paid value. */
+  quantity?: number;
 }): Promise<CreditOk | CreditDup | CreditErr> {
   const pool = getPool();
   if (!pool) return { ok: false, error: "no_pool" };
@@ -144,11 +188,27 @@ export async function neonCreditIap(input: {
       [input.userId, coins],
     );
     // Paid coin lot — required in the same transaction as coin credit (fail closed).
-    const price = await resolveCoinPurchaseVerifiedPrice({
+    const unitPrice = await resolveCoinPurchaseVerifiedPrice({
       provider: input.provider === "google" ? "google" : "apple",
       productId: input.productId,
       applePayload: (input.applePayload as Record<string, unknown>) || null,
     });
+    const units = Math.max(1, Math.floor(input.quantity ?? 1));
+    // A purchase nobody paid for carries no provable value, so it gets none:
+    // the lot stays unsettled with no GBP rather than borrowing the shelf price.
+    const price = input.unpaidPurchase
+      ? {
+          grossPence: 0,
+          appStoreDeductionPence: 0,
+          taxDeductionPence: 0,
+          processingDeductionPence: 0,
+        }
+      : {
+          grossPence: unitPrice.grossPence * units,
+          appStoreDeductionPence: unitPrice.appStoreDeductionPence * units,
+          taxDeductionPence: unitPrice.taxDeductionPence * units,
+          processingDeductionPence: unitPrice.processingDeductionPence * units,
+        };
     const net =
       price.grossPence -
       price.appStoreDeductionPence -

@@ -125,6 +125,7 @@ export default defineConfig(({ mode }) => ({
       // same time. vitest.money.config.ts runs them serially.
       '**/monetisation/paidGift.db.test.ts',
       '**/monetisation/appleIapPaidLot.db.test.ts',
+      '**/monetisation/googleIapPaidLot.db.test.ts',
     ],
   },
 }))

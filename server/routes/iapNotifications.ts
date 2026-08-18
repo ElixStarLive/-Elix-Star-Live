@@ -14,6 +14,7 @@ import {
   neonUpsertMembershipEntitlement,
 } from "../lib/walletNeon";
 import {
+  googlePlayPackageName,
   hashPurchaseToken,
   verifyGoogleSubscription,
 } from "../lib/googlePlaySubscriptions";
@@ -245,6 +246,17 @@ async function reconcileGoogleSubscriptionEntitlement(purchaseToken: string): Pr
     return { ok: true, updated: true };
   }
 
+  // No verdict from Google is not "not entitled". Writing EXPIRED here would
+  // revoke a paying subscriber because androidpublisher was briefly unreachable,
+  // and returning ok would ack the message so Pub/Sub never retries it.
+  if (verified.ok === false && verified.reason === "unavailable") {
+    logger.warn(
+      { detail: verified.error },
+      "Google subscription reconcile deferred — verification unavailable",
+    );
+    return { ok: false, updated: false, detail: "google_verification_unavailable" };
+  }
+
   // Not entitled (expired / on hold / revoked / etc.) — persist authoritative state.
   const state = verified.subscriptionState || "EXPIRED";
   const updated = await neonUpdateMembershipSubscriptionState({
@@ -290,12 +302,17 @@ export async function handleGooglePlayRtdn(req: Request, res: Response) {
     const decoded = JSON.parse(Buffer.from(dataB64, "base64").toString("utf8")) as {
       packageName?: string;
       voidedPurchaseNotification?: { purchaseToken?: string; orderId?: string };
-      oneTimeProductNotification?: { purchaseToken?: string; notificationType?: number };
       subscriptionNotification?: { purchaseToken?: string; notificationType?: number };
     };
 
-    const expectedPackage = process.env.GOOGLE_PLAY_PACKAGE_NAME || "com.elixstarlive.app";
-    if (decoded.packageName && decoded.packageName !== expectedPackage) {
+    // Every RTDN message names its app. A message that does not is not evidence
+    // that it is ours, and it must not reverse coins or revoke entitlements here.
+    const expectedPackage = googlePlayPackageName();
+    if (decoded.packageName !== expectedPackage) {
+      logger.warn(
+        { packageName: decoded.packageName, expectedPackage },
+        "Google RTDN rejected — wrong or missing package name",
+      );
       return res.status(400).json({ error: "Package name mismatch" });
     }
 

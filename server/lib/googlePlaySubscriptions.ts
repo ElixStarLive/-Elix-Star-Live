@@ -81,6 +81,14 @@ export type GoogleSubscriptionRejection = {
     | "google_not_configured"
     | "google_auth_failed"
     | "google_http_error";
+  /**
+   * "invalid" — Google answered and this token is not acceptable.
+   * "not_entitled" — Google answered and the subscription is not currently active.
+   * "unavailable" — no verdict was reached (credentials, upstream, timeout).
+   * Callers must offer a retry on "unavailable" and must never downgrade a
+   * stored entitlement from it.
+   */
+  reason: "invalid" | "not_entitled" | "unavailable";
   /** Normalized state when the payload was readable (e.g. "EXPIRED", "ON_HOLD"). */
   subscriptionState?: string;
   detail?: string;
@@ -105,7 +113,7 @@ export function parseGoogleSubscriptionPayload(
   nowMs: number = Date.now(),
 ): GoogleSubscriptionResult {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { ok: false, entitled: false, error: "malformed_payload" };
+    return { ok: false, entitled: false, error: "malformed_payload", reason: "invalid" };
   }
   const p = payload as Record<string, unknown>;
 
@@ -117,7 +125,7 @@ export function parseGoogleSubscriptionPayload(
       (li as Record<string, unknown>).productId === expectedProductId,
   );
   if (!lineItem) {
-    return { ok: false, entitled: false, error: "product_mismatch" };
+    return { ok: false, entitled: false, error: "product_mismatch", reason: "invalid" };
   }
 
   const subscriptionState =
@@ -126,11 +134,23 @@ export function parseGoogleSubscriptionPayload(
   const expiryRaw = lineItem.expiryTime;
   const expiryMs = typeof expiryRaw === "string" ? Date.parse(expiryRaw) : NaN;
   if (!Number.isFinite(expiryMs)) {
-    return { ok: false, entitled: false, error: "missing_expiry", subscriptionState };
+    return {
+      ok: false,
+      entitled: false,
+      error: "missing_expiry",
+      reason: "invalid",
+      subscriptionState,
+    };
   }
 
   if (!ENTITLED_STATES.has(subscriptionState) || expiryMs <= nowMs) {
-    return { ok: false, entitled: false, error: "not_entitled", subscriptionState };
+    return {
+      ok: false,
+      entitled: false,
+      error: "not_entitled",
+      reason: "not_entitled",
+      subscriptionState,
+    };
   }
 
   const autoRenewingPlan =
@@ -202,6 +222,158 @@ async function getAndroidPublisherAccessToken(): Promise<string | null> {
   }
 }
 
+/**
+ * A non-2xx androidpublisher answer is only the buyer's problem when Google
+ * actually judged the token. 401/403 means our service account is broken,
+ * 429 and 5xx mean Google is busy or down: in all of those cases Play has
+ * already taken the money and the same token must stay retryable.
+ */
+function googleApiFailureReason(status: number): "invalid" | "unavailable" {
+  if (status === 401 || status === 403 || status === 429 || status >= 500) return "unavailable";
+  return "invalid";
+}
+
+/**
+ * Play one-time product purchase (`purchases.products.get`).
+ * `quantity` and `purchaseType` come from Google, never from the client:
+ * purchaseType is present only for purchases nobody paid full price for
+ * (0 test, 1 promo, 2 rewarded), so settlement must not derive GBP from them.
+ */
+export type GooglePlayProductPurchase = {
+  valid: true;
+  productId: string;
+  orderId: string | null;
+  /** Units bought. Multi-quantity is off unless enabled in Play Console. */
+  quantity: number;
+  /** 0 test, 1 promo, 2 rewarded, null for a normal paid purchase. */
+  purchaseType: number | null;
+  acknowledgementState: number | null;
+  purchaseTimeMillis: string | null;
+  obfuscatedExternalAccountId: string | null;
+  payload: Record<string, unknown>;
+  detail: string;
+};
+
+export type GooglePlayProductLookup =
+  | GooglePlayProductPurchase
+  | {
+      valid: false;
+      reason: "invalid" | "unavailable";
+      productId?: string;
+      detail: string;
+    };
+
+export async function verifyGooglePlayProductPurchase(input: {
+  productId: string;
+  purchaseToken: string;
+}): Promise<GooglePlayProductLookup> {
+  const productId = String(input.productId || "").trim();
+  const purchaseToken = String(input.purchaseToken || "").trim();
+  if (!productId || !purchaseToken) {
+    return { valid: false, reason: "invalid", detail: "missing_product_or_token" };
+  }
+  if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim()) {
+    logger.error("[IAP] Google service account not configured — rejecting purchase");
+    return { valid: false, reason: "unavailable", detail: "GOOGLE_CREDENTIALS_NOT_CONFIGURED" };
+  }
+  const accessToken = await getAndroidPublisherAccessToken();
+  if (!accessToken) {
+    return { valid: false, reason: "unavailable", detail: "google_auth_failed" };
+  }
+  const packageName = googlePlayPackageName();
+  const url = `${ANDROID_PUBLISHER_BASE}/applications/${encodeURIComponent(packageName)}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
+  let payload: Record<string, unknown>;
+  try {
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => "")).slice(0, 300);
+      return {
+        valid: false,
+        reason: googleApiFailureReason(res.status),
+        productId,
+        detail: `google-verify-${res.status}${detail ? `: ${detail}` : ""}`,
+      };
+    }
+    const json = (await res.json()) as unknown;
+    if (!json || typeof json !== "object" || Array.isArray(json)) {
+      return { valid: false, reason: "invalid", productId, detail: "google-malformed-payload" };
+    }
+    payload = json as Record<string, unknown>;
+  } catch (e) {
+    // A timeout or socket error is not a verdict on the purchase.
+    return {
+      valid: false,
+      reason: "unavailable",
+      productId,
+      detail: e instanceof Error ? e.message : "fetch_failed",
+    };
+  }
+
+  // purchaseState: 0 purchased, 1 canceled, 2 pending. Pending is not money.
+  const purchaseState = Number(payload.purchaseState);
+  if (purchaseState !== 0) {
+    return {
+      valid: false,
+      reason: "invalid",
+      productId,
+      detail: `google-purchase-state-${payload.purchaseState}`,
+    };
+  }
+  // consumptionState: 0 not yet consumed, 1 consumed. An already-consumed token
+  // may still settle once — the durable purchase record is the dedupe authority,
+  // and our own server consume runs after credit.
+  const consumptionState = Number(payload.consumptionState);
+  if (consumptionState !== 0 && consumptionState !== 1) {
+    return {
+      valid: false,
+      reason: "invalid",
+      productId,
+      detail: `google-consumption-state-${payload.consumptionState}`,
+    };
+  }
+  const quantity = Number.isFinite(Number(payload.quantity))
+    ? Math.max(1, Math.floor(Number(payload.quantity)))
+    : 1;
+  // refundableQuantity is what has NOT been refunded. Zero of a bought quantity
+  // means Google already gave the money back, so this must never credit.
+  if (payload.refundableQuantity != null) {
+    const refundable = Math.max(0, Math.floor(Number(payload.refundableQuantity) || 0));
+    if (refundable === 0) {
+      return { valid: false, reason: "invalid", productId, detail: "google-purchase-refunded" };
+    }
+  }
+
+  return {
+    valid: true,
+    productId,
+    orderId: typeof payload.orderId === "string" && payload.orderId ? payload.orderId : null,
+    quantity,
+    purchaseType: Number.isFinite(Number(payload.purchaseType))
+      ? Math.floor(Number(payload.purchaseType))
+      : null,
+    acknowledgementState: Number.isFinite(Number(payload.acknowledgementState))
+      ? Math.floor(Number(payload.acknowledgementState))
+      : null,
+    purchaseTimeMillis:
+      typeof payload.purchaseTimeMillis === "string" ? payload.purchaseTimeMillis : null,
+    obfuscatedExternalAccountId:
+      typeof payload.obfuscatedExternalAccountId === "string" &&
+      payload.obfuscatedExternalAccountId
+        ? payload.obfuscatedExternalAccountId
+        : null,
+    payload,
+    detail: JSON.stringify({
+      orderId: payload.orderId ?? null,
+      purchaseState,
+      quantity,
+      purchaseType: payload.purchaseType ?? null,
+    }),
+  };
+}
+
 export async function consumeGooglePlayProduct(input: {
   productId: string;
   purchaseToken: string;
@@ -262,11 +434,16 @@ export async function verifyGoogleSubscription(
 ): Promise<GoogleSubscriptionResult> {
   if (!process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
     logger.error("[IAP] Google service account not configured — rejecting subscription");
-    return { ok: false, entitled: false, error: "google_not_configured" };
+    return {
+      ok: false,
+      entitled: false,
+      error: "google_not_configured",
+      reason: "unavailable",
+    };
   }
   const accessToken = await getAndroidPublisherAccessToken();
   if (!accessToken) {
-    return { ok: false, entitled: false, error: "google_auth_failed" };
+    return { ok: false, entitled: false, error: "google_auth_failed", reason: "unavailable" };
   }
   const packageName = googlePlayPackageName();
   const url = `${ANDROID_PUBLISHER_BASE}/applications/${encodeURIComponent(packageName)}/purchases/subscriptionsv2/tokens/${encodeURIComponent(purchaseToken)}`;
@@ -285,6 +462,7 @@ export async function verifyGoogleSubscription(
         ok: false,
         entitled: false,
         error: "google_http_error",
+        reason: googleApiFailureReason(res.status),
         detail: `status_${res.status}${detail ? `: ${detail.slice(0, 300)}` : ""}`,
       };
     }
@@ -292,7 +470,13 @@ export async function verifyGoogleSubscription(
     return parseGoogleSubscriptionPayload(payload, expectedProductId);
   } catch (e) {
     logger.error({ err: e, expectedProductId }, "Google subscriptionsv2 verify failed");
-    return { ok: false, entitled: false, error: "google_http_error", detail: "fetch_failed" };
+    return {
+      ok: false,
+      entitled: false,
+      error: "google_http_error",
+      reason: "unavailable",
+      detail: "fetch_failed",
+    };
   }
 }
 

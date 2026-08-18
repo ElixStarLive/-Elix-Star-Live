@@ -16,6 +16,7 @@ import { appAccountTokenForUserId } from "../../src/lib/storeProductCatalogs";
 const fetchAppleTransaction = vi.fn();
 const verifyAppleSubscription = vi.fn();
 const neonIsIapProcessed = vi.fn();
+const neonSettledIapPurchase = vi.fn();
 const neonCreditIap = vi.fn();
 const neonGetCoinBalance = vi.fn();
 const neonUpsertMembershipEntitlement = vi.fn();
@@ -50,6 +51,7 @@ vi.mock("../lib/walletNeon", () => ({
   neonInsertPromotePurchase: vi.fn(),
   neonIsIapProcessed: (...args: unknown[]) => neonIsIapProcessed(...args),
   neonIsPromoteProcessed: vi.fn(),
+  neonSettledIapPurchase: (...args: unknown[]) => neonSettledIapPurchase(...args),
   neonUpsertMembershipEntitlement: (...args: unknown[]) =>
     neonUpsertMembershipEntitlement(...args),
 }));
@@ -131,6 +133,7 @@ beforeAll(async () => {
 beforeEach(() => {
   vi.clearAllMocks();
   neonIsIapProcessed.mockResolvedValue(false);
+  neonSettledIapPurchase.mockResolvedValue(null);
   neonGetCoinBalance.mockResolvedValue(1234);
   neonCreditIap.mockResolvedValue({ ok: true, newBalance: 1734, ledgerId: "ledger-1" });
   autoPostSubscriptionRevenue.mockResolvedValue({ ok: true });
@@ -320,7 +323,7 @@ describe("Apple coin purchase — one transaction, one credit", () => {
   });
 
   it("answers deduplicated from the durable ledger without asking Apple again", async () => {
-    neonIsIapProcessed.mockResolvedValue(true);
+    neonSettledIapPurchase.mockResolvedValue({ userId: "user-a", productId: "coins500" });
     const { res, sent } = fakeRes();
 
     await handleVerifyPurchase(verifyReq(coinPurchaseBody()), res);
@@ -343,7 +346,9 @@ describe("Apple coin purchase — one transaction, one credit", () => {
 
   it("credits once across twenty retries of the same transaction", async () => {
     let settled = 0;
-    neonIsIapProcessed.mockImplementation(async () => settled > 0);
+    neonSettledIapPurchase.mockImplementation(async () =>
+      settled > 0 ? { userId: "user-a", productId: "coins500" } : null,
+    );
     neonCreditIap.mockImplementation(async () => {
       settled += 1;
       return settled === 1
@@ -371,7 +376,7 @@ describe("Apple coin purchase — one transaction, one credit", () => {
   });
 
   it("does not treat a duplicate-check database failure as a fresh purchase", async () => {
-    neonIsIapProcessed.mockRejectedValue(new Error("neon down"));
+    neonSettledIapPurchase.mockRejectedValue(new Error("neon down"));
     const { res, sent } = fakeRes();
 
     await handleVerifyPurchase(verifyReq(coinPurchaseBody()), res);

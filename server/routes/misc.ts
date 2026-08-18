@@ -8,6 +8,7 @@ import {
   neonInsertPromotePurchase,
   neonIsIapProcessed,
   neonIsPromoteProcessed,
+  neonSettledIapPurchase,
   neonUpsertMembershipEntitlement,
 } from '../lib/walletNeon';
 import { getPool, dbLoadCoinMap } from '../lib/postgres';
@@ -20,6 +21,7 @@ import {
   creatorMembershipProductId,
   ensureCreatorMembershipProduct,
   hashPurchaseToken,
+  verifyGooglePlayProductPurchase,
   verifyGoogleSubscription,
 } from '../lib/googlePlaySubscriptions';
 import {
@@ -226,102 +228,14 @@ export async function handleReport(req: Request, res: Response) {
   }
 }
 
-// --- Google Play purchase verification via androidpublisher API ---
-async function verifyGooglePlayPurchase(
-  packageName: string,
-  productId: string,
-  purchaseToken: string,
-): Promise<{ valid: boolean; productId?: string; detail?: string }> {
-  const serviceAccountJson = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-
-  if (!serviceAccountJson) {
-    logger.error('[IAP] Google service account not configured — rejecting purchase');
-    return { valid: false, detail: 'GOOGLE_CREDENTIALS_NOT_CONFIGURED' };
-  }
-
-  try {
-    const crypto = await import('crypto');
-    let sa: { client_email: string; private_key: string };
-    try {
-      sa = JSON.parse(serviceAccountJson);
-    } catch {
-      return { valid: false, detail: 'invalid-service-account-json' };
-    }
-    if (!sa.client_email || !sa.private_key) {
-      return { valid: false, detail: 'service-account-missing-fields' };
-    }
-
-    const now = Math.floor(Date.now() / 1000);
-    const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-    const payload = Buffer.from(JSON.stringify({
-      iss: sa.client_email,
-      scope: 'https://www.googleapis.com/auth/androidpublisher',
-      aud: 'https://oauth2.googleapis.com/token',
-      iat: now,
-      exp: now + 3600,
-    })).toString('base64url');
-
-    const sign = crypto.createSign('RSA-SHA256');
-    sign.update(`${header}.${payload}`);
-    const signature = sign.sign(sa.private_key.replace(/\\n/g, '\n'), 'base64url');
-    const jwt = `${header}.${payload}.${signature}`;
-
-    const tokenResp = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!tokenResp.ok) {
-      const text = await tokenResp.text();
-      return { valid: false, detail: `google-token-error-${tokenResp.status}: ${text}` };
-    }
-
-    const tokenJson = (await tokenResp.json()) as { access_token?: string };
-    const accessToken = tokenJson.access_token;
-    if (!accessToken) {
-      return { valid: false, detail: 'google-no-access-token' };
-    }
-
-    const verifyUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${encodeURIComponent(packageName)}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
-
-    const verifyResp = await fetch(verifyUrl, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      signal: AbortSignal.timeout(15_000),
-    });
-
-    if (!verifyResp.ok) {
-      const text = await verifyResp.text();
-      return { valid: false, detail: `google-verify-${verifyResp.status}: ${text}` };
-    }
-
-    const purchase = (await verifyResp.json()) as {
-      purchaseState?: number;
-      consumptionState?: number;
-      orderId?: string;
-    };
-    // purchaseState: 0 = purchased, 1 = canceled, 2 = pending
-    if (purchase.purchaseState !== 0) {
-      return { valid: false, detail: `google-purchase-state-${purchase.purchaseState}` };
-    }
-    // consumptionState: 0 = yet to be consumed, 1 = consumed.
-    // Already-consumed tokens may still be credited once (idempotent processed
-    // purchase). Server consume after credit is the authority; client consume is
-    // Play Billing cache cleanup only.
-    if (purchase.consumptionState !== 0 && purchase.consumptionState !== 1) {
-      return { valid: false, detail: `google-consumption-state-${purchase.consumptionState}` };
-    }
-
-    return {
-      valid: true,
-      productId: productId,
-      detail: JSON.stringify({ orderId: purchase.orderId, purchaseState: purchase.purchaseState }),
-    };
-  } catch (err) {
-    logger.error({ err: (err as Error)?.message }, '[IAP] Google Play verification error');
-    return { valid: false, detail: (err as Error)?.message };
-  }
+/**
+ * A Play purchaseType is only present when nobody paid the shelf price:
+ * 0 license test, 1 promo code, 2 rewarded. The coins are legitimately owned,
+ * but deriving catalogue GBP from them would invent revenue and a creator
+ * payout liability for money Google never collected.
+ */
+function googlePurchaseIsUnpaid(purchaseType: number | null): boolean {
+  return purchaseType === 0 || purchaseType === 1 || purchaseType === 2;
 }
 
 // --- Apple receipt verification via App Store Server API ---
@@ -388,6 +302,24 @@ function appleTokenOwnershipError(
     : 'app_account_token_mismatch';
 }
 
+/**
+ * The Play billing flow is launched with setObfuscatedAccountId(appAccountToken),
+ * so Google hands that same value back as obfuscatedExternalAccountId. When it is
+ * there it identifies the buyer, and a purchase carrying another account's id is
+ * a replay of their purchase. Purchases made before the app sent the id have
+ * none, so an absent id falls back to the durable first-settlement binding.
+ */
+function googleTokenOwnershipError(
+  userId: string,
+  externalAccountId: string | null | undefined,
+): 'app_account_token_mismatch' | null {
+  const actual = String(externalAccountId || '').trim();
+  if (!actual) return null;
+  return actual.toLowerCase() === appAccountTokenForUserId(userId).toLowerCase()
+    ? null
+    : 'app_account_token_mismatch';
+}
+
 // --- Verify Purchase ---
 export async function handleVerifyPurchase(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).send('Method not allowed');
@@ -435,7 +367,31 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       googlePurchaseToken,
     );
     if (!providerTransactionId) return res.status(400).json({ error: 'Invalid transaction identifier' });
-    if (await neonIsIapProcessed(safeProvider, providerTransactionId)) {
+    const settled = await neonSettledIapPurchase(safeProvider, providerTransactionId);
+    if (settled) {
+      // A store transaction belongs to whoever settled it first, permanently.
+      // Replaying it from another account, or against another product, is not a
+      // duplicate of that account's own purchase and must not read as success.
+      if (settled.userId !== String(userId)) {
+        logger.warn(
+          { provider: safeProvider, userId: user.sub, packageId },
+          'IAP rejected — transaction already settled for another account',
+        );
+        return res.status(403).json({
+          error: 'Transaction belongs to another account',
+          code: 'transaction_owned_by_another_user',
+        });
+      }
+      if (settled.productId && settled.productId !== String(packageId)) {
+        logger.warn(
+          { provider: safeProvider, userId: user.sub, packageId, settled: settled.productId },
+          'IAP rejected — transaction already settled for another product',
+        );
+        return res.status(409).json({
+          error: 'Transaction already settled for a different product',
+          code: 'transaction_product_conflict',
+        });
+      }
       if (safeProvider === 'google' && googlePurchaseToken) {
         const { consumeGooglePlayAfterCredit } = await import('../lib/googlePlayConsume');
         await consumeGooglePlayAfterCredit({
@@ -456,6 +412,8 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     let isValid = false;
     let verificationResponse: Record<string, unknown> = {};
     let applePayload: Record<string, unknown> | null = null;
+    let googleQuantity = 1;
+    let googleUnpaidPurchase = false;
     if (safeProvider === 'apple') {
       const apple = await verifyAppleReceipt(String(transactionId));
       if (apple.valid === false && apple.reason === 'unavailable') {
@@ -477,14 +435,55 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       applePayload = apple.payload ?? null;
       verificationResponse = { provider: 'apple', verified: apple.valid, productId: apple.productId, detail: apple.detail };
     } else {
-      const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
-      const google = await verifyGooglePlayPurchase(
-        packageName,
-        String(packageId),
-        googlePurchaseToken,
-      );
+      const google = await verifyGooglePlayProductPurchase({
+        productId: String(packageId),
+        purchaseToken: googlePurchaseToken,
+      });
+      if (google.valid === false && google.reason === 'unavailable') {
+        // Play has already charged the buyer and still holds an unconsumed
+        // token. Calling that an invalid receipt loses the sale and hands the
+        // customer an automatic refund three days later, so ask for a retry.
+        logger.error(
+          { provider: 'google', packageId, userId: user.sub, detail: google.detail },
+          'Google verification unavailable — coins not credited, retry is safe',
+        );
+        return res.status(503).json({
+          error: 'Google Play verification is temporarily unavailable',
+          code: 'verification_unavailable',
+          retry: true,
+          detail: google.detail.slice(0, 300),
+        });
+      }
       isValid = google.valid;
-      verificationResponse = { provider: 'google', verified: google.valid, productId: google.productId, detail: google.detail };
+      if (google.valid === true) {
+        const ownership = googleTokenOwnershipError(user.sub, google.obfuscatedExternalAccountId);
+        if (ownership) {
+          logger.warn(
+            { userId: user.sub, packageId, ownership },
+            'IAP rejected — Google purchase belongs to another account',
+          );
+          return res.status(403).json({
+            error: 'Transaction belongs to another account',
+            code: ownership,
+          });
+        }
+        googleQuantity = google.quantity;
+        googleUnpaidPurchase = googlePurchaseIsUnpaid(google.purchaseType);
+      }
+      verificationResponse = {
+        provider: 'google',
+        verified: google.valid,
+        productId: google.productId,
+        detail: google.detail,
+        ...(google.valid === true
+          ? {
+              quantity: google.quantity,
+              purchaseType: google.purchaseType,
+              orderId: google.orderId,
+              unpaidPurchase: googleUnpaidPurchase,
+            }
+          : {}),
+      };
     }
     if (!isValid) {
       // Log the exact reason (credentials missing, google-verify-410, already-consumed,
@@ -535,7 +534,10 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
 
     const coinMap = await dbLoadCoinMap();
     const catalogCoins = coinAmountForProviderProduct(safeProvider, String(packageId));
-    const coins = catalogCoins > 0 ? catalogCoins : coinMap[String(packageId)] || 0;
+    const packCoins = catalogCoins > 0 ? catalogCoins : coinMap[String(packageId)] || 0;
+    // Quantity is Google's number, not the client's. Crediting one pack for a
+    // multi-quantity purchase would keep money for coins never delivered.
+    const coins = packCoins * googleQuantity;
     if (coins <= 0) {
       // Receipt was valid but the product is not present in the coin_packages map.
       logger.warn(
@@ -554,6 +556,8 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
       verification: verificationResponse,
       applePayload,
       googlePurchaseToken: safeProvider === 'google' ? googlePurchaseToken : null,
+      unpaidPurchase: googleUnpaidPurchase,
+      quantity: googleQuantity,
     });
 
     if (credited.ok) {
@@ -660,8 +664,31 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
     }
     valid = apple.valid && apple.productId === String(productId);
   } else {
-    const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
-    const google = await verifyGooglePlayPurchase(packageName, String(productId), googlePurchaseToken);
+    const google = await verifyGooglePlayProductPurchase({
+      productId: String(productId),
+      purchaseToken: googlePurchaseToken,
+    });
+    if (google.valid === false && google.reason === 'unavailable') {
+      logger.error(
+        { productId, userId: user.sub, detail: google.detail },
+        'Google promote verification unavailable — retry is safe',
+      );
+      return res.status(503).json({
+        error: 'Google Play verification is temporarily unavailable',
+        code: 'verification_unavailable',
+        retry: true,
+      });
+    }
+    if (google.valid === true) {
+      const ownership = googleTokenOwnershipError(user.sub, google.obfuscatedExternalAccountId);
+      if (ownership) {
+        logger.warn(
+          { userId: user.sub, productId, ownership },
+          'Promote rejected — Google purchase belongs to another account',
+        );
+        return res.status(403).json({ error: 'Transaction belongs to another account', code: ownership });
+      }
+    }
     valid = google.valid;
   }
   if (!valid) return res.status(400).json({ error: 'Invalid or unverified transaction' });
@@ -987,6 +1014,19 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
   }
 
   const verified = await verifyGoogleSubscription(googlePurchaseToken, expectedProductId);
+  if (verified.ok === false && verified.reason === 'unavailable') {
+    // Play has taken the first payment. Refusing the token permanently would
+    // leave a charged subscriber with no entitlement, so ask for a retry.
+    logger.error(
+      { productId: expectedProductId, userId: user.sub, detail: verified.error },
+      'Google subscription verification unavailable — retry is safe',
+    );
+    return res.status(503).json({
+      error: 'Google Play verification is temporarily unavailable',
+      code: 'verification_unavailable',
+      retry: true,
+    });
+  }
   if (verified.ok === false || !verified.entitled) {
     return res.status(400).json({
       error: 'Invalid or unverified subscription',
@@ -999,6 +1039,17 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     verified.basePlanId !== CREATOR_MEMBERSHIP_BASE_PLAN_ID
   ) {
     return res.status(400).json({ error: 'Base plan mismatch' });
+  }
+  const googleOwnership = googleTokenOwnershipError(user.sub, verified.externalAccountId);
+  if (googleOwnership) {
+    logger.warn(
+      { userId: user.sub, creatorId, ownership: googleOwnership },
+      'Membership rejected — Google subscription belongs to another account',
+    );
+    return res.status(403).json({
+      error: 'Transaction belongs to another account',
+      code: googleOwnership,
+    });
   }
 
   const purchaseTokenHash = hashPurchaseToken(googlePurchaseToken);

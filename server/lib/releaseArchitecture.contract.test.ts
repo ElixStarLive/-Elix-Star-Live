@@ -67,12 +67,50 @@ describe("release architecture contracts", () => {
     expect(misc.match(/appleTokenOwnershipError\(\s*\n?\s*user\.sub/g)?.length).toBe(3);
   });
 
+  it("enforces Google obfuscatedExternalAccountId ownership on coins, promote and membership", () => {
+    const misc = read("server/routes/misc.ts");
+    // One ownership check, used by every Google settlement route.
+    expect(misc.match(/googleTokenOwnershipError\(user\.sub/g)?.length).toBe(3);
+    // Google only returns the id when the billing flow supplied it, so an absent
+    // id must fall back to first-settlement binding rather than reject the buyer.
+    expect(misc).toContain("if (!actual) return null;");
+  });
+
   it("Google consume is server-authoritative after durable credit", () => {
     const misc = read("server/routes/misc.ts");
     expect(misc).toContain("consumeGooglePlayAfterCredit");
     expect(misc).toContain("googlePlayConsume");
     const consume = read("server/lib/googlePlayConsume.ts");
     expect(consume).toContain('type: "google_play_consume"');
+  });
+
+  it("one Google Play verifier, and no verdict from Google stays retryable", () => {
+    const misc = read("server/routes/misc.ts");
+    // Every Play settlement route asks the same androidpublisher client. A
+    // second hand-rolled verifier in a route file drifts from this one.
+    expect(misc).toContain("verifyGooglePlayProductPurchase");
+    expect(misc).not.toContain("oauth2.googleapis.com/token");
+    expect(misc).not.toContain("androidpublisher.googleapis.com");
+    expect(misc.match(/google\.valid === false && google\.reason === 'unavailable'/g)?.length).toBe(
+      2,
+    );
+    const play = read("server/lib/googlePlaySubscriptions.ts");
+    expect(play).toContain("function googleApiFailureReason");
+    expect(play).toContain("google-purchase-refunded");
+  });
+
+  it("an unreachable Google never revokes a Play subscriber", () => {
+    const notif = read("server/routes/iapNotifications.ts");
+    const reconcile = notif.slice(
+      notif.indexOf("async function reconcileGoogleSubscriptionEntitlement"),
+      notif.indexOf("export async function handleGooglePlayRtdn"),
+    );
+    expect(reconcile).toContain('reason === "unavailable"');
+    expect(reconcile.indexOf('reason === "unavailable"')).toBeLessThan(
+      reconcile.indexOf("neonUpdateMembershipSubscriptionState"),
+    );
+    // RTDN must name this app; a message with no packageName is not evidence.
+    expect(notif).toContain("decoded.packageName !== expectedPackage");
   });
 
   it("creator payout Connect uses v2 Account Links and stays in-app", () => {
