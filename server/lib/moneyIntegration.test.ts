@@ -12,12 +12,13 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { normalizeDatabaseUrl } from "./databaseUrl";
+import {
+  applyRepoMigrations,
+  assertSafeTestDatabase,
+  createTestPool,
+} from "./testMigrationBootstrap";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_URL = normalizeDatabaseUrl(
   (process.env.TEST_DATABASE_URL || "").trim(),
 );
@@ -27,72 +28,13 @@ const REQUIRE =
   process.env.REQUIRE_MONEY_IT === "1" ||
   process.env.REQUIRE_MONEY_IT === "true";
 
-function assertNotProductionHost(url: string) {
-  if (process.env.ALLOW_MONEY_IT_ON_URL !== "1") {
-    throw new Error(
-      "Refusing money IT without ALLOW_MONEY_IT_ON_URL=1 (safety gate)",
-    );
-  }
-  const host = (() => {
-    try {
-      return new URL(url.replace(/^postgres(ql)?:/i, "http:")).hostname;
-    } catch {
-      return "";
-    }
-  })();
-  const marker = `${host} ${url}`.toLowerCase();
-  if (
-    /neon\.tech/.test(marker) &&
-    !/(test|branch|ephemeral|dev|money.?it)/.test(marker)
-  ) {
-    throw new Error(
-      "Refusing Neon host that does not look like a dedicated test branch",
-    );
-  }
-}
-
 describe.skipIf(!RUN)("Money wallet integration (isolated DB)", () => {
   let pool: pg.Pool;
 
   beforeAll(async () => {
-    assertNotProductionHost(TEST_URL);
-    const needsSsl =
-      TEST_URL.includes("neon.tech") || TEST_URL.includes("sslmode=require");
-    pool = new pg.Pool({
-      connectionString: TEST_URL,
-      max: 4,
-      ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
-    });
-    const client = await pool.connect();
-    try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS elix_schema_migrations (
-          id SERIAL PRIMARY KEY,
-          filename TEXT NOT NULL UNIQUE,
-          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `);
-      const applied = new Set(
-        (
-          await client.query<{ filename: string }>(
-            `SELECT filename FROM elix_schema_migrations`,
-          )
-        ).rows.map((r) => r.filename),
-      );
-      const dir = path.join(__dirname, "../migrations");
-      const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-      for (const name of files) {
-        if (applied.has(name)) continue;
-        const sql = fs.readFileSync(path.join(dir, name), "utf8");
-        await client.query(sql);
-        await client.query(
-          `INSERT INTO elix_schema_migrations (filename) VALUES ($1)`,
-          [name],
-        );
-      }
-    } finally {
-      client.release();
-    }
+    assertSafeTestDatabase(TEST_URL);
+    pool = createTestPool(TEST_URL, 4);
+    await applyRepoMigrations(pool);
   }, 180_000);
 
   afterAll(async () => {

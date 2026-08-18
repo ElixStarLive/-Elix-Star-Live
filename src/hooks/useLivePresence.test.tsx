@@ -54,11 +54,12 @@ let root: Root;
 
 /** Renders the hook's answer as text so a test reads what a ring would show. */
 function Probe({ enabled = true }: { enabled?: boolean }) {
-  const { creatorIds, streamKeys } = useLivePresence("token", enabled);
+  const { creatorIds, streamKeys, ready } = useLivePresence("token", enabled);
   return (
     <div>
       <span id="creators">{[...creatorIds].sort().join(",")}</span>
       <span id="keys">{[...streamKeys].sort().join(",")}</span>
+      <span id="ready">{ready ? "yes" : "no"}</span>
     </div>
   );
 }
@@ -69,6 +70,10 @@ function creators(): string {
 
 function keys(): string {
   return container.querySelector("#keys")?.textContent ?? "";
+}
+
+function ready(): string {
+  return container.querySelector("#ready")?.textContent ?? "";
 }
 
 async function flush(): Promise<void> {
@@ -230,6 +235,51 @@ describe("useLivePresence", () => {
     expect(creators()).toBe("");
   });
 
+  it("does not claim to know who is live until the server answers", async () => {
+    let release: (value: unknown) => void = () => {};
+    mocked.apiLiveStreams.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    await act(async () => {
+      root.render(<Probe />);
+    });
+
+    // An empty set here means "not known yet". A surface that filters its own rows
+    // by presence would otherwise blank every row for the first frame.
+    expect(creators()).toBe("");
+    expect(ready()).toBe("no");
+
+    await act(async () => {
+      release({ streams: [{ hostUserId: "creator-a", stream_key: "room-a" }], error: null });
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(ready()).toBe("yes");
+    expect(creators()).toBe("creator-a");
+  });
+
+  it("stays unknown while the snapshot is failing, then trusts an event", async () => {
+    mocked.apiLiveStreams.mockResolvedValue({ streams: [], error: "offline" });
+    await mount();
+
+    expect(ready()).toBe("no");
+
+    await act(async () => {
+      mocked.presenceHandlers.onStreamStarted?.({
+        user_id: "creator-e",
+        stream_key: "room-e",
+      });
+    });
+
+    expect(ready()).toBe("yes");
+    expect(creators()).toBe("creator-e");
+  });
+
   it("holds nothing and subscribes to nothing while disabled", async () => {
     mocked.apiLiveStreams.mockResolvedValue({
       streams: [{ hostUserId: "creator-a", stream_key: "room-a" }],
@@ -239,6 +289,7 @@ describe("useLivePresence", () => {
     await mount(false);
 
     expect(creators()).toBe("");
+    expect(ready()).toBe("no");
     expect(mocked.apiLiveStreams).not.toHaveBeenCalled();
     expect(mocked.presenceHandlers.onStreamEnded).toBeUndefined();
   });

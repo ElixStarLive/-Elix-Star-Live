@@ -4,14 +4,15 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import pg from "pg";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { normalizeDatabaseUrl } from "../databaseUrl";
+import {
+  applyRepoMigrations,
+  assertSafeTestDatabase,
+  createTestPool,
+} from "../testMigrationBootstrap";
 import { recordQualifiedRewardView } from "./qualifiedViews";
 import { splitNetRevenue } from "./moneyMath";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_URL = normalizeDatabaseUrl((process.env.TEST_DATABASE_URL || "").trim());
 const RUN = !!TEST_URL;
 
@@ -19,49 +20,9 @@ describe.skipIf(!RUN)("Monetisation DB integration", () => {
   let pool: pg.Pool;
 
   beforeAll(async () => {
-    if (process.env.ALLOW_MONEY_IT_ON_URL !== "1") {
-      throw new Error("Refusing without ALLOW_MONEY_IT_ON_URL=1");
-    }
-    const dbName = (() => {
-      try {
-        return new URL(TEST_URL.replace(/^postgres(ql)?:/i, "http:")).pathname.replace(/^\//, "").toLowerCase();
-      } catch { return ""; }
-    })();
-    if (!dbName || !/(test|dev|ephemeral|money.?it)/.test(dbName)) {
-      throw new Error(
-        `Refusing database "${dbName}" — name must contain test, dev, ephemeral, or money_it.`,
-      );
-    }
-    pool = new pg.Pool({
-      connectionString: TEST_URL,
-      max: 4,
-      ssl: TEST_URL.includes("neon.tech") ? { rejectUnauthorized: false } : undefined,
-    });
-    const client = await pool.connect();
-    try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS elix_schema_migrations (
-          id SERIAL PRIMARY KEY,
-          filename TEXT NOT NULL UNIQUE,
-          applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )`);
-      const applied = new Set(
-        (await client.query<{ filename: string }>(`SELECT filename FROM elix_schema_migrations`)).rows.map(
-          (r) => r.filename,
-        ),
-      );
-      const dir = path.join(__dirname, "../../migrations");
-      for (const name of fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
-        if (applied.has(name)) continue;
-        await client.query(fs.readFileSync(path.join(dir, name), "utf8"));
-        await client.query(
-          `INSERT INTO elix_schema_migrations (filename) VALUES ($1) ON CONFLICT (filename) DO NOTHING`,
-          [name],
-        );
-      }
-    } finally {
-      client.release();
-    }
+    assertSafeTestDatabase(TEST_URL);
+    pool = createTestPool(TEST_URL, 4);
+    await applyRepoMigrations(pool);
     // Point getPool used by recordQualifiedRewardView — set env DATABASE_URL for this process
     process.env.DATABASE_URL = TEST_URL;
   }, 180_000);

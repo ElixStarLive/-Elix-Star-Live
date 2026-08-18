@@ -38,6 +38,14 @@ export type LivePresence = {
   creatorIds: Set<string>;
   /** Room names / stream keys currently on air. */
   streamKeys: Set<string>;
+  /**
+   * True once the server has actually answered who is live.
+   *
+   * An empty set means "nobody is live" only after that. Before it — and while a
+   * snapshot is failing — it means "not known yet", which a surface that *filters*
+   * its own rows by presence must not read as "everyone ended".
+   */
+  ready: boolean;
 };
 
 /** One live, and when this client learned about it. */
@@ -79,6 +87,7 @@ export function useLivePresence(
   enabled = true,
 ): LivePresence {
   const [entries, setEntries] = useState<LiveEntry[]>([]);
+  const [ready, setReady] = useState(false);
   const endedAtRef = useRef<Map<string, number>>(new Map());
   const gateRef = useRef(createLiveSnapshotGate());
 
@@ -102,11 +111,13 @@ export function useLivePresence(
       }),
     );
     pruneEndedBefore(endedAtRef.current, requestedAt);
+    setReady(true);
   }, []);
 
   useEffect(() => {
     if (!enabled) {
       setEntries([]);
+      setReady(false);
       endedAtRef.current.clear();
       return;
     }
@@ -125,6 +136,8 @@ export function useLivePresence(
         const key = creatorId || streamKeys[0] || '';
         if (!key) return;
         endedAtRef.current.delete(key);
+        // An event is the server speaking, so it is an authoritative answer too.
+        setReady(true);
         setEntries((previous) =>
           previous.some((e) => e.key === key)
             ? previous
@@ -138,6 +151,7 @@ export function useLivePresence(
         const streamKey = readField(data, 'stream_key', 'streamKey', 'room_id', 'roomId');
         const key = creatorId || streamKey;
         if (!key) return;
+        setReady(true);
         endedAtRef.current.set(key, Date.now());
         setEntries((previous) =>
           previous.filter(
@@ -158,6 +172,6 @@ export function useLivePresence(
       if (entry.creatorId) creatorIds.add(entry.creatorId);
       for (const key of entry.streamKeys) streamKeys.add(key);
     }
-    return { creatorIds, streamKeys };
-  }, [entries]);
+    return { creatorIds, streamKeys, ready };
+  }, [entries, ready]);
 }

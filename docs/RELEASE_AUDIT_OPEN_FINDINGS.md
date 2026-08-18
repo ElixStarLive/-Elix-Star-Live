@@ -5,25 +5,52 @@ A finding leaves this file only when it is fixed, with the commit recorded.
 
 ## Still open
 
-### OPEN — P3 — live rings inside the host / spectator share panels
-
-The one live-indicator surface Step 13 could not close, with the reason.
-
-`loadSharePanelContactsWithLive` feeds the share panels opened *from inside* a
-live (`useLiveHostController`, `useLiveSpectatorController`). Those screens own
-the websocket singleton for their live room, and `stream_started` /
-`stream_ended` are sent only to `__feed__` subscribers
-(`server/websocket/index.ts` registers a feed subscriber only for the `__feed__`
-room). `connectLiveFeedPresence` deliberately refuses to steal the socket back
-while a live room owns it, so a presence subscription mounted there could never
-receive an event — wiring it would have been dead code, not a fix.
-
-Closing this properly needs one of two owner decisions, both outside Step 13:
-widen the server's presence fan-out beyond feed subscribers, or give the live
-screens a second transport. The rings are correct when the panel opens; a contact
-who ends while it is open keeps a ring until it is reopened.
+Nothing open.
 
 ## Closed
+
+### CLOSED in Step 13 — P3 — live indicators inside live screens
+
+Raised in Step 13 as blocked on transport. The root cause was on the server:
+presence was fanned out only to `__feed__` subscribers, so a screen that owned
+the websocket for its own live room could not learn that some *other* creator had
+started or ended. `connectLiveFeedPresence` correctly refuses to steal the socket
+from a live room, so no client-side wiring could have worked.
+
+Fixed by making presence what it already claimed to be — a global server event
+stream, not a feed-room feature. `server/websocket/index.ts` now registers every
+authenticated connection as a presence subscriber and removes it on close,
+whatever room it owns; `server/feedBroadcast.ts` still owns the events and still
+names the creator with `host_user_id`. One socket, one presence architecture, no
+polling, no timers, no reconnect to subscribe. Room-scoped traffic (chat, gifts,
+co-host, battle) is unchanged and still goes to the room.
+
+Surfaces closed on that: the host and spectator share panels now read
+`useLivePresence` (`useLiveHostController`, `useLiveSpectatorController`), and
+`loadSharePanelContactsWithLive` is deleted — its `apiLiveStreams` call was the
+one-shot snapshot the hook replaces. `RankingPanel`'s LIVE Popular tab does make
+a presence claim ("Creators live right now"), so it is now filtered by presence
+too; the hook reports `ready` so an unanswered snapshot is never read as
+"everyone ended". Coverage: `server/livePresenceFanout.test.ts`,
+`src/components/RankingPanel.presence.test.tsx`,
+`src/hooks/useLivePresence.test.tsx`.
+
+### CLOSED in Step 13 — P1 — battle-result durability proven against real Neon
+
+The persistence path was source-reviewed only, and 31 DB tests were skipped for
+want of a database. A dedicated Neon test database now runs them:
+`server/websocket/battleResults.db.test.ts` drives finalize → outbox →
+`dbInsertBattleResult` against real Neon, covering `battle_results.battle_id`
+uniqueness, participant rows, idempotent retry, a duplicate finalizer, a Neon
+outage that leaves the result queued, recovery writing the true score, the outbox
+clearing only after a confirmed commit, a rematch as its own row, and a
+partially-frozen battle never being stored as a final result.
+
+The four existing DB suites were failing when run together because each carried
+its own migration bootstrap and they raced (`elix_schema_migrations already
+exists`, duplicate type). `server/lib/testMigrationBootstrap.ts` is now the one
+bootstrap: a `pg_advisory_lock` serialises the chain and each migration file runs
+in its own transaction, matching `server/migrate.ts`.
 
 ### CLOSED in Step 13 — P2 — live indicators that snapshot once and never refresh
 
@@ -47,11 +74,10 @@ offering a tap into a dead room. Coverage:
 `src/hooks/useLivePresence.test.tsx`,
 `src/components/LiveNotifyBanner.presence.test.tsx`.
 
-Closed with proof rather than changed: `src/components/RankingPanel.tsx` renders
-only inside `LiveHostScreen` / `SpectatorLiveScreen`, which own the socket for
-their live room and therefore never receive feed presence events — the same
-transport limit as the share panels above; its list reloads whenever the panel is
-opened. `src/pages/Profile.tsx` declares `is_live` on the reposts row type but
+`src/components/RankingPanel.tsx` was deferred here for the transport reason and
+is closed above, once presence reached live-room connections.
+
+Closed with proof rather than changed: `src/pages/Profile.tsx` declares `is_live` on the reposts row type but
 never reads it: no live ring is rendered from it, and navigation keys off
 `content_kind === 'live' && stream_key`, so there is no presence claim to fix.
 

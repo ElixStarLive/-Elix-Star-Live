@@ -22,7 +22,8 @@ import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { attemptBattleSpeedChallengeUnlock } from '../battle/attemptBattleSpeedChallengeUnlock';
-import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
+import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
+import { useLivePresence } from '../../../hooks/useLivePresence';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { appendLiveLevelUpBanner } from '../chat/appendLiveLevelUpBanner';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
@@ -279,7 +280,12 @@ export function useLiveSpectatorController() {
   const testCoinsPwdRef = useRef<HTMLInputElement>(null);
   const [shareQuery, setShareQuery] = useState('');
   const [shareContacts, setShareContacts] = useState<{ id: string; name: string; avatar: string }[]>([]);
-  const [shareLiveUserIds, setShareLiveUserIds] = useState<Set<string>>(() => new Set());
+  // Same authority and same reason as the host share panel: the rings stay correct
+  // while the panel is open, on this connection, without leaving the live room.
+  const { creatorIds: shareLiveUserIds } = useLivePresence(
+    useAuthStore((s) => s.session?.access_token),
+    showSharePanel,
+  );
   const [lastSentGift, setLastSentGift] = useState<GiftUiItem | null>(null);
   const [comboCount, setComboCount] = useState(0);
   const [showComboButton, setShowComboButton] = useState(false);
@@ -2859,10 +2865,7 @@ export function useLiveSpectatorController() {
     let cancelled = false;
     (async () => {
       try {
-        const { contacts, liveUserIds } = await loadSharePanelContactsWithLive(
-          user?.id,
-          'spectator_share_live_streams',
-        );
+        const contacts = await fetchAllSharePanelContacts(user?.id);
         const mapped = contacts.map((r) => ({
           id: r.user_id,
           name: r.username,
@@ -2870,7 +2873,6 @@ export function useLiveSpectatorController() {
         }));
         if (cancelled) return;
         setShareContacts(mapped);
-        if (liveUserIds) setShareLiveUserIds(liveUserIds);
       } catch (e) {
         if (!cancelled) {
           reportFailure('spectator_share_contacts', e);

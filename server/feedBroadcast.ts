@@ -1,7 +1,21 @@
 /**
- * Broadcast to all For You feed subscribers so live creators appear in realtime.
- * When a stream starts (POST /api/live/start) or ends (host disconnect / POST /api/live/end),
- * we push to every client subscribed to the "feed" WebSocket channel.
+ * The live-presence event stream: who went on air, and who went off.
+ *
+ * This channel carries exactly two events — `stream_started` and `stream_ended` —
+ * so it is presence, not feed content. Presence is global: a creator ending their
+ * live is the same fact whether the client watching that fact is looking at For
+ * You, a profile, a share sheet, or is itself inside another live room.
+ *
+ * Every authenticated connection therefore subscribes, whatever room it owns
+ * (`server/websocket/index.ts`). It used to be only `__feed__` connections, which
+ * tied presence delivery to the client's room membership: a live screen owns the
+ * single websocket for its own live room, so every live indicator on top of it
+ * (share panels, rings) went stale the moment it opened and could not be fixed on
+ * the client — the events never arrived. Room-scoped events are unaffected: those
+ * still go to the room, through `broadcastToRoom`.
+ *
+ * Subscribers are keyed by socket, so a client cannot be delivered a presence
+ * event twice.
  */
 
 import { randomUUID } from "crypto";
@@ -14,6 +28,7 @@ const FEED_CHANNEL = "feed:global";
 
 const feedSubscribers = new Set<WebSocket>();
 
+/** Every authenticated connection, feed or live room. Idempotent per socket. */
 export function addFeedSubscriber(ws: WebSocket): void {
   feedSubscribers.add(ws);
 }

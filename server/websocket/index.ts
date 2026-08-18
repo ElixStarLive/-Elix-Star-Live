@@ -1385,8 +1385,11 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           }
         }
 
+        // Every authenticated connection is a presence subscriber, so every one of
+        // them is removed here — not just the feed sockets.
+        removeFeedSubscriber(ws);
+
         if (client.roomId === "__feed__") {
-          removeFeedSubscriber(ws);
           clients.delete(ws);
           return;
         }
@@ -1581,6 +1584,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       };
 
       clients.set(ws, client);
+
+      // Live presence is global, so it does not depend on which room this
+      // connection owns. A live screen owns the socket for its own room, and the
+      // live indicators it renders on top (share panel rings, live rows) are about
+      // OTHER creators — without this they could only ever show the snapshot taken
+      // when the screen opened. Room-scoped events still come from the room.
+      addFeedSubscriber(ws);
 
       // Populate the real identity from the profile so join/leave events show
       // the actual username (and name/avatar/level) instead of the "Anonymous"

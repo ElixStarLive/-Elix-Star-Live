@@ -14,6 +14,8 @@ import {
   apiLiveRankingsWeekly,
 } from '../features/live/engagement/liveEngagementApi';
 import { apiLiveStreams } from '../lib/live';
+import { useLivePresence } from '../hooks/useLivePresence';
+import { useAuthStore } from '../store/useAuthStore';
 import { showToast } from '../lib/toast';
 
 interface CreatorRanking {
@@ -31,6 +33,19 @@ export type RankingPerson = {
   avatar?: string | null;
   points: number;
   subtitle?: string;
+};
+
+/**
+ * A LIVE Popular row plus how the server names that live.
+ *
+ * The displayed id falls back to a room name, and then to a list index, so it
+ * cannot be used to ask "is this creator still on air?" — a room name is not an
+ * identity, and an index is not either.
+ */
+type LivePopularRow = {
+  person: RankingPerson;
+  creatorId: string;
+  streamKey: string;
 };
 
 /** Host-only: pick a gift + target count from the gift catalog (gift-panel style). */
@@ -102,8 +117,17 @@ export function RankingPanel({
   const [tab, setTab] = useState<LiveRankTab>(initialTab);
   const [weekly, setWeekly] = useState<CreatorRanking[]>([]);
   const [daily, setDaily] = useState<CreatorRanking[]>([]);
-  const [livePopular, setLivePopular] = useState<RankingPerson[]>([]);
+  const [livePopular, setLivePopular] = useState<LivePopularRow[]>([]);
   const [loading, setLoading] = useState(true);
+  // "Creators live right now" is a presence claim, and this panel only ever asked
+  // once. The panel is opened from inside a live, and the server now fans presence
+  // out to every authenticated connection, so a creator who ends while it is open
+  // leaves the list on the server's word — no reopen, no poll.
+  const {
+    creatorIds: liveCreatorIds,
+    streamKeys: liveStreamKeys,
+    ready: livePresenceReady,
+  } = useLivePresence(useAuthStore((s) => s.session?.access_token));
 
   useEffect(() => {
     setTab(initialTab);
@@ -132,22 +156,28 @@ export function RankingPanel({
         setDaily(mapRankings(dailyList));
 
         const streamsRaw = Array.isArray(streamsRes.streams) ? streamsRes.streams : [];
-        const liveList: RankingPerson[] = (streamsRaw as Record<string, unknown>[])
+        const liveList: LivePopularRow[] = (streamsRaw as Record<string, unknown>[])
           .map((s, i) => {
             const viewers =
               Number(s.viewer_count ?? s.viewers ?? s.viewerCount ?? 0) || 0;
             const name =
               String(s.display_name || s.username || s.title || 'Live') || 'Live';
+            const creatorId = String(s.user_id || s.creator_id || s.hostUserId || '').trim();
+            const streamKey = String(s.stream_key ?? s.room ?? s.room_id ?? '').trim();
             const id = String(s.user_id || s.creator_id || s.room || s.id || i);
             return {
-              id,
-              name,
-              avatar: (s.avatar_url as string) || (s.avatar as string) || null,
-              points: viewers,
-              subtitle: 'watching now',
+              person: {
+                id,
+                name,
+                avatar: (s.avatar_url as string) || (s.avatar as string) || null,
+                points: viewers,
+                subtitle: 'watching now',
+              },
+              creatorId,
+              streamKey,
             };
           })
-          .sort((a, b) => b.points - a.points)
+          .sort((a, b) => b.person.points - a.person.points)
           .slice(0, 50);
         setLivePopular(liveList);
       } catch {
@@ -166,9 +196,22 @@ export function RankingPanel({
   }, []);
 
   const creatorList = tab === 'daily' ? daily : weekly;
+  // A row survives while the server still has that live. A row the server cannot
+  // name (no creator id and no room) is left as the snapshot gave it, rather than
+  // guessed at from a display id.
+  const livePopularOnAir = livePopular
+    .filter((row) => {
+      if (!livePresenceReady) return true;
+      if (!row.creatorId && !row.streamKey) return true;
+      return (
+        (row.creatorId && liveCreatorIds.has(row.creatorId)) ||
+        (row.streamKey && liveStreamKeys.has(row.streamKey))
+      );
+    })
+    .map((row) => row.person);
   const personList: RankingPerson[] =
     tab === 'live'
-      ? livePopular
+      ? livePopularOnAir
       : tab === 'gifters'
         ? (sessionGifters.length > 0
             ? sessionGifters

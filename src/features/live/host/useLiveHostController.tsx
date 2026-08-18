@@ -25,7 +25,8 @@ import { useBattleScoreVfxTrigger } from '../battle/useBattleScoreVfxTrigger';
 import { createBattleBoosterMistHandlers } from '../battle/battleBoosterMistEvents';
 import { battleStreamIdsFromPayload } from '../battle/battleStreamIdsFromPayload';
 import { attemptBattleSpeedChallengeUnlock } from '../battle/attemptBattleSpeedChallengeUnlock';
-import { loadSharePanelContactsWithLive } from '../share/loadSharePanelContactsWithLive';
+import { fetchAllSharePanelContacts } from '../../../lib/sharePanelContacts';
+import { useLivePresence } from '../../../hooks/useLivePresence';
 import { createLiveGiftGoalAndViewerCountHandlers } from '../chat/createLiveGiftGoalAndViewerCountHandlers';
 import { loadDiamondLeagueRankForCreator } from '../engagement/loadDiamondLeagueRankForCreator';
 import { loadLiveModeratorsForRoom } from '../engagement/loadLiveModeratorsForRoom';
@@ -2167,7 +2168,15 @@ export function useLiveHostController() {
   const [shareQuery, setShareQuery] = useState('');
   const [shareFollowers, setShareFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [shareSentTo, setShareSentTo] = useState<Set<string>>(new Set());
-  const [shareLiveUserIds, setShareLiveUserIds] = useState<Set<string>>(() => new Set());
+  // Live rings on the share rows follow the server for as long as the panel is
+  // open, from the same authority every other ring uses. This panel is opened from
+  // inside a live, and this connection stays on its live room: the server fans
+  // presence out to every authenticated connection, so nothing here needs a second
+  // socket, a poll or a reopen.
+  const { creatorIds: shareLiveUserIds } = useLivePresence(
+    useAuthStore((s) => s.session?.access_token),
+    showSharePanel,
+  );
 
   useEffect(() => {
     if (!showSharePanel) {
@@ -2177,13 +2186,9 @@ export function useLiveHostController() {
     let cancelled = false;
     (async () => {
       try {
-        const { contacts, liveUserIds } = await loadSharePanelContactsWithLive(
-          user?.id,
-          'live_share_live_streams',
-        );
+        const contacts = await fetchAllSharePanelContacts(user?.id);
         if (cancelled) return;
         setShareFollowers(contacts);
-        if (liveUserIds) setShareLiveUserIds(liveUserIds);
       } catch (e) {
         if (!cancelled) {
           reportFailure('live_share_contacts', e);
