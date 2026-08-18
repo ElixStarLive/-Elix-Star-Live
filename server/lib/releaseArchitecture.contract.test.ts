@@ -200,20 +200,22 @@ describe("release architecture contracts", () => {
     expect(withdrawals).toContain("settled.currency !== currency");
   });
 
-  it("both withdrawal rails share one email gate that fails closed", () => {
+  it("the GBP withdrawal rail goes through one email gate that fails closed", () => {
     const payout = read("server/routes/payout.ts");
     expect(payout).toContain("async function withdrawalEmailGate");
     expect(payout).toContain("isEmailConfigured()");
     expect(payout).toContain("Please confirm your email before requesting a payout");
-    // Coins and GBP both go through the gate, and a broken check refuses.
-    expect(payout.match(/await withdrawalEmailGate\(db, userId\)/g)?.length).toBe(2);
-    expect(payout.match(/if \(emailGate\) \{/g)?.length).toBe(2);
+    // GBP is the only withdrawal rail, and a broken check refuses the payout.
+    expect(payout.match(/await withdrawalEmailGate\(db, userId\)/g)?.length).toBe(1);
+    expect(payout.match(/if \(emailGate\) \{/g)?.length).toBe(1);
     expect(payout).toContain("payout email-confirm check failed — withdrawal refused");
+    // The obsolete coin-withdraw rail must not come back beside it.
+    expect(payout).not.toContain("export async function handleCreatorWithdraw(");
   });
 
   it("withdrawals and Connect onboarding are rate limited per creator", () => {
     const router = read("server/routes/payout.router.ts");
-    expect(router.match(/creatorPayoutLimiter/g)?.length).toBe(4);
+    expect(router.match(/creatorPayoutLimiter/g)?.length).toBe(3);
     const limits = read("server/middleware/rateLimit.ts");
     expect(limits).toContain("export const creatorPayoutLimiter");
     expect(limits).toContain('keyPrefix: "creator_payout_user"');

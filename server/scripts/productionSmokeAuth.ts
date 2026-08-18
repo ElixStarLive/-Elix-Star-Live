@@ -150,8 +150,8 @@ async function main() {
     }
   }
 
-  const sounds = await hit("/api/sounds", null, 200, "anon_sounds");
-  if (!sounds.ok) failed++;
+  const music = await hit("/api/music/status", null, 200, "anon_music_status");
+  if (!music.ok) failed++;
   const anonEng = await hit(
     "/api/engagement/missions",
     null,

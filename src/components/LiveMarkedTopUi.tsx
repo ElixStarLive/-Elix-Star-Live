@@ -97,41 +97,25 @@ const ACTION_PILL_STYLE: React.CSSProperties = {
   marginTop: 0,
 };
 
-/** Pink + Follow pill — legacy hot-pink; kept for any non-profile uses. */
+/** Red Follow pill — standalone pill beside the host profile, above the Join slot. */
 function LiveFollowPill({
   onFollow,
-  variant = 'capsule',
   isFollowing = false,
 }: {
   onFollow: (e: React.MouseEvent) => void;
-  /** `photo` = standalone pill next to host profile (mock). `capsule` = overlay on Join slot. */
-  variant?: 'capsule' | 'photo';
-  /** When true, capsule stays visible with "Following" label. */
+  /** When true, the pill stays visible with the "Following" label. */
   isFollowing?: boolean;
 }) {
   const label = isFollowing ? 'Following' : 'Follow';
-  if (variant === 'photo') {
-    return (
-      <button
-        type="button"
-        className={`${ACTION_PILL_CLASS} border border-[#EF4444] bg-[#EF4444]`}
-        style={ACTION_PILL_STYLE}
-        onClick={onFollow}
-        aria-label={label}
-      >
-        <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">{label}</span>
-      </button>
-    );
-  }
   return (
     <button
       type="button"
-      className="col-start-1 row-start-1 z-20 relative flex items-center justify-center gap-0.5 self-stretch h-full rounded-full bg-transparent border border-[#D8D9DD]/40 w-full"
+      className={`${ACTION_PILL_CLASS} border border-[#EF4444] bg-[#EF4444]`}
+      style={ACTION_PILL_STYLE}
       onClick={onFollow}
       aria-label={label}
     >
-      {!isFollowing ? <Plus size={12} className="text-white" strokeWidth={3} /> : null}
-      <span className="text-white text-[10px] font-bold">{label}</span>
+      <span className="text-white text-[13px] font-semibold leading-none whitespace-nowrap">{label}</span>
     </button>
   );
 }
@@ -269,7 +253,7 @@ export function LiveHostProfileHeader({
                   {joinSlot}
                 </span>
               ) : showFollow && !isFollowing ? (
-                <LiveFollowPill variant="photo" isFollowing={false} onFollow={onFollow} />
+                <LiveFollowPill isFollowing={false} onFollow={onFollow} />
               ) : null}
             </div>
           ) : null}

@@ -590,33 +590,6 @@ export async function handleTrackInteraction(req: Request, res: Response) {
   }
 }
 
-export async function handleGetVideoScore(req: Request, res: Response) {
-  try {
-    const videoId = req.params.videoId;
-    if (!videoId) return res.status(400).json({ error: "videoId required" });
-    res.setHeader("Cache-Control", "private, no-store");
-
-    const db = getPool();
-    if (!db) {
-      return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
-    }
-
-    try {
-      const result = await db.query(`SELECT * FROM video_scores WHERE video_id = $1 LIMIT 1`, [videoId]);
-      res.json({ score: result.rows?.[0] ?? null });
-    } catch (err: unknown) {
-      const code = (err as { code?: string })?.code;
-      if (code === "42P01") {
-        return res.json({ score: null });
-      }
-      throw err;
-    }
-  } catch (err: unknown) {
-    logger.error({ err: errMessage(err) }, "GetVideoScore error");
-    res.status(500).json({ error: "Failed to get score" });
-  }
-}
-
 const FRIENDS_SQL = `SELECT v.id, v.url, v.thumbnail, v.duration, v.description, v.hashtags, v.music,
                 v.views, v.likes, v.comments, v.shares, v.saves,
                 v.created_at, v.privacy, v.user_id,

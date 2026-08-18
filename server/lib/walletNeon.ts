@@ -275,67 +275,6 @@ export async function neonCreditIap(input: {
   }
 }
 
-export async function neonListLedger(userId: string, limit: number): Promise<
-  Array<{
-    id: string;
-    type: "purchase" | "gift_debit";
-    coinsDelta: number;
-    createdAt: string;
-    provider?: string;
-    productId?: string;
-    providerTransactionId?: string;
-    giftId?: string;
-    roomId?: string;
-    clientTransactionId?: string;
-    status: "completed";
-  }>
-> {
-  const pool = getPool();
-  if (!pool) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    const r = await pool.query(
-      `SELECT id, kind, coins_delta, provider, provider_transaction_id, product_id, gift_id, room_id, client_transaction_id, created_at
-       FROM elix_wallet_ledger WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
-      [userId, limit],
-    );
-    return (r.rows || []).map((row: Record<string, unknown>) => {
-      const createdAt =
-        row.created_at instanceof Date
-          ? row.created_at.toISOString()
-          : String(row.created_at ?? "");
-      if (row.kind === "iap_purchase") {
-        return {
-          id: String(row.id),
-          type: "purchase" as const,
-          coinsDelta: Number(row.coins_delta),
-          createdAt,
-          provider: row.provider != null ? String(row.provider) : undefined,
-          productId: row.product_id != null ? String(row.product_id) : undefined,
-          providerTransactionId:
-            row.provider_transaction_id != null ? String(row.provider_transaction_id) : undefined,
-          status: "completed" as const,
-        };
-      }
-      return {
-        id: String(row.id),
-        type: "gift_debit" as const,
-        coinsDelta: Number(row.coins_delta),
-        createdAt,
-        giftId: row.gift_id != null ? String(row.gift_id) : undefined,
-        roomId: row.room_id != null ? String(row.room_id) : undefined,
-        clientTransactionId:
-          row.client_transaction_id != null ? String(row.client_transaction_id) : undefined,
-        status: "completed" as const,
-      };
-    });
-  } catch (e) {
-    logger.warn({ err: e }, "neonListLedger failed");
-    throw e;
-  }
-}
-
 /**
  * Atomic paid-gift settlement: debit the sender's wallet AND credit the
  * recipient creator's pending earnings in a SINGLE database transaction.

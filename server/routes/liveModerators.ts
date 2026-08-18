@@ -37,18 +37,6 @@ async function listModeratorIds(streamKey: string): Promise<string[]> {
   return (rows || []).map((r) => String(r.user_id));
 }
 
-function broadcastModeratorUpdated(streamKey: string, moderators: string[]): void {
-  void import("../websocket/index")
-    .then((mod) => {
-      if (typeof mod.broadcastToRoom === "function") {
-        mod.broadcastToRoom(streamKey, "moderator_updated", { streamKey, moderators });
-      }
-    })
-    .catch(() => {
-      /* REST refetch is sufficient */
-    });
-}
-
 function respondSchemaOrDbError(res: Response, err: unknown, logMsg: string, context: Record<string, unknown>, failCode: string): void {
   if (isSchemaMissing(err)) {
     logger.error({ err, ...context }, `${logMsg} missing table`);
@@ -118,7 +106,6 @@ export async function handleAddLiveModerator(req: Request, res: Response): Promi
       [streamKey, userId, hostId],
     );
     const moderators = await listModeratorIds(streamKey);
-    broadcastModeratorUpdated(streamKey, moderators);
     res.json({ ok: true, moderators });
   } catch (err) {
     respondSchemaOrDbError(res, err, "handleAddLiveModerator failed", { streamKey, userId }, "MODERATOR_ADD_FAILED");
@@ -152,10 +139,9 @@ export async function handleRemoveLiveModerator(req: Request, res: Response): Pr
       [streamKey, userId],
     );
     const moderators = await listModeratorIds(streamKey);
-    broadcastModeratorUpdated(streamKey, moderators);
     res.json({ ok: true, moderators });
   } catch (err) {
     respondSchemaOrDbError(res, err, "handleRemoveLiveModerator failed", { streamKey, userId }, "MODERATOR_REMOVE_FAILED");
   }
 }
-
+

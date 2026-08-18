@@ -230,7 +230,6 @@ function App() {
         void useAuthStore.getState().signOut().catch((e) => reportFailure('force_disconnect_signout', e));
       };
       websocket.on("force_disconnect", onForceDisconnect);
-      websocket.on("user_banned", onForceDisconnect);
 
       // Feed presence owned by the websocket singleton. Sync on auth + route —
       // not a polling timer. Live screens take over the singleton for room IDs.
@@ -266,7 +265,6 @@ function App() {
       return () => {
         unsubCalls();
         websocket.off("force_disconnect", onForceDisconnect);
-        websocket.off("user_banned", onForceDisconnect);
       };
     } else {
       analytics.setUserId(null);

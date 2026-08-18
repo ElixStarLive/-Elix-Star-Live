@@ -801,22 +801,6 @@ video::-webkit-media-controls-overlay-enclosure,
   border-color: #EF4444 !important;
 }
 
-/* Layout picker thumbs — square FRAME only (transparent, video shows through) */
-.elix-cohost-layout-thumb {
-  border-radius: 0 !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  border: none !important;
-  /* Hairline frame — just visible */
-  box-shadow: inset 0 0 0 0.5px rgba(245, 245, 247, 0.55) !important;
-  overflow: hidden !important;
-  -webkit-clip-path: none !important;
-  clip-path: none !important;
-}
-.elix-cohost-layout-thumb-host {
-  box-shadow: inset 0 0 0 0.5px rgba(245, 245, 247, 0.75) !important;
-}
-
 /* Legacy cut class → sharp square (no corner cut) */
 .elix-cohost-cut-corner {
   border-radius: 0 !important;

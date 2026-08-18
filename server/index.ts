@@ -21,7 +21,6 @@ import { dirname, join } from "path";
 import fs from "fs";
 
 import { stripeWebhookRouter, livekitWebhookRouter, googlePlayRtdnRouter, appleIapNotifyRouter } from "./routes/webhooks.router";
-import { videoUploadRouter } from "./routes/media.router";
 import { mountRoutes } from "./routes/index";
 import { attachWebSocket, initWsPubSub, sendToUserGlobal } from "./websocket/index";
 import { setLiveShareNotifier } from "./lib/liveShareNotify";
@@ -394,12 +393,6 @@ app.use("/api", apiLimiter);
 
 // ── Global session + ban enforcement (revocation + suspensions) ──
 app.use("/api", sessionGuard);
-
-// Legacy video upload: mounted here (after backpressure/rate-limit/session
-// guard) so banned/revoked sessions are enforced and the endpoint is throttled.
-// Uses octet-stream/video content types, which express.json() above skips, so
-// its own raw body parser still receives the stream.
-app.use("/api/upload/video", videoUploadRouter);
 
 // ── Mount all API routes ─────────────────────────────────────────
 mountRoutes(app);

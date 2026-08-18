@@ -4162,8 +4162,6 @@ export function useLiveHostController() {
     };
     const unbindModerationWs = bindLiveModerationWs({
       onWarning: handleModerationWarning,
-      onPause: handleModerationWarning,
-      onSuspend: handleModerationWarning,
     });
 
     connect();

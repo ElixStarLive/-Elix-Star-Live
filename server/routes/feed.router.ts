@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { handleForYouFeed, handleFriendsFeed, handleFollowingFeed, handleTrackView, handleTrackInteraction, handleGetVideoScore } from "./feed";
+import { handleForYouFeed, handleFriendsFeed, handleFollowingFeed, handleTrackView, handleTrackInteraction } from "./feed";
 import { validateBody } from "../middleware/validate";
 import { trackViewSchema, trackInteractionSchema } from "../validation/schemas";
 import { analyticsPostLimiter } from "../middleware/rateLimit";
@@ -20,5 +20,4 @@ router.post(
   validateBody(trackInteractionSchema),
   handleTrackInteraction,
 );
-router.get("/score/:videoId", handleGetVideoScore);
 export default router;

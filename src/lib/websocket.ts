@@ -27,7 +27,6 @@ type WebSocketEvent =
   | "battle_invite_accepted"
   | "battle_accept_ack"
   | "battle_ended"
-  | "battle_created"
   | "battle_state_sync"
   | "battle_tick"
   | "battle_score"
@@ -42,11 +41,8 @@ type WebSocketEvent =
   | "cohost_layout_sync"
   | "cohost_seat_released"
   | "live_share"
-  // Moderation events (AI safety: warning → pause → suspend)
-  | "user_banned"
+  // Moderation events (AI safety)
   | "moderation_warning"
-  | "moderation_pause"
-  | "moderation_suspend"
   | "stream_ended"
   | "stream_started"
   | "booster_activated"

@@ -327,8 +327,6 @@ describe('runtime resource audit — cleanup contracts (instrumented cycles)', (
         }),
         bindLiveModerationWs({
           onWarning: () => {},
-          onPause: () => {},
-          onSuspend: () => {},
         }),
       ];
       for (const u of unbind) u();

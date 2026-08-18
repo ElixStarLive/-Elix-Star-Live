@@ -251,15 +251,12 @@ async function publishBattleInviteRoster(
     const ownerId = await resolveStreamOwnerUserId(roomId);
     if (ownerId) seated.add(ownerId);
 
+    // Single live-state authority: listActiveLiveStreams applies the ghost-room
+    // and publisher guards. Unioning raw live_streams rows back in here put
+    // creators with a stale is_live row into the invite list with no media.
     const listed = await listActiveLiveStreams();
-    let dbRows: Array<{ stream_key: string; user_id: string; display_name?: string | null }> = [];
-    try {
-      dbRows = await dbGetLiveStreams();
-    } catch (err) {
-      logger.warn({ err, roomId }, "publishBattleInviteRoster: live_streams lookup failed");
-    }
     const byUser = new Map<string, { stream_key: string; user_id: string; display_name?: string | null }>();
-    for (const r of [...listed.streams, ...dbRows]) {
+    for (const r of listed.streams) {
       const uid = typeof r.user_id === "string" ? r.user_id.trim() : "";
       if (!uid || seated.has(uid)) continue;
       if (!byUser.has(uid)) {
@@ -861,13 +858,7 @@ export async function handleMessage(
           });
           break;
         }
-        const presentSession =
-          (await confirmBattleParticipantPresence(client.roomId, client.userId)) ??
-          session;
-        sendToClient(client, "battle_created", {
-          battleId: presentSession.id,
-          status: presentSession.status,
-        });
+        await confirmBattleParticipantPresence(client.roomId, client.userId);
 
         // Same message also carries the host's "start the match" intent. The
         // server decides: seats come from real accepts, and the clock starts

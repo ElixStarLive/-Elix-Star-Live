@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
-import { neonEnsureBalanceFromFile, neonGetCoinBalance, neonListLedger } from "../lib/walletNeon";
+import { neonEnsureBalanceFromFile, neonGetCoinBalance } from "../lib/walletNeon";
 import { getPromoBalance } from "../lib/engagement";
 import { getProgressionSnapshot } from "../lib/starterCoinsXp";
 
@@ -44,22 +44,5 @@ export async function handleGetWallet(req: Request, res: Response) {
   } catch {
     res.setHeader("Cache-Control", "private, no-store");
     return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
-  }
-}
-
-export async function handleGetWalletTransactions(req: Request, res: Response) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-  const auth = requireAuth(req, res);
-  if (!auth) return;
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 50));
-  try {
-    const transactions = await neonListLedger(auth.userId, limit);
-    res.setHeader("Cache-Control", "private, no-store");
-    return res.status(200).json({ transactions });
-  } catch {
-    res.setHeader("Cache-Control", "private, no-store");
-    return res.status(503).json({ error: "DATABASE_UNAVAILABLE", transactions: null });
   }
 }

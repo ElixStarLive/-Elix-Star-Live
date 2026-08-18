@@ -2,8 +2,7 @@ import { Router } from "express";
 import { logger } from "../lib/logger";
 import { creatorPayoutLimiter } from "../middleware/rateLimit";
 import {
-  handleGetCreatorBalance, handleGetCreatorEarnings, handleCreatorWithdraw,
-  handleGetCreatorPayouts, handleSetPayoutMethod, handleGetPayoutMethods,
+  handleGetCreatorBalance, handleSetPayoutMethod, handleGetPayoutMethods,
   handleAdminListPayouts, handleAdminApprovePayout, handleAdminRejectPayout,
   handleAdminChargeback, handleAdminMarkPayoutPaid, handleAdminCancelPayout,
   handleAdminReviewPayout,
@@ -14,12 +13,9 @@ import {
 
 const creatorRouter = Router();
 creatorRouter.get("/balance", handleGetCreatorBalance);
-creatorRouter.get("/earnings", handleGetCreatorEarnings);
-creatorRouter.post("/withdraw", creatorPayoutLimiter, handleCreatorWithdraw);
 creatorRouter.post("/withdraw-gbp", creatorPayoutLimiter, handleCreatorWithdrawGbp);
 creatorRouter.get("/withdrawals-gbp", handleGetCreatorGbpWithdrawals);
 creatorRouter.get("/ledger", handleGetCreatorLedgerHistory);
-creatorRouter.get("/payouts", handleGetCreatorPayouts);
 creatorRouter.post("/payout-method", handleSetPayoutMethod);
 creatorRouter.get("/payout-methods", handleGetPayoutMethods);
 

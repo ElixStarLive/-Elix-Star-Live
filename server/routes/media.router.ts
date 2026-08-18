@@ -2,7 +2,6 @@ import { Router } from "express";
 import express from "express";
 import { getTokenFromRequest, verifyAuthToken } from "./auth";
 import { uploadToBunny, isBunnyConfigured } from "../services/bunny";
-import { handleUploadVideo } from "./upload";
 import { uploadLimiter } from "../middleware/rateLimit";
 import {
   extractVideoIdFromStoragePath,
@@ -108,14 +107,3 @@ router.use("/public", (req, res) => {
 });
 
 export default router;
-
-// Separate video upload router (needs raw body BEFORE express.json)
-export const videoUploadRouter = Router();
-videoUploadRouter.use(
-  uploadLimiter,
-  express.raw({
-    type: ["application/octet-stream", "video/mp4", "video/webm"],
-    limit: "500mb",
-  }),
-  handleUploadVideo,
-);
