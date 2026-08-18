@@ -94,6 +94,7 @@ import { dbIsBlockedEitherWay, dbGetLiveStreams, getPool } from "../lib/postgres
 import { activateBooster, getMistFogDurationMs } from "../lib/booster";
 import { isValkeyConfigured } from "../lib/valkey";
 import { deliverVerifiedGift, emitGiftSentToTargetAudience } from "./giftDelivery";
+import { GIFT_DELIVERY_WINDOW_MS } from "../lib/giftDeliveryWindow";
 import {
   isTestCoinsGiftSource,
   canAcceptTestCoinsBattleScore,
@@ -366,6 +367,12 @@ async function verifyGiftTransaction(
   coins: number;
   roomId: string;
   giftSource: "starter_coins" | "paid_coins" | "promotional_coins";
+  /**
+   * The creator this gift's money was actually paid to, from the earning row
+   * written inside the settlement transaction. Empty when the gift moved no
+   * creator revenue (starter, promotional, or a creator gifting themselves).
+   */
+  settledCreatorId: string;
 } | null> {
   if (typeof transactionId !== "string" || !transactionId.trim()) return null;
   if (!roomId) return null;
@@ -373,14 +380,17 @@ async function verifyGiftTransaction(
   if (!pool) return null;
   try {
     const r = await pool.query(
-      `SELECT gift_id, coins, room_id, gift_source
-         FROM elix_gift_transactions
-        WHERE client_transaction_id = $1
-          AND user_id = $2
-          AND room_id = $3
-          AND created_at > NOW() - INTERVAL '2 minutes'
+      `SELECT t.gift_id, t.coins, t.room_id, t.gift_source,
+              e.creator_id AS settled_creator_id
+         FROM elix_gift_transactions t
+         LEFT JOIN elix_creator_earnings e
+                ON e.id = 'earn:' || t.client_transaction_id
+        WHERE t.client_transaction_id = $1
+          AND t.user_id = $2
+          AND t.room_id = $3
+          AND t.created_at > NOW() - ($4::text || ' milliseconds')::interval
         LIMIT 1`,
-      [transactionId.trim(), userId, roomId],
+      [transactionId.trim(), userId, roomId, String(GIFT_DELIVERY_WINDOW_MS)],
     );
     const row = r.rows[0] as
       | {
@@ -388,6 +398,7 @@ async function verifyGiftTransaction(
           coins?: number;
           room_id?: string;
           gift_source?: string;
+          settled_creator_id?: string | null;
         }
       | undefined;
     if (!row) return null;
@@ -402,6 +413,7 @@ async function verifyGiftTransaction(
       coins: Number(row.coins) || 0,
       roomId: String(row.room_id || ""),
       giftSource: source,
+      settledCreatorId: String(row.settled_creator_id || "").trim(),
     };
   } catch (err) {
     logger.warn({ err, userId }, "verifyGiftTransaction failed");
@@ -705,6 +717,36 @@ export async function handleMessage(
           break;
         }
         const giftRecipient = resolvedGift.recipient;
+
+        // The money already chose a creator. This event may name a different one
+        // — the battle may have moved on, or the sender may be replaying a paid
+        // transaction against another seat — and delivering it would score a team
+        // the gift never paid and show the gift on the wrong creator. The
+        // settlement is the authority, so a disagreement is refused, not
+        // reassigned.
+        if (
+          verified.settledCreatorId &&
+          verified.settledCreatorId !== giftRecipient.creatorId
+        ) {
+          logger.warn(
+            {
+              roomId: client.roomId,
+              userId: client.userId,
+              transactionId: String(transactionId),
+              settledCreatorId: verified.settledCreatorId,
+              requestedCreatorId: giftRecipient.creatorId,
+            },
+            "gift_sent: requested recipient is not the creator this gift paid",
+          );
+          sendToClient(client, "gift_ack", {
+            transactionId: transactionId ?? null,
+            requestId: giftRequestId,
+            status: "recipient_mismatch",
+            timestamp: Date.now(),
+          });
+          break;
+        }
+
         const cohostFromWs =
           giftRecipient.origin === "cohost" ? giftRecipient.creatorId : null;
         const delivered = await deliverVerifiedGift({

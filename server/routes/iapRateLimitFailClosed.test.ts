@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
 
 /**
@@ -61,6 +61,18 @@ async function loadHandler(nodeEnv: string) {
 }
 
 const originalNodeEnv = process.env.NODE_ENV;
+
+/**
+ * Every case re-imports the route module after `vi.resetModules()`, so whichever
+ * case ran first paid for a cold transform of the whole `./misc` graph inside its
+ * own 5s assertion window and timed out when the suite ran under load. Paying it
+ * once here — where the wait belongs — leaves each case measuring only the
+ * limiter behaviour it is about. Vite keeps the transform, so the re-imports
+ * after this are cheap.
+ */
+beforeAll(async () => {
+  await import("./misc");
+}, 120_000);
 
 beforeEach(() => {
   rateCheck.mockReset();

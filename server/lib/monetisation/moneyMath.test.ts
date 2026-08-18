@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from "vitest";
 import {
-  allocateProportionalPence,
+  allocateLotPence,
   gbpStringToPence,
   netAfterDeductions,
   promotePlatformOnly,
@@ -71,9 +71,59 @@ describe("gbpStringToPence", () => {
   });
 });
 
-describe("allocateProportionalPence", () => {
-  it("floors proportionally", () => {
-    expect(allocateProportionalPence(50, 100, 7000)).toBe(3500);
+describe("allocateLotPence", () => {
+  it("gives a spend its proportional share", () => {
+    expect(
+      allocateLotPence({
+        consumedBefore: 0,
+        take: 50,
+        totalCoins: 100,
+        totalPence: 7000,
+      }),
+    ).toBe(3500);
+  });
+
+  it("a lot spent one coin at a time still gives out every penny", () => {
+    // 1000 coins bought for 400p net. Allocating each coin on its own would
+    // floor 0.4p to zero a thousand times and record no revenue at all.
+    let attributed = 0;
+    for (let consumed = 0; consumed < 1000; consumed += 1) {
+      attributed += allocateLotPence({
+        consumedBefore: consumed,
+        take: 1,
+        totalCoins: 1000,
+        totalPence: 400,
+      });
+    }
+    expect(attributed).toBe(400);
+  });
+
+  it("mixed gift sizes total the same as one full spend", () => {
+    const takes = [1, 1, 3, 5, 50, 100, 340, 500];
+    expect(takes.reduce((a, b) => a + b, 0)).toBe(1000);
+    let consumed = 0;
+    let attributed = 0;
+    for (const take of takes) {
+      attributed += allocateLotPence({
+        consumedBefore: consumed,
+        take,
+        totalCoins: 1000,
+        totalPence: 1499,
+      });
+      consumed += take;
+    }
+    expect(attributed).toBe(1499);
+  });
+
+  it("never gives out more than the lot held", () => {
+    expect(() =>
+      allocateLotPence({
+        consumedBefore: 900,
+        take: 200,
+        totalCoins: 1000,
+        totalPence: 400,
+      }),
+    ).toThrow();
   });
 });
 

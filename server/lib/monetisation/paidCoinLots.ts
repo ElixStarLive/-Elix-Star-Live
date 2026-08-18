@@ -5,7 +5,7 @@ import type { PoolClient } from "pg";
 import { randomUUID } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
-import { allocateProportionalPence } from "./moneyMath";
+import { allocateLotPence } from "./moneyMath";
 
 export async function createPaidCoinLot(
   client: PoolClient,
@@ -158,12 +158,18 @@ export async function consumeSettledNetForGift(
     const lotApp = Math.floor(Number(row.app_store_deduction_pence) || 0);
     const lotTax = Math.floor(Number(row.tax_deduction_pence) || 0);
     const lotProc = Math.floor(Number(row.processing_deduction_pence) || 0);
+    // What the lot has already given out decides this spend's share, so many
+    // small gifts attribute the same total as one big one instead of rounding
+    // every gift's fraction of a penny away.
+    const consumedBefore = Math.max(0, orig - avail);
+    const fromLot = (totalPence: number) =>
+      allocateLotPence({ consumedBefore, take, totalCoins: orig, totalPence });
 
-    net += allocateProportionalPence(take, orig, lotNet);
-    gross += allocateProportionalPence(take, orig, lotGross);
-    app += allocateProportionalPence(take, orig, lotApp);
-    tax += allocateProportionalPence(take, orig, lotTax);
-    proc += allocateProportionalPence(take, orig, lotProc);
+    net += fromLot(lotNet);
+    gross += fromLot(lotGross);
+    app += fromLot(lotApp);
+    tax += fromLot(lotTax);
+    proc += fromLot(lotProc);
 
     await client.query(
       `UPDATE elix_paid_coin_lots SET coins_remaining = coins_remaining - $2 WHERE id = $1`,

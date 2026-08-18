@@ -290,7 +290,19 @@ export async function neonDebitGiftWithCreatorCredit(input: {
   clientTransactionId: string;
   creatorId: string;
 }): Promise<
-  | { ok: true; newBalance: number; alreadyProcessed: boolean; credited: number }
+  | {
+      ok: true;
+      newBalance: number;
+      alreadyProcessed: boolean;
+      credited: number;
+      /**
+       * When this transaction was settled — now for a first settlement, and the
+       * original time for a replay. The caller uses it to decide whether the
+       * gift may still be delivered, because delivery side effects are only
+       * once-only while the transaction claim that guards them is alive.
+       */
+      settledAt: Date;
+    }
   | {
       ok: false;
       error:
@@ -310,7 +322,7 @@ export async function neonDebitGiftWithCreatorCredit(input: {
   try {
     await client.query("BEGIN");
     const existingGift = await client.query(
-      `SELECT user_id, room_id, gift_id, coins, gift_source
+      `SELECT user_id, room_id, gift_id, coins, gift_source, created_at
          FROM elix_gift_transactions
         WHERE client_transaction_id = $1
         LIMIT 1`,
@@ -375,17 +387,24 @@ export async function neonDebitGiftWithCreatorCredit(input: {
     let credited = 0;
     if (input.creatorId && input.creatorId !== input.userId) {
       const cfg = await loadMonetisationConfig();
+      // Diamonds are whole coins, so the creator share of a 1-coin gift rounds
+      // down to zero. That is a rounding of the Diamond counter only — the money
+      // is the GBP split below, so neither the earning row (which is also the
+      // durable record of WHO this gift paid) nor the ledger may be skipped
+      // because of it. Gating them on this number lost 100% of the revenue from
+      // every 1-coin gift: sender debited, nothing recorded for anyone.
       const c = Math.floor((coins * cfg.giftCreatorPct) / 100);
-      if (c > 0) {
-        const earningId = `earn:${input.clientTransactionId}`;
-        const earnIns = await client.query(
-          `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
+      const earningId = `earn:${input.clientTransactionId}`;
+      const earnIns = await client.query(
+        `INSERT INTO elix_creator_earnings (id, creator_id, kind, coins, gift_id, room_id, sender_id, status)
            VALUES ($1, $2, 'gift', $3, $4, $5, $6, 'pending')
            ON CONFLICT (id) DO NOTHING
            RETURNING id`,
-          [earningId, input.creatorId, c, input.giftId, input.roomId, input.userId],
-        );
-        if ((earnIns.rowCount ?? 0) > 0) {
+        [earningId, input.creatorId, c, input.giftId, input.roomId, input.userId],
+      );
+      // First settlement of this transaction: apply the creator side exactly once.
+      if ((earnIns.rowCount ?? 0) > 0) {
+        if (c > 0) {
           await client.query(
             `INSERT INTO elix_creator_balances (user_id, pending_coins, total_earned, updated_at)
              VALUES ($1, $2, $2, NOW())
@@ -396,52 +415,52 @@ export async function neonDebitGiftWithCreatorCredit(input: {
             [input.creatorId, c],
           );
           credited = c;
+        }
 
-          if (cfg.giftMonetisationEnabled) {
-            const attr = await consumeSettledNetForGift(client, input.userId, coins);
-            if (attr.settled && attr.netPence > 0) {
-              const split = splitNetRevenue(
-                attr.netPence,
-                cfg.giftCreatorPct,
-                cfg.giftPlatformPct,
-              );
-              const ledger = await postLedgerEntry(client, {
-                idempotencyKey: `paid_gift:${input.clientTransactionId}`,
-                revenueSource: "PAID_GIFT",
-                creatorUserId: input.creatorId,
-                payerUserId: input.userId,
-                giftId: input.giftId,
-                liveRoomId: input.roomId,
-                coinAmount: coins,
-                coinSource: "paid",
-                grossPence: attr.grossPence,
-                appStoreDeductionPence: attr.appStoreDeductionPence,
-                taxDeductionPence: attr.taxDeductionPence,
-                processingDeductionPence: attr.processingDeductionPence,
-                netRevenuePence: split.netPence,
-                creatorPct: split.creatorPct,
-                creatorAmountPence: split.creatorPence,
-                platformPct: split.platformPct,
-                platformAmountPence: split.platformPence,
-                status: "pending",
-                ruleSnapshot: ruleSnapshotFromConfig(cfg, {
-                  lot_ids: attr.lotIds,
-                  client_transaction_id: input.clientTransactionId,
-                }),
-              });
-              if (ledger.id && !ledger.alreadyExisted) {
-                await client.query(
-                  `UPDATE elix_creator_earnings
+        if (cfg.giftMonetisationEnabled) {
+          const attr = await consumeSettledNetForGift(client, input.userId, coins);
+          if (attr.settled && attr.netPence > 0) {
+            const split = splitNetRevenue(
+              attr.netPence,
+              cfg.giftCreatorPct,
+              cfg.giftPlatformPct,
+            );
+            const ledger = await postLedgerEntry(client, {
+              idempotencyKey: `paid_gift:${input.clientTransactionId}`,
+              revenueSource: "PAID_GIFT",
+              creatorUserId: input.creatorId,
+              payerUserId: input.userId,
+              giftId: input.giftId,
+              liveRoomId: input.roomId,
+              coinAmount: coins,
+              coinSource: "paid",
+              grossPence: attr.grossPence,
+              appStoreDeductionPence: attr.appStoreDeductionPence,
+              taxDeductionPence: attr.taxDeductionPence,
+              processingDeductionPence: attr.processingDeductionPence,
+              netRevenuePence: split.netPence,
+              creatorPct: split.creatorPct,
+              creatorAmountPence: split.creatorPence,
+              platformPct: split.platformPct,
+              platformAmountPence: split.platformPence,
+              status: "pending",
+              ruleSnapshot: ruleSnapshotFromConfig(cfg, {
+                lot_ids: attr.lotIds,
+                client_transaction_id: input.clientTransactionId,
+              }),
+            });
+            if (ledger.id && !ledger.alreadyExisted) {
+              await client.query(
+                `UPDATE elix_creator_earnings
                       SET amount_pence = $2, ledger_id = $3, rule_snapshot = $4::jsonb
                     WHERE id = $1`,
-                  [
-                    earningId,
-                    split.creatorPence,
-                    ledger.id,
-                    JSON.stringify(ruleSnapshotFromConfig(cfg)),
-                  ],
-                );
-              }
+                [
+                  earningId,
+                  split.creatorPence,
+                  ledger.id,
+                  JSON.stringify(ruleSnapshotFromConfig(cfg)),
+                ],
+              );
             }
           }
         }
@@ -449,7 +468,20 @@ export async function neonDebitGiftWithCreatorCredit(input: {
     }
 
     await client.query("COMMIT");
-    return { ok: true, newBalance, alreadyProcessed, credited };
+    const settledAtRaw = existingGift.rows[0]?.created_at;
+    const settledAt =
+      settledAtRaw instanceof Date
+        ? settledAtRaw
+        : settledAtRaw
+          ? new Date(String(settledAtRaw))
+          : new Date();
+    return {
+      ok: true,
+      newBalance,
+      alreadyProcessed,
+      credited,
+      settledAt: Number.isFinite(settledAt.getTime()) ? settledAt : new Date(),
+    };
   } catch (e) {
     try {
       await client.query("ROLLBACK");
@@ -502,7 +534,7 @@ export async function neonMatureCreatorEarnings(): Promise<number> {
       const id = String(row.id);
       const creatorId = String(row.creator_id);
       const coins = Math.floor(Number(row.coins) || 0);
-      if (!id || !creatorId || coins <= 0) continue;
+      if (!id || !creatorId) continue;
       const upd = await client.query(
         `UPDATE elix_creator_earnings SET status = 'available'
           WHERE id = $1 AND status = 'pending'
@@ -510,14 +542,19 @@ export async function neonMatureCreatorEarnings(): Promise<number> {
         [id],
       );
       if (!upd.rowCount) continue;
-      await client.query(
-        `UPDATE elix_creator_balances
+      // A gift whose creator share rounds below one Diamond still matures: its
+      // money is the GBP amount on the row. Leaving it pending would park it at
+      // the head of this scan forever and starve the earnings behind it.
+      if (coins > 0) {
+        await client.query(
+          `UPDATE elix_creator_balances
             SET pending_coins = GREATEST(0, pending_coins - $2),
                 available_coins = available_coins + $2,
                 updated_at = NOW()
           WHERE user_id = $1`,
-        [creatorId, coins],
-      );
+          [creatorId, coins],
+        );
+      }
       matured += 1;
     }
     await client.query("COMMIT");

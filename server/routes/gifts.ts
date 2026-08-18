@@ -18,6 +18,7 @@ import {
   resolveGiftMediaUrl,
 } from "../lib/giftAssets";
 import { deliverVerifiedGift } from "../websocket/giftDelivery";
+import { isWithinGiftDeliveryWindow } from "../lib/giftDeliveryWindow";
 import { resolveValidatedGiftRecipient } from "../websocket/giftRecipient";
 import { getEngagementFlags } from "../lib/engagementFlags";
 import { spendPromoCoinsAndRecordGift } from "../lib/engagement";
@@ -371,11 +372,48 @@ export async function handleSendGift(req: Request, res: Response) {
         creatorId: recipientId,
       });
       if (debited.ok === false) {
-        return res.status(400).json({
+        // A database failure is ours and is retryable; the other two are verdicts
+        // about this request. Reporting a DB outage as a bad request would tell
+        // the sender their gift was rejected when nothing was decided.
+        return res.status(debited.error === "database_error" ? 503 : 400).json({
           error: debited.error,
           new_balance: debited.newBalance,
         });
       }
+
+      // This transaction was already settled by an earlier request, and its
+      // effects — battle score, gift goal, engagement, the creator's push —
+      // belong to that request. They are kept once-only by the delivery claim,
+      // which expires; beyond the delivery window there is nothing left to stop
+      // a replay from scoring the battle again without paying, so a settlement
+      // that old is never delivered a second time.
+      if (
+        debited.alreadyProcessed &&
+        !isWithinGiftDeliveryWindow(debited.settledAt)
+      ) {
+        logger.warn(
+          {
+            userId: auth.userId,
+            roomId,
+            giftId,
+            transactionId: clientTransactionId,
+            settledAt: debited.settledAt.toISOString(),
+          },
+          "handleSendGift: replay of an already-settled gift — not delivered again",
+        );
+        return res.status(200).json({
+          ok: true,
+          room_id: roomId,
+          gift_id: giftId,
+          gift_source: "paid_coins",
+          transaction_id: clientTransactionId,
+          new_balance: debited.newBalance,
+          already_settled: true,
+          room_delivered: false,
+          message: "This gift was already sent with this transaction id.",
+        });
+      }
+
       const paidGiftXp =
         recipientId !== auth.userId
           ? await awardPaidGiftXp({

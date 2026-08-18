@@ -102,6 +102,7 @@ describe("paid gift creator attribution", () => {
       newBalance: 900,
       alreadyProcessed: false,
       credited: 60,
+      settledAt: new Date(),
     });
     deliveryMocks.deliverVerifiedGift.mockResolvedValue({ delivered: true });
   });
@@ -277,13 +278,15 @@ describe("paid gift creator attribution", () => {
         origin: "battle_seat" as const,
       },
     });
-    // Same transaction id replayed: the wallet transaction is already recorded
-    // and the delivery claim is already taken, so neither side applies twice.
+    // Same transaction id replayed seconds later: the wallet transaction is
+    // already recorded and the delivery claim is already taken, so neither side
+    // applies twice.
     walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
       ok: true,
       newBalance: 900,
       alreadyProcessed: true,
       credited: 0,
+      settledAt: new Date(),
     });
     deliveryMocks.deliverVerifiedGift.mockResolvedValue({
       delivered: false,
@@ -301,6 +304,83 @@ describe("paid gift creator attribution", () => {
     );
     expect(walletMocks.neonDebitGiftWithCreatorCredit.mock.calls[0][0].clientTransactionId)
       .toBe("tx-1");
+  });
+
+  it("does not deliver a settled gift again once its claim can have expired", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: PLAYER4,
+        battleSeat: "player4" as const,
+        teamId: "teamB" as const,
+        origin: "battle_seat" as const,
+      },
+    });
+    // Paid ten minutes ago. The Valkey claim that keeps battle score, gift goal
+    // and engagement once-only has a shorter life than that, so replaying this
+    // transaction would score the battle again for free.
+    walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
+      ok: true,
+      newBalance: 900,
+      alreadyProcessed: true,
+      credited: 0,
+      settledAt: new Date(Date.now() - 10 * 60_000),
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody({ battleTarget: "player4" })), res.value);
+
+    expect(deliveryMocks.deliverVerifiedGift).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ already_settled: true, room_delivered: false }),
+    );
+  });
+
+  it("reports a database outage as a server failure, not a rejected gift", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: HOST,
+        battleSeat: null,
+        teamId: null,
+        origin: "stream_owner" as const,
+      },
+    });
+    walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
+      ok: false,
+      error: "database_error",
+      newBalance: 1000,
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody()), res.value);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(deliveryMocks.deliverVerifiedGift).not.toHaveBeenCalled();
+  });
+
+  it("still rejects an unaffordable gift as a client verdict", async () => {
+    recipientMocks.resolveValidatedGiftRecipient.mockResolvedValue({
+      ok: true,
+      recipient: {
+        creatorId: HOST,
+        battleSeat: null,
+        teamId: null,
+        origin: "stream_owner" as const,
+      },
+    });
+    walletMocks.neonDebitGiftWithCreatorCredit.mockResolvedValue({
+      ok: false,
+      error: "insufficient_funds",
+      newBalance: 5,
+    });
+
+    const res = mockRes();
+    await handleSendGift(mockReq(paidGiftBody()), res.value);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(deliveryMocks.deliverVerifiedGift).not.toHaveBeenCalled();
   });
 
   it("does not report delivery when transaction dedupe is unavailable", async () => {

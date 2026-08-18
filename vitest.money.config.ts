@@ -7,6 +7,7 @@ export default defineConfig({
     include: [
       "server/lib/moneyIntegration.test.ts",
       "server/lib/monetisation/monetisation.db.test.ts",
+      "server/lib/monetisation/paidGift.db.test.ts",
       "server/lib/monetisation/monetisationMatrix.db.test.ts",
       "server/lib/feed/foryou.db.test.ts",
       "server/websocket/battleResults.db.test.ts",

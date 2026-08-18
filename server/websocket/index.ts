@@ -63,6 +63,7 @@ import {
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
+import { GIFT_TRANSACTION_CLAIM_TTL_MS } from "../lib/giftDeliveryWindow";
 import {
   buildBattleStateForRoom,
   finalizeBattle,
@@ -454,7 +455,11 @@ export async function tryClaimTransaction(
     return { status: "unavailable" };
   }
   const key = `txn:${transactionId}`;
-  const outcome = await valkeyTrySetNx(key, String(timestamp), 300_000);
+  const outcome = await valkeyTrySetNx(
+    key,
+    String(timestamp),
+    GIFT_TRANSACTION_CLAIM_TTL_MS,
+  );
   if (outcome === "set") return { status: "claimed" };
   if (outcome === "unavailable") {
     logger.error(

@@ -109,20 +109,35 @@ export function netAfterDeductions(input: {
 }
 
 /**
- * Proportional integer allocation: floor(spendCoins * totalPence / totalCoins).
- * Remainder stays unallocated (caller may leave on lot).
+ * Pence attributable to one spend from a coin lot, allocated cumulatively.
+ *
+ * Allocating each spend on its own — `floor(take * pence / total)` — throws away
+ * the remainder every time, so the lot never gives out its full value: a lot
+ * spent one coin at a time attributes nothing at all, and a real 1-coin gift
+ * would record £0 of revenue for both creator and platform. Taking the
+ * difference between the cumulative share up to this spend and the cumulative
+ * share before it keeps every penny, and the allocations over a fully consumed
+ * lot add up to exactly `totalPence`.
  */
-export function allocateProportionalPence(
-  spendCoins: number,
-  totalCoins: number,
-  totalPence: number,
-): number {
-  const spend = assertNonNegInt(spendCoins, "spendCoins");
-  const total = assertNonNegInt(totalCoins, "totalCoins");
-  const pence = assertNonNegInt(totalPence, "totalPence");
-  if (total <= 0 || spend <= 0) return 0;
-  if (spend > total) {
-    throw new Error("spendCoins cannot exceed totalCoins");
+export function allocateLotPence(input: {
+  /** Coins already taken from this lot before this spend. */
+  consumedBefore: number;
+  /** Coins taken by this spend. */
+  take: number;
+  /** Coins the lot originally held. */
+  totalCoins: number;
+  /** Pence the lot originally represented. */
+  totalPence: number;
+}): number {
+  const before = assertNonNegInt(input.consumedBefore, "consumedBefore");
+  const take = assertNonNegInt(input.take, "take");
+  const total = assertNonNegInt(input.totalCoins, "totalCoins");
+  const pence = assertNonNegInt(input.totalPence, "totalPence");
+  if (total <= 0 || take <= 0) return 0;
+  if (before + take > total) {
+    throw new Error("lot cannot give out more coins than it held");
   }
-  return Math.floor((spend * pence) / total);
+  const upTo = Math.floor(((before + take) * pence) / total);
+  const upToBefore = Math.floor((before * pence) / total);
+  return upTo - upToBefore;
 }
