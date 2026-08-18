@@ -11,6 +11,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
 import { normalizeDatabaseUrl } from "../databaseUrl";
+import { isWithinGiftDeliveryWindow } from "../giftDeliveryWindow";
 import {
   applyRepoMigrations,
   assertSafeTestDatabase,
@@ -330,9 +331,51 @@ describe.skipIf(!RUN)("Paid gift money path (real DB)", () => {
     );
     expect(ledgerRows.rows[0].c).toBe(1);
 
-    // The replay reports the ORIGINAL settlement time, which is what tells the
-    // caller whether this gift may still be delivered.
-    expect(second.settledAt.getTime()).toBeLessThanOrEqual(first.settledAt.getTime() + 1000);
+    // The replay reports the ORIGINAL settlement instant — the same recorded row,
+    // to the millisecond — not the time of the replay.
+    const stored = await pool.query(
+      `SELECT created_at FROM elix_gift_transactions WHERE client_transaction_id = $1`,
+      [txn],
+    );
+    const storedAt = new Date(stored.rows[0].created_at).getTime();
+    expect(first.settledAt?.getTime()).toBe(storedAt);
+    expect(second.settledAt?.getTime()).toBe(storedAt);
+
+    // The age that decides whether this gift may still be delivered is measured
+    // by the database, so it does not move with the skew between this process's
+    // clock and Neon's. A settlement seconds old must not look minutes old.
+    expect(first.settledAgeMs).toBe(0);
+    expect(second.settledAgeMs).toBeGreaterThanOrEqual(0);
+    expect(second.settledAgeMs).toBeLessThan(60_000);
+  });
+
+  it("measures the age of a settlement on the database clock, not this process's", async () => {
+    await fundSender(1000, 400);
+    const txn = `tx_age_${suffix}`;
+
+    expect((await send(100, txn)).ok).toBe(true);
+    // Backdate the recorded settlement well past the delivery window using the
+    // database's own clock. Nothing about this process's clock changes.
+    await pool.query(
+      `UPDATE elix_gift_transactions SET created_at = NOW() - INTERVAL '10 minutes'
+        WHERE client_transaction_id = $1`,
+      [txn],
+    );
+
+    const replay = await send(100, txn);
+
+    expect(replay.ok).toBe(true);
+    if (replay.ok !== true) return;
+    expect(replay.alreadyProcessed).toBe(true);
+    expect(replay.settledAgeMs).toBeGreaterThanOrEqual(9 * 60_000);
+    expect(isWithinGiftDeliveryWindow(replay.settledAgeMs)).toBe(false);
+
+    // And a fresh settlement of that same age check is deliverable.
+    const freshTxn = `tx_age_fresh_${suffix}`;
+    const fresh = await send(100, freshTxn);
+    expect(fresh.ok).toBe(true);
+    if (fresh.ok !== true) return;
+    expect(isWithinGiftDeliveryWindow(fresh.settledAgeMs)).toBe(true);
   });
 
   it("refuses to reuse a transaction id for a different gift", async () => {

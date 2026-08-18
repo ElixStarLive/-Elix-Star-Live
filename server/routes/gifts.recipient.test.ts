@@ -103,6 +103,7 @@ describe("paid gift creator attribution", () => {
       alreadyProcessed: false,
       credited: 60,
       settledAt: new Date(),
+      settledAgeMs: 0,
     });
     deliveryMocks.deliverVerifiedGift.mockResolvedValue({ delivered: true });
   });
@@ -287,6 +288,9 @@ describe("paid gift creator attribution", () => {
       alreadyProcessed: true,
       credited: 0,
       settledAt: new Date(),
+      // The database reports the age, so seconds-old is seconds-old regardless of
+      // how far this process's clock has drifted from Neon's.
+      settledAgeMs: 2_000,
     });
     deliveryMocks.deliverVerifiedGift.mockResolvedValue({
       delivered: false,
@@ -325,6 +329,7 @@ describe("paid gift creator attribution", () => {
       alreadyProcessed: true,
       credited: 0,
       settledAt: new Date(Date.now() - 10 * 60_000),
+      settledAgeMs: 10 * 60_000,
     });
 
     const res = mockRes();

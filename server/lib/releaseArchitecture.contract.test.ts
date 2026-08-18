@@ -272,6 +272,10 @@ describe("release architecture contracts", () => {
     const walk = (dir: string) => {
       for (const entry of readdirSync(resolve(root, dir), { withFileTypes: true })) {
         const rel = `${dir}/${entry.name}`;
+        // Only this repo's server sources decide what the image must copy.
+        // Recursing into server/node_modules read tens of thousands of shipped
+        // .ts files and made the contract time out.
+        if (entry.name === "node_modules") continue;
         if (entry.isDirectory()) walk(rel);
         else if (entry.name.endsWith(".ts") && !entry.name.includes(".test.")) serverFiles.push(rel);
       }

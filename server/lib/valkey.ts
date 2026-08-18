@@ -39,11 +39,14 @@ function createConnection(label: string): Redis | null {
   conn.on("error", (err) =>
     logger.error({ label, err: err.message }, "Valkey error"),
   );
+  // A closed socket is not a dead client: ioredis reconnects this same instance
+  // via `retryStrategy`. Dropping the module's reference here did two harmful
+  // things — the next `getValkey()` built a *second* connection while the first
+  // kept retrying, so a flapping Valkey multiplied connections; and shutdown had
+  // nothing left to close, so a process could never stop a retry loop it no
+  // longer had a handle on. Only explicit teardown clears these.
   conn.on("close", () => {
     logger.warn({ label }, "Valkey connection closed");
-    if (label === "valkey-main") client = null;
-    else if (label === "valkey-pub") publisher = null;
-    else if (label === "valkey-sub") subscriber = null;
   });
 
   return conn;
@@ -104,26 +107,49 @@ export async function waitForValkeyReady(opts?: { attempts?: number; delayMs?: n
   );
 }
 
-/** Graceful shutdown: close ioredis connections (main, pub, sub). */
+/** How long a graceful QUIT may take before the socket is dropped outright. */
+const VALKEY_QUIT_TIMEOUT_MS = 3_000;
+
+/**
+ * Shutdown: close ioredis connections (main, pub, sub).
+ *
+ * QUIT is sent first so an established connection ends cleanly, but it is only
+ * given a bounded time and the socket is dropped either way. A connection that
+ * never came up cannot answer QUIT at all — ioredis simply keeps retrying, which
+ * is how `npm run migrate` (the deploy's release command) finished its work and
+ * then never exited.
+ */
 export async function closeValkeyConnections(): Promise<void> {
   const conns: { label: string; c: Redis | null }[] = [
     { label: "valkey-main", c: client },
     { label: "valkey-pub", c: publisher },
     { label: "valkey-sub", c: subscriber },
   ];
+  client = null;
+  publisher = null;
+  subscriber = null;
   await Promise.all(
     conns.map(async ({ label, c }) => {
       if (!c) return;
       try {
-        await c.quit();
+        await Promise.race([
+          c.quit(),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("quit timed out")), VALKEY_QUIT_TIMEOUT_MS).unref(),
+          ),
+        ]);
       } catch (err: unknown) {
         logger.warn({ err: err instanceof Error ? err.message : err, label }, "Valkey quit failed");
+      } finally {
+        // Stops the retry loop and releases the handle whether QUIT worked or not.
+        try {
+          c.disconnect();
+        } catch {
+          /* already gone */
+        }
       }
     }),
   );
-  client = null;
-  publisher = null;
-  subscriber = null;
 }
 
 // ── Rate limiting via Valkey sliding window ──────────────────────

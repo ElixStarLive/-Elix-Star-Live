@@ -13,22 +13,16 @@
  * - **One transaction per file.** Applying a file and recording its marker
  *   separately means a mid-file failure leaves objects created but unrecorded, so
  *   the next run replays that file and fails on what already exists. Committed
- *   together, a migration is either applied and recorded, or neither.
+ *   together, a migration is either applied and recorded, or neither. Files are
+ *   read through `readMigrationSql`, which takes away a file's own BEGIN/COMMIT
+ *   so it cannot end that transaction early.
  *
  * Same advisory key as `server/migrate.ts`, so a test bootstrap and a real
  * migration pass can never interleave on the same database either.
  */
 
 import pg from "pg";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const MIGRATIONS_DIR = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "migrations",
-);
+import { listMigrationFilenames, readMigrationSql } from "./migrationSql";
 
 /** Shared with `server/migrate.ts` — one writer per database, whichever runs. */
 const ADVISORY_KEY = 87236401;
@@ -85,14 +79,11 @@ export async function applyRepoMigrations(pool: pg.Pool): Promise<string[]> {
       ).rows.map((r) => r.filename),
     );
 
-    const files = fs
-      .readdirSync(MIGRATIONS_DIR)
-      .filter((f) => f.endsWith(".sql"))
-      .sort();
+    const files = listMigrationFilenames();
 
     for (const name of files) {
       if (applied.has(name)) continue;
-      const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, name), "utf8");
+      const sql = readMigrationSql(name);
       try {
         await client.query("BEGIN");
         await client.query(sql);

@@ -21,13 +21,18 @@ export const GIFT_TRANSACTION_CLAIM_TTL_MS = 300_000;
  */
 export const GIFT_DELIVERY_WINDOW_MS = Math.floor(GIFT_TRANSACTION_CLAIM_TTL_MS * 0.4);
 
-/** True while a gift settled at `settledAt` may still be delivered. */
-export function isWithinGiftDeliveryWindow(
-  settledAt: Date | number | null | undefined,
-  now = Date.now(),
-): boolean {
-  if (settledAt == null) return false;
-  const ms = settledAt instanceof Date ? settledAt.getTime() : Number(settledAt);
-  if (!Number.isFinite(ms)) return false;
-  return now - ms < GIFT_DELIVERY_WINDOW_MS;
+/**
+ * True while a settlement of this age may still be delivered.
+ *
+ * The age must be measured by whoever holds the settlement row — the database.
+ * This used to take the settlement timestamp and subtract `Date.now()`, which
+ * compares a database timestamp against the application clock: the two hosts do
+ * not share a clock, so the REST path and the SQL query below could disagree
+ * about the age of the very same gift by the skew between them.
+ *
+ * An unknown age is not deliverable.
+ */
+export function isWithinGiftDeliveryWindow(settledAgeMs: number | null | undefined): boolean {
+  if (settledAgeMs == null || !Number.isFinite(settledAgeMs)) return false;
+  return settledAgeMs < GIFT_DELIVERY_WINDOW_MS;
 }

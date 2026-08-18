@@ -5,9 +5,7 @@
 
 import pg from "pg";
 import os from "node:os";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { listMigrationFilenames } from "./migrationSql";
 import type { Video } from "./videoStore";
 import { normalizeDatabaseUrl } from "./databaseUrl";
 import { logger } from "./logger";
@@ -58,14 +56,13 @@ export function isPostgresConfigured(): boolean {
 
 const MIGRATIONS_TABLE = "elix_schema_migrations";
 
-const MIGRATIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "migrations");
-
-/** SQL filenames in server/migrations — source of truth for the schema gate. */
+/**
+ * SQL filenames in server/migrations — source of truth for the schema gate.
+ * The same listing the runner applies, so the gate cannot ask for a file the
+ * runner does not know about.
+ */
 export function listRepoMigrationFilenames(): string[] {
-  return fs
-    .readdirSync(MIGRATIONS_DIR)
-    .filter((f) => f.endsWith(".sql"))
-    .sort();
+  return listMigrationFilenames();
 }
 
 export function missingRepoMigrations(appliedFilenames: Iterable<string>): string[] {

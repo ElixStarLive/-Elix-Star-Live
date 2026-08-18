@@ -55,8 +55,6 @@ export type LedgerPostInput = {
   platformAmountPence: number;
   currency?: string;
   exchangeRateBp?: number | null;
-  pendingAt?: Date | null;
-  availableAt?: Date | null;
   status?: LedgerStatus;
   reversalOfId?: string | null;
   ruleSnapshot: Record<string, unknown>;
@@ -220,6 +218,10 @@ export async function postLedgerEntry(
 
   const id = randomUUID();
   const status: LedgerStatus = input.status ?? "pending";
+  // `pending_at` is written by the database, not by this process. The hold is
+  // matured with `pending_at <= NOW() - hold` on the database's clock, so a
+  // timestamp taken here would shorten or lengthen every hold by the skew
+  // between this host and Neon. `available_at` is set by the maturation pass.
   const ins = await client.query(
     `INSERT INTO elix_financial_ledger (
        id, idempotency_key, external_transaction_id, creator_user_id, payer_user_id,
@@ -236,7 +238,7 @@ export async function postLedgerEntry(
        $15,$16,$17,$18,
        $19,$20,$21,
        $22,$23,$24,$25,
-       $26,$27,$28,$29,$30,$31,$32::jsonb
+       $26,$27,NOW(),NULL,$28,$29,$30::jsonb
      )
      ON CONFLICT (idempotency_key) DO NOTHING
      RETURNING id`,
@@ -268,8 +270,6 @@ export async function postLedgerEntry(
       input.platformAmountPence,
       input.currency ?? "GBP",
       input.exchangeRateBp ?? null,
-      input.pendingAt ?? new Date(),
-      input.availableAt ?? null,
       status,
       input.reversalOfId ?? null,
       JSON.stringify(input.ruleSnapshot ?? {}),

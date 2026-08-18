@@ -15,6 +15,14 @@ import {
 } from "./monetisation/storeSettlement";
 import type { AppleTxPayload } from "./appleIap";
 
+/** A timestamp column as a Date, or null when it is absent or unparseable. */
+function toDateOrNull(raw: unknown): Date | null {
+  if (raw instanceof Date) return Number.isFinite(raw.getTime()) ? raw : null;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const parsed = new Date(raw);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
 export async function neonGetCoinBalance(userId: string): Promise<number | null> {
   const pool = getPool();
   if (!userId) return null;
@@ -356,12 +364,26 @@ export async function neonDebitGiftWithCreatorCredit(input: {
       alreadyProcessed: boolean;
       credited: number;
       /**
-       * When this transaction was settled — now for a first settlement, and the
-       * original time for a replay. The caller uses it to decide whether the
-       * gift may still be delivered, because delivery side effects are only
-       * once-only while the transaction claim that guards them is alive.
+       * When this transaction was settled, as recorded in
+       * `elix_gift_transactions.created_at` — the same row the WebSocket
+       * `gift_sent` verification reads. Reported for the first settlement and
+       * every replay of it.
        */
-      settledAt: Date;
+      settledAt: Date | null;
+      /**
+       * How long ago that settlement happened, measured by the database.
+       *
+       * The caller uses this to decide whether the gift may still be delivered,
+       * because delivery side effects are only once-only while the transaction
+       * claim that guards them is alive. It is measured here, next to the row,
+       * because the app clock and the database clock are not the same clock:
+       * comparing `Date.now()` against a stored timestamp made the REST path and
+       * the WebSocket path (which asks in SQL) disagree about the age of the same
+       * gift by the skew between the two hosts.
+       *
+       * null when the age could not be established, which fails the window closed.
+       */
+      settledAgeMs: number | null;
     }
   | {
       ok: false;
@@ -407,10 +429,11 @@ export async function neonDebitGiftWithCreatorCredit(input: {
        RETURNING id`,
       [input.userId, -coins, input.giftId, input.roomId, input.clientTransactionId, idem],
     );
-    await client.query(
+    const giftIns = await client.query(
       `INSERT INTO elix_gift_transactions (user_id, room_id, gift_id, coins, client_transaction_id, gift_source, created_at)
        VALUES ($1, $2, $3, $4, $5, 'paid_coins', NOW())
-       ON CONFLICT (client_transaction_id) DO NOTHING`,
+       ON CONFLICT (client_transaction_id) DO NOTHING
+       RETURNING created_at`,
       [input.userId, input.roomId, input.giftId, coins, input.clientTransactionId],
     );
 
@@ -527,20 +550,36 @@ export async function neonDebitGiftWithCreatorCredit(input: {
       }
     }
 
+    // The settlement time and its age both come from the row, in this
+    // transaction, so a replay reports the original instant rather than the time
+    // of the replay, and the age is on the database's clock — the same one the
+    // WebSocket verification query compares against.
+    let settledAt = toDateOrNull(giftIns.rows[0]?.created_at);
+    let settledAgeMs = settledAt ? 0 : null;
+    if (!settledAt) {
+      // Either this is a replay, or a concurrent first settlement won the row
+      // after our snapshot began. A fresh statement sees the committed row.
+      const settled = await client.query(
+        `SELECT created_at,
+                GREATEST(0, FLOOR(EXTRACT(EPOCH FROM (clock_timestamp() - created_at)) * 1000))::bigint AS age_ms
+           FROM elix_gift_transactions
+          WHERE client_transaction_id = $1
+          LIMIT 1`,
+        [input.clientTransactionId],
+      );
+      settledAt = toDateOrNull(settled.rows[0]?.created_at);
+      const age = Number(settled.rows[0]?.age_ms);
+      settledAgeMs = Number.isFinite(age) ? age : null;
+    }
+
     await client.query("COMMIT");
-    const settledAtRaw = existingGift.rows[0]?.created_at;
-    const settledAt =
-      settledAtRaw instanceof Date
-        ? settledAtRaw
-        : settledAtRaw
-          ? new Date(String(settledAtRaw))
-          : new Date();
     return {
       ok: true,
       newBalance,
       alreadyProcessed,
       credited,
-      settledAt: Number.isFinite(settledAt.getTime()) ? settledAt : new Date(),
+      settledAt,
+      settledAgeMs,
     };
   } catch (e) {
     try {

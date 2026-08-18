@@ -111,25 +111,14 @@ export async function closeCreatorRewardPeriod(periodId: string): Promise<{
       const qv = Math.floor(Number(row.qv) || 0);
       processed += 1;
 
-      // Followers
-      let followers = 0;
-      try {
-        const f = await client.query(
-          `SELECT COUNT(*)::int AS c FROM follows WHERE following_id = $1`,
-          [creatorId],
-        );
-        followers = Math.floor(Number(f.rows[0]?.c) || 0);
-      } catch {
-        try {
-          const f2 = await client.query(
-            `SELECT COUNT(*)::int AS c FROM elix_follows WHERE following_id = $1`,
-            [creatorId],
-          );
-          followers = Math.floor(Number(f2.rows[0]?.c) || 0);
-        } catch {
-          followers = 0;
-        }
-      }
+      // Followers. `follows` is the only follow table in the schema, and this
+      // runs on a transaction client: swallowing a failure here left the job
+      // writing reward rows into an aborted transaction with followers = 0.
+      const f = await client.query(
+        `SELECT COUNT(*)::int AS c FROM follows WHERE following_id = $1`,
+        [creatorId],
+      );
+      const followers = Math.floor(Number(f.rows[0]?.c) || 0);
 
       // Previous 30 days before period start
       const prevR = await client.query(

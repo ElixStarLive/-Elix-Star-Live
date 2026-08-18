@@ -109,30 +109,30 @@ export async function hasUnresolvedFraudFlag(userId: string): Promise<boolean> {
   }
 }
 
+/**
+ * Whether this account may earn.
+ *
+ * Ban state lives in `profiles.banned_until` — the same column profile listing
+ * filters on. This asked for `is_banned` / `is_suspended` and then, when that
+ * failed, for `banned` / `suspended`; no migration has ever created any of those
+ * four columns, so both queries always failed and the handler returned `true`.
+ * Every banned account read as being in good standing, which is what gates
+ * qualified views and creator rewards.
+ *
+ * The ban is compared in SQL because `banned_until` is a database timestamp and
+ * this process's clock is not the database's.
+ */
 export async function isAccountInGoodStanding(userId: string): Promise<boolean> {
   const pool = getPool();
   if (!pool || !userId) return false;
-  try {
-    const r = await pool.query(
-      `SELECT is_banned, is_suspended FROM profiles WHERE user_id = $1 LIMIT 1`,
-      [userId],
-    );
-    if (!r.rowCount) return true;
-    if (r.rows[0].is_banned === true || r.rows[0].is_suspended === true) return false;
-    if (await hasUnresolvedFraudFlag(userId)) return false;
-    return true;
-  } catch {
-    try {
-      const r2 = await pool.query(
-        `SELECT banned, suspended FROM profiles WHERE user_id = $1 LIMIT 1`,
-        [userId],
-      );
-      if (!r2.rowCount) return true;
-      return !(r2.rows[0].banned || r2.rows[0].suspended);
-    } catch {
-      return true;
-    }
-  }
+  const r = await pool.query<{ banned: boolean }>(
+    `SELECT (banned_until IS NOT NULL AND banned_until > NOW()) AS banned
+       FROM profiles WHERE user_id = $1 LIMIT 1`,
+    [userId],
+  );
+  if (!r.rowCount) return true;
+  if (r.rows[0].banned === true) return false;
+  return !(await hasUnresolvedFraudFlag(userId));
 }
 
 export function deviceFingerprint(input: {
@@ -308,18 +308,13 @@ export async function isSuspiciousFollowerGrowth(
   const pool = getPool();
   if (!pool || !userId) return false;
   try {
+    // `follows` is the only follow table in the schema — there is no
+    // `elix_follows` for this to fall back to.
     const r = await pool.query(
       `SELECT COUNT(*)::int AS c FROM follows
         WHERE following_id = $1
           AND created_at >= NOW() - ($2::text || ' hours')::interval`,
       [userId, String(windowHours)],
-    ).catch(() =>
-      pool.query(
-        `SELECT COUNT(*)::int AS c FROM elix_follows
-          WHERE followed_id = $1
-            AND created_at >= NOW() - ($2::text || ' hours')::interval`,
-        [userId, String(windowHours)],
-      ),
     );
     const c = Math.floor(Number(r.rows[0]?.c) || 0);
     if (c >= maxNewFollowers) {
@@ -348,80 +343,45 @@ export async function evaluateCreatorEligibilityFlags(userId: string): Promise<{
   manualReviewHold: boolean;
 }> {
   const pool = getPool();
-  const defaults = {
+  if (!pool || !userId) {
+    return {
+      countryEligible: true,
+      ageEligible: true,
+      publicAccountOk: true,
+      goodStanding: true,
+      unresolvedFraud: false,
+      suspiciousFollowers: false,
+      manualReviewHold: false,
+    };
+  }
+
+  // Only the columns this schema has. This used to ask for country, birth date,
+  // privacy and ban flags that no migration creates, and swallow the resulting
+  // error into an empty row — so every creator came back eligible on every
+  // count, banned ones included, and a database outage read the same way. The
+  // ban is judged in SQL because `banned_until` is on the database's clock.
+  const r = await pool.query<{ banned: boolean }>(
+    `SELECT (banned_until IS NOT NULL AND banned_until > NOW()) AS banned
+       FROM profiles WHERE user_id = $1 LIMIT 1`,
+    [userId],
+  );
+  const banned = r.rows[0]?.banned === true;
+  const unresolvedFraud = await hasUnresolvedFraudFlag(userId);
+  const suspiciousFollowers = await isSuspiciousFollowerGrowth(userId);
+  const manualReviewHold = await hasManualReviewHold(userId);
+
+  return {
+    // The product records no country, date of birth or private-account flag
+    // anywhere, so these three rules have nothing to judge. They are open here
+    // deliberately and visibly rather than as the by-product of a failed query.
     countryEligible: true,
     ageEligible: true,
     publicAccountOk: true,
-    goodStanding: true,
-    unresolvedFraud: false,
-    suspiciousFollowers: false,
-    manualReviewHold: false,
+    goodStanding: !banned && !unresolvedFraud,
+    unresolvedFraud,
+    suspiciousFollowers,
+    manualReviewHold,
   };
-  if (!pool || !userId) return defaults;
-  try {
-    const r = await pool.query(
-      `SELECT country, country_code, birth_date, date_of_birth, is_private, private_account,
-              is_banned, is_suspended, fraud_review_status
-         FROM profiles WHERE user_id = $1 LIMIT 1`,
-      [userId],
-    ).catch(() => ({ rowCount: 0, rows: [] as Record<string, unknown>[] }));
-    const row = r.rows[0] || {};
-    const country = String(row.country_code || row.country || "").toUpperCase();
-    // Configurable allow-list stored in monetisation config later; default GB/IE/US/CA/AU/NZ/EU common set
-    const allowed = new Set(
-      String(process.env.CREATOR_REWARDS_COUNTRIES || "GB,IE,US,CA,AU,NZ,DE,FR,ES,IT,NL")
-        .split(",")
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean),
-    );
-    const countryEligible = !country || allowed.has(country);
-
-    let ageEligible = true;
-    const dobRaw = row.birth_date || row.date_of_birth;
-    if (dobRaw) {
-      const dob = new Date(String(dobRaw));
-      if (!Number.isNaN(dob.getTime())) {
-        const ageYears = (Date.now() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
-        ageEligible = ageYears >= 18;
-      }
-    }
-
-    const publicAccountOk = !(row.is_private === true || row.private_account === true);
-    const goodStanding = !(row.is_banned === true || row.is_suspended === true);
-    const unresolvedFraud = await hasUnresolvedFraudFlag(userId);
-    const suspiciousFollowers = await isSuspiciousFollowerGrowth(userId);
-    const manualReviewHold = await hasManualReviewHold(userId);
-
-    if (!countryEligible) {
-      await recordFraudDecision({
-        subjectType: "eligibility",
-        subjectId: userId,
-        userId,
-        reasonCode: "country_ineligible",
-        details: { country },
-      });
-    }
-    if (!ageEligible) {
-      await recordFraudDecision({
-        subjectType: "eligibility",
-        subjectId: userId,
-        userId,
-        reasonCode: "age_ineligible",
-      });
-    }
-
-    return {
-      countryEligible,
-      ageEligible,
-      publicAccountOk,
-      goodStanding: goodStanding && !unresolvedFraud,
-      unresolvedFraud,
-      suspiciousFollowers,
-      manualReviewHold,
-    };
-  } catch {
-    return defaults;
-  }
 }
 
 export async function openFraudReview(input: {

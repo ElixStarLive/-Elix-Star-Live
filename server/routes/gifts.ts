@@ -389,7 +389,7 @@ export async function handleSendGift(req: Request, res: Response) {
       // that old is never delivered a second time.
       if (
         debited.alreadyProcessed &&
-        !isWithinGiftDeliveryWindow(debited.settledAt)
+        !isWithinGiftDeliveryWindow(debited.settledAgeMs)
       ) {
         logger.warn(
           {
@@ -397,7 +397,8 @@ export async function handleSendGift(req: Request, res: Response) {
             roomId,
             giftId,
             transactionId: clientTransactionId,
-            settledAt: debited.settledAt.toISOString(),
+            settledAt: debited.settledAt?.toISOString() ?? null,
+            settledAgeMs: debited.settledAgeMs,
           },
           "handleSendGift: replay of an already-settled gift — not delivered again",
         );

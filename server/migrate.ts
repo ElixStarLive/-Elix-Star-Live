@@ -8,14 +8,10 @@
 import "./config";
 import pg from "pg";
 import { normalizeDatabaseUrl } from "./lib/databaseUrl";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import { logger } from "./lib/logger";
 import { invalidateGiftsCatalogCache } from "./lib/catalogCacheValkey";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const migrationsDir = path.join(__dirname, "migrations");
+import { closeValkeyConnections } from "./lib/valkey";
+import { listMigrationFilenames, readMigrationSql } from "./lib/migrationSql";
 
 const ADVISORY_KEY = 87236401;
 
@@ -56,22 +52,21 @@ async function main(): Promise<void> {
     );
     const applied = new Set(appliedRows.map((r) => r.filename));
 
-    const files = fs
-      .readdirSync(migrationsDir)
-      .filter((f) => f.endsWith(".sql"))
-      .sort();
+    const files = listMigrationFilenames();
 
     for (const name of files) {
       if (applied.has(name)) {
         logger.info({ migration: name }, "[migrate] skip (already applied)");
         continue;
       }
-      const fullPath = path.join(migrationsDir, name);
-      const sql = fs.readFileSync(fullPath, "utf8");
+      const sql = readMigrationSql(name);
       logger.info({ migration: name }, "[migrate] applying");
       // Apply each migration and record its marker atomically: if any statement
       // in the file fails, the whole file rolls back so a partial migration is
-      // never left behind (and never recorded as applied).
+      // never left behind (and never recorded as applied). This holds because
+      // `readMigrationSql` takes the file's own BEGIN/COMMIT away — a file that
+      // commits itself would end this transaction early and leave committed
+      // schema that no marker describes.
       try {
         await client.query("BEGIN");
         await client.query(sql);
@@ -95,6 +90,10 @@ async function main(): Promise<void> {
   }
 
   await invalidateGiftsCatalogCache().catch(() => {});
+  // That cache invalidation opens a Valkey connection, and an open connection
+  // keeps this process alive. This runs as the deploy's release command, so it
+  // has to return — a migrate that never exits is a deploy that never finishes.
+  await closeValkeyConnections().catch(() => {});
 
   logger.info("[migrate] complete");
 }
