@@ -129,6 +129,7 @@ export default function EnhancedVideoPlayer({
   const video = getVideoById(videoId);
   const originalVideo = video?.duetWithVideoId ? getVideoById(video.duetWithVideoId) : undefined;
   const effectiveMuted = muteAllSounds || isMuted;
+  const duetWithVideoId = video?.duetWithVideoId;
   const duetOriginalSrc = originalVideo?.url ?? duetOriginalUrl ?? '';
   const isDuetLayout = !!(video?.duetWithVideoId && (originalVideo || duetOriginalUrl));
   const duetLayoutMode = video?.duetLayout === 'overlay' ? 'overlay' : 'split';
@@ -145,20 +146,19 @@ export default function EnhancedVideoPlayer({
 
   // When duet original is not in store, fetch its URL for side-by-side playback
   useEffect(() => {
-    if (!video?.duetWithVideoId || originalVideo) {
+    if (!duetWithVideoId || originalVideo) {
       setDuetOriginalUrl(null);
       return;
     }
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await api.videos.get(video.duetWithVideoId as NonNullable<typeof video.duetWithVideoId>);
+        const { data } = await api.videos.get(duetWithVideoId);
         if (!cancelled && data?.url) setDuetOriginalUrl(data.url);
       } catch { /* duet video unavailable */ }
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [video?.duetWithVideoId, originalVideo]);
+  }, [duetWithVideoId, originalVideo]);
 
   useEffect(() => {
     const uid = video?.user?.id;
@@ -370,6 +370,11 @@ export default function EnhancedVideoPlayer({
   // Auto-play based on visibility.
   // Android: start at the intended mute state — muted→unmute after play paints the stuck white play icon.
   // iOS/web: try muted first, then unmute when allowed.
+  /* Read when this slide becomes active. A late-resolving duet URL must not
+     restart the main video; the duet element is started by its own effect. */
+  const duetOriginalSrcRef = useRef(duetOriginalSrc);
+  duetOriginalSrcRef.current = duetOriginalSrc;
+
   useEffect(() => {
     if (!isActive) return;
 
@@ -489,7 +494,7 @@ export default function EnhancedVideoPlayer({
     trackEvent('video_view', { videoId });
 
     const duetEl = duetOriginalRef.current;
-    if (duetEl && isDuetLayout && duetOriginalSrc) {
+    if (duetEl && isDuetLayout && duetOriginalSrcRef.current) {
       duetEl.muted = true;
       void duetEl.play().then(() => {
         if (!stillMine()) {
@@ -584,7 +589,6 @@ export default function EnhancedVideoPlayer({
       if (singleTapTimerRef.current) { clearTimeout(singleTapTimerRef.current); singleTapTimerRef.current = null; }
       stopThisSlide();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [incrementViews, isActive, isDuetLayout, muteAllSounds, originalVideo, video?.url, video?.music?.previewUrl, video?.music?.clipStartSeconds, video?.music?.clipEndSeconds, videoId, volume, stopThisSlide, _hasMusicTrack, musicVolume, videoVolume]);
 
   // Pause when tab/app is hidden; resume current slide when visible again (only if still active)

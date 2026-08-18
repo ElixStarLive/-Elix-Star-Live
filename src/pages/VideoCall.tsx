@@ -92,14 +92,21 @@ export default function VideoCall() {
     await acceptCall(callId);
   }, [callId]);
 
+  /* Initial capture only: switchCamera replaces the stream itself, so this
+     effect must not re-acquire when the facing mode changes. */
+  const facingModeRef = useRef(facingMode);
+  facingModeRef.current = facingMode;
+  const remoteUserRef = useRef(remoteUser);
+  remoteUserRef.current = remoteUser;
+
   useEffect(() => {
-    if (!callId || !remoteUser) return;
+    if (!callId || !remoteUserRef.current) return;
 
     let cancelled = false;
     (async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: facingMode } },
+          video: { facingMode: { ideal: facingModeRef.current } },
           audio: true,
         });
         // Unmounted while acquiring — stop tracks so the camera/mic indicator
@@ -126,7 +133,6 @@ export default function VideoCall() {
       cancelled = true;
       stopLocalMedia();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial capture only; switchCamera replaces stream
   }, [callId, remoteUser?.id, stopLocalMedia]);
 
   useEffect(() => {

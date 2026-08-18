@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trophy } from "lucide-react";
 import {
@@ -66,10 +66,25 @@ export default function AdminRisingStars() {
     status: "scheduled",
   });
 
+  /* Latest selection for reload, so the bootstrap below stays mount-once. */
+  const selectedSeasonIdRef = useRef(selectedSeasonId);
+  selectedSeasonIdRef.current = selectedSeasonId;
+
+  const reload = useCallback(async () => {
+    const { seasons: list, audit, error } = await apiAdminRisingStarsReload();
+    if (error) {
+      showToast(error);
+      return;
+    }
+    const seasons = list as Season[];
+    setSeasons(seasons);
+    if (!selectedSeasonIdRef.current && seasons[0]?.id) setSelectedSeasonId(seasons[0].id);
+    setAudit(audit as Array<Record<string, unknown>>);
+  }, []);
+
   useEffect(() => {
     void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reload]);
 
   useEffect(() => {
     if (!selectedSeasonId) {
@@ -78,18 +93,6 @@ export default function AdminRisingStars() {
     }
     void loadChallenges(selectedSeasonId);
   }, [selectedSeasonId]);
-
-  const reload = async () => {
-    const { seasons: list, audit, error } = await apiAdminRisingStarsReload();
-    if (error) {
-      showToast(error);
-      return;
-    }
-    const seasons = list as Season[];
-    setSeasons(seasons);
-    if (!selectedSeasonId && seasons[0]?.id) setSelectedSeasonId(seasons[0].id);
-    setAudit(audit as Array<Record<string, unknown>>);
-  };
 
   const loadChallenges = async (seasonId: string) => {
     const { challenges } = await apiAdminRisingStarsLoadChallenges(seasonId);

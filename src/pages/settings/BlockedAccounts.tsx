@@ -37,13 +37,6 @@ export default function BlockedAccounts() {
     loadCurrentUser();
   }, []);
 
-  useEffect(() => {
-    if (currentUserId) {
-      loadBlockedUsers();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserId]);
-
   const loadCurrentUser = async () => {
     try {
       const { userId, error } = await apiGetCurrentUserId();
@@ -54,7 +47,7 @@ export default function BlockedAccounts() {
     }
   };
 
-  const loadBlockedUsers = async () => {
+  const loadBlockedUsers = useCallback(async () => {
     if (!currentUserId) return;
 
     setLoading(true);
@@ -68,7 +61,13 @@ export default function BlockedAccounts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadBlockedUsers();
+    }
+  }, [currentUserId, loadBlockedUsers]);
 
   const unblockUser = async (blockedUserId: string) => {
     try {

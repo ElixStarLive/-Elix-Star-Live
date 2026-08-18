@@ -21,6 +21,17 @@ export function pushLocalGiftPill(detail: ElixGiftPillDetail) {
   window.dispatchEvent(new CustomEvent(ELIX_GIFT_PILL_EVENT, { detail }));
 }
 
+/** `gift_sent` payload as it arrives from the room socket (snake_case) or the local pill event. */
+type GiftPillWireDetail = ElixGiftPillDetail & {
+  stream_id?: string;
+  gift_name?: string;
+  gift_icon?: string;
+  creator_name?: string;
+  transactionId?: string;
+  transaction_id?: string;
+  user_id?: string;
+};
+
 interface GiftAnimation {
   id: string;
   username: string;
@@ -49,15 +60,7 @@ export default function GiftAnimationOverlay({
   const streamIdRef = useRef(streamId);
   streamIdRef.current = streamId;
 
-  const ingest = (data: ElixGiftPillDetail & {
-    stream_id?: string;
-    gift_name?: string;
-    gift_icon?: string;
-    creator_name?: string;
-    transactionId?: string;
-    transaction_id?: string;
-    user_id?: string;
-  }) => {
+  const ingest = (data: GiftPillWireDetail) => {
     const eventStreamId = data.streamId ?? data.stream_id;
     if (
       eventStreamId &&
@@ -111,8 +114,7 @@ export default function GiftAnimationOverlay({
   };
 
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const onWs = (data: any) => ingest(data);
+    const onWs = (data: unknown) => ingest(data as GiftPillWireDetail);
     const onLocal = (ev: Event) => {
       const detail = (ev as CustomEvent<ElixGiftPillDetail>).detail;
       if (detail) ingest(detail);

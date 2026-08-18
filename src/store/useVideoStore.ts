@@ -131,17 +131,85 @@ function applyUserFollowing(
   });
 }
 
+/** Optional-everything view of a backend feed row; every field is narrowed at read time below. */
+interface RawVideoUser {
+  id?: string | number;
+  name?: string;
+  username?: string;
+  avatar?: string;
+  isVerified?: unknown;
+  followers?: number;
+  following?: number;
+  isFollowing?: unknown;
+}
+
+interface RawVideoMusic {
+  id?: string;
+  title?: string;
+  artist?: string;
+  duration?: string | number;
+  coverUrl?: string;
+  cover_url?: string;
+  albumArt?: string;
+  image?: string;
+  previewUrl?: string;
+  url?: string;
+  clipStartSeconds?: number;
+  clipEndSeconds?: number;
+  provider?: string;
+  originalVolume?: number;
+  musicVolume?: number;
+  duetWithVideoId?: string | number;
+  duetLayout?: string;
+}
+
+interface RawVideoStats {
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+}
+
+interface RawVideoRow {
+  id?: string | number;
+  userId?: string | number;
+  url?: string;
+  thumbnail?: string;
+  duration?: string | number;
+  user?: RawVideoUser;
+  stats?: RawVideoStats;
+  music?: RawVideoMusic;
+  displayName?: string;
+  username?: string;
+  avatar?: string;
+  description?: string;
+  hashtags?: string[];
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+  createdAt?: string;
+  created_at?: string;
+  isLiked?: unknown;
+  isSaved?: unknown;
+  privacy?: string;
+  duetWithVideoId?: string | number;
+  duetLayout?: string;
+}
+
 function mapRawVideoRowToClientVideo(
   // Backend feed rows are dynamically shaped; the mapper narrows fields defensively below.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  v: any,
+  raw: unknown,
   likedSet: Set<string>,
   savedSet: Set<string>,
   followingSet: Set<string>,
 ): Video {
-  const u = v.user || {};
-  const stats = v.stats || {};
-  const music = v.music || { id: 'original', title: 'Original Sound', artist: u.name || v.displayName || 'Creator', duration: '0:15' };
+  const v = raw as RawVideoRow;
+  const u: RawVideoUser = v.user || {};
+  const stats: RawVideoStats = v.stats || {};
+  const music: RawVideoMusic = v.music || { id: 'original', title: 'Original Sound', artist: u.name || v.displayName || 'Creator', duration: '0:15' };
   const durationStr =
     typeof v.duration === 'number' ? `0:${String(v.duration).padStart(2, '0')}` : (v.duration || '0:15');
   const id = String(v.id || '');

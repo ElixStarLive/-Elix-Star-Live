@@ -28,12 +28,7 @@ export default function AdminReports() {
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadReports();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     try {
       const { reports: list, error } = await apiAdminListReports(filter);
       if (error) throw new Error(error);
@@ -43,7 +38,11 @@ export default function AdminReports() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    loadReports();
+  }, [filter, loadReports]);
 
   const handleResolve = async (reportId: string, outcome: 'removed' | 'warned' | 'no_action') => {
     try {

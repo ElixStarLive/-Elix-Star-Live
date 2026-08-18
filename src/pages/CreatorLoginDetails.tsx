@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RoyceCloseIcon } from '../components/royce';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -89,13 +89,16 @@ export default function CreatorLoginDetails() {
     return accounts[0]?.identifier || '';
   });
 
+  // 'email' is read through a ref so this never loops or resets when the user clears it manually
+  const emailRef = useRef(email);
+  emailRef.current = email;
+
   // Sync email state with user email on mount if logged in and no local email set
   useEffect(() => {
-    if (user && !email) {
+    if (user && !emailRef.current) {
       setEmail(user.email ?? '');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // We removed 'email' dependency so it doesn't loop or reset when user clears it manually
+  }, [user]);
   const [username, setUsername] = useState(() => {
     try {
       return readSavedAccounts()[0]?.username || '';

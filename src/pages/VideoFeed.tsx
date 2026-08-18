@@ -199,8 +199,16 @@ export default function VideoFeed() {
   }, [location.pathname, fetchLiveStreams]);
 
   /* ---- Enrich live stream names/avatars from profiles ---- */
+  /* Keyed on identity fields only: enrichment must not re-run when viewer
+     counts tick. The ref carries the current cards into that keyed run. */
+  const liveStreamIdentityKey = liveStreams
+    .map((s) => `${s.streamKey}:${s.name}:${s.userId}`)
+    .join(",");
+  const liveStreamsRef = useRef(liveStreams);
+  liveStreamsRef.current = liveStreams;
+
   useEffect(() => {
-    const needsEnrichment = liveStreams.filter(
+    const needsEnrichment = liveStreamsRef.current.filter(
       (s) =>
         s.userId &&
         (isGenericLiveCreatorName(s.name) || !sanitizeLiveAvatar(s.avatar) || isUiAvatarsUrl(s.avatar)),
@@ -220,8 +228,7 @@ export default function VideoFeed() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveStreams.map((s) => `${s.streamKey}:${s.name}:${s.userId}`).join(",")]);
+  }, [liveStreamIdentityKey]);
 
   /* ---- Feed channel: when a creator starts live, they appear on For You immediately; reconnect on close ---- */
   useEffect(() => {
@@ -278,9 +285,12 @@ export default function VideoFeed() {
     ...videos.map((v) => v.id),
   ].join("|");
 
+  /* Count changes only when feedKey changes, so listing it adds no re-runs. */
+  const feedItemCount = feedItems.length;
+
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || feedItems.length === 0) return;
+    if (!container || feedItemCount === 0) return;
 
     const ratios = new Map<Element, number>();
     const pickActive = () => {
@@ -321,8 +331,7 @@ export default function VideoFeed() {
     pickActive();
 
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [feedKey]);
+  }, [feedKey, feedItemCount]);
 
   const handleScroll = () => {
     if (!containerRef.current) return;

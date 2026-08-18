@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Music, Vote, Video, Radio } from "lucide-react";
 import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
@@ -57,6 +57,10 @@ export default function RisingStarsChallenge() {
     ? `/rising-stars/challenge/${challengeId}`
     : RISING_STARS_HOME;
 
+  /* Latest signed-in id for loadAll, without making the challenge fetch re-run on sign-in. */
+  const userIdRef = useRef(user?.id);
+  userIdRef.current = user?.id;
+
   const goBack = useCallback(
     () => navigate(exitToFromLocationState(location.state, RISING_STARS_HOME), { replace: true }),
     [navigate, location.state],
@@ -95,13 +99,7 @@ export default function RisingStarsChallenge() {
     return String(meta.title || meta.name || challenge?.sound_track_id || "Exclusive sound");
   }, [challenge]);
 
-  useEffect(() => {
-    if (!challengeId) return;
-    void loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [challengeId]);
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     if (!challengeId) return;
     setLoading(true);
     try {
@@ -114,8 +112,9 @@ export default function RisingStarsChallenge() {
       setVotedToday(Boolean(ch.body?.voted_today));
       setEntries(en.entries as unknown as Entry[]);
 
-      if (user?.id) {
-        const { videos: list } = await apiFetchUserVideos(user.id);
+      const currentUserId = userIdRef.current;
+      if (currentUserId) {
+        const { videos: list } = await apiFetchUserVideos(currentUserId);
         setMyVideos(
           list.map((v: { id?: string; description?: string }) => ({
             id: String(v.id),
@@ -128,7 +127,12 @@ export default function RisingStarsChallenge() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [challengeId]);
+
+  useEffect(() => {
+    if (!challengeId) return;
+    void loadAll();
+  }, [challengeId, loadAll]);
 
   const enter = async () => {
     if (!challengeId || !selectedVideoId || busy) return;

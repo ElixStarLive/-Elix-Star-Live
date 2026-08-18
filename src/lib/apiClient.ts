@@ -184,8 +184,7 @@ async function webRequest<T>(
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- default `any` preserves the loose public `api.*` return contract relied on by consumers
-export async function request<T = any>(
+export async function request<T = Record<string, unknown>>(
   path: string,
   init: RequestInit = {},
 ): Promise<{ data: T | null; error: { message: string } | null }> {
@@ -245,6 +244,25 @@ async function getFollowRelationCount(
   return { data: null, count: n, error: null };
 }
 
+/** Flat video row returned by `GET /api/videos/:id`; only the fields clients read are declared. */
+interface VideoApiRow {
+  id?: string;
+  url?: string;
+}
+
+/** Row shape from `GET /api/gifts/catalog` (`elix_gifts` row plus resolved media URLs). */
+interface GiftCatalogApiRow {
+  gift_id: string;
+  name: string;
+  gift_type: "universe" | "big" | "small";
+  coin_cost: number;
+  animation_url: string | null;
+  icon_url: string | null;
+  sfx_url: string | null;
+  is_active: boolean;
+  battle_points?: number;
+}
+
 export const api = {
   auth: {
     async getSession() {
@@ -272,7 +290,7 @@ export const api = {
       return request(`/api/profiles/${encodeURIComponent(userId)}`);
     },
     async list() {
-      const r = await request("/api/profiles");
+      const r = await request<{ profiles?: Record<string, unknown>[] }>("/api/profiles");
       return {
         data: r.data?.profiles ?? [],
         error: r.error,
@@ -289,7 +307,7 @@ export const api = {
 
   videos: {
     async get(videoId: string) {
-      return request(`/api/videos/${encodeURIComponent(videoId)}`);
+      return request<VideoApiRow>(`/api/videos/${encodeURIComponent(videoId)}`);
     },
     async list() {
       const r = await request("/api/videos");
@@ -368,7 +386,10 @@ export const api = {
 
   gifts: {
     async getCatalog() {
-      return request("/api/gifts/catalog");
+      return request<{
+        gifts?: GiftCatalogApiRow[];
+        catalog?: GiftCatalogApiRow[];
+      }>("/api/gifts/catalog");
     },
   },
 };

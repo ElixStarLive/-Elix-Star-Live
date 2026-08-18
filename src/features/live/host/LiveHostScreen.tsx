@@ -120,6 +120,10 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
   const rafRef = useRef<number>(0);
   const startRef = useRef(display);
   const targetRef = useRef(value);
+  /* The animated value is read as the tween's start point; it changes every
+     frame, so it must stay out of the deps or the tween would restart itself. */
+  const displayRef = useRef(display);
+  displayRef.current = display;
   const fmt = format ?? ((n: number) => n.toLocaleString());
   useEffect(() => {
     if (durationMs <= 0) {
@@ -128,9 +132,9 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
       targetRef.current = value;
       return;
     }
-    if (value === display) { targetRef.current = value; return; }
+    if (value === displayRef.current) { targetRef.current = value; return; }
     cancelAnimationFrame(rafRef.current);
-    startRef.current = display;
+    startRef.current = displayRef.current;
     targetRef.current = value;
     const start = performance.now();
     const duration = durationMs;
@@ -144,7 +148,6 @@ function AnimatedScore({ value, className = '', durationMs = 300, format }: { va
     };
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, durationMs]);
   return <span className={className}>{fmt(display)}</span>;
 }

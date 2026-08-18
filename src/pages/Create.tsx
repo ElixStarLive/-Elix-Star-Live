@@ -200,6 +200,13 @@ export default function Create() {
     el.volume = vol <= 0.001 ? 0 : vol;
   }, [originalVolume, previewUrl, previewKind]);
 
+  /* Read at preview-start time only: the mix slider must not restart the clip
+     (a separate effect below live-updates the volume of the playing audio). */
+  const musicVolumeRef = useRef(musicVolume);
+  musicVolumeRef.current = musicVolume;
+  const selectedSoundRef = useRef(selectedSound);
+  selectedSoundRef.current = selectedSound;
+
   // Preview: added sound track under compose.
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +217,7 @@ export default function Create() {
       backgroundAudioRef.current = null;
     };
 
-    const track = selectedSound;
+    const track = selectedSoundRef.current;
     const shouldPlay =
       !!previewUrl &&
       !!track &&
@@ -234,7 +241,7 @@ export default function Create() {
       audio.preload = 'auto';
       audio.loop = true;
       audio.dataset.elixSoundPreview = '1';
-      audio.volume = Math.max(0, Math.min(1, musicVolume));
+      audio.volume = Math.max(0, Math.min(1, musicVolumeRef.current));
       audio.src = playable;
       audio.ontimeupdate = () => {
         if (cancelled) return;
@@ -259,7 +266,6 @@ export default function Create() {
       cancelled = true;
       killBg();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewUrl, selectedSound?.id, selectedSound?.url]);
 
   useEffect(() => {

@@ -180,6 +180,14 @@ export function FeedStoryCirclesOverlay({
     };
   }, [reloadStories]);
 
+  /**
+   * Content key for the follow list: the fetch below re-runs on content change,
+   * not on a new array identity holding the same ids.
+   */
+  const followingIdsKey = (followingIds || []).join(',');
+  const followingIdsRef = useRef(followingIds);
+  followingIdsRef.current = followingIds;
+
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -198,7 +206,7 @@ export function FeedStoryCirclesOverlay({
         setLiveUserIds(liveSet);
 
         const rows = Array.isArray(profilesBody?.profiles) ? profilesBody.profiles : [];
-        const followingSet = new Set(followingIds || []);
+        const followingSet = new Set(followingIdsRef.current || []);
         const mapped: SuggestedUser[] = rows
           .map(
             (p: {
@@ -250,8 +258,7 @@ export function FeedStoryCirclesOverlay({
     return () => {
       disposePresence();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, followingFirst, (followingIds || []).join(','), token]);
+  }, [user?.id, followingFirst, followingIdsKey, token]);
 
   const ownStory = user?.id ? storyGroups.find((g) => g.userId === user.id) : undefined;
 

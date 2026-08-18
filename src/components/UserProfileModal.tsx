@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RoyceCloseIcon } from './royce';
 import { Ban, Play, MoreHorizontal, Flag, Search, Video } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -65,6 +65,18 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
   const blockUser = useSafetyStore((s) => s.blockUser);
   const unblockUser = useSafetyStore((s) => s.unblockUser);
 
+  /**
+   * Latest props/store values for the open-time fetch below. Kept in refs so the
+   * fetch still fires only on open / user id / live hint, never on unrelated
+   * `user` field or auth churn.
+   */
+  const userRef = useRef(user);
+  userRef.current = user;
+  const currentUserRef = useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const setUserFollowingRef = useRef(setUserFollowing);
+  setUserFollowingRef.current = setUserFollowing;
+
   const displayUser: User = profileUser
     ? { ...user, ...profileUser }
     : user;
@@ -92,6 +104,9 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
   }, [user?.id, isOwnProfile, onFollow, toggleFollow]);
 
   useEffect(() => {
+    const user = userRef.current;
+    const currentUser = currentUserRef.current;
+    const setUserFollowing = setUserFollowingRef.current;
     if (!isOpen || !user?.id) return;
     setProfileUser((prev) => (prev && prev.id !== user.id ? null : prev));
     setLiveWatchKey(isLiveHint ? String(user.id) : null);
@@ -202,7 +217,6 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
       }
     })();
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, user.id, isLiveHint]);
 
   /* Hide home TopNav while this profile is open (stacking keeps TopNav visible otherwise). */

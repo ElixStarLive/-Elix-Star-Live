@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Heart, Trash2, Edit3, Reply } from 'lucide-react';
 import { useVideoStore } from '../store/useVideoStore';
 import { useAuthStore } from '../store/useAuthStore';
@@ -55,15 +55,7 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
   const { user } = useAuthStore();
   const { getVideoById, updateVideo } = useVideoStore();
 
-  // Fetch comments when modal opens
-  useEffect(() => {
-    if (isOpen && videoId) {
-      fetchComments();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, videoId, sortBy]);
-
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
     try {
       setLoading(true);
       const sort = sortBy === 'oldest' ? 'oldest' : 'newest';
@@ -79,7 +71,14 @@ export default function CommentsModal({ isOpen, onClose, videoId }: CommentsModa
     } finally {
       setLoading(false);
     }
-  };
+  }, [videoId, sortBy]);
+
+  // Fetch comments when the modal opens, and on video/sort change as before.
+  useEffect(() => {
+    if (isOpen && videoId) {
+      void fetchComments();
+    }
+  }, [isOpen, videoId, fetchComments]);
 
   const handleAddComment = async (parentComment?: Comment) => {
     const commentText = newComment.trim();

@@ -122,7 +122,7 @@ export default function AdminProgression() {
     Array<Record<string, unknown>>
   >([]);
 
-  const loadEngagementAdmin = async () => {
+  const loadEngagementAdmin = useCallback(async () => {
     const data = await apiAdminProgressionLoadEngagementAdmin();
     if (data.flags) {
       setEngagementFlags(data.flags);
@@ -153,13 +153,12 @@ export default function AdminProgression() {
     if (Array.isArray(data.entries)) {
       setAuditEntries(data.entries as typeof auditEntries);
     }
-  };
+  }, []);
 
   useEffect(() => {
     void loadConfig();
     void loadEngagementAdmin();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-once admin bootstrap; reload is explicit via UI actions
-  }, []);
+  }, [loadEngagementAdmin]);
 
   const loadConfig = async () => {
     const data = await apiAdminProgressionLoadConfig();

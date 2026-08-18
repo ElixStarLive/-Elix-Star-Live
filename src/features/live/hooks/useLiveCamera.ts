@@ -195,8 +195,9 @@ export function useLiveCamera(opts: {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [opts.enabled, autoAcquire, cameraFacing]);
+    /* acquireCamera is keyed on cameraFacing, so this still re-acquires on a
+       facing flip and on nothing else. */
+  }, [opts.enabled, autoAcquire, acquireCamera]);
 
   useEffect(() => {
     if (!opts.enabled) return;

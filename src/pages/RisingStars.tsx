@@ -104,12 +104,6 @@ export default function RisingStars() {
     void loadHub();
   }, []);
 
-  useEffect(() => {
-    if (!season?.id) return;
-    void loadChallenges();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [season?.id, categoryId, regionId]);
-
   const loadHub = async () => {
     setLoading(true);
     try {
@@ -142,14 +136,19 @@ export default function RisingStars() {
     }
   };
 
-  const loadChallenges = async () => {
+  const loadChallenges = useCallback(async () => {
     if (!season?.id) return;
     const params = new URLSearchParams({ seasonId: season.id });
     if (categoryId) params.set("categoryId", categoryId);
     if (regionId) params.set("regionId", regionId);
     const { challenges } = await apiRisingStarsChallenges(params.toString());
     setChallenges(challenges as unknown as Challenge[]);
-  };
+  }, [season?.id, categoryId, regionId]);
+
+  useEffect(() => {
+    if (!season?.id) return;
+    void loadChallenges();
+  }, [season?.id, categoryId, regionId, loadChallenges]);
 
   return (
     <div className="page-above-bottom-nav bg-transparent text-white">

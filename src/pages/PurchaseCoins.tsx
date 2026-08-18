@@ -132,8 +132,7 @@ export default function PurchaseCoins() {
     if (isNative) {
       loadNativeProducts();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isNative]);
 
   const loadCurrentUser = async () => {
     try {

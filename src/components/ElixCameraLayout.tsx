@@ -82,6 +82,15 @@ interface StickerOption {
   emoji: string;
 }
 
+/** Camera surfaces the standard DOM media types do not declare (focus lock, native zoom bridge). */
+type FocusCapableTrackCapabilities = MediaTrackCapabilities & {
+  focusMode?: readonly string[];
+};
+type FocusModeConstraintSet = MediaTrackConstraintSet & { focusMode: string };
+type ZoomCapableVideoElement = HTMLVideoElement & {
+  setZoom?: (level: number) => void;
+};
+
 /** Create camera duration strip — one visible; swipe left/right to change. */
 const CAMERA_DURATIONS = ['10m', '60s', '15s', 'PHOTO', 'TEXT'] as const;
 type CameraDuration = (typeof CAMERA_DURATIONS)[number];
@@ -178,12 +187,12 @@ export default function ElixCameraLayout({
     const track = stream.getVideoTracks()[0];
     if (!track) return;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const caps = track.getCapabilities?.() as any;
+      const caps = track.getCapabilities?.() as
+        | FocusCapableTrackCapabilities
+        | undefined;
       if (caps?.focusMode) {
         const newLocked = !focusLocked;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await track.applyConstraints({ advanced: [{ focusMode: newLocked ? 'manual' : 'continuous' } as any] });
+        await track.applyConstraints({ advanced: [{ focusMode: newLocked ? 'manual' : 'continuous' } as FocusModeConstraintSet] });
         setFocusLocked(newLocked);
       } else {
         setFocusLocked((v) => !v);
@@ -229,6 +238,11 @@ export default function ElixCameraLayout({
 
   const textInputRef = useRef<HTMLInputElement>(null);
 
+  /* Read when a filter is applied, not when the catalog loads: re-running this
+     on the fetched list would re-write the preview filter outside a user tap. */
+  const cameraFiltersRef = useRef(cameraFilters);
+  cameraFiltersRef.current = cameraFilters;
+
   // ═══════════════════════════════════════════════════
   // Apply CSS filters to the video element in real-time
   // ═══════════════════════════════════════════════════
@@ -244,7 +258,7 @@ export default function ElixCameraLayout({
     }
 
     // Color filter
-    const filterObj = cameraFilters.find(f => f.id === activeFilter);
+    const filterObj = cameraFiltersRef.current.find(f => f.id === activeFilter);
     if (filterObj && filterObj.filter !== 'none') {
       filters.push(filterObj.filter);
     }
@@ -262,13 +276,11 @@ export default function ElixCameraLayout({
         videoEl.style.filter = 'none';
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beautyEnabled, beautyLevel, activeFilter, enhanceEnabled, videoRef]);
 
   useEffect(() => {
     if (videoRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (videoRef.current as any).setZoom?.(zoomLevel);
+        (videoRef.current as ZoomCapableVideoElement).setZoom?.(zoomLevel);
       }
   }, [zoomLevel, videoRef]);
 
@@ -488,8 +500,7 @@ export default function ElixCameraLayout({
               title="Beauty level"
               className="w-5 h-12 appearance-none cursor-pointer"
               style={{
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                writingMode: 'vertical-lr' as any,
+                writingMode: 'vertical-lr',
                 direction: 'rtl',
                 accentColor: '#FFFFFF',
               }}

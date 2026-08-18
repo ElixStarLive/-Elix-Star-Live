@@ -2,8 +2,7 @@
  * Injected from server/index after sendToUserGlobal is defined (avoids circular imports).
  */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type Notifier = (userId: string, event: string, data: any) => number;
+type Notifier = (userId: string, event: string, data: unknown) => number;
 
 let notifier: Notifier | null = null;
 
@@ -11,8 +10,7 @@ export function setLiveShareNotifier(fn: Notifier): void {
   notifier = fn;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function notifyLiveShareRecipient(userId: string, data: any): number {
+export function notifyLiveShareRecipient(userId: string, data: unknown): number {
   if (!notifier) return 0;
   return notifier(userId, "live_share", data);
 }

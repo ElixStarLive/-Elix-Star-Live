@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Camera } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { trackEvent } from '../lib/analytics';
@@ -48,16 +48,13 @@ export default function EditProfile() {
     document.getElementById('avatar-upload')?.click();
   }, []);
 
-  useEffect(() => {
-    // Reload profile once auth store has the current user ID
-    if (user?.id) {
-      loadProfile();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  /* Latest auth user for loadProfile, so the reload still keys off the id alone. */
+  const userRef = useRef(user);
+  userRef.current = user;
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
+      const user = userRef.current;
       if (!user?.id) return;
       setCurrentUserId(user.id);
 
@@ -88,7 +85,14 @@ export default function EditProfile() {
     } catch {
       showToast('Failed to load profile');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Reload profile once auth store has the current user ID
+    if (user?.id) {
+      loadProfile();
+    }
+  }, [user?.id, loadProfile]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

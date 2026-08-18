@@ -35,8 +35,7 @@ export function useVerticalSnapFeedIndex(videoIds: string[]) {
     const slides = container.querySelectorAll('[data-slide-index]');
     slides.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoIdsKey]);
+  }, [videoIdsKey, videoCount]);
 
   const handleVideoEnd = useCallback(
     (index: number) => {

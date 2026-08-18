@@ -39,8 +39,7 @@ function clearGuard(): void {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function lazyWithRetry<T extends ComponentType<any>>(
+export function lazyWithRetry<T extends ComponentType<never>>(
   factory: () => Promise<{ default: T }>,
 ): LazyExoticComponent<T> {
   return reactLazy(async () => {

@@ -174,6 +174,9 @@ import { App as CapacitorApp } from '@capacitor/app';
 
 const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
 
+/** Battle speed challenge ships enabled; the screens read it for their gating. */
+const SPEED_CHALLENGE_ENABLED = true;
+
 export function useLiveHostController() {
   const { streamId } = useParams();
   const navigate = useNavigate();
@@ -298,8 +301,7 @@ export function useLiveHostController() {
     if (!isCreatorParticipant && streamId && streamId !== 'broadcast' && streamId !== 'start' && streamId !== 'watch') {
       navigate(`/watch/${streamId}`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCreatorParticipant, streamId]);
+  }, [isCreatorParticipant, streamId, navigate]);
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [engagementOpen, setEngagementOpen] = useState(false);
   const [engagementPanel, setEngagementPanel] = useState<EngagementPanel>('hub');
@@ -945,7 +947,6 @@ export function useLiveHostController() {
   const [featuredUserId, setFeaturedUserId] = useState<string | null>(null);
   const featuredBigVideoRef = useRef<HTMLVideoElement | null>(null);
   const hostSmallVideoRef = useRef<HTMLVideoElement | null>(null);
-  const coHostTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const coHostsRef = useRef<CoHost[]>([]);
   const cohostEndInFlightRef = useRef(false);
   const isBroadcastRef = useRef(false);
@@ -1051,8 +1052,9 @@ export function useLiveHostController() {
   const acceptCohostInvite = useCallback(async () => {
     if (!pendingCohostInvite || !user?.id) return;
     // Never accept a co-host invite while battling — it would pull this
-    // creator out of the battle onto the spectator page.
-    if (isBattleMode) {
+    // creator out of the battle onto the spectator page. Read through the
+    // shared battle-mode ref used by every other guard in this hook.
+    if (isBattleModeRef.current) {
       setPendingCohostInvite(null);
       closeAllBottomPanels();
       return;
@@ -1070,7 +1072,6 @@ export function useLiveHostController() {
     if (inv.streamKey) {
       navigate(`/watch/${inv.streamKey}?cohost=1`, { state: { fromCohostInvite: true } });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- isBattleMode is declared later in this hook; adding it here TDZs. Runtime reads the binding after init; isBattleModeRef is also declared later.
   }, [pendingCohostInvite, user?.id, user?.username, user?.name, user?.avatar, effectiveStreamId, navigate, closeAllBottomPanels]);
 
   // ─── JOIN REQUEST: creator receives when someone asked to join (from viewer) ───
@@ -1298,13 +1299,6 @@ export function useLiveHostController() {
   const _liveHostCreators = filteredHostCreators.filter(c => c.isLive);
   const _offlineHostCreators = filteredHostCreators.filter(c => !c.isLive);
 
-  useEffect(() => {
-    return () => {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      coHostTimersRef.current.forEach(t => clearTimeout(t));
-    };
-  }, []);
-
   // Battle Mode State
   const [battleState, setBattleState] = useState<BattleState>('LIVE_SOLO');
   const [isBattleMode, setIsBattleMode] = useState(false);
@@ -1316,6 +1310,12 @@ export function useLiveHostController() {
   // If joining as battle participant, enter battle mode and start camera (server drives timer/countdown)
   const battleLkRoomRef = useRef<Room | null>(null);
   const battleJoinerConnectIdRef = useRef(0);
+  /** True while `connectId` is still the newest battle-join attempt. A newer
+   *  join owns teardown, so the superseded attempt must not disconnect it. */
+  const isCurrentBattleConnect = useCallback(
+    (connectId: number) => battleJoinerConnectIdRef.current === connectId,
+    [],
+  );
 
   const getThermalRoom = useCallback(
     () => liveKitRoomRef.current ?? battleLkRoomRef.current ?? null,
@@ -1339,6 +1339,12 @@ export function useLiveHostController() {
     getBattleRemoteCount,
   });
 
+  /* Read once when the battle join starts. acquireCamera is keyed on the camera
+     facing, and the seeded host comes from the accept navigation — neither may
+     re-run this join (that would reconnect LiveKit mid-battle). */
+  const battleJoinRef = useRef({ acquireCamera, locationState: location.state });
+  battleJoinRef.current = { acquireCamera, locationState: location.state };
+
   useEffect(() => {
     if (!isBattleJoiner || !user?.id) return;
     const connectId = ++battleJoinerConnectIdRef.current;
@@ -1352,8 +1358,10 @@ export function useLiveHostController() {
     // never the host-side "Add creator" placeholders.
     // battleHost in location.state is set only after battle_accept_ack.
     // Reload without that state relies on apiLiveToken authorization below.
-    const cameFromAcceptedInvite = !!(location.state as { battleHost?: unknown } | null)?.battleHost;
-    const seededHost = (location.state as { battleHost?: { userId?: string; name?: string; avatar?: string } } | null)?.battleHost;
+    const joinState = battleJoinRef.current.locationState as
+      { battleHost?: { userId?: string; name?: string; avatar?: string } } | null;
+    const cameFromAcceptedInvite = !!joinState?.battleHost;
+    const seededHost = joinState?.battleHost;
     if (seededHost && (seededHost.userId || seededHost.name)) {
       setBattleSlots(prev => {
         if (prev[0].status !== 'empty') return prev;
@@ -1448,7 +1456,7 @@ export function useLiveHostController() {
       });
 
       // Get camera + mic via shared owner (after server auth).
-      const stream = await acquireCamera();
+      const stream = await battleJoinRef.current.acquireCamera();
       if (cancelled) {
         if (stream) stopCamera();
         return;
@@ -1527,17 +1535,22 @@ export function useLiveHostController() {
     })();
     return () => {
       cancelled = true;
-      // Intentional: skip teardown if a newer battle join replaced this connectId.
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- compare live ref to this effect's connectId
-      if (battleJoinerConnectIdRef.current !== connectId) return;
+      if (!isCurrentBattleConnect(connectId)) return;
       battleLifecycle.liveKit?.disconnect();
       battleLkRoomRef.current = null;
       if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
       // useLiveCamera stopCamera runs on enabled teardown; clear battle stream state here.
       setBattleParticipantStream(null);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBattleJoiner, user?.id, effectiveStreamId]);
+  }, [
+    isBattleJoiner,
+    user?.id,
+    effectiveStreamId,
+    attachRemoteAudio,
+    isCurrentBattleConnect,
+    navigate,
+    stopCamera,
+  ]);
 
   // Battle state driven by WebSocket backend.
   useEffect(() => {
@@ -1936,7 +1949,6 @@ export function useLiveHostController() {
 
   // Speed Challenge State
   // SPEED CHALLENGE
-  const SPEED_CHALLENGE_ENABLED = true;
   const [speedChallengeActive, setSpeedChallengeActive] = useState(false);
   const [speedChallengeTime, setSpeedChallengeTime] = useState(60);
   const [speedChallengeTaps, setSpeedChallengeTaps] = useState<Record<string, number>>({ me: 0, opponent: 0, player3: 0, player4: 0 });
@@ -2060,12 +2072,9 @@ export function useLiveHostController() {
     });
   }, [showFanClub, user?.id]);
 
+  const miniProfileId = miniProfile?.id;
   useEffect(() => {
-    if (!miniProfile) {
-      setMiniProfileFollowsThem(undefined);
-      return;
-    }
-    if (!miniProfile.id || !user?.id || miniProfile.id === user.id) {
+    if (!miniProfileId || !user?.id || miniProfileId === user.id) {
       setMiniProfileFollowsThem(undefined);
       return;
     }
@@ -2074,7 +2083,7 @@ export function useLiveHostController() {
       try {
         const { following: ids, error } = await apiFetchFollowingIds(user.id);
         if (error || cancelled) return;
-        if (!cancelled) setMiniProfileFollowsThem(ids.includes((miniProfile.id as NonNullable<typeof miniProfile.id>)));
+        if (!cancelled) setMiniProfileFollowsThem(ids.includes(miniProfileId));
       } catch {
         if (!cancelled) setMiniProfileFollowsThem(false);
       }
@@ -2082,8 +2091,7 @@ export function useLiveHostController() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [miniProfile?.id, user?.id]);
+  }, [miniProfileId, user?.id]);
 
   const uploadSticker = useCallback(() => {
     const token = useAuthStore.getState().session?.access_token;
@@ -2136,11 +2144,6 @@ export function useLiveHostController() {
     }
   }, [showFanClub]);
 
-  const closeMembershipBar = useCallback(() => {
-    // setMembershipBarClosing(true);
-    // setTimeout(() => { setShowMembershipBar(false); setMembershipBarClosing(false); }, 200);
-  }, []);
-
   const _openMembershipBar = useCallback(() => {
     if (membershipTimerRef.current) clearTimeout(membershipTimerRef.current);
     // Host live: Membership capsule shows team heart counts (days each user joined).
@@ -2150,8 +2153,7 @@ export function useLiveHostController() {
     } else {
       setShowFanClub(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [closeMembershipBar, isBroadcast]);
+  }, [isBroadcast]);
   const [sessionContribution, setSessionContribution] = useState(0); // total coins gifted this session
   const [universeQueue, setUniverseQueue] = useState<UniverseTickerMessage[]>([]);
   const [currentUniverse, setCurrentUniverse] = useState<UniverseTickerMessage | null>(null);
@@ -2355,8 +2357,8 @@ export function useLiveHostController() {
     setIsFindCreatorsOpen(false);
     battleCreate({ hostName: creatorName });
     requestBattleInviteRoster();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isBattleMode, location.search, location.pathname, navigate, endBattleCleanup, creatorName, exitBattleMode, isBattleJoiner, resetScores, requestBattleInviteRoster]);
+    /* URL/cleanup concerns belong to exitBattleMode, which owns them. */
+  }, [isBattleMode, creatorName, exitBattleMode, isBattleJoiner, resetScores, requestBattleInviteRoster]);
 
   /** X on a battle participant — remove ONLY that creator's seat; never end the whole Battle. */
   const removePlayerFromSlot = useCallback((slotIndex: number) => {
@@ -2561,7 +2563,12 @@ export function useLiveHostController() {
     setSpeedChallengeResult(null);
     setSpeedChallengeActive(true);
     setSpeedChallengeTime(60);
-  }, [speedChallengeActive, isBattleMode, battleWinner, SPEED_CHALLENGE_ENABLED]);
+  }, [speedChallengeActive, isBattleMode, battleWinner]);
+
+  /* Result labels are read when the challenge ends, so a name arriving mid-run
+     must not restart the 1s countdown. */
+  const speedResultNamesRef = useRef({ myCreatorName, opponentCreatorName });
+  speedResultNamesRef.current = { myCreatorName, opponentCreatorName };
 
   // Speed challenge timer: 60 → 0
   useEffect(() => {
@@ -2572,11 +2579,12 @@ export function useLiveHostController() {
 
       // Read taps from ref (avoids stale closure + avoids dependency on taps object)
       const finalTaps = speedChallengeTapsRef.current;
+      const slots = battleSlotsRef.current;
       const entries = Object.entries(finalTaps).filter(([k]) => {
         if (k === 'me') return true;
-        if (k === 'opponent') return battleSlots[0].status === 'accepted';
-        if (k === 'player3') return battleSlots[1].status === 'accepted';
-        if (k === 'player4') return battleSlots[2].status === 'accepted';
+        if (k === 'opponent') return slots[0].status === 'accepted';
+        if (k === 'player3') return slots[1].status === 'accepted';
+        if (k === 'player4') return slots[2].status === 'accepted';
         return false;
       });
       if (entries.length > 0) {
@@ -2586,7 +2594,8 @@ export function useLiveHostController() {
           setSpeedChallengeResult('DRAW!');
         } else {
           const winnerKey = winners[0][0];
-          const names: Record<string, string> = { me: myCreatorName, opponent: opponentCreatorName || 'P2', player3: battleSlots[1]?.name || 'P3', player4: battleSlots[2]?.name || 'P4' };
+          const { myCreatorName: myName, opponentCreatorName: oppName } = speedResultNamesRef.current;
+          const names: Record<string, string> = { me: myName, opponent: oppName || 'P2', player3: slots[1]?.name || 'P3', player4: slots[2]?.name || 'P4' };
           setSpeedChallengeResult(`${names[winnerKey]} wins!`);
         }
         // Auto-clear result after 3s
@@ -2598,7 +2607,6 @@ export function useLiveHostController() {
     }
     const t = setTimeout(() => setSpeedChallengeTime(prev => prev - 1), 1000);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speedChallengeActive, speedChallengeTime]);
 
 
@@ -2619,7 +2627,6 @@ export function useLiveHostController() {
       speedMultiplierRef,
       startSpeedChallenge,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myScore, opponentScore, player3Score, player4Score, roseCount, battleScreenTapCount, isBattleMode, battleWinner, speedChallengeActive, startSpeedChallenge]);
 
   useEffect(() => {
@@ -4594,13 +4601,17 @@ export function useLiveHostController() {
     }
   };
 
+  /* Stable button handler that always runs the current gift-send closure:
+     memoizing the closure itself would send with first-render gift state. */
+  const handleComboClickRef = useRef(handleComboClick);
+  handleComboClickRef.current = handleComboClick;
+
   const onComboButtonClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    void handleComboClick().catch((err) => {
+    void handleComboClickRef.current().catch((err) => {
       reportFailure('live_gift_combo', err);
       showToast('Gift failed');
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleComboClick is a large gift-send path; wrapping it in useCallback would churn wallet/battle deps every render without UI benefit
   }, []);
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -4636,8 +4647,7 @@ export function useLiveHostController() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stopBroadcast = async () => {
+  const stopBroadcast = useCallback(async () => {
     const roomId = effectiveStreamId;
     setIsMyStreamLive(false);
 
@@ -4654,7 +4664,7 @@ export function useLiveHostController() {
 
     websocket.disconnectIfOwner(wsOwnerIdRef.current);
     navigate('/feed', { replace: true });
-  };
+  }, [effectiveStreamId, stopCamera, hostSession, clearMessagesForStream, navigate, liveRegisteredRef]);
 
   const closeLiveWithSlide = useCallback(() => {
     if (pageExiting) return;
@@ -5511,7 +5521,6 @@ export function useLiveHostController() {
     closeGiftPanel,
     closeLiveEffectsPanel,
     closeLiveWithSlide,
-    closeMembershipBar,
     closeMiniProfile,
     closeMoreMenu,
     closePromotePanel,
@@ -5521,7 +5530,6 @@ export function useLiveHostController() {
     closeTeamStatus,
     closeViewerList,
     coHostCameraOff,
-    coHostTimersRef,
     coHostVideoRefs,
     coHosts,
     coHostsRef,

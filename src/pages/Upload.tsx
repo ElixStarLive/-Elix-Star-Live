@@ -561,6 +561,11 @@ export default function Upload() {
     }
   };
 
+  /* Read at preview-start time only: the mix slider must not restart the clip
+     (a separate effect below live-updates the volume of the playing audio). */
+  const musicVolumeRef = useRef(musicVolume);
+  musicVolumeRef.current = musicVolume;
+
   // Audio Preview Logic for Recorded Video — resolve signed Epidemic URL (no 302).
   // Only while editing a clip on Upload (create flow). Must stop when leaving Upload.
   useEffect(() => {
@@ -605,7 +610,7 @@ export default function Upload() {
         audio.preload = 'auto';
         audio.loop = false;
         audio.dataset.elixSoundPreview = '1';
-        audio.volume = Math.max(0, Math.min(1, musicVolume));
+        audio.volume = Math.max(0, Math.min(1, musicVolumeRef.current));
         audio.src = playable;
         // Play once through the clip — never restart (was looping forever and leaking).
         audio.ontimeupdate = () => {
@@ -634,7 +639,6 @@ export default function Upload() {
         cancelled = true;
         killBg();
       };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [muteAllSounds, postWithoutAudio, recordedVideoUrl, selectedAudioId, selectedTrack]);
 
   // Live-update the preview song volume while dragging the mix slider (no restart).

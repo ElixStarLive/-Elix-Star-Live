@@ -81,17 +81,6 @@ export default function Discover() {
     }
   }, [activeTab]);
 
-  useEffect(() => {
-    if (searchQuery.length >= 2) {
-      const timer = setTimeout(() => {
-        performSearch();
-      }, 300); // Debounce
-      return () => clearTimeout(timer);
-    }
-    setSearchResults({ videos: [], users: [] });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
-
   const loadTrending = async () => {
     setLoading(true);
     try {
@@ -172,7 +161,7 @@ export default function Discover() {
     }
   };
 
-  const performSearch = async () => {
+  const performSearch = useCallback(async () => {
     if (!searchQuery || searchQuery.length < 2) return;
     setLoading(true);
     trackEvent('search_query', { query: searchQuery });
@@ -211,7 +200,18 @@ export default function Discover() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery]);
+
+  /* Debounced search: re-armed on every query change, as before. */
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      const timer = setTimeout(() => {
+        void performSearch();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    setSearchResults({ videos: [], users: [] });
+  }, [searchQuery, performSearch]);
 
   const focusSearch = useCallback(() => {
     document.getElementById('discover-search')?.focus();

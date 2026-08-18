@@ -25,7 +25,9 @@ describe("host live lifecycle ownership contract", () => {
   });
 
   it("ends the broadcast only through the deliberate End Live path", () => {
-    const stopStart = controller.indexOf("const stopBroadcast = async () =>");
+    const stopStart = controller.indexOf(
+      "const stopBroadcast = useCallback(async () =>",
+    );
     expect(stopStart).toBeGreaterThan(-1);
     const stopBlock = controller.slice(stopStart, stopStart + 900);
     expect(stopBlock).toContain("hostSession.endHostBroadcast(roomId)");

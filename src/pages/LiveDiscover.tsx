@@ -120,8 +120,16 @@ export default function LiveDiscover() {
     }
   }, []);
 
+  /* Keyed on identity fields only: enrichment must not re-run when viewer
+     counts tick. The ref carries the current creators into that keyed run. */
+  const creatorIdentityKey = creators
+    .map((c) => `${c.id}:${c.name}:${c.userId ?? ''}:${c.avatar ?? ''}`)
+    .join(',');
+  const creatorsRef = useRef(creators);
+  creatorsRef.current = creators;
+
   useEffect(() => {
-    const needs = creators.filter(
+    const needs = creatorsRef.current.filter(
       (c) =>
         c.userId &&
         (isGenericLiveCreatorName(c.name) || !sanitizeLiveAvatar(c.avatar) || isUiAvatarsUrl(c.avatar)),
@@ -145,8 +153,7 @@ export default function LiveDiscover() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [creators.map((c) => `${c.id}:${c.name}:${c.userId ?? ''}:${c.avatar ?? ''}`).join(',')]);
+  }, [creatorIdentityKey]);
 
   const removeLiveStream = useCallback((key: string) => {
     endedAtRef.current.set(key, Date.now());

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { logger } from "../lib/logger";
 import { getPool } from "../lib/postgres";
@@ -18,6 +17,126 @@ import { bumpFeedSignal, markNotInterested } from "../lib/feed/foryouLifecycle";
 const RATE_LIMIT_WINDOW = 60_000;
 const RATE_LIMIT_MAX_VIEWS = 120;
 const FORYOU_CACHE_SEC = Math.max(5, Math.floor(FEED_FORYOU_CACHE_TTL_MS / 1000));
+
+/** Profile columns of the `user` json_build_object in FRIENDS_SQL / queryRankedForYouPage. */
+type FeedRowUser = {
+  user_id?: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  is_creator?: boolean;
+  followers?: number;
+  following?: number;
+  level?: number;
+  /** Alternate id key formatVideoForClient still falls back to. */
+  id?: string;
+};
+
+/**
+ * Video row as selected by FRIENDS_SQL and queryRankedForYouPage. Members marked
+ * as fallbacks are not selected columns; formatVideoForClient reads them as
+ * alternates and they stay in the type so that behaviour is preserved.
+ */
+type FeedVideoRow = {
+  id: string;
+  user_id?: string;
+  user?: FeedRowUser;
+  url?: string;
+  thumbnail?: string;
+  duration?: number | string;
+  description?: string;
+  hashtags?: unknown;
+  music?: Record<string, unknown> | unknown[] | string | number | boolean | null;
+  views?: number;
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+  created_at?: string | Date;
+  privacy?: string;
+  engagement_score?: number;
+  /** Fallback keys read by formatVideoForClient. */
+  video_url?: string;
+  thumbnail_url?: string;
+  thumb_url?: string;
+  duration_seconds?: number | string;
+  caption?: string;
+  likes_count?: number;
+  comments_count?: number;
+  shares_count?: number;
+  is_public?: boolean;
+  duetWithVideoId?: unknown;
+  duetLayout?: unknown;
+};
+
+type FeedMusic = {
+  id: string;
+  title: string;
+  artist: string;
+  duration: string;
+  previewUrl?: string;
+  provider?: unknown;
+  clipStartSeconds?: number;
+  clipEndSeconds?: number;
+  duetWithVideoId?: string;
+  duetLayout?: "overlay" | "split";
+};
+
+type FeedVideo = {
+  id: string;
+  url: string;
+  thumbnail: string;
+  duration: string;
+  user: {
+    id: string;
+    username: string;
+    name: string;
+    avatar: string;
+    level: number;
+    isVerified: boolean;
+    followers: number;
+    following: number;
+  };
+  description: string;
+  hashtags: unknown[];
+  music: FeedMusic | null;
+  stats: {
+    views: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    saves: number;
+  };
+  createdAt: string | Date;
+  location: string;
+  isLiked: boolean;
+  isSaved: boolean;
+  isFollowing: boolean;
+  comments: unknown[];
+  quality: string;
+  privacy: string;
+  engagementScore: number;
+  duetWithVideoId?: string;
+  duetLayout?: "overlay" | "split";
+};
+
+/** Body returned by GET /api/feed/foryou (matches ForYouFeedPage on the client). */
+type ForYouFeedResponse = {
+  videos: FeedVideo[];
+  mutualUserIds: string[];
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  total: number;
+  source: string;
+};
+
+/** Exactly what `err?.message` returned before: the carried message, else undefined. */
+function errMessage(err: unknown): unknown {
+  if (err === null || err === undefined) return undefined;
+  if (typeof err !== "object" && typeof err !== "function") return undefined;
+  return "message" in err ? err.message : undefined;
+}
 
 function getIpHash(req: Request): string {
   const ip =
@@ -56,7 +175,7 @@ function formatDurationSeconds(sec: unknown): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function formatMusicFromRow(v: any, displayName: string): any {
+function formatMusicFromRow(v: FeedVideoRow, displayName: string): FeedMusic | null {
   const m = v.music;
   if (m && typeof m === "object" && !Array.isArray(m)) {
     const previewUrl =
@@ -88,11 +207,11 @@ function formatMusicFromRow(v: any, displayName: string): any {
 }
 
 function formatVideoForClient(
-  v: any,
+  v: FeedVideoRow,
   likedSet: Set<string>,
   followingSet: Set<string>,
   locationLabel: string,
-): any {
+): FeedVideo {
   const u = v.user;
   const uid = u?.user_id ?? u?.id ?? v.user_id ?? "unknown";
   const uname = u?.username ?? "user";
@@ -155,7 +274,7 @@ function formatVideoForClient(
   };
 }
 
-function foryouResponse(videos: any[], page: number, limit: number, offset: number, source: string) {
+function foryouResponse(videos: FeedVideo[], page: number, limit: number, offset: number, source: string): ForYouFeedResponse {
   return {
     videos,
     mutualUserIds: [],
@@ -179,9 +298,11 @@ async function buildFeedFromDb(
   limit: number,
   offset: number,
   viewerUserId?: string | null,
-): Promise<any[]> {
-  const rows = await queryRankedForYouPage({ limit, offset, viewerUserId });
-  return (rows || []).map((v: any) =>
+): Promise<FeedVideo[]> {
+  // queryRankedForYouPage declares the loose ForYouCandidateRow shape; its SELECT
+  // returns the FeedVideoRow columns (plus ranking columns this file ignores).
+  const rows = (await queryRankedForYouPage({ limit, offset, viewerUserId })) as FeedVideoRow[];
+  return (rows || []).map((v: FeedVideoRow) =>
     formatVideoForClient(v, new Set(), new Set(), "For You"),
   );
 }
@@ -205,7 +326,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
       const cached = await valkeyGet(valkeyKey);
       if (cached) {
         try {
-          const payload = JSON.parse(cached) as { videos: any[] };
+          const payload = JSON.parse(cached) as { videos: FeedVideo[] };
           setCacheHeaders(res, false);
           bumpCacheLayer("feed_foryou_valkey_hits");
           return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
@@ -217,7 +338,7 @@ export async function handleForYouFeed(req: Request, res: Response) {
         const waited = await waitForCachePopulate(valkeyKey);
         if (waited) {
           try {
-            const payload = JSON.parse(waited) as { videos: any[] };
+            const payload = JSON.parse(waited) as { videos: FeedVideo[] };
             setCacheHeaders(res, false);
             bumpCacheLayer("feed_foryou_valkey_hits");
             return res.json(foryouResponse(payload.videos, page, limit, offset, "valkey"));
@@ -238,11 +359,11 @@ export async function handleForYouFeed(req: Request, res: Response) {
     bumpCacheLayer("feed_foryou_builds");
     setCacheHeaders(res, personalized);
     return res.json(foryouResponse(videos, page, limit, offset, "postgres"));
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (err instanceof Error && err.message === "DATABASE_UNAVAILABLE") {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
-    logger.error({ err: err?.message }, "ForYouFeed error");
+    logger.error({ err: errMessage(err) }, "ForYouFeed error");
     res.status(500).json({ error: "Failed to generate feed" });
   }
 }
@@ -291,9 +412,9 @@ export async function handleTrackView(req: Request, res: Response) {
       if (counted) {
         await db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Fallback if migration not applied yet: prior-row check on video_views.
-      logger.warn({ err: err?.message }, "video_view_counters insert failed; falling back");
+      logger.warn({ err: errMessage(err) }, "video_view_counters insert failed; falling back");
       try {
         const viewerCol = isNamedUser ? "user_id" : "ip_hash";
         const viewerVal = isNamedUser ? userId : ipHash;
@@ -305,8 +426,8 @@ export async function handleTrackView(req: Request, res: Response) {
         if (counted) {
           await db.query(`UPDATE videos SET views = views + 1 WHERE id = $1`, [videoId]);
         }
-      } catch (err2: any) {
-        logger.warn({ err: err2?.message }, "track view dedup fallback failed");
+      } catch (err2: unknown) {
+        logger.warn({ err: errMessage(err2) }, "track view dedup fallback failed");
       }
     }
 
@@ -329,8 +450,8 @@ export async function handleTrackView(req: Request, res: Response) {
             ipHash,
           ],
         );
-      } catch (err: any) {
-        logger.warn({ err: err?.message }, "Failed to insert video_views row after track view");
+      } catch (err: unknown) {
+        logger.warn({ err: errMessage(err) }, "Failed to insert video_views row after track view");
       }
 
       // Creator Rewards: qualified unique views (logged-in only; DB unique on video+viewer).
@@ -389,12 +510,12 @@ export async function handleTrackView(req: Request, res: Response) {
             creatorUserId,
           });
         }
-      } catch (err: any) {
-        logger.warn({ err: err?.message }, "qualified reward view recording failed");
+      } catch (err: unknown) {
+        logger.warn({ err: errMessage(err) }, "qualified reward view recording failed");
       }
     })();
-  } catch (err: any) {
-    logger.error({ err: err?.message }, "TrackView error");
+  } catch (err: unknown) {
+    logger.error({ err: errMessage(err) }, "TrackView error");
     res.status(500).json({ error: "Failed to track view" });
   }
 }
@@ -444,8 +565,8 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     }
 
     res.json({ ok: true });
-  } catch (err: any) {
-    logger.error({ err: err?.message }, "TrackInteraction error");
+  } catch (err: unknown) {
+    logger.error({ err: errMessage(err) }, "TrackInteraction error");
     res.status(500).json({ error: "Failed to track interaction" });
   }
 }
@@ -471,8 +592,8 @@ export async function handleGetVideoScore(req: Request, res: Response) {
       }
       throw err;
     }
-  } catch (err: any) {
-    logger.error({ err: err?.message }, "GetVideoScore error");
+  } catch (err: unknown) {
+    logger.error({ err: errMessage(err) }, "GetVideoScore error");
     res.status(500).json({ error: "Failed to get score" });
   }
 }
@@ -530,13 +651,13 @@ export async function handleFriendsFeed(req: Request, res: Response) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
-    const { rows } = await db.query(FRIENDS_SQL, [networkIds]);
-    const mapped = (rows || []).map((v: any) =>
+    const { rows } = await db.query<FeedVideoRow>(FRIENDS_SQL, [networkIds]);
+    const mapped = (rows || []).map((v: FeedVideoRow) =>
       formatVideoForClient(v, likedSet, followingSet, "Friends"),
     );
     return res.json({ videos: mapped });
-  } catch (err: any) {
-    logger.error({ err: err?.message }, "Friends feed error");
+  } catch (err: unknown) {
+    logger.error({ err: errMessage(err) }, "Friends feed error");
     return res.status(500).json({ error: "FEED_ERROR" });
   }
 }
@@ -567,13 +688,13 @@ export async function handleFollowingFeed(req: Request, res: Response) {
       return res.status(503).json({ error: "DATABASE_UNAVAILABLE" });
     }
 
-    const { rows } = await db.query(FRIENDS_SQL, [followingIds]);
-    const mapped = (rows || []).map((v: any) =>
+    const { rows } = await db.query<FeedVideoRow>(FRIENDS_SQL, [followingIds]);
+    const mapped = (rows || []).map((v: FeedVideoRow) =>
       formatVideoForClient(v, likedSet, followingSet, "Following"),
     );
     return res.json({ videos: mapped });
-  } catch (err: any) {
-    logger.error({ err: err?.message }, "Following feed error");
+  } catch (err: unknown) {
+    logger.error({ err: errMessage(err) }, "Following feed error");
     return res.status(500).json({ error: "FEED_ERROR" });
   }
 }

@@ -352,7 +352,7 @@ export default function Profile() {
     if (!effectiveUserId) return;
     let cancelled = false;
     setLoading(true);
-    void loadProfile();
+    void loadProfileRef.current();
     apiRisingStarsUserBadges(effectiveUserId)
       .then(({ badges }) => {
         if (cancelled) return;
@@ -373,14 +373,7 @@ export default function Profile() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [effectiveUserId]);
-
-  useEffect(() => {
-    if (!effectiveUserId) return;
-    void loadVideos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, activeTab]);
 
   useEffect(() => {
     if (!effectiveUserId) {
@@ -411,7 +404,7 @@ export default function Profile() {
           (ev.collection === 'saved' && activeTab === 'saved') ||
           (ev.collection === 'liked' && activeTab === 'liked')
         ) {
-          void loadVideos();
+          void loadVideosRef.current();
         }
         return;
       }
@@ -419,7 +412,7 @@ export default function Profile() {
         if (!ev.saved) {
           setVideos((prev) => prev.filter((v) => v.id !== ev.videoId));
         } else {
-          void loadVideos();
+          void loadVideosRef.current();
         }
         return;
       }
@@ -427,11 +420,10 @@ export default function Profile() {
         if (!ev.liked) {
           setVideos((prev) => prev.filter((v) => v.id !== ev.videoId));
         } else {
-          void loadVideos();
+          void loadVideosRef.current();
         }
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, activeTab]);
 
   const loadProfile = async () => {
@@ -541,7 +533,14 @@ export default function Profile() {
     }
   };
 
-  const loadVideos = async () => {
+  /**
+   * loadProfile also reads `user`, `isOwnProfile` and `checkFollowing`; the profile
+   * fetch is keyed on the profile id alone, so the effect reads the latest one here.
+   */
+  const loadProfileRef = useRef(loadProfile);
+  loadProfileRef.current = loadProfile;
+
+  const loadVideos = useCallback(async () => {
     if (!effectiveUserId) return;
     setVideosLoading(true);
     try {
@@ -641,7 +640,17 @@ export default function Profile() {
     } finally {
       setVideosLoading(false);
     }
-  };
+  }, [effectiveUserId, activeTab]);
+
+  /* Latest loadVideos for the collection subscription above, which is only re-armed
+     on own-profile / tab change. */
+  const loadVideosRef = useRef(loadVideos);
+  loadVideosRef.current = loadVideos;
+
+  useEffect(() => {
+    if (!effectiveUserId) return;
+    void loadVideos();
+  }, [effectiveUserId, activeTab, loadVideos]);
 
   const loadMoreProfileVideos = async () => {
     if (videosLoadingMore || !videosHasMore) return;

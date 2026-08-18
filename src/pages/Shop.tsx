@@ -259,8 +259,6 @@ export default function Shop() {
     };
   }, [clearCart]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { fetchItems(); }, [activeFilter]);
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -332,7 +330,7 @@ export default function Shop() {
     };
   }, [token]);
 
-  const fetchItems = async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
       const { data: rows, error } = await api.shop.listItems();
@@ -361,7 +359,12 @@ export default function Shop() {
       /* keep prior items — do not soft-empty on failure */
     }
     setLoading(false);
-  };
+  }, [activeFilter]);
+
+  /* Reloads on filter change, exactly as before. */
+  useEffect(() => {
+    void fetchItems();
+  }, [fetchItems]);
 
   const resetImageFrame = useCallback(() => {
     setImgScale(1);
