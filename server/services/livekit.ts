@@ -105,13 +105,23 @@ export async function roomHasActivePublisher(roomName: string): Promise<boolean>
  * Revoking the server-side publish grant only stops the *next* token, so
  * without this a removed co-host would keep sending media until their client
  * chose to stand down. Enforcing it here means the seat release is real.
+ *
+ * The result distinguishes a released business seat from media that is actually
+ * silenced: 'revoked' is proof the permission was taken away, 'absent' is proof
+ * there was nothing publishing to take it from, and 'unconfirmed' means LiveKit
+ * did not answer — the caller must not report that as a completed revocation.
  */
+export type PublishRevocation = 'revoked' | 'absent' | 'unconfirmed';
+
 export async function revokeParticipantPublish(
   roomName: string,
   userId: string,
-): Promise<void> {
+): Promise<PublishRevocation> {
   const client = getRoomService();
-  if (!client || !roomName || !userId) return;
+  // Without LiveKit there is no media session to revoke, which is an answer
+  // rather than an unknown.
+  if (!client || !roomName || !userId) return 'absent';
+  let revoked = false;
   try {
     const participants = await client.listParticipants(roomName);
     for (const p of participants) {
@@ -122,12 +132,18 @@ export async function revokeParticipantPublish(
         canSubscribe: true,
         canPublishData: true,
       });
+      revoked = true;
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (/not found|does not exist|404/i.test(msg)) return;
-    logger.warn({ err, roomName, userId }, 'revokeParticipantPublish failed');
+    // Room or participant gone: they cannot be publishing into it.
+    if (/not found|does not exist|404/i.test(msg)) {
+      return revoked ? 'revoked' : 'absent';
+    }
+    logger.error({ err, roomName, userId }, 'revokeParticipantPublish unconfirmed');
+    return 'unconfirmed';
   }
+  return revoked ? 'revoked' : 'absent';
 }
 
 /**

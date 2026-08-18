@@ -100,7 +100,12 @@ export function useSpectatorLiveSession(opts: {
             opts.liveKitHandlersRef.current.onDisconnected?.();
           },
           onLocalPublishPermissionChanged: (allowed) => {
-            setCanPublish(allowed || publishToken);
+            // LiveKit's stated permission is the server's current answer, so a
+            // released seat stands this client down mid-session. The signed
+            // token only speaks for the window before LiveKit states one —
+            // OR-ing it in would have made publish authority permanent for
+            // anyone who joined holding a seat.
+            setCanPublish(allowed ?? publishToken);
             opts.liveKitHandlersRef.current.onLocalPublishPermissionChanged?.(allowed);
           },
         },
@@ -122,7 +127,7 @@ export function useSpectatorLiveSession(opts: {
       }
       roomRef.current = session.raw;
       setConnected(true);
-      setCanPublish(session.canPublish || publishToken);
+      setCanPublish(session.publishPermission ?? publishToken);
     })();
     return () => {
       cancelled = true;

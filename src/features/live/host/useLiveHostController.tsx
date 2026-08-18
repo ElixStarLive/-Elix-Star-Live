@@ -189,7 +189,6 @@ export function useLiveHostController() {
   const roomRemoteAudioRef = useRef<HTMLAudioElement>(null);
   const opponentRemoteAudioRef = useRef<HTMLAudioElement>(null);
   const coHostVideoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
-  const battlePeerRef = useRef<{ close: () => void } | null>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   /** Like/hearts only in bottom chat strip — not over battle/video (see SpectatorPage `spectatorChatHeartsRef`). */
   const chatHeartLayerRef = useRef<HTMLDivElement>(null);
@@ -1539,7 +1538,6 @@ export function useLiveHostController() {
       if (!isCurrentBattleConnect(connectId)) return;
       battleLifecycle.liveKit?.disconnect();
       battleLkRoomRef.current = null;
-      if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
       // useLiveCamera stopCamera runs on enabled teardown; clear battle stream state here.
       setBattleParticipantStream(null);
     };
@@ -1553,13 +1551,6 @@ export function useLiveHostController() {
     stopCamera,
   ]);
 
-  // Battle state driven by WebSocket backend.
-  useEffect(() => {
-    if (!effectiveStreamId || (!isBroadcast && !isBattleJoiner)) return;
-    return () => {
-      if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
-    };
-  }, [effectiveStreamId, isBroadcast, isBattleJoiner]);
   const [liveFilterCss, setLiveFilterCss] = useState('none');
   const [battleTauntBursts, setBattleTauntBursts] = useState<TauntBurst[]>([]);
   const prevMvpHostIdRef = useRef<string | null>(null);
@@ -2283,7 +2274,6 @@ export function useLiveHostController() {
     if (opponentVideoRef.current) { opponentVideoRef.current.srcObject = null; }
     if (player3VideoRef.current) { player3VideoRef.current.srcObject = null; }
     if (player4VideoRef.current) { player4VideoRef.current.srcObject = null; }
-    if (battlePeerRef.current) { battlePeerRef.current.close(); battlePeerRef.current = null; }
     // Battle state notified via WebSocket.
   }, [isBattleJoiner, resetScores]);
 
@@ -5544,7 +5534,6 @@ export function useLiveHostController() {
     battleMistSide,
     battleMistTimerRef,
     battleParticipantStream,
-    battlePeerRef,
     battleRoleRef,
     battleScoreBarHidden,
     battleScoresRef,

@@ -734,6 +734,51 @@ export async function handleGetLiveStatus(req: Request, res: Response) {
 }
 
 /** GET /api/live/token?room=... — viewer gets token */
+/**
+ * The server's answer to "may this user publish in this live room?".
+ *
+ * One predicate, two callers: the publish token endpoint, and the
+ * re-verification of a participant who turns up in LiveKit already holding
+ * publish rights. A LiveKit token carries its grants for its whole lifetime, so
+ * revoking a seat cannot invalidate a token already handed out — the join has to
+ * be re-checked against this same authority instead.
+ *
+ * `unknown` is not `unauthorized`: when the room's owner cannot be established
+ * (registry or DB unreachable) the answer is "cannot say", and a caller that
+ * would take publishing away must leave it alone.
+ */
+export async function resolveLivePublishAuthority(
+  roomName: string,
+  userId: string,
+): Promise<'authorized' | 'unauthorized' | 'unknown'> {
+  const room = (roomName || '').trim();
+  const user = (userId || '').trim();
+  if (!room || !user) return 'unknown';
+
+  if (await isStreamHost(room, user)) return 'authorized';
+  if (await hasBattlePublishGrant(room, user)) return 'authorized';
+  if (await hasCohostPublishGrant(room, user)) return 'authorized';
+
+  // Grant set is the primary authority; the seat table is the fallback when a
+  // grant key expired mid-live. Only a seat that was actually accepted counts —
+  // an unaccepted "invited" row must not authorize publishing.
+  const ownerId = await resolveStreamOwnerUserId(room);
+  // resolveStreamOwnerUserId echoes the room back when it cannot resolve one.
+  const ownerKnown = !!ownerId && ownerId !== room;
+  const layout = await getCohostLayout(room);
+  const seated =
+    ownerKnown &&
+    layout?.hostUserId === ownerId &&
+    Array.isArray(layout?.coHosts) &&
+    (layout as NonNullable<typeof layout>).coHosts.some((h) => {
+      if (!h || typeof h !== 'object') return false;
+      const seat = h as { userId?: string; status?: string };
+      return seat.userId === user && (seat.status === 'live' || seat.status === 'accepted');
+    });
+  if (seated) return 'authorized';
+  return ownerKnown ? 'unauthorized' : 'unknown';
+}
+
 export async function handleGetLiveToken(req: Request, res: Response) {
   const auth = requireAuth(req, res);
   if (!auth) return;
@@ -759,33 +804,10 @@ export async function handleGetLiveToken(req: Request, res: Response) {
   // co-host may receive a publish token. Never trust a client "publish" flag alone.
   // Exception: call_* rooms are mutual publish for authenticated 1:1 calls.
   if (publish && !isCallRoom) {
-    const isHost = await isStreamHost(roomName, auth.userId);
-    if (!isHost) {
-      let authorized =
-        (await hasBattlePublishGrant(roomName, auth.userId)) ||
-        (await hasCohostPublishGrant(roomName, auth.userId));
-      if (!authorized) {
-        // Grant set is the primary authority; the seat table is the fallback when
-        // a grant key expired mid-live. Only a seat that is actually publishing
-        // counts — an unaccepted "invited" row must not authorize publishing.
-        const ownerId = await resolveStreamOwnerUserId(roomName);
-        const layout = await getCohostLayout(roomName);
-        authorized =
-          !!ownerId &&
-          layout?.hostUserId === ownerId &&
-          Array.isArray(layout?.coHosts) &&
-          (layout as NonNullable<typeof layout>).coHosts.some((h) => {
-            if (!h || typeof h !== 'object') return false;
-            const seat = h as { userId?: string; status?: string };
-            return (
-              seat.userId === auth.userId &&
-              (seat.status === 'live' || seat.status === 'accepted')
-            );
-          });
-      }
-      if (!authorized) {
-        return res.status(403).json({ error: 'Not authorized to publish in this room.' });
-      }
+    // Anything short of a proven authorization is a refusal here: a token is
+    // handed out for hours, so "cannot say" must not mint publish rights.
+    if ((await resolveLivePublishAuthority(roomName, auth.userId)) !== 'authorized') {
+      return res.status(403).json({ error: 'Not authorized to publish in this room.' });
     }
   }
 

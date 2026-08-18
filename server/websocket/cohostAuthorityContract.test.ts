@@ -41,7 +41,7 @@ describe("cohost server authority contracts", () => {
     expect(block).toContain("const current = await getCohostLayout(roomId)");
     expect(block).toContain("normalizeCohostSlots(");
     expect(block).not.toContain("data.coHosts");
-    expect(block).not.toContain("revokeCohostPublish");
+    expect(block).not.toContain("releaseCohostPublish");
     expect(block).not.toContain("grantCohostPublish");
   });
 
@@ -52,9 +52,9 @@ describe("cohost server authority contracts", () => {
     expect(end).toBeGreaterThan(start);
     const block = handlers.slice(start, end);
     expect(block).toContain("removeCohostSlot(seats, targetUserId)");
-    expect(block).toContain("await revokeCohostPublish(roomId, targetUserId)");
-    // Real enforcement in LiveKit, not a client-trusted stand-down.
-    expect(block).toContain("await revokeParticipantPublish(roomId, targetUserId)");
+    // One authority for both halves of a release: the stored grant that
+    // authorizes the next token AND the permission on the open connection.
+    expect(block).toContain("await releaseCohostPublish(roomId, targetUserId)");
     expect(block).toContain('sendToUserGlobal(targetUserId, "cohost_seat_released"');
     expect(block).toContain('broadcastToRoom(roomId, "cohost_layout_sync"');
     // Host-only, and never a room-wide grant sweep.
@@ -71,8 +71,7 @@ describe("cohost server authority contracts", () => {
     expect(block).toContain("if (ownerId === client.userId) break");
     expect(block).toContain("const targetUserId = client.userId");
     expect(block).toContain("removeCohostSlot(seats, targetUserId)");
-    expect(block).toContain("await revokeCohostPublish(roomId, targetUserId)");
-    expect(block).toContain("await revokeParticipantPublish(roomId, targetUserId)");
+    expect(block).toContain("await releaseCohostPublish(roomId, targetUserId)");
     expect(block).toContain('sendToUserGlobal(targetUserId, "cohost_seat_released"');
     expect(block).toContain('broadcastToRoom(roomId, "cohost_layout_sync"');
     expect(block).not.toContain("removeActiveStream");
@@ -87,7 +86,7 @@ describe("cohost server authority contracts", () => {
     const block = handlers.slice(start, start + 1600);
     expect(block).toContain("if (!ownerId || ownerId !== client.userId) break");
     expect(block).toContain("for (const seat of seats)");
-    expect(block).toContain("await revokeCohostPublish(roomId, seat.userId)");
+    expect(block).toContain("await releaseCohostPublish(roomId, seat.userId)");
     expect(block).toContain("await setCohostLayout(roomId, [], client.userId");
   });
 

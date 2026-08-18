@@ -10,9 +10,18 @@
 
 import { Request, Response } from 'express';
 import { WebhookReceiver } from 'livekit-server-sdk';
-import { removeActiveStream, resolveStreamOwnerUserId } from './livestream';
+import {
+  removeActiveStream,
+  resolveLivePublishAuthority,
+  resolveStreamOwnerUserId,
+} from './livestream';
 import { broadcastToFeedSubscribers } from '../feedBroadcast';
-import { listActiveRoomsFromLiveKit, isUserPublishingInRoom } from '../services/livekit';
+import {
+  listActiveRoomsFromLiveKit,
+  isUserPublishingInRoom,
+  revokeParticipantPublish,
+  userIdFromLiveKitIdentity,
+} from '../services/livekit';
 import { logger } from '../lib/logger';
 import { getCreatorLiveRoleRoom } from '../websocket/liveCreatorRole';
 
@@ -56,6 +65,49 @@ async function finalizeRoomFinished(roomName: string): Promise<void> {
     logger.info({ roomName }, '[livekit-webhook] room_finished applied after grace');
   } catch (err) {
     logger.error({ err, roomName }, '[livekit-webhook] finalizeRoomFinished failed');
+  }
+}
+
+/**
+ * A participant arrived holding publish rights — check that the server still
+ * agrees before they can use them.
+ *
+ * Publish permission is granted by the token, and a token keeps its grants until
+ * it expires. Freeing a co-host seat revokes the permission on the connection
+ * they hold at that moment, but it cannot invalidate the token itself, so a
+ * released co-host who rejoins (network drop, reload with a cached token) would
+ * otherwise arrive able to publish again. This join is where the current seat
+ * state gets the last word.
+ *
+ * Only a proven refusal revokes: an unreachable registry answers "cannot say",
+ * and a live host must never be silenced because a lookup failed.
+ */
+async function reverifyJoinedPublisher(
+  roomName: string | undefined,
+  participant: { identity?: string; permission?: { canPublish?: boolean } } | undefined,
+): Promise<void> {
+  const room = (roomName || '').trim();
+  const identity = (participant?.identity || '').trim();
+  // 1:1 call rooms are mutual-publish by design and have no live seat table.
+  if (!room || !identity || room.startsWith('call_')) return;
+  if (participant?.permission?.canPublish !== true) return;
+
+  const userId = userIdFromLiveKitIdentity(identity);
+  if (!userId) return;
+
+  try {
+    const authority = await resolveLivePublishAuthority(room, userId);
+    if (authority !== 'unauthorized') return;
+    const revocation = await revokeParticipantPublish(room, userId);
+    logger.warn(
+      { roomName: room, userId, revocation },
+      '[livekit-webhook] participant joined with publish rights the server has not granted',
+    );
+  } catch (err) {
+    logger.error(
+      { err, roomName: room, userId },
+      '[livekit-webhook] publish re-verification failed — permission left as issued',
+    );
   }
 }
 
@@ -113,6 +165,8 @@ export async function handleLiveKitWebhook(req: Request, res: Response) {
         }
         break;
       case 'participant_joined':
+        await reverifyJoinedPublisher(event.room?.name, event.participant);
+        break;
       case 'participant_left':
       case 'track_published':
       case 'track_unpublished':

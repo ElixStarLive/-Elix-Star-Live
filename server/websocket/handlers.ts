@@ -70,7 +70,7 @@ import {
   hasBattlePublishGrant,
   grantCohostPublish,
   revokeBattlePublish,
-  revokeCohostPublish,
+  releaseCohostPublish,
   getCohostLayout,
 } from "./index";
 import {
@@ -1317,10 +1317,6 @@ export async function handleMessage(
           if (!rawTarget && fromStream) targetUserId = fromStream;
         }
         if (!targetUserId || targetUserId === client.userId) break;
-        const streamKey =
-          typeof data.streamKey === "string" && data.streamKey.trim()
-            ? data.streamKey.trim()
-            : client.roomId;
         const currentLayout = await getCohostLayout(client.roomId);
         const normalizedSlots = normalizeCohostSlots(
           currentLayout?.coHosts,
@@ -1349,10 +1345,10 @@ export async function handleMessage(
           });
           break;
         }
-        // Only the host of this room may authorize co-host publishing.
-        if (streamKey && streamKey === client.roomId) {
-          await grantCohostPublish(streamKey, targetUserId);
-        }
+        // No publish grant here: an invite is an offer, and the token endpoint
+        // treats a grant as authority to publish. Granting on send let an invited
+        // user publish into this room before accepting — and keep that right if
+        // they never answered. The grant is issued on accept instead.
         if (upserted.changed) {
           await setCohostLayout(
             client.roomId,
@@ -1405,60 +1401,82 @@ export async function handleMessage(
         if (!hostUserId) break;
         const hostStreamKey =
           typeof data.streamKey === "string" ? data.streamKey.trim() : "";
-        if (hostStreamKey) {
-          await setCreatorCohostRoom(client.userId, hostStreamKey);
-          await deleteCohostJoinRequest(hostStreamKey, client.userId);
-          // Accepting is the moment the invited seat becomes a publisher. If they
-          // are already watching this room, upgrade that live connection rather
-          // than forcing a reconnect for a new publish token.
-          await grantParticipantPublish(hostStreamKey, client.userId);
-          const currentLayout = await getCohostLayout(hostStreamKey);
-          const normalizedSlots = normalizeCohostSlots(
-            currentLayout?.coHosts,
+        // Accepting is a claim, not proof of anything. Unlike the host-gated
+        // co-host cases, the actor here is the invitee, so the invite the host
+        // actually issued is the only authorization — and it has to be verified
+        // before any publish grant. Without it this case took the room from the
+        // payload and seated the sender as a publisher in any live they named.
+        if (!hostStreamKey) break;
+        const currentLayout = await getCohostLayout(hostStreamKey);
+        // hostUserId on the layout is written by cohost_invite_send only after
+        // that caller was verified as this room's owner, so it is server-proven.
+        if (!currentLayout || currentLayout.hostUserId !== hostUserId) break;
+        const normalizedSlots = normalizeCohostSlots(
+          currentLayout.coHosts,
+          hostUserId,
+          MAX_COHOST_SLOTS,
+        );
+        const invitedSeat = normalizedSlots.find(
+          (seat) => seat.userId === client.userId,
+        );
+        // No seat means this user was never invited to this room. "accepted" and
+        // "live" are allowed so a repeated accept stays idempotent.
+        if (
+          !invitedSeat ||
+          (invitedSeat.status !== "invited" &&
+            invitedSeat.status !== "accepted" &&
+            invitedSeat.status !== "live")
+        ) {
+          break;
+        }
+        await setCreatorCohostRoom(client.userId, hostStreamKey);
+        await deleteCohostJoinRequest(hostStreamKey, client.userId);
+        // Acceptance — never the invite — is the moment publishing is authorized:
+        // for the next token, and on the connection they are already watching
+        // from. If they have not joined yet, the token they fetch on join carries
+        // the grant, so there is no reconnect either way.
+        await grantCohostPublish(hostStreamKey, client.userId);
+        await grantParticipantPublish(hostStreamKey, client.userId);
+        const upserted = upsertCohostSlot(
+          normalizedSlots,
+          {
+            userId: client.userId,
+            name:
+              (typeof data.cohostName === "string" && data.cohostName.trim()) ||
+              client.displayName ||
+              "Co-host",
+            avatar:
+              (typeof data.cohostAvatar === "string" && data.cohostAvatar) ||
+              client.avatarUrl ||
+              "",
+            status: "live",
+          },
+          MAX_COHOST_SLOTS,
+        );
+        if (upserted.changed) {
+          await setCohostLayout(
+            hostStreamKey,
+            upserted.slots,
             hostUserId,
-            MAX_COHOST_SLOTS,
+            typeof currentLayout.layoutId === "string"
+              ? currentLayout.layoutId
+              : null,
+            typeof currentLayout.featuredUserId === "string"
+              ? currentLayout.featuredUserId
+              : null,
           );
-          const upserted = upsertCohostSlot(
-            normalizedSlots,
-            {
-              userId: client.userId,
-              name:
-                (typeof data.cohostName === "string" && data.cohostName.trim()) ||
-                client.displayName ||
-                "Co-host",
-              avatar:
-                (typeof data.cohostAvatar === "string" && data.cohostAvatar) ||
-                client.avatarUrl ||
-                "",
-              status: "live",
-            },
-            MAX_COHOST_SLOTS,
-          );
-          if (upserted.changed) {
-            await setCohostLayout(
-              hostStreamKey,
-              upserted.slots,
-              hostUserId,
-              typeof currentLayout?.layoutId === "string"
-                ? currentLayout.layoutId
-                : null,
-              typeof currentLayout?.featuredUserId === "string"
+          broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
+            coHosts: upserted.slots,
+            hostUserId,
+            featuredUserId:
+              typeof currentLayout.featuredUserId === "string"
                 ? currentLayout.featuredUserId
                 : null,
-            );
-            broadcastToRoom(hostStreamKey, "cohost_layout_sync", {
-              coHosts: upserted.slots,
-              hostUserId,
-              featuredUserId:
-                typeof currentLayout?.featuredUserId === "string"
-                  ? currentLayout.featuredUserId
-                  : null,
-              ...(typeof currentLayout?.layoutId === "string" &&
-              currentLayout.layoutId.trim()
-                ? { layoutId: currentLayout.layoutId.trim() }
-                : {}),
-            });
-          }
+            ...(typeof currentLayout.layoutId === "string" &&
+            currentLayout.layoutId.trim()
+              ? { layoutId: currentLayout.layoutId.trim() }
+              : {}),
+          });
         }
         sendToUserGlobal(hostUserId, "cohost_invite_accepted", {
           cohostUserId: client.userId,
@@ -1703,8 +1721,7 @@ export async function handleMessage(
           MAX_COHOST_SLOTS,
         );
         const released = removeCohostSlot(seats, targetUserId);
-        await revokeCohostPublish(roomId, targetUserId);
-        await revokeParticipantPublish(roomId, targetUserId);
+        await releaseCohostPublish(roomId, targetUserId);
         await deleteCohostJoinRequest(roomId, targetUserId);
         const featuredUserId =
           typeof current?.featuredUserId === "string" &&
@@ -1754,8 +1771,7 @@ export async function handleMessage(
         );
         if (!seats.some((seat) => seat.userId === targetUserId)) break;
         const released = removeCohostSlot(seats, targetUserId);
-        await revokeCohostPublish(roomId, targetUserId);
-        await revokeParticipantPublish(roomId, targetUserId);
+        await releaseCohostPublish(roomId, targetUserId);
         await deleteCohostJoinRequest(roomId, targetUserId);
         const featuredUserId =
           typeof current?.featuredUserId === "string" &&
@@ -1802,8 +1818,7 @@ export async function handleMessage(
           MAX_COHOST_SLOTS,
         );
         for (const seat of seats) {
-          await revokeCohostPublish(roomId, seat.userId);
-          await revokeParticipantPublish(roomId, seat.userId);
+          await releaseCohostPublish(roomId, seat.userId);
           await deleteCohostJoinRequest(roomId, seat.userId);
           sendToUserGlobal(seat.userId, "cohost_seat_released", {
             roomId,

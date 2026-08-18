@@ -23,7 +23,13 @@ import {
   broadcastToFeedSubscribers,
 } from "../feedBroadcast";
 import { isStreamHost, removeActiveStream, resolveStreamOwnerUserId } from "../routes/livestream";
-import { isLiveKitConfigured, isUserPublishingInRoom, roomHasActivePublisher } from "../services/livekit";
+import {
+  isLiveKitConfigured,
+  isUserPublishingInRoom,
+  revokeParticipantPublish,
+  roomHasActivePublisher,
+  type PublishRevocation,
+} from "../services/livekit";
 import { dbIsBlockedEitherWay, dbUpdateViewerCount } from "../lib/postgres";
 import { logger } from "../lib/logger";
 import { checkSessionState, verifyAuthToken } from "../routes/auth";
@@ -621,9 +627,10 @@ export async function incrementRoomLiveLikes(roomId: string): Promise<number> {
 }
 
 // ── Co-host publish grants (host-authorized) ─────────────────────
-// Recorded when the HOST invites or accepts a co-host, and checked before a
-// publish LiveKit token is issued. This makes publishing server-authoritative
-// instead of trusting a client-supplied "?cohost=1" URL flag.
+// Recorded when a seat is ACCEPTED (host accepts a request, or an invited user
+// accepts), and checked before a publish LiveKit token is issued. This makes
+// publishing server-authoritative instead of trusting a client-supplied
+// "?cohost=1" URL flag. An invite on its own is an offer and grants nothing.
 const COHOST_GRANT_TTL_MS = 6 * 60 * 60 * 1000; // matches LiveKit token TTL
 
 export async function grantCohostPublish(roomId: string, userId: string): Promise<void> {
@@ -647,6 +654,32 @@ export async function revokeCohostPublish(roomId: string, userId: string): Promi
   await valkeyDel(`cohost_grant:${roomId}:${userId}`);
   await valkeySrem(`cohost_grants:${roomId}`, userId);
   await clearCreatorCohostRoom(userId, roomId);
+}
+
+/**
+ * Free one co-host seat's publishing rights: the stored grant (which authorizes
+ * the next token) and the permission on the connection they are publishing from
+ * right now. Both halves belong together — dropping only the grant leaves a
+ * removed co-host on air until their own client stands down.
+ *
+ * Returns whether the media side is proven silenced. The seat is released either
+ * way, because leaving it occupied would be worse, but an unconfirmed revocation
+ * is logged as such rather than counted as a completed removal. The server stays
+ * authoritative regardless: the grant is gone, so no later token can publish.
+ */
+export async function releaseCohostPublish(
+  roomId: string,
+  userId: string,
+): Promise<PublishRevocation> {
+  await revokeCohostPublish(roomId, userId);
+  const media = await revokeParticipantPublish(roomId, userId);
+  if (media === "unconfirmed") {
+    logger.error(
+      { roomId, userId },
+      "cohost seat released but LiveKit publish revocation unconfirmed",
+    );
+  }
+  return media;
 }
 
 export async function clearCohostPublishGrants(roomId: string): Promise<void> {

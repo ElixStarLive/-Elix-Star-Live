@@ -13,7 +13,6 @@ import {
 } from 'livekit-client';
 import { getLiveMediaTierConfig, getLiveRoomOptions } from './live/liveMediaProfile';
 import { detachParticipantTracks, detachRemoteTrack } from './live/liveTrackCleanup';
-import { prepareLiveVideoEl } from './prepareLiveVideoEl';
 
 /**
  * Shared LiveKit media lifecycle.
@@ -51,8 +50,9 @@ export interface LiveKitSessionHandlers {
   /**
    * This client's own publish permission changed on the open connection —
    * the server seated (or released) it as a co-host without a reconnect.
+   * `null` means LiveKit has stated no permission for this connection yet.
    */
-  onLocalPublishPermissionChanged?: (canPublish: boolean) => void;
+  onLocalPublishPermissionChanged?: (canPublish: boolean | null) => void;
 }
 
 export class LiveKitSession {
@@ -73,9 +73,16 @@ export class LiveKitSession {
     return this.room;
   }
 
-  /** Publish permission LiveKit currently grants this client in this room. */
-  get canPublish(): boolean {
-    return this.room?.localParticipant?.permissions?.canPublish === true;
+  /**
+   * Publish permission LiveKit currently grants this client in this room, or
+   * `null` when the connection carries no stated permission. "Not stated" and
+   * "refused" are different answers: only the second one may stand a publisher
+   * down.
+   */
+  get publishPermission(): boolean | null {
+    const permissions = this.room?.localParticipant?.permissions;
+    if (!permissions) return null;
+    return permissions.canPublish === true;
   }
 
   async connect(url: string, token: string): Promise<void> {
@@ -148,9 +155,7 @@ export class LiveKitSession {
       .on(RoomEvent.ParticipantPermissionsChanged, (_prev, participant) => {
         if (generation !== this.connectGeneration) return;
         if (participant !== room.localParticipant) return;
-        this.handlers.onLocalPublishPermissionChanged?.(
-          participant.permissions?.canPublish === true,
-        );
+        this.handlers.onLocalPublishPermissionChanged?.(this.publishPermission);
       })
       .on(RoomEvent.Reconnecting, () => {
         if (generation !== this.connectGeneration) return;
@@ -186,7 +191,7 @@ export class LiveKitSession {
       return;
     }
     this.handlers.onConnected?.();
-    this.handlers.onLocalPublishPermissionChanged?.(this.canPublish);
+    this.handlers.onLocalPublishPermissionChanged?.(this.publishPermission);
   }
 
   /**
@@ -286,53 +291,6 @@ export class LiveKitSession {
         t?.setVolume?.(v);
       }
     }
-  }
-
-  /**
-   * Attach a remote (or local) camera track for `identity` onto `el`.
-   * Returns false when no video publication is available yet.
-   */
-  attachVideoByIdentity(identity: string, el: HTMLVideoElement | null): boolean {
-    const room = this.room;
-    if (!room || !el || !identity) return false;
-    const want = identity.trim().toLowerCase();
-    const local = room.localParticipant;
-    if (local.identity.trim().toLowerCase() === want) {
-      const pub = [...local.trackPublications.values()].find((p) => p.kind === 'video' && p.track);
-      if (!pub?.track) return false;
-      pub.track.attach(el);
-      prepareLiveVideoEl(el);
-      void el.play().catch(() => {});
-      return true;
-    }
-    for (const p of room.remoteParticipants.values()) {
-      if (p.identity.trim().toLowerCase() !== want) continue;
-      const pub = [...p.trackPublications.values()].find((p0) => p0.kind === 'video' && p0.track);
-      if (!pub?.track) return false;
-      pub.track.attach(el);
-      prepareLiveVideoEl(el);
-      void el.play().catch(() => {});
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Spectator/lobby fallback: attach the first remote camera when identity
-   * matching is late or the host publishes under a different identity string.
-   */
-  attachFirstRemoteVideo(el: HTMLVideoElement | null): boolean {
-    const room = this.room;
-    if (!room || !el) return false;
-    for (const p of room.remoteParticipants.values()) {
-      const pub = [...p.trackPublications.values()].find((p0) => p0.kind === 'video' && p0.track);
-      if (!pub?.track) continue;
-      pub.track.attach(el);
-      prepareLiveVideoEl(el);
-      void el.play().catch(() => {});
-      return true;
-    }
-    return false;
   }
 
   disconnect(): void {
