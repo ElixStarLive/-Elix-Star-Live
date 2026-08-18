@@ -298,4 +298,169 @@ describe("release architecture contracts", () => {
       ).toBe(true);
     }
   });
+
+  it("a live room belongs to the creator whose id it is", () => {
+    const live = read("server/routes/livestream.ts");
+    const start = live.slice(
+      live.indexOf("export async function handleLiveStart"),
+      live.indexOf("export async function handleLiveEnd"),
+    );
+    // The room name came from the request body, so any authenticated user could
+    // register as host of an offline creator's room, publish into it, and lock the
+    // real creator out with the 409.
+    expect(start).toContain("const ownRoom = sanitizeRoomName(auth.userId)");
+    expect(start).toContain("You can only go live in your own room");
+    expect(start).toContain("const roomName = ownRoom;");
+    expect(start).not.toMatch(/roomName\s*=\s*raw/);
+  });
+
+  it("a revoked session cannot keep acting on an open socket", () => {
+    const ws = read("server/websocket/index.ts");
+    // Sockets are tagged with the session that opened them so a logout on one
+    // device closes that socket without signing the other devices out.
+    expect(ws).toContain("sessionTokenHash: string;");
+    expect(ws).toContain("export function disconnectUserSession(");
+    expect(ws).toContain("if (sessionTokenHash && client.sessionTokenHash !== sessionTokenHash) continue;");
+    const auth = read("server/routes/auth.ts");
+    expect(auth).toContain('ws.disconnectUserSession(payload.sub, hashSessionToken(token), "Signed out")');
+    // Delete and password reset end every session, so they close every socket.
+    expect(auth.match(/disconnectUserSessions\(/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("logout does not report a sign-out the database refused", () => {
+    const auth = read("server/routes/auth.ts");
+    const logout = auth.slice(
+      auth.indexOf("export async function handleLogout"),
+      auth.indexOf("export async function handleMe"),
+    );
+    expect(logout).toContain("Could not sign out. Please try again.");
+    expect(logout.indexOf("503")).toBeLessThan(logout.indexOf("ok: true"));
+  });
+
+  it("every path that mints a session refuses a suspended account", () => {
+    const auth = read("server/routes/auth.ts");
+    expect(auth).toContain("async function refuseIfSuspended");
+    // Password login, the email-confirmation callback and Apple sign-in.
+    expect(auth.match(/await refuseIfSuspended\(/g)?.length).toBe(3);
+    // An unreadable ban state must not issue the session.
+    expect(auth).toContain("banned_until check failed — refusing to issue a session");
+  });
+
+  it("login attempts are counted against the account, not only the address", () => {
+    const auth = read("server/routes/auth.ts");
+    expect(auth).toContain("async function loginLockedOut");
+    expect(auth).toContain("valkeyTryHincrby");
+    // Shared counter, hashed identifier, and an unreadable counter refuses.
+    expect(auth).toContain("login lockout: counter unreadable — refusing attempt");
+    expect(auth).toContain("loginFailureKey(identifier)");
+    expect(auth).toContain("hashSessionToken(identifier.trim().toLowerCase())");
+    // Checked before the password is examined so the answer cannot separate a
+    // locked account from an unknown one.
+    expect(auth.indexOf("if (await loginLockedOut(e))")).toBeLessThan(
+      auth.indexOf("const user = await dbFindUserByEmailOrUsername(e)"),
+    );
+  });
+
+  it("2FA and REST chat sends have their own per-account limits", () => {
+    const limits = read("server/middleware/rateLimit.ts");
+    expect(limits).toContain("export const twoFactorLimiter");
+    expect(limits).toContain('keyPrefix: "twofa_user"');
+    expect(limits).toContain("export const chatSendLimiter");
+    expect(limits).toContain('keyPrefix: "chat_send_user"');
+    const authRouter = read("server/routes/auth.router.ts");
+    expect(authRouter.match(/twoFactorLimiter/g)?.length).toBe(4);
+    const chatRouter = read("server/routes/chat.router.ts");
+    expect(chatRouter.match(/chatSendLimiter/g)?.length).toBe(3);
+  });
+
+  it("rate-limit keys come from the trusted hop, not a client header", () => {
+    // X-Forwarded-For is caller-supplied. Rotating it gave a fresh budget per
+    // request, so a limit keyed on it counted nothing.
+    for (const file of ["server/routes/feed.ts", "server/routes/testCoins.ts"]) {
+      const source = read(file);
+      expect(source).toContain("req.ip");
+      expect(source).not.toContain('headers["x-forwarded-for"]');
+    }
+  });
+
+  it("view and moderation limits refuse rather than open when Valkey cannot answer", () => {
+    const feed = read("server/routes/feed.ts");
+    const limit = feed.slice(
+      feed.indexOf("async function allowViewRateLimit"),
+      feed.indexOf("async function allowViewRateLimit") + 900,
+    );
+    expect(limit).toContain('process.env.NODE_ENV === "production"');
+    expect(limit).toContain("refusing view (fail closed)");
+    expect(limit).not.toMatch(/catch[\s\S]{0,80}return true;\s*\n\s*\}\s*\n\}/);
+    const moderation = read("server/routes/moderation.ts");
+    // Each accepted call is a paid vision request, so an unanswerable limiter
+    // must not become an open door.
+    expect(moderation).toContain("refusing request (fail closed)");
+    expect(moderation).toContain("requires Valkey in production — refusing request");
+    const authFile = read("server/routes/auth.ts");
+    // An unclaimable resend cooldown skips the mail instead of sending it, so an
+    // outage cannot turn confirmation email into an uncapped sender.
+    expect(authFile).toContain("cooldown unavailable — skipping send");
+  });
+
+  it("who is live in a room is the server's answer, not the sharer's", () => {
+    const share = read("server/lib/liveShareOps.ts");
+    expect(share).toContain("await dbGetStreamOwnerUserId(streamKey)");
+    expect(share).toContain("const hostVerified = !input.hostUserId || input.hostUserId === hostUserId");
+    // Unverified host display fields are dropped rather than forwarded.
+    expect(share).toContain("hostName: hostVerified ? input.hostName || \"\" : \"\"");
+    expect(share).toContain("hostAvatar: hostVerified ? input.hostAvatar || \"\" : \"\"");
+  });
+
+  it("a block stops a co-host invite or request from being sent, not just accepted", () => {
+    const handlers = read("server/websocket/handlers.ts");
+    const invite = handlers.slice(
+      handlers.indexOf('case "cohost_invite_send"'),
+      handlers.indexOf('case "cohost_invite_accept"'),
+    );
+    const request = handlers.slice(
+      handlers.indexOf('case "cohost_request_send"'),
+      handlers.indexOf('case "cohost_request_accept"'),
+    );
+    expect(invite).toContain("await dbIsBlockedEitherWay(client.userId, targetUserId)");
+    expect(request).toContain("await dbIsBlockedEitherWay(client.userId, hostUserId)");
+  });
+
+  it("the moderator list is not an anonymous targeting query", () => {
+    const mods = read("server/routes/liveModerators.ts");
+    const list = mods.slice(
+      mods.indexOf("export async function handleListLiveModerators"),
+      mods.indexOf("export async function handleAddLiveModerator"),
+    );
+    expect(list).toContain("if (!requireAuthUser(req, res)) return;");
+  });
+
+  it("a public profile read does not hand out a login address", () => {
+    const profiles = read("server/routes/profiles.ts");
+    const get = profiles.slice(
+      profiles.indexOf("export async function handleGetProfile"),
+      profiles.indexOf("/** GET /api/profiles — list all known users/profiles */"),
+    );
+    // Non-owners get the local part the UI already renders; the domain stays here.
+    expect(get).toContain("const isOwner = jwtUser?.sub === userId");
+    expect(get).toContain('const email = !fullEmail || isOwner ? fullEmail : `${fullEmail.split("@")[0]}@`');
+  });
+
+  it("the local Valkey opt-out cannot turn a production deployment into dev", () => {
+    const config = read("server/config.ts");
+    // One variable used to skip env validation, the Valkey boot gate, shared rate
+    // limits and the CORS allowlist by rewriting NODE_ENV.
+    expect(config).not.toMatch(/process\.env\.NODE_ENV\s*=\s*['"]development['"]/);
+    expect(config).toContain("ELIX_LOCAL_NO_VALKEY is a development-only flag");
+    expect(config).toContain("process.exit(1)");
+    const env = read("server/lib/envValidate.ts");
+    expect(env).toContain("ELIX_LOCAL_NO_VALKEY must not be set in production");
+  });
+
+  it("Google service account credentials are validated as usable, not merely present", () => {
+    const env = read("server/lib/envValidate.ts");
+    expect(env).toContain("JSON.parse");
+    expect(env).toContain("client_email");
+    expect(env).toContain("private_key");
+  });
 });

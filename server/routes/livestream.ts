@@ -47,6 +47,11 @@ import { getFollowerIdsAsync } from './profiles';
 const STREAM_KEY_PREFIX = 'stream:';
 const STREAM_TTL_SECONDS = 86400;
 
+/** Room names are keys in Valkey, Neon and LiveKit — keep them to a safe charset. */
+function sanitizeRoomName(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128);
+}
+
 async function setActiveStream(
   roomId: string,
   userId: string,
@@ -541,10 +546,25 @@ export async function handleLiveStart(req: Request, res: Response) {
     }
 
     const { room, displayName } = req.body ?? {};
-    const raw = typeof room === "string" && room.trim() ? room.trim() : auth.userId;
-    const roomName =
-      raw.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128) ||
-      auth.userId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 128);
+    // A live room is always the creator's own id, and nothing else in the system
+    // ever claims one. Taking the name from the request body let any authenticated
+    // user register themselves as host of another creator's room while that
+    // creator was offline: they received publish authority for it, spectators
+    // opening that creator's live saw them, and the real creator was then locked
+    // out of going live by the 409 below.
+    const ownRoom = sanitizeRoomName(auth.userId);
+    if (!ownRoom) {
+      return res.status(400).json({ error: 'Invalid account id.' });
+    }
+    const requestedRoom = typeof room === "string" ? room.trim() : "";
+    if (requestedRoom && sanitizeRoomName(requestedRoom) !== ownRoom) {
+      logger.warn(
+        { userId: auth.userId, requestedRoom: requestedRoom.slice(0, 128) },
+        "handleLiveStart: refused a room that is not the caller's own id",
+      );
+      return res.status(403).json({ error: 'You can only go live in your own room.' });
+    }
+    const roomName = ownRoom;
 
     const safeDisplayName =
       typeof displayName === 'string'

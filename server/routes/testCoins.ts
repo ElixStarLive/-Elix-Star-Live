@@ -74,9 +74,12 @@ function safeEqualHex(a: string, b: string): boolean {
 }
 
 function clientIp(req: Request): string {
-  const xf = req.headers["x-forwarded-for"];
-  if (typeof xf === "string" && xf.trim()) return xf.split(",")[0].trim();
-  return req.socket?.remoteAddress || "unknown";
+  // The mint password lockout is keyed on this. Trusting the left-most
+  // X-Forwarded-For entry let an attacker send a new value with every guess and
+  // never accumulate attempts against any one key, so the lockout counted nothing.
+  // With app.set("trust proxy", 1) req.ip is the real hop — same rule as
+  // getClientIp in middleware/rateLimit.
+  return req.ip || req.socket?.remoteAddress || "unknown";
 }
 
 type AttemptGate =

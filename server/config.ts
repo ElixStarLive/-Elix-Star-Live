@@ -34,14 +34,23 @@ if (fs.existsSync(envPath)) {
 
 // Local PC cannot resolve Coolify-internal Valkey hostnames. Opt in with
 // ELIX_LOCAL_NO_VALKEY=1 for single-instance auth/API testing against Neon.
-// Honor the flag even when .env has NODE_ENV=production (common on this machine).
+//
+// This flag must never rewrite NODE_ENV. It used to force 'development' when the
+// environment said production, which in one variable skipped production env
+// validation, skipped the Valkey boot gate, downgraded every shared rate limit to
+// a per-process in-memory counter and opened the CORS allowlist to dev origins.
+// A local run has to say it is local: set NODE_ENV=development explicitly.
 if (process.env.ELIX_LOCAL_NO_VALKEY === '1' || process.env.ELIX_LOCAL_NO_VALKEY === 'true') {
+  if ((process.env.NODE_ENV || nodeEnv) === 'production') {
+    console.error(
+      '[config] FATAL: ELIX_LOCAL_NO_VALKEY is a development-only flag and cannot be combined with ' +
+        'NODE_ENV=production. Set NODE_ENV=development for local single-instance runs, or unset ' +
+        'ELIX_LOCAL_NO_VALKEY so this deployment uses its shared Valkey.',
+    );
+    process.exit(1);
+  }
   delete process.env.VALKEY_URL;
   delete process.env.REDIS_URL;
-  if ((process.env.NODE_ENV || nodeEnv) === 'production') {
-    process.env.NODE_ENV = 'development';
-    console.log('[config] ELIX_LOCAL_NO_VALKEY=1 — NODE_ENV forced to development for local API');
-  }
   console.log('[config] ELIX_LOCAL_NO_VALKEY=1 — Valkey disabled for local single-instance mode');
 }
 if ((process.env.NODE_ENV || nodeEnv) === 'production' && fs.existsSync(envProdPath)) {

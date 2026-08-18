@@ -11,7 +11,10 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     DATABASE_URL: "postgresql://x",
     JWT_SECRET: "x".repeat(32),
     VALKEY_URL: "redis://valkey",
-    GOOGLE_SERVICE_ACCOUNT_JSON: "{}",
+    GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({
+      client_email: "sa@elix.iam.gserviceaccount.com",
+      private_key: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----\n",
+    }),
     STRIPE_SECRET_KEY: "sk_live_test",
     STRIPE_WEBHOOK_SECRET: "whsec_test",
     LIVEKIT_URL: "wss://livekit.example",
@@ -90,6 +93,53 @@ describe("production environment boot gate", () => {
       expect(
         collectProductionEnvironmentFailures(prodEnv({ PEX_API_KEY: "pex-live-key" })),
       ).toEqual([]);
+    });
+  });
+
+  /**
+   * A service account that is present but unreadable verified no Android purchase
+   * at all, and said nothing at boot — the money is taken and the entitlement
+   * never lands.
+   */
+  describe("Google service account credibility", () => {
+    it("production refuses to start when the service account is not valid JSON", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ GOOGLE_SERVICE_ACCOUNT_JSON: '{"client_email": "sa@x.com"' }),
+      );
+      expect(failures.some((m) => m.includes("not valid JSON"))).toBe(true);
+    });
+
+    it("production refuses to start when the service account has no signing key", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ client_email: "sa@x.com" }) }),
+      );
+      expect(failures.some((m) => m.includes("missing private_key"))).toBe(true);
+    });
+
+    it("production refuses to start when the service account has no client email", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ private_key: "pem" }) }),
+      );
+      expect(failures.some((m) => m.includes("missing client_email"))).toBe(true);
+    });
+  });
+
+  /**
+   * This flag used to force NODE_ENV=development, which turned off this entire
+   * boot gate, the Valkey requirement, shared rate limiting and the CORS
+   * allowlist from one environment variable.
+   */
+  describe("local Valkey opt-out is development only", () => {
+    it("production refuses to start when ELIX_LOCAL_NO_VALKEY is set", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", ELIX_LOCAL_NO_VALKEY: "1" }),
+      );
+      expect(failures.some((m) => m.includes("ELIX_LOCAL_NO_VALKEY"))).toBe(true);
+    });
+
+    it("config never rewrites NODE_ENV to escape the production gate", () => {
+      const configSrc = readFileSync(resolve(__dirname, "..", "config.ts"), "utf8");
+      expect(configSrc).not.toMatch(/process\.env\.NODE_ENV\s*=\s*['"]development['"]/);
     });
   });
 });

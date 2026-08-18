@@ -11,7 +11,7 @@ import {
   handleTwoFactorVerify,
   handleTwoFactorDisable,
 } from "./auth2fa";
-import { authLimiter, registerLimiter } from "../middleware/rateLimit";
+import { authLimiter, registerLimiter, twoFactorLimiter } from "../middleware/rateLimit";
 import { validateBody } from "../middleware/validate";
 import { loginSchema, registerSchema, emailOnlySchema, resetPasswordSchema, verifyEmailSchema } from "../validation/schemas";
 
@@ -24,9 +24,9 @@ router.post("/delete", handleDeleteAccount);
 router.get("/me", handleMe);
 router.post("/consent", handlePostConsent);
 router.get("/2fa/status", handleTwoFactorStatus);
-router.post("/2fa/enroll", handleTwoFactorEnroll);
-router.post("/2fa/verify", handleTwoFactorVerify);
-router.post("/2fa/disable", handleTwoFactorDisable);
+router.post("/2fa/enroll", twoFactorLimiter, handleTwoFactorEnroll);
+router.post("/2fa/verify", twoFactorLimiter, handleTwoFactorVerify);
+router.post("/2fa/disable", twoFactorLimiter, handleTwoFactorDisable);
 router.post("/resend-confirmation", authLimiter, validateBody(emailOnlySchema), handleResendConfirmation);
 router.post("/verify-email", authLimiter, validateBody(verifyEmailSchema), handleVerifyEmail);
 router.post("/apple/start", handleAppleStart);

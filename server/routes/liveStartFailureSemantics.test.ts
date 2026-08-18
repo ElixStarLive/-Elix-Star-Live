@@ -85,10 +85,11 @@ vi.mock("./profiles", () => ({ getFollowerIdsAsync: vi.fn(async () => ["follower
 
 const { handleLiveStart } = await import("./livestream");
 
-const STREAM_HASH_KEY = "stream:room-1";
+const STREAM_HASH_KEY = "stream:creator-1";
 
-function startRequest(): Request {
-  return { body: { room: "room-1", displayName: "Creator One" }, headers: {} } as unknown as Request;
+/** A live room is always the creator's own id — see handleLiveStart. */
+function startRequest(room = "creator-1"): Request {
+  return { body: { room, displayName: "Creator One" }, headers: {} } as unknown as Request;
 }
 
 function fakeRes() {
@@ -125,8 +126,8 @@ describe("POST /api/live/start failure semantics", () => {
     await handleLiveStart(startRequest(), res);
 
     expect(sent.status).toBe(200);
-    expect(sent.body).toMatchObject({ room: "room-1", token: "publish-token", stream_key: "room-1" });
-    expect(postgres.dbInsertLiveStream).toHaveBeenCalledWith("room-1", "creator-1", "Creator One", false);
+    expect(sent.body).toMatchObject({ room: "creator-1", token: "publish-token", stream_key: "creator-1" });
+    expect(postgres.dbInsertLiveStream).toHaveBeenCalledWith("creator-1", "creator-1", "Creator One", false);
     expect(streamHash[STREAM_HASH_KEY]?.userId).toBe("creator-1");
     expect(startedBroadcasts()).toHaveLength(1);
     expect(notifications.insertNotification).toHaveBeenCalled();
@@ -153,7 +154,7 @@ describe("POST /api/live/start failure semantics", () => {
     await handleLiveStart(startRequest(), res);
 
     expect(streamHash[STREAM_HASH_KEY]?.userId).toBeUndefined();
-    expect(postgres.dbEndLiveStream).toHaveBeenCalledWith("room-1");
+    expect(postgres.dbEndLiveStream).toHaveBeenCalledWith("creator-1");
   });
 
   it("does not tear down a live creator when a reconnect hits a DB blip", async () => {
@@ -200,5 +201,62 @@ describe("POST /api/live/start failure semantics", () => {
     expect(sent.status).toBe(409);
     expect(postgres.dbInsertLiveStream).not.toHaveBeenCalled();
     expect(livekit.createLiveToken).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The room name used to come from the request body, and the only guard was "is
+ * someone live in it right now". While a creator was offline, any authenticated
+ * user could start a live in that creator's room id: they were registered as its
+ * host, handed a publish token for it, shown to anyone opening that creator's
+ * live, and the real creator was then locked out of their own id by the 409.
+ */
+describe("POST /api/live/start room ownership", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    streamHash = {};
+    livekit.isLiveKitConfigured.mockReturnValue(true);
+    livekit.createLiveToken.mockResolvedValue("publish-token");
+    postgres.dbInsertLiveStream.mockResolvedValue(undefined);
+    valkey.isValkeyConfigured.mockReturnValue(true);
+  });
+
+  it("refuses to start a live in another creator's empty room", async () => {
+    const { res, sent } = fakeRes();
+
+    await handleLiveStart(startRequest("victim-creator"), res);
+
+    expect(sent.status).toBe(403);
+    expect(postgres.dbInsertLiveStream).not.toHaveBeenCalled();
+    expect(livekit.createLiveToken).not.toHaveBeenCalled();
+    expect(streamHash["stream:victim-creator"]).toBeUndefined();
+    expect(feed.broadcastToFeedSubscribers).not.toHaveBeenCalled();
+  });
+
+  it("refuses a room that only differs by characters the sanitiser strips", async () => {
+    const { res, sent } = fakeRes();
+
+    // "victim.creator" sanitises to "victimcreator", still not the caller's id.
+    await handleLiveStart(startRequest("victim.creator"), res);
+
+    expect(sent.status).toBe(403);
+    expect(livekit.createLiveToken).not.toHaveBeenCalled();
+  });
+
+  it("starts in the caller's own room when no room is supplied", async () => {
+    const { res, sent } = fakeRes();
+
+    await handleLiveStart(
+      { body: { displayName: "Creator One" }, headers: {} } as unknown as Request,
+      res,
+    );
+
+    expect(sent.status).toBe(200);
+    expect(postgres.dbInsertLiveStream).toHaveBeenCalledWith(
+      "creator-1",
+      "creator-1",
+      "Creator One",
+      false,
+    );
   });
 });

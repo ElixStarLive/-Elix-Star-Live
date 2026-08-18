@@ -30,8 +30,31 @@ export function collectProductionEnvironmentFailures(
     );
   }
 
-  if (!env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim()) {
+  // Presence alone was not enough: the consumer parses this and reads
+  // client_email / private_key, so a truncated or quote-mangled paste passed boot
+  // and only surfaced later as every Android purchase verification returning
+  // "unavailable" — real money held with no signal at start-up.
+  const serviceAccount = env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
+  if (!serviceAccount) {
     failures.push("GOOGLE_SERVICE_ACCOUNT_JSON is required in production for Android IAP verification");
+  } else {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(serviceAccount);
+    } catch {
+      failures.push(
+        "GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON in production — Android IAP verification would fail on every purchase",
+      );
+    }
+    if (parsed !== undefined) {
+      const creds = parsed as { client_email?: unknown; private_key?: unknown };
+      if (typeof creds?.client_email !== "string" || !creds.client_email.trim()) {
+        failures.push("GOOGLE_SERVICE_ACCOUNT_JSON is missing client_email in production");
+      }
+      if (typeof creds?.private_key !== "string" || !creds.private_key.trim()) {
+        failures.push("GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key in production");
+      }
+    }
   }
   if (!env.STRIPE_SECRET_KEY?.trim() || !env.STRIPE_WEBHOOK_SECRET?.trim()) {
     failures.push("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production for shop checkout");
@@ -127,6 +150,16 @@ export function collectProductionEnvironmentFailures(
   if (env.ALLOW_LOADTEST_IN_PROD === "1") {
     failures.push(
       "ALLOW_LOADTEST_IN_PROD must not be set in production — remove it so rate-limit bypass cannot be enabled against live traffic",
+    );
+  }
+
+  // `config.ts` exits before this runs, because the flag used to rewrite NODE_ENV
+  // to development and would have made this whole function return early. Kept
+  // here as the stated production contract: it disables the shared Valkey
+  // authority every rate limit, session cache and live room key depends on.
+  if (env.ELIX_LOCAL_NO_VALKEY === "1" || env.ELIX_LOCAL_NO_VALKEY === "true") {
+    failures.push(
+      "ELIX_LOCAL_NO_VALKEY must not be set in production — it disables the shared Valkey authority used by rate limits, sessions and live room state",
     );
   }
 

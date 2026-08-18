@@ -17,6 +17,8 @@ import {
   valkeySadd,
   valkeySmembers,
   valkeyExpire,
+  valkeyTryHget,
+  valkeyTryHincrby,
 } from '../lib/valkey';
 import { isEmailConfigured, sendTransactionalEmail } from '../lib/email';
 import {
@@ -403,7 +405,8 @@ interface StoredUser {
   /** ISO timestamp when email was confirmed; null/undefined = unverified. */
   email_confirmed_at: string | null;
 }
-function hashSessionToken(token: string): string {
+/** Exported so the WS layer can tag each socket with the session that opened it. */
+export function hashSessionToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
@@ -669,6 +672,82 @@ async function loadProfileMeta(userId: string): Promise<{
   }
 }
 
+/**
+ * Per-account login lockout.
+ *
+ * `authLimiter` counts per IP, which bounds one attacker on one address but does
+ * nothing for a spread-out run against a single account: with enough addresses
+ * every guess arrives on a fresh budget. These counters are keyed on the account
+ * being attacked instead, so the guesses add up wherever they come from.
+ *
+ * Counted in Valkey, never per process, for the same reason as the test-coin gate:
+ * a per-instance counter hands out one full budget per instance. The identifier is
+ * hashed so no login address is written into a cache key. The route is already
+ * behind `authLimiter`, which refuses the request outright when Valkey cannot
+ * answer, so refusing here too adds no new failure mode.
+ */
+const LOGIN_FAIL_MAX = 10;
+const LOGIN_FAIL_WINDOW_MS = 15 * 60 * 1000;
+
+function loginFailureKey(identifier: string): string {
+  return `auth:login:fail:${hashSessionToken(identifier.trim().toLowerCase())}`;
+}
+
+/** True when this account has spent its attempts and must wait out the window. */
+async function loginLockedOut(identifier: string): Promise<boolean> {
+  if (!isValkeyConfigured()) return false;
+  const read = await valkeyTryHget(loginFailureKey(identifier), 'n');
+  if (read.status === 'unavailable') {
+    logger.error('login lockout: counter unreadable — refusing attempt');
+    return true;
+  }
+  return (Number(read.value) || 0) >= LOGIN_FAIL_MAX;
+}
+
+async function recordLoginFailure(identifier: string): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  const key = loginFailureKey(identifier);
+  const next = await valkeyTryHincrby(key, 'n', 1);
+  if (next.status === 'unavailable') {
+    logger.error('login lockout: failed attempt not recorded');
+    return;
+  }
+  // Each failure restarts the window: ten wrong answers inside any fifteen
+  // minutes hold the account for the next fifteen.
+  await valkeyExpire(key, Math.ceil(LOGIN_FAIL_WINDOW_MS / 1000));
+}
+
+async function clearLoginFailures(identifier: string): Promise<void> {
+  if (!isValkeyConfigured()) return;
+  await valkeyDel(loginFailureKey(identifier));
+}
+
+/**
+ * A suspended account must not receive a session from ANY path that mints one.
+ * Password login checked this inline; Apple sign-in and the email-confirmation
+ * callback did not, so a banned user could pick either one up and carry on with a
+ * fresh token. Fails closed: an unreadable ban state refuses the session.
+ *
+ * @returns true when a refusal response has already been sent.
+ */
+async function refuseIfSuspended(userId: string, res: Response): Promise<boolean> {
+  const pool = getPool();
+  if (!pool) return false;
+  try {
+    const ban = await pool.query(`SELECT banned_until FROM profiles WHERE user_id = $1`, [userId]);
+    const bannedUntil = ban.rows[0]?.banned_until as Date | string | undefined;
+    if (bannedUntil && new Date(bannedUntil).getTime() > Date.now()) {
+      res.status(403).json({ error: 'Account suspended.' });
+      return true;
+    }
+    return false;
+  } catch (err) {
+    logger.error({ err, userId }, 'banned_until check failed — refusing to issue a session');
+    res.status(500).json({ error: 'Login temporarily unavailable. Please try again.' });
+    return true;
+  }
+}
+
 export async function handleLogin(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   try {
@@ -678,12 +757,20 @@ export async function handleLogin(req: Request, res: Response) {
       return res.status(400).json({ error: 'Please enter both email and password.' });
     }
     if (!getPool()) return res.status(503).json({ error: 'Database not configured' });
+    // Checked before the password is examined, and keyed on what was typed rather
+    // than on a resolved user, so a locked account and an unknown one behave the
+    // same and nothing here reveals which addresses exist.
+    if (await loginLockedOut(e)) {
+      return res.status(429).json({ error: 'Too many failed sign-in attempts. Please try again later.' });
+    }
     const user = await dbFindUserByEmailOrUsername(e);
     if (!user) {
       await verifyPassword(password, await getLoginDecoyHash());
+      await recordLoginFailure(e);
       return res.status(401).json({ error: 'Invalid login credentials.' });
     }
     if (!(await verifyPassword(password, user.passwordHash))) {
+      await recordLoginFailure(e);
       return res.status(401).json({ error: 'Invalid login credentials.' });
     }
     // Password accounts must confirm email when the mail provider is configured.
@@ -693,19 +780,8 @@ export async function handleLogin(req: Request, res: Response) {
         error: 'Please confirm your email before logging in. Check your inbox or request a new confirmation email.',
       });
     }
-    const pool = getPool();
-    if (pool) {
-      try {
-        const ban = await pool.query(`SELECT banned_until FROM profiles WHERE user_id = $1`, [user.id]);
-        const bu = ban.rows[0]?.banned_until as Date | string | undefined;
-        if (bu && new Date(bu).getTime() > Date.now()) {
-          return res.status(403).json({ error: 'Account suspended.' });
-        }
-      } catch (err) {
-        logger.error({ err }, 'login banned_until check failed — blocking login for safety');
-        return res.status(500).json({ error: 'Login temporarily unavailable. Please try again.' });
-      }
-    }
+    if (await refuseIfSuspended(user.id, res)) return;
+    await clearLoginFailures(e);
     const token = signToken({ sub: user.id, email: user.email });
     await dbUpsertSession(user.id, token);
     setAuthCookie(res, token);
@@ -831,7 +907,27 @@ export async function handleLogout(req: Request, res: Response) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   const token = getTokenFromRequest(req);
   if (token) {
-    await dbDeleteSessionByToken(token).catch((err) => { logger.error({ err }, "handleLogout: session delete failed"); });
+    // The session row is what makes this token usable, so a failed delete means
+    // the user is NOT signed out — the token stays valid for its full lifetime.
+    // Reporting ok here told the client to drop the session while the server kept
+    // honouring it, which is the one outcome nobody can recover from.
+    try {
+      await dbDeleteSessionByToken(token);
+    } catch (err) {
+      logger.error({ err }, "handleLogout: session delete failed");
+      return res.status(503).json({ error: 'Could not sign out. Please try again.' });
+    }
+    // REST is closed now; a socket opened with this token would otherwise keep
+    // sending chat, gifts and co-host events as this user until it dropped.
+    const payload = verifyAuthToken(token);
+    if (payload?.sub) {
+      try {
+        const ws = await import("../websocket/index");
+        ws.disconnectUserSession(payload.sub, hashSessionToken(token), "Signed out");
+      } catch (err) {
+        logger.warn({ err, userId: payload.sub }, "handleLogout: socket revoke failed");
+      }
+    }
   }
   clearAuthCookie(res);
   return res.status(200).json({ ok: true });
@@ -919,6 +1015,15 @@ export async function handleDeleteAccount(req: Request, res: Response) {
     await client.query(`DELETE FROM elix_auth_users WHERE id = $1`, [user.id]);
     await client.query('COMMIT');
     await invalidateUserSessionCache(user.id);
+    // The auth row is gone, so every remaining socket is authenticated as a user
+    // that no longer exists. Close them all here rather than letting them keep
+    // acting until they happen to drop.
+    try {
+      const ws = await import("../websocket/index");
+      ws.disconnectUserSessions(user.id, "Account deleted");
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "handleDeleteAccount: socket revoke failed");
+    }
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     logger.error({ err, userId: user.id }, 'handleDeleteAccount cascade failed');
@@ -954,9 +1059,16 @@ export async function handleResendConfirmation(req: Request, res: Response) {
     }
 
     // Rate-limit after a successful send (always 200 to avoid account enumeration).
+    // The cooldown claim used to resolve to `true` when Valkey threw, so an outage
+    // turned into an uncapped mail sender pointed at someone else's inbox. An
+    // unclaimable cooldown now skips the send and still answers 200, so the
+    // response says nothing about which addresses exist.
     if (isValkeyConfigured()) {
       const sentKey = `email_confirm_sent:${normalized}`;
-      const claimed = await valkeySetNx(sentKey, '1', RESEND_CONFIRM_COOLDOWN_MS).catch(() => true);
+      const claimed = await valkeySetNx(sentKey, '1', RESEND_CONFIRM_COOLDOWN_MS).catch((err) => {
+        logger.error({ err }, 'handleResendConfirmation: cooldown unavailable — skipping send');
+        return false;
+      });
       if (!claimed) {
         return res.status(200).json({ success: true });
       }
@@ -996,6 +1108,8 @@ export async function handleVerifyEmail(req: Request, res: Response) {
   try {
     const user = await dbFindUserById(payload.sub);
     if (!user) return res.status(404).json({ error: 'User not found.' });
+
+    if (await refuseIfSuspended(user.id, res)) return;
 
     if (user.email_confirmed_at) {
       // Already confirmed — issue a session so the callback can land the user.
@@ -1168,6 +1282,8 @@ export async function handleAppleNative(req: Request, res: Response) {
       }
     }
 
+    if (await refuseIfSuspended(user.id, res)) return;
+
     const token = signToken({ sub: user.id, email: user.email });
     await dbUpsertSession(user.id, token);
     setAuthCookie(res, token);
@@ -1274,6 +1390,14 @@ export async function handleResetPassword(req: Request, res: Response) {
     // Invalidate every existing session so a stolen old token cannot stay logged in.
     await pool.query(`DELETE FROM elix_auth_sessions WHERE user_id = $1`, [user.id]);
     await invalidateUserSessionCache(user.id);
+    // Revoking the tokens is not enough while a socket opened with one is still
+    // held — that is the exact case a reset is meant to end.
+    try {
+      const ws = await import("../websocket/index");
+      ws.disconnectUserSessions(user.id, "Password changed");
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "handleResetPassword: socket revoke failed");
+    }
     return res.status(200).json({ success: true });
   } catch (err) {
     logger.error({ err }, 'handleResetPassword failed');

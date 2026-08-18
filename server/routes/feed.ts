@@ -139,10 +139,12 @@ function errMessage(err: unknown): unknown {
 }
 
 function getIpHash(req: Request): string {
-  const ip =
-    req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() ||
-    req.ip ||
-    "unknown";
+  // With app.set("trust proxy", 1) Express resolves req.ip to the real client hop.
+  // Reading the left-most X-Forwarded-For entry first let a caller pick their own
+  // key: rotating the header gave an unlimited view rate AND a fresh viewer_key
+  // per request, so an anonymous client could inflate a video's public view count
+  // without limit. Same rule as getClientIp in middleware/rateLimit.
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
   let hash = 0;
   for (let i = 0; i < ip.length; i++) {
     hash = (hash << 5) - hash + ip.charCodeAt(i);
@@ -151,11 +153,28 @@ function getIpHash(req: Request): string {
   return "ip_" + Math.abs(hash).toString(36);
 }
 
+/**
+ * Fails CLOSED in production, like wsRateCheck and checkRateLimit: an unanswerable
+ * window used to return true, which turned a Valkey blip into an unlimited view
+ * rate on the counter that drives the public view count and For You ranking.
+ * Outside production there is no Valkey, so the limit is skipped as before.
+ */
 async function allowViewRateLimit(rateKey: string): Promise<boolean> {
-  if (!isValkeyConfigured()) return true;
+  const requireLimiter = process.env.NODE_ENV === "production";
+  if (!isValkeyConfigured()) {
+    if (requireLimiter) {
+      logger.error("allowViewRateLimit: Valkey required in production — refusing view");
+      return false;
+    }
+    return true;
+  }
   try {
     return await valkeyRateCheck(`elix:ratelimit:feed_view:${rateKey}`, RATE_LIMIT_WINDOW, RATE_LIMIT_MAX_VIEWS);
-  } catch {
+  } catch (err) {
+    if (requireLimiter) {
+      logger.error({ err: errMessage(err) }, "allowViewRateLimit: Valkey error — refusing view (fail closed)");
+      return false;
+    }
     return true;
   }
 }

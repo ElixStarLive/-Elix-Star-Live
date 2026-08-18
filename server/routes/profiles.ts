@@ -480,10 +480,19 @@ export async function handleGetProfile(req: Request, res: Response): Promise<voi
   }
   res.setHeader("Cache-Control", "private, no-store");
   const authUser = await lookupAuthUser(userId);
-  const email =
+  const fullEmail =
     typeof authUser?.email === "string" && authUser.email.includes("@")
       ? authUser.email
       : "";
+  // This route is public, and it used to hand every caller the full login address
+  // of any user id — an address is enough to start a password reset or credential
+  // stuffing run elsewhere. Profile and UserProfileModal only ever render the
+  // local part ("info@") for someone else, so non-owners get exactly that and the
+  // domain never leaves the server. The owner still receives their own address.
+  const token = getTokenFromRequest(req);
+  const jwtUser = token ? verifyAuthToken(token) : null;
+  const isOwner = jwtUser?.sub === userId;
+  const email = !fullEmail || isOwner ? fullEmail : `${fullEmail.split("@")[0]}@`;
   res.json({
     profile: {
       ...profile,

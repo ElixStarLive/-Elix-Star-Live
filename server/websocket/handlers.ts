@@ -1487,6 +1487,10 @@ export async function handleMessage(
           if (!rawTarget && fromStream) targetUserId = fromStream;
         }
         if (!targetUserId || targetUserId === client.userId) break;
+        // A block is checked on accept but was not checked here, so a blocked
+        // person still received the invite banner — the one thing a block is meant
+        // to stop. Battle invites already refuse on send; co-host now matches.
+        if (await dbIsBlockedEitherWay(client.userId, targetUserId)) break;
         // No publish grant here: an invite is an offer, and the token endpoint
         // treats a grant as authority to publish. Granting on send let an invited
         // user publish into this room before accepting — and keep that right if
@@ -1765,6 +1769,10 @@ export async function handleMessage(
         }
         if (!hostUserId) break;
         if (hostUserId === client.userId) break;
+        // Same gap as the invite path: the host's accept re-checks the block, but
+        // the ask itself reached them regardless, so a blocked spectator could
+        // still queue join requests against that creator.
+        if (await dbIsBlockedEitherWay(client.userId, hostUserId)) break;
         const requestPayload = {
           requesterUserId: client.userId,
           requesterName: data.requesterName || client.displayName,

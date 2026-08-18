@@ -113,6 +113,11 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
   if (!payload?.sub) return res.status(401).json({ error: 'Invalid auth token' });
 
   const userId = payload.sub;
+  // Each accepted request is a paid vision call to an external provider, so an
+  // unanswerable limiter must not become an open door: production fails closed
+  // here, matching wsRateCheck and checkRateLimit. Non-production keeps running
+  // without Valkey.
+  const requireLimiter = process.env.NODE_ENV === 'production';
   if (isValkeyConfigured()) {
     try {
       const allowed = await valkeyRateCheck(`rl:${userId}:live:moderation`, 60_000, 6);
@@ -120,8 +125,15 @@ export async function handleLiveModerationCheck(req: Request, res: Response) {
         return res.status(429).json({ error: 'Too many moderation checks' });
       }
     } catch (err) {
-      logger.warn({ err, userId }, 'moderation rate check failed — allowing request');
+      if (requireLimiter) {
+        logger.error({ err, userId }, 'moderation rate check failed — refusing request (fail closed)');
+        return res.status(429).json({ error: 'Too many moderation checks' });
+      }
+      logger.warn({ err, userId }, 'moderation rate check failed — allowing request (non-production)');
     }
+  } else if (requireLimiter) {
+    logger.error({ userId }, 'moderation rate check requires Valkey in production — refusing request');
+    return res.status(429).json({ error: 'Too many moderation checks' });
   }
 
   const { stream_key: streamKey, image_base64: imageBase64 } = req.body || {};

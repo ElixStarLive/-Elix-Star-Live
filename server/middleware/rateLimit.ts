@@ -303,3 +303,43 @@ export const moderationLimiter = rateLimit({
   max: 30,
   keyPrefix: "moderation",
 });
+
+/**
+ * TOTP enroll / verify / disable.
+ *
+ * A 6-digit code is a 1,000,000-key space, and these routes had no limiter at
+ * all: an attacker holding a session could walk the whole space and clear the
+ * second factor. Keyed per account, because the attacker owns the IP.
+ * A real person enters a code a handful of times.
+ */
+export const twoFactorLimiter = rateLimitBySubject({
+  windowMs: 15 * 60_000,
+  max: 10,
+  keyPrefix: "twofa_user",
+  resolveSubject: (req) => {
+    const token = getTokenFromRequest(req);
+    if (!token) return null;
+    return verifyAuthToken(token)?.sub ?? null;
+  },
+  // Unauthenticated → the handler answers 401 itself.
+  onMissingSubject: "allow",
+});
+
+/**
+ * Chat sends over REST.
+ *
+ * The WS path is bounded by wsRateCheck, but the REST path had only the shared
+ * /api bucket (600/min for a signed-in user), which is DM flood territory.
+ * Keyed per sender so one abuser cannot spend a shared IP's budget.
+ */
+export const chatSendLimiter = rateLimitBySubject({
+  windowMs: 60_000,
+  max: 60,
+  keyPrefix: "chat_send_user",
+  resolveSubject: (req) => {
+    const token = getTokenFromRequest(req);
+    if (!token) return null;
+    return verifyAuthToken(token)?.sub ?? null;
+  },
+  onMissingSubject: "allow",
+});

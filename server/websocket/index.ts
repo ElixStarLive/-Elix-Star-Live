@@ -37,7 +37,7 @@ import {
 } from "../services/livekit";
 import { dbIsBlockedEitherWay, dbUpdateViewerCount } from "../lib/postgres";
 import { logger } from "../lib/logger";
-import { checkSessionState, verifyAuthToken } from "../routes/auth";
+import { checkSessionState, hashSessionToken, verifyAuthToken } from "../routes/auth";
 import {
   isValkeyConfigured,
   valkeyPublish,
@@ -104,6 +104,12 @@ export interface Client {
   connectedAt: Date;
   /** Creator whose gift/chat audience this socket belongs to (battle: per-creator). */
   audienceCreatorId: string;
+  /**
+   * sha256 of the session token that opened this socket. Logout has to revoke the
+   * socket it just invalidated without signing the user out on their other
+   * devices, so revocation is matched per session, not per user.
+   */
+  sessionTokenHash: string;
 }
 
 const INSTANCE_ID = randomUUID();
@@ -831,7 +837,15 @@ function forwardRoomMessage(roomId: string, payload: WsPubSubPayload): void {
 function forwardUserMessage(userId: string, payload: WsPubSubPayload): void {
   if (!payload || payload.sourceInstanceId === INSTANCE_ID) return;
   if (payload.event === "force_disconnect") {
-    forceCloseLocalUserSockets(userId, String(payload.data?.reason || "Session ended"));
+    // A per-session revocation carries the session hash so a logout on one device
+    // does not close this user's sockets on the others.
+    const sessionTokenHash =
+      typeof payload.data?.sessionTokenHash === "string" ? payload.data.sessionTokenHash : undefined;
+    forceCloseLocalUserSockets(
+      userId,
+      String(payload.data?.reason || "Session ended"),
+      sessionTokenHash,
+    );
     return;
   }
   let message: string;
@@ -896,11 +910,20 @@ export function initWsPubSub(): void {
   logger.info({ instanceId: INSTANCE_ID }, "WS pub/sub initialized (per-room/per-user subscriptions)");
 }
 
-function forceCloseLocalUserSockets(userId: string, reason: string): number {
+/**
+ * @param sessionTokenHash When given, close only the sockets opened with that
+ * session. Used by logout so the other devices of a multi-device user stay on.
+ */
+function forceCloseLocalUserSockets(
+  userId: string,
+  reason: string,
+  sessionTokenHash?: string,
+): number {
   const userSet = userClients.get(userId);
   if (!userSet || userSet.size === 0) return 0;
   let closed = 0;
   for (const client of [...userSet]) {
+    if (sessionTokenHash && client.sessionTokenHash !== sessionTokenHash) continue;
     try {
       if (client.ws.readyState === WebSocket.OPEN || client.ws.readyState === WebSocket.CONNECTING) {
         // Notify the client before closing so it can clear local session state.
@@ -933,6 +956,30 @@ export function disconnectUserSessions(userId: string, reason = "Banned"): numbe
     valkeyPublish(`user:${userId}`, {
       event: "force_disconnect",
       data: { reason },
+      timestamp: new Date().toISOString(),
+      sourceInstanceId: INSTANCE_ID,
+    });
+  }
+  return closed;
+}
+
+/**
+ * Close the sockets belonging to ONE session, here and on every other instance.
+ * Revoking the token in Neon only stopped new REST calls: a socket authenticated
+ * before logout stayed open and could still send chat, gifts, co-host and battle
+ * events with the signed-out user's identity for as long as it was held.
+ */
+export function disconnectUserSession(
+  userId: string,
+  sessionTokenHash: string,
+  reason = "Session ended",
+): number {
+  if (!userId || !sessionTokenHash) return 0;
+  const closed = forceCloseLocalUserSockets(userId, reason, sessionTokenHash);
+  if (isValkeyConfigured()) {
+    valkeyPublish(`user:${userId}`, {
+      event: "force_disconnect",
+      data: { reason, sessionTokenHash },
       timestamp: new Date().toISOString(),
       sourceInstanceId: INSTANCE_ID,
     });
@@ -1526,6 +1573,8 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         return;
       }
 
+      const sessionTokenHash = hashSessionToken(token);
+
       if (roomId === "__feed__" || roomId === "feed") {
         client = {
           ws,
@@ -1538,6 +1587,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           country: "",
           connectedAt: new Date(),
           audienceCreatorId: "",
+          sessionTokenHash,
         };
         clients.set(ws, client);
         // Register on the user channel so global events (call_invite, force_disconnect,
@@ -1584,6 +1634,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         country: "",
         connectedAt: new Date(),
         audienceCreatorId: hostUserId || userId,
+        sessionTokenHash,
       };
 
       clients.set(ws, client);
