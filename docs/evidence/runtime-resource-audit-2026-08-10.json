@@ -1,0 +1,94 @@
+{
+  "generatedAt": "2026-08-18T18:08:45.254Z",
+  "auditKind": "instrumented_module_cycles",
+  "cycles": 24,
+  "label": {
+    "executed": "vitest jsdom cycles against real cleanup APIs with mocked LiveKit Room + WebSocket",
+    "notExecuted": "full browser LiveKit SFU, native camera, production WS server — needs physical device"
+  },
+  "counters": {
+    "roomsCreated": 48,
+    "roomsDisconnected": 48,
+    "roomRemoveAllListeners": 48,
+    "wsConstructed": 25,
+    "wsClosed": 25,
+    "tracksStopped": 24,
+    "timersArmed": 24,
+    "timersCleared": 24
+  },
+  "metrics": [
+    {
+      "id": "feed_presence_listeners",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "listener total must not grow after 24 connectLiveFeedPresence dispose cycles"
+    },
+    {
+      "id": "live_ws_binder_listeners",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "room/battle/cohost/moderation binders must remove all listeners on dispose"
+    },
+    {
+      "id": "websocket_socket_count",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "constructed=25 closed=25; active socket + timers must be null after cycles"
+    },
+    {
+      "id": "livekit_room_count",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "roomsCreated=24 roomsDisconnected=24 removeAllListeners=24"
+    },
+    {
+      "id": "live_room_lifecycle_session",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "connectLiveKitOnly + disconnect must leave zero live Room references"
+    },
+    {
+      "id": "camera_track_stops",
+      "pass": true,
+      "before": 0,
+      "after": 24,
+      "detail": "each clearCachedCameraStream must stop tracks (delta=24)"
+    },
+    {
+      "id": "gift_chat_queue_caps",
+      "pass": true,
+      "before": 0,
+      "after": 8,
+      "detail": "after overflow appends gifts=8/8 (n=104) chat=200/200 (n=296)"
+    },
+    {
+      "id": "battle_accept_ack_cleanup",
+      "pass": true,
+      "before": 0,
+      "after": 0,
+      "detail": "waitBattleAcceptAck cancel must remove battle_accept_ack/battle_error listeners (timersArmed=24)"
+    }
+  ],
+  "overallPass": true,
+  "findings": {
+    "CLIENT-F-002": {
+      "status": "CLEARED",
+      "note": "giftSendErrorToast unused imports removed from LiveHostScreen/SpectatorLiveScreen; used only in sendLiveGift + host controller send paths"
+    },
+    "CLIENT-F-003": {
+      "status": "RUNTIME_CLEANUP_VERIFIED",
+      "note": "Mega controller/screen size retained; WS binder + LiveKitSession + feed presence cleanup contracts proven bounded across cycles (see metrics). Full UI regression still needs device pass.",
+      "evidence": "docs/evidence/runtime-resource-audit-2026-08-10.json"
+    },
+    "CLIENT-P-030": {
+      "status": "RETAINED_WITH_PROOF",
+      "note": "AIStudio Share2 control is labeled Export and wires handleExport (frame export). Tool toasts without full AI pipeline remain product scope — not a live resource leak.",
+      "evidence": "docs/evidence/runtime-resource-audit-2026-08-10.json"
+    }
+  }
+}

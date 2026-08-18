@@ -1,5 +1,18 @@
 # Coolify deployment
 
+## Git source (check this first)
+
+| Setting | Value |
+|--------|--------|
+| **Repository** | `https://github.com/ElixStarLive/-Elix-Star-Live` |
+| **Branch** | `main` |
+
+This is the only repository that may be deployed. It is the working repo and the `origin` remote of the owner's local folder, so it is the only one that receives current work.
+
+**Do not deploy `ElixStarLive/Elix-Star-Live-Good`.** It is an abandoned snapshot from an earlier session. Its `main` is hundreds of commits behind this repo, so deploying it ships an old app with none of the current live, battle, IAP, or payout behaviour. The few commits that exist only there (an old `$500` withdrawal cap, an earlier co-host stage, a build strip script the current `Dockerfile` no longer needs) have all been superseded here.
+
+To correct a deployment pointing at the wrong repository: open the application in Coolify → **Source** (or **Configuration → Source**) → set the repository and branch above → **Save** → **Redeploy**. The Git source lives only in Coolify, not in this repo, so it cannot be fixed by a commit.
+
 ## Migrations (required — do not skip)
 
 If workers crash-loop with `MIGRATIONS_REQUIRED: public.elix_schema_migrations is missing`, the database has not been migrated for this release.
