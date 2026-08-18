@@ -33,8 +33,8 @@ import {
   valkeySrem,
   valkeySmembers,
   valkeySetNx,
-  valkeyHincrby,
-  valkeyHgetall,
+  valkeyTryHincrby,
+  valkeyTryHgetall,
   valkeyHset,
   valkeyExpire,
 } from "../lib/valkey";
@@ -176,19 +176,39 @@ async function deleteBattleFromStore(session: BattleSession): Promise<void> {
   }
 }
 
-export async function clearBattleRuntimeForRoom(
-  roomId: string,
-  session: BattleSession | null,
-): Promise<void> {
+/**
+ * Wipe every trace of battling in this room.
+ *
+ * Room ids are the creator's own id, so the room a live ends in is the room its
+ * next live starts in. Anything left here is inherited by that live: a session
+ * would put the old opponent back on the new stage, an outstanding invite could
+ * still be accepted into it, and an accept or publish grant would still read as
+ * authority to broadcast in it. Every one of those is cleared as one job, on
+ * both ends of the boundary — when a live ends, and again when a live starts
+ * that is not a reconnect, because the ending side may never have run.
+ */
+export async function clearBattleRuntimeForRoom(roomId: string): Promise<void> {
   if (!roomId || !hasValkey()) return;
+  // Read before deleting: the seats name whose per-user keys have to go too.
+  const session = await getBattleFromStore(roomId);
+
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
   await valkeyDel(BATTLE_KEY_PREFIX + roomId);
   await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
   await valkeyDel(SCORE_KEY_PREFIX + roomId);
-  await valkeyDel(PENDING_INVITES_KEY_PREFIX + roomId);
-  if (session) {
-    for (const userId of seatedUserIds(session)) {
-      await clearUserBattleRoom(userId);
+  // Both the tracking set and the invite keys the accept path actually reads.
+  await clearPendingBattleInvites(roomId);
+
+  for (const userId of session ? seatedUserIds(session) : []) {
+    await clearBattleAcceptedGrant(roomId, userId);
+    await clearUserBattleRoom(userId);
+    try {
+      await revokeBattlePublish(roomId, userId);
+    } catch (err) {
+      logger.warn(
+        { err, roomId, userId },
+        "clearBattleRuntimeForRoom: battle publish grant not revoked",
+      );
     }
   }
 }
@@ -216,6 +236,14 @@ export async function clearUserBattleRoom(userId: string): Promise<void> {
 
 // ── Invites / accept grants ─────────────────────────────────────────────────
 
+/**
+ * Record an outstanding invite.
+ *
+ * An invite is one fact stored two ways: the key the accept path checks, and the
+ * room's set of who has been asked, which is how every invite gets withdrawn
+ * when the stage fills or the live ends. Writing them together is what keeps an
+ * invite from surviving a cleanup that could not see it.
+ */
 export async function setBattleInvite(
   roomId: string,
   targetUserId: string,
@@ -223,6 +251,11 @@ export async function setBattleInvite(
 ): Promise<void> {
   if (!roomId || !targetUserId || !hasValkey()) return;
   await valkeySet(`battle_invite:${roomId}:${targetUserId}`, "1", ttlMs);
+  await valkeySadd(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
+  await valkeyExpire(
+    PENDING_INVITES_KEY_PREFIX + roomId,
+    Math.ceil(ttlMs / 1000),
+  );
 }
 
 export async function hasBattleInvite(
@@ -239,6 +272,7 @@ export async function clearBattleInvite(
 ): Promise<void> {
   if (!roomId || !targetUserId || !hasValkey()) return;
   await valkeyDel(`battle_invite:${roomId}:${targetUserId}`);
+  await valkeySrem(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
 }
 
 export async function setBattleAcceptedGrant(
@@ -264,22 +298,6 @@ export async function clearBattleAcceptedGrant(
 ): Promise<void> {
   if (!roomId || !userId || !hasValkey()) return;
   await valkeyDel(`battle_accept:${roomId}:${userId}`);
-}
-
-export async function trackPendingBattleInvite(
-  roomId: string,
-  targetUserId: string,
-): Promise<void> {
-  if (!hasValkey()) return;
-  await valkeySadd(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
-}
-
-export async function untrackPendingBattleInvite(
-  roomId: string,
-  targetUserId: string,
-): Promise<void> {
-  if (!hasValkey()) return;
-  await valkeySrem(PENDING_INVITES_KEY_PREFIX + roomId, targetUserId);
 }
 
 /** Drop every outstanding invite when seats are full (no 5th creator). */
@@ -548,11 +566,44 @@ async function resetSeatScore(roomId: string, seat: BattleSeat): Promise<void> {
   await valkeyHset(SCORE_KEY_PREFIX + roomId, seat, "0");
 }
 
-/** Live per-seat scores. The Valkey hash is the only live score source. */
-export async function getBattleScores(roomId: string): Promise<BattleScores> {
-  if (!hasValkey()) return emptyBattleScores();
-  const raw = await valkeyHgetall(SCORE_KEY_PREFIX + roomId);
-  return normalizeScores(raw);
+/**
+ * Live per-seat scores, with an unreadable hash kept separate from a hash of
+ * zeros.
+ *
+ * A started battle has real points in it, so a read that failed must never be
+ * passed on as 0–0. That number would otherwise be frozen as the permanent
+ * result and shown to both creators as the final score of a match they actually
+ * played. Callers that decide or display a score take this one; the plain
+ * reader below is for the paths where zero and unknown mean the same thing.
+ */
+export async function getBattleScoresState(
+  roomId: string,
+): Promise<{ status: "ok"; scores: BattleScores } | { status: "unavailable" }> {
+  if (!hasValkey() || !roomId) return { status: "unavailable" };
+  const read = await valkeyTryHgetall(SCORE_KEY_PREFIX + roomId);
+  if (read.status === "unavailable") return { status: "unavailable" };
+  return { status: "ok", scores: normalizeScores(read.value) };
+}
+
+/**
+ * Scores for showing or broadcasting a session's current state.
+ *
+ * A WAITING battle has not been scored yet, so zeros are the truth there even
+ * when the hash could not be read. Once the clock is running the difference
+ * matters, and an unreadable hash means this state cannot be described at all.
+ */
+async function scoresForSessionState(
+  session: BattleSession,
+): Promise<BattleScores | null> {
+  if (session.finalScores) return session.finalScores;
+  const read = await getBattleScoresState(session.roomId);
+  if (read.status === "ok") return read.scores;
+  if (session.status === "WAITING") return emptyBattleScores();
+  logger.warn(
+    { roomId: session.roomId, battleId: session.id },
+    "battle state not described — live scores unreadable",
+  );
+  return null;
 }
 
 export type AddBattleScoreResult =
@@ -562,7 +613,8 @@ export type AddBattleScoreResult =
       creatorId: string;
       teamId: "teamA" | "teamB";
       points: number;
-      scores: BattleScores;
+      /** The scoreboard after the write, absent when it could not be read. */
+      scores?: BattleScores;
     }
   | {
       ok: false;
@@ -608,20 +660,38 @@ export async function addBattleScore(req: {
   const check = checkBattleScoreTarget(session, req.seat);
   if (check.ok === false) return { ok: false, reason: check.reason };
 
-  await valkeyHincrby(SCORE_KEY_PREFIX + req.roomId, req.seat, points);
-  const scores = await getBattleScores(req.roomId);
-  const totals = teamTotals(scores);
-
-  broadcastToRoom(req.roomId, "battle_score", {
-    hostScore: scores.host,
-    opponentScore: scores.opponent,
-    player3Score: scores.player3,
-    player4Score: scores.player4,
-    teamAScore: totals.teamA,
-    teamBScore: totals.teamB,
-    lastScorer: req.seat,
+  // A gift has already been paid for by the time it gets here, so a score write
+  // that did not land must be reported as a failure rather than acknowledged as
+  // points the creator never received.
+  const written = await valkeyTryHincrby(
+    SCORE_KEY_PREFIX + req.roomId,
+    req.seat,
     points,
-  });
+  );
+  if (written.status === "unavailable") {
+    logger.error(
+      { roomId: req.roomId, seat: req.seat, points, source: req.source },
+      "battle score write failed",
+    );
+    return { ok: false, reason: "unavailable" };
+  }
+
+  // The points are in the hash now. Only the scoreboard to show is in doubt, so
+  // the score still counts and the 1 Hz tick corrects every display shortly.
+  const read = await getBattleScoresState(req.roomId);
+  if (read.status === "ok") {
+    const totals = teamTotals(read.scores);
+    broadcastToRoom(req.roomId, "battle_score", {
+      hostScore: read.scores.host,
+      opponentScore: read.scores.opponent,
+      player3Score: read.scores.player3,
+      player4Score: read.scores.player4,
+      teamAScore: totals.teamA,
+      teamBScore: totals.teamB,
+      lastScorer: req.seat,
+      points,
+    });
+  }
 
   return {
     ok: true,
@@ -629,7 +699,7 @@ export async function addBattleScore(req: {
     creatorId: check.participant.userId,
     teamId: check.participant.teamId,
     points,
-    scores,
+    ...(read.status === "ok" ? { scores: read.scores } : {}),
   };
 }
 
@@ -640,13 +710,25 @@ export async function addBattleScore(req: {
  * the join/reconnect push all read the same session + the same live score
  * hash, so a reconnecting client can never receive a stale score copy.
  */
-export async function buildBattleStateForRoom(
-  roomId: string,
-): Promise<Record<string, unknown> | null> {
+/**
+ * The state to send one client, with "there is no battle" kept apart from "this
+ * battle cannot be described right now".
+ *
+ * The two must not collapse into one null: answering a state request with ENDED
+ * because a score read failed would drop every spectator out of the battle
+ * layout of a match that is still being fought.
+ */
+export async function buildBattleStateForRoom(roomId: string): Promise<{
+  /** The payload to send, or null when this room has no battle. */
+  state: Record<string, unknown> | null;
+  /** A battle exists, but its live scores could not be read. */
+  unreadable: boolean;
+}> {
   const session = await getBattleFromStore(roomId);
-  if (!session) return null;
-  const scores = session.finalScores ?? (await getBattleScores(roomId));
-  return buildBattleStatePayload(session, scores);
+  if (!session) return { state: null, unreadable: false };
+  const scores = await scoresForSessionState(session);
+  if (!scores) return { state: null, unreadable: true };
+  return { state: buildBattleStatePayload(session, scores), unreadable: false };
 }
 
 export async function broadcastBattleState(
@@ -655,7 +737,10 @@ export async function broadcastBattleState(
 ): Promise<void> {
   const current = session ?? (await getBattleFromStore(roomId));
   if (!current) return;
-  const scores = current.finalScores ?? (await getBattleScores(roomId));
+  const scores = await scoresForSessionState(current);
+  // Nothing is better than a wrong scoreboard: the 1 Hz tick re-broadcasts real
+  // scores to everyone as soon as the hash can be read again.
+  if (!scores) return;
   broadcastToRoom(
     roomId,
     "battle_state_sync",
@@ -697,10 +782,25 @@ export async function finalizeBattle(
   );
   if (!claimed) return null;
 
+  // The result is the whole point of the match, and this is the only pass that
+  // will ever compute it. Scores that cannot be read are not zero: freezing them
+  // would hand both creators a 0–0 draw as the permanent record of a battle they
+  // played. Give the claim back instead, so the next tick — or the next end
+  // trigger — finalizes for real once the hash can be read.
+  const read = await getBattleScoresState(roomId);
+  if (read.status === "unavailable") {
+    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    logger.error(
+      { roomId, battleId: session.id, reason },
+      "battle not finalized — live scores unreadable, will retry",
+    );
+    return null;
+  }
+  const scores = read.scores;
+
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
   await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
 
-  const scores = await getBattleScores(roomId);
   const finalized: BattleSession = {
     ...session,
     status: "ENDED",
@@ -908,7 +1008,12 @@ async function processBattleTick(roomId: string): Promise<void> {
       return;
     }
 
-    const scores = await getBattleScores(roomId);
+    // Skip a tick rather than tell the whole room the score is 0–0: the clock is
+    // wall-clock derived from endsAt, so a missed tick costs nothing and the next
+    // readable one is correct.
+    const read = await getBattleScoresState(roomId);
+    if (read.status === "unavailable") return;
+    const scores = read.scores;
     const totals = teamTotals(scores);
     broadcastToRoom(roomId, "battle_tick", {
       timeLeft: Math.max(0, Math.round((session.endsAt - Date.now()) / 1000)),

@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { resetValkeyFake, valkeyFake } from "./battleValkeyFake";
+import {
+  resetValkeyFake,
+  setValkeyFakeHashesReachable,
+  valkeyFake,
+} from "./battleValkeyFake";
 import type { BattleResultRecord } from "../lib/postgres";
 
 const broadcasts: Array<{ roomId: string; event: string; payload: unknown }> = [];
@@ -35,12 +39,19 @@ const {
   finalizeBattle,
   flushPendingBattleResults,
   getBattleFromStore,
-  getBattleScores,
+  getBattleScoresState,
   removeBattleParticipant,
   startBattleIfReady,
 } = battle;
 
 const ROOM = "host-room";
+
+/** Live scores, failing the test if the fake claims they are unreadable. */
+async function scoresOf(roomId: string) {
+  const read = await getBattleScoresState(roomId);
+  if (read.status !== "ok") throw new Error("scores unexpectedly unreadable");
+  return read.scores;
+}
 
 function eventsOf(event: string) {
   return broadcasts.filter((b) => b.event === event);
@@ -132,7 +143,7 @@ describe("battle authority", () => {
       expect(again?.id).toBe(before?.id);
       expect(again?.status).toBe("ACTIVE");
       expect(again?.endsAt).toBe(before?.endsAt);
-      expect((await getBattleScores(ROOM)).host).toBe(40);
+      expect((await scoresOf(ROOM)).host).toBe(40);
     });
 
     it("only the host may enter/start the battle for the room", async () => {
@@ -242,7 +253,7 @@ describe("battle authority", () => {
       await addBattleScore({ roomId: ROOM, seat: "player3", points: 7, source: "tap" });
 
       expect(await removeBattleParticipant(ROOM, "c3")).toBe(true);
-      const scores = await getBattleScores(ROOM);
+      const scores = await scoresOf(ROOM);
       expect(scores.player3).toBe(0);
       expect(scores.host).toBe(10);
       const session = await getBattleFromStore(ROOM);
@@ -325,7 +336,7 @@ describe("battle authority", () => {
           source: "paid_gift",
         }),
       ).toMatchObject({ ok: false, reason: "expired" });
-      expect((await getBattleScores(ROOM)).host).toBe(9);
+      expect((await scoresOf(ROOM)).host).toBe(9);
     });
 
     it("refuses scoring for a room with no battle", async () => {
@@ -345,7 +356,7 @@ describe("battle authority", () => {
       await activeBattle();
       await addBattleScore({ roomId: ROOM, seat: "host", points: 6, source: "tap" });
       const state = await buildBattleStateForRoom(ROOM);
-      expect(state).toMatchObject({
+      expect(state.state).toMatchObject({
         status: "ACTIVE",
         battleType: "1x1",
         hostUserId: "c1",
@@ -353,8 +364,12 @@ describe("battle authority", () => {
         hostScore: 6,
         teamAScore: 6,
       });
-      expect(Number(state?.timeLeft)).toBeGreaterThan(0);
-      expect(await buildBattleStateForRoom("no-battle")).toBe(null);
+      expect(Number(state.state?.timeLeft)).toBeGreaterThan(0);
+      // A room with no battle is describable — the answer is "there is none".
+      expect(await buildBattleStateForRoom("no-battle")).toEqual({
+        state: null,
+        unreadable: false,
+      });
     });
   });
 
@@ -526,7 +541,7 @@ describe("battle authority", () => {
       expect(rematch?.winner).toBe(null);
       expect(rematch?.finalScores).toBe(null);
       expect(rematch?.participants.map((p) => p.userId)).toEqual(["c1", "c2"]);
-      expect(await getBattleScores(ROOM)).toMatchObject({ host: 0, opponent: 0 });
+      expect(await scoresOf(ROOM)).toMatchObject({ host: 0, opponent: 0 });
 
       const started = await startBattleIfReady(ROOM);
       expect(started.ok).toBe(true);
@@ -535,6 +550,136 @@ describe("battle authority", () => {
       expect(active?.endsAt).toBeGreaterThan(Date.now());
       // The finished battle was persisted once; the rematch is a separate record.
       expect(persisted).toHaveLength(1);
+    });
+  });
+
+  /**
+   * Scores live in one Valkey hash. When that hash cannot be read or written,
+   * the honest answer is "unknown" — never zero. Zero is a real score, and this
+   * is the path that decides who won and writes it down permanently.
+   */
+  describe("unreadable scores are never treated as zero", () => {
+    it("refuses to score a gift whose points did not land", async () => {
+      await activeBattle();
+      setValkeyFakeHashesReachable(false);
+
+      const scored = await addBattleScore({
+        roomId: ROOM,
+        seat: "opponent",
+        points: 40,
+        source: "paid_gift",
+      });
+
+      // The viewer already paid: saying "ok" would credit points nobody has.
+      expect(scored).toMatchObject({ ok: false, reason: "unavailable" });
+      expect(eventsOf("battle_score")).toHaveLength(0);
+    });
+
+    it("does not finalize a battle whose scores cannot be read", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 30, source: "paid_gift" });
+      setValkeyFakeHashesReachable(false);
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+
+      // Still ACTIVE, nothing frozen, nothing written down, nobody told.
+      const after = await getBattleFromStore(ROOM);
+      expect(after?.status).toBe("ACTIVE");
+      expect(after?.finalScores).toBe(null);
+      expect(persisted).toEqual([]);
+      expect(eventsOf("battle_ended")).toHaveLength(0);
+    });
+
+    it("finalizes with the real scores once the hash can be read again", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 30, source: "paid_gift" });
+      setValkeyFakeHashesReachable(false);
+      await finalizeBattle(ROOM, "timer");
+
+      setValkeyFakeHashesReachable(true);
+      const finalized = await finalizeBattle(ROOM, "timer");
+
+      // The retry is not blocked by the claim the refused pass took out.
+      expect(finalized?.status).toBe("ENDED");
+      expect(finalized?.finalScores).toMatchObject({ host: 30, opponent: 0 });
+      expect(finalized?.winner).toBe("teamA");
+      expect(persisted.map((r) => r.teamAScore)).toEqual([30]);
+    });
+
+    it("never reports a played battle as a 0-0 draw", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "opponent", points: 12, source: "tap" });
+      setValkeyFakeHashesReachable(false);
+      await finalizeBattle(ROOM, "host_end");
+      setValkeyFakeHashesReachable(true);
+
+      const finalized = await finalizeBattle(ROOM, "host_end");
+
+      expect(finalized?.winner).toBe("teamB");
+      expect(persisted).toHaveLength(1);
+      expect(persisted[0].winner).not.toBe("draw");
+    });
+
+    it("says nothing about a state it cannot describe", async () => {
+      await activeBattle();
+      setValkeyFakeHashesReachable(false);
+
+      // Reporting ENDED here would close the battle layout on a live match.
+      expect(await buildBattleStateForRoom(ROOM)).toEqual({
+        state: null,
+        unreadable: true,
+      });
+    });
+
+    it("still describes a WAITING battle, where zero really is the score", async () => {
+      await seatedWaitingBattle();
+      setValkeyFakeHashesReachable(false);
+
+      const state = await buildBattleStateForRoom(ROOM);
+
+      expect(state.unreadable).toBe(false);
+      expect(state.state).toMatchObject({ status: "WAITING", hostScore: 0 });
+    });
+  });
+
+  /**
+   * Room ids are the creator's own id, so the room a live ends in is the room
+   * its next live starts in. Nothing about the old battle may survive that.
+   */
+  describe("a battle does not outlive its live", () => {
+    it("leaves nothing behind for the next live in the same room", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 15, source: "paid_gift" });
+      await battle.setBattleInvite(ROOM, "c3");
+      await battle.setBattleAcceptedGrant(ROOM, "c2");
+
+      await battle.clearBattleRuntimeForRoom(ROOM);
+
+      expect(await getBattleFromStore(ROOM)).toBe(null);
+      expect(await scoresOf(ROOM)).toMatchObject({ host: 0, opponent: 0 });
+      // The invite key is the one the accept path reads, not just the tracking set.
+      expect(await battle.hasBattleInvite(ROOM, "c3")).toBe(false);
+      expect(await battle.hasBattleAcceptedGrant(ROOM, "c2")).toBe(false);
+      expect(await battle.getUserBattleRoom("c2")).toBe(null);
+      // The rival's publish authority in this room goes with it.
+      expect(revoked).toEqual(
+        expect.arrayContaining([{ roomId: ROOM, userId: "c2" }]),
+      );
+    });
+
+    it("cannot be re-entered as a rematch after the live ended", async () => {
+      await activeBattle();
+      await battle.clearBattleRuntimeForRoom(ROOM);
+
+      const fresh = await ensureBattleForHost({
+        roomId: ROOM,
+        hostUserId: "c1",
+        hostName: "C1",
+      });
+
+      // A brand new WAITING session with only the host — not the old stage.
+      expect(fresh?.status).toBe("WAITING");
+      expect(fresh?.participants.map((p) => p.userId)).toEqual(["c1"]);
     });
   });
 });

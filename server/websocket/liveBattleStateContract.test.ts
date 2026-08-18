@@ -161,9 +161,10 @@ describe("LIVE + battle server state-machine contracts", () => {
   });
 
   it("battle score increments are atomic (HINCRBY, no read-modify-write race)", () => {
-    expect(battle).toContain(
-      "await valkeyHincrby(SCORE_KEY_PREFIX + req.roomId, req.seat, points)",
-    );
+    expect(battle).toContain("await valkeyTryHincrby(");
+    expect(battle).toContain("SCORE_KEY_PREFIX + req.roomId,");
+    // A write that did not land must not be acknowledged as points scored.
+    expect(battle).toContain('return { ok: false, reason: "unavailable" }');
   });
 
   it("both live clients consume battle_tick to stay time-synced with the server", () => {

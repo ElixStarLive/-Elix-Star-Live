@@ -477,6 +477,26 @@ export async function valkeyHgetall(key: string): Promise<Record<string, string>
   }
 }
 
+/**
+ * HGETALL for callers that must tell an empty hash apart from a Valkey failure.
+ * `valkeyHgetall` answers `{}` for both, which reads as "every field is zero" —
+ * fine for a counter nobody depends on, wrong for a score that decides a result.
+ */
+export async function valkeyTryHgetall(
+  key: string,
+): Promise<
+  { status: "ok"; value: Record<string, string> } | { status: "unavailable" }
+> {
+  const v = getValkey();
+  if (!v) return { status: "unavailable" };
+  try {
+    return { status: "ok", value: (await v.hgetall(key)) || {} };
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyTryHgetall failed");
+    return { status: "unavailable" };
+  }
+}
+
 /** One Valkey round-trip for many HGETALL (e.g. live stream room metadata). */
 export async function valkeyHgetallBatch(
   keys: string[],
@@ -526,6 +546,26 @@ export async function valkeyHincrby(key: string, field: string, increment: numbe
   } catch (err) {
     logger.warn({ err: err?.message, key, field }, "valkeyHincrby failed");
     return 0;
+  }
+}
+
+/**
+ * HINCRBY for callers that must know the counter really moved.
+ * `valkeyHincrby` answers 0 on failure, which is indistinguishable from a real
+ * total and lets a lost write be reported as a successful one.
+ */
+export async function valkeyTryHincrby(
+  key: string,
+  field: string,
+  increment: number,
+): Promise<{ status: "ok"; value: number } | { status: "unavailable" }> {
+  const v = getValkey();
+  if (!v) return { status: "unavailable" };
+  try {
+    return { status: "ok", value: await v.hincrby(key, field, increment) };
+  } catch (err) {
+    logger.warn({ err: err?.message, key, field }, "valkeyTryHincrby failed");
+    return { status: "unavailable" };
   }
 }
 

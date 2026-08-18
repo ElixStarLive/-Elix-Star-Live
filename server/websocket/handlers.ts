@@ -29,8 +29,6 @@ import {
   getUserBattleRoom,
   clearBattleInvite,
   startBattleIfReady,
-  trackPendingBattleInvite,
-  untrackPendingBattleInvite,
 } from "./battle";
 import {
   battleOpenSeatCount,
@@ -870,7 +868,6 @@ export async function handleMessage(
         }
         if (invited) {
           await clearBattleInvite(client.roomId, client.userId);
-          await untrackPendingBattleInvite(client.roomId, client.userId);
         }
         await confirmBattleParticipantPresence(client.roomId, client.userId);
         await updateViewerCount(client.roomId);
@@ -925,6 +922,7 @@ export async function handleMessage(
 
       case "battle_end": {
         if (!ensureBattleInfra(client)) break;
+        if (!(await wsRateCheck(client.userId, "battle_end", 30, 60_000))) break;
         const bSession = await getBattleFromStore(client.roomId);
         if (!bSession) break;
         if (isBattleHost(bSession, client.userId)) {
@@ -1003,6 +1001,9 @@ export async function handleMessage(
 
       case "battle_get_state": {
         if (!ensureBattleInfra(client)) break;
+        if (!(await wsRateCheck(client.userId, "battle_get_state", 60, 60_000))) {
+          break;
+        }
         const currentBattle = await getBattleFromStore(client.roomId);
         if (!currentBattle) {
           // Creator is in normal live — force spectators out of battle layout.
@@ -1017,11 +1018,16 @@ export async function handleMessage(
         }
         // Same builder + same live score source as battle_state_sync and the
         // join/reconnect push, so a reconnect can never see a stale score.
-        const statePayload = await buildBattleStateForRoom(client.roomId);
+        const battleState = await buildBattleStateForRoom(client.roomId);
+        // A battle whose scores cannot be read is not a battle that ended.
+        // Answering ENDED here would close the battle layout on everyone
+        // watching a match still being fought, so this read goes unanswered and
+        // the client keeps what it has until a tick or a retry describes it.
+        if (battleState.unreadable) break;
         sendToClient(
           client,
           "battle_state_sync",
-          statePayload ?? { status: "ENDED" },
+          battleState.state ?? { status: "ENDED" },
         );
         break;
       }
@@ -1110,7 +1116,6 @@ export async function handleMessage(
         // Always the battle room (host room) so accept joins the match, not a co-host live.
         const streamKey = client.roomId;
         await setBattleInvite(streamKey, targetUserId, 10 * 60 * 1000);
-        await trackPendingBattleInvite(streamKey, targetUserId);
         const invitePayload = {
           // Accept must authorize against the room owner — never the opponent inviter.
           hostUserId: ownerId,
@@ -1131,11 +1136,20 @@ export async function handleMessage(
 
       case "battle_invite_decline": {
         if (!ensureBattleInfra(client)) break;
+        if (
+          !(await wsRateCheck(client.userId, "battle_invite_decline", 60, 60_000))
+        ) {
+          break;
+        }
         const hostStreamKey =
           typeof data.hostStreamKey === "string" ? data.hostStreamKey.trim() : "";
         if (!hostStreamKey) break;
+        // Declining is only meaningful for an invite that exists. The room comes
+        // from the payload, so without this any client could name any live and
+        // have the server announce a decline from them to that whole room, and
+        // make it rebuild its invite roster on demand.
+        if (!(await hasBattleInvite(hostStreamKey, client.userId))) break;
         await clearBattleInvite(hostStreamKey, client.userId);
-        await untrackPendingBattleInvite(hostStreamKey, client.userId);
         broadcastToRoom(hostStreamKey, "battle_invite_declined", {
           userId: client.userId,
         });
@@ -1187,7 +1201,6 @@ export async function handleMessage(
         // accept, so the earlier invite is never treated as proof.
         if (await dbIsBlockedEitherWay(client.userId, authoritativeHostUserId)) {
           await clearBattleInvite(hostRoomForInvite, client.userId);
-          await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
           sendToClient(client, "battle_error", {
             message: "Battle invite is no longer valid",
             reason: "blocked",
@@ -1209,31 +1222,60 @@ export async function handleMessage(
           });
           break;
         }
+        // A battle needs two live creators, so the inviter has to still be live
+        // as well. An invite outlives the live that sent it: without this, a host
+        // who has already ended can be accepted into, which seats the accepter in
+        // a match with nobody on the other side and grants them publish rights in
+        // a room that no longer has a stream.
+        if (
+          !(await isCreatorEligibleForBattle(
+            authoritativeHostUserId,
+            hostRoomForInvite,
+          ))
+        ) {
+          await clearBattleInvite(hostRoomForInvite, client.userId);
+          sendToClient(client, "battle_error", {
+            message: "Battle invite is no longer valid",
+            reason: "host_not_live",
+          });
+          break;
+        }
 
         const existingBattle = hostRoomForInvite
           ? await getBattleFromStore(hostRoomForInvite)
           : null;
 
-        // Mid-battle / waiting session: claim a real seat atomically BEFORE
-        // granting publish. Prevents a 5th creator and fake successful joins.
-        // The seat records the accepter's own room from their socket — the
-        // client never supplies which room a battle creator broadcasts from.
-        if (existingBattle && existingBattle.status !== "ENDED") {
-          const claimed = await claimBattleSeat(
-            hostRoomForInvite,
-            client.userId,
-            client.displayName || client.username,
-            accepterStreamKey,
-          );
-          if (!claimed) {
-            await clearBattleInvite(hostRoomForInvite, client.userId);
-            await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
-            sendToClient(client, "battle_error", {
-              message: "Battle is full",
-              reason: "battle_full",
-            });
-            break;
-          }
+        // There has to be a match to join. The host enters battle mode — which
+        // creates the session — before any invite can be sent, so no session or a
+        // finished one means the battle this invite belonged to is over. Carrying
+        // on would grant publish rights in another creator's live to someone
+        // holding no seat in anything.
+        if (!existingBattle || existingBattle.status === "ENDED") {
+          await clearBattleInvite(hostRoomForInvite, client.userId);
+          sendToClient(client, "battle_error", {
+            message: "Battle invite is no longer valid",
+            reason: "battle_over",
+          });
+          break;
+        }
+
+        // Claim a real seat atomically BEFORE granting publish. Prevents a 5th
+        // creator and fake successful joins. The seat records the accepter's own
+        // room from their socket — the client never supplies which room a battle
+        // creator broadcasts from.
+        const claimed = await claimBattleSeat(
+          hostRoomForInvite,
+          client.userId,
+          client.displayName || client.username,
+          accepterStreamKey,
+        );
+        if (!claimed) {
+          await clearBattleInvite(hostRoomForInvite, client.userId);
+          sendToClient(client, "battle_error", {
+            message: "Battle is full",
+            reason: "battle_full",
+          });
+          break;
         }
 
         // Persist the accepted creator role before navigation. This is the
@@ -1255,7 +1297,6 @@ export async function handleMessage(
           break;
         }
         await clearBattleInvite(hostRoomForInvite, client.userId);
-        await untrackPendingBattleInvite(hostRoomForInvite, client.userId);
         // Handshake with the accepter: the grant now exists, so their client
         // may navigate into the battle knowing the publish token will be
         // issued. Removes the accept -> navigate -> token race entirely.

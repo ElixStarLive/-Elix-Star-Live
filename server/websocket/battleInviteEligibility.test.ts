@@ -72,6 +72,11 @@ describe("battle invite eligibility", () => {
       "isCreatorEligibleForBattle(client.userId, accepterStreamKey)",
     );
     expect(accept).toContain('reason: "not_live"');
+    // A battle needs two live creators, so the inviter is re-checked as well.
+    expect(accept).toContain("authoritativeHostUserId,");
+    expect(accept).toContain('reason: "host_not_live"');
+    // And there must still be a match to be seated in.
+    expect(accept).toContain('reason: "battle_over"');
   });
 
   it("accept claims a real seat before any publish grant", () => {

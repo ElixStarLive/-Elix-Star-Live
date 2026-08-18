@@ -1,19 +1,28 @@
 /**
  * In-memory stand-in for the Valkey helpers, for battle authority tests.
  *
- * It reproduces the two properties the battle lifecycle actually relies on:
+ * It reproduces the three properties the battle lifecycle actually relies on:
  *   - SET NX is a real atomic claim (used by the finalize + seat locks)
  *   - HINCRBY returns the value AFTER the increment (used by scores)
+ *   - the score hash can refuse to answer, so tests can tell the difference
+ *     between a battle scored 0–0 and one whose scores could not be read
  */
 
 const strings = new Map<string, string>();
 const sets = new Map<string, Set<string>>();
 const hashes = new Map<string, Map<string, number>>();
+let hashesReachable = true;
 
 export function resetValkeyFake(): void {
   strings.clear();
   sets.clear();
   hashes.clear();
+  hashesReachable = true;
+}
+
+/** Simulate Valkey being unable to serve the score hash. */
+export function setValkeyFakeHashesReachable(reachable: boolean): void {
+  hashesReachable = reachable;
 }
 
 export function valkeyFakeKeys(): string[] {
@@ -87,6 +96,30 @@ export const valkeyFake = {
       out[field] = String(value);
     }
     return out;
+  },
+  valkeyTryHincrby: async (
+    key: string,
+    field: string,
+    increment: number,
+  ): Promise<{ status: "ok"; value: number } | { status: "unavailable" }> => {
+    if (!hashesReachable) return { status: "unavailable" };
+    const hash = hashes.get(key) ?? new Map<string, number>();
+    const next = (hash.get(field) ?? 0) + increment;
+    hash.set(field, next);
+    hashes.set(key, hash);
+    return { status: "ok", value: next };
+  },
+  valkeyTryHgetall: async (
+    key: string,
+  ): Promise<
+    { status: "ok"; value: Record<string, string> } | { status: "unavailable" }
+  > => {
+    if (!hashesReachable) return { status: "unavailable" };
+    const value: Record<string, string> = {};
+    for (const [field, v] of hashes.get(key) ?? []) {
+      value[field] = String(v);
+    }
+    return { status: "ok", value };
   },
   valkeyExpire: async (): Promise<void> => {},
 };

@@ -39,6 +39,7 @@ import {
   getCohostLayout,
   deleteCohostLayout,
 } from '../websocket/index';
+import { clearBattleRuntimeForRoom } from '../websocket/battle';
 import { getCreatorLiveRoleRoom } from '../websocket/liveCreatorRole';
 import { insertNotification, deleteLiveStartedNotificationsForRoom } from '../lib/notifications';
 import { getFollowerIdsAsync } from './profiles';
@@ -181,6 +182,14 @@ export async function removeActiveStream(
         await deleteCohostLayout(roomId);
       } catch (err) {
         logger.error({ err, roomId }, "removeActiveStream: co-host stage not cleared");
+      }
+      // The battle stage dies with the stream for the same reason, and it is a
+      // separate store: the session, its scores, outstanding battle invites and
+      // the accept/publish grants that authorize broadcasting in this room.
+      try {
+        await clearBattleRuntimeForRoom(roomId);
+      } catch (err) {
+        logger.error({ err, roomId }, "removeActiveStream: battle stage not cleared");
       }
     } else if (userId) {
       // No Valkey: enforce host ownership from the DB so a non-host cannot end another user's stream.
@@ -576,6 +585,11 @@ export async function handleLiveStart(req: Request, res: Response) {
         await deleteCohostLayout(roomName);
       } catch (err) {
         logger.error({ err, roomName }, "handleLiveStart: previous co-host stage not cleared");
+      }
+      try {
+        await clearBattleRuntimeForRoom(roomName);
+      } catch (err) {
+        logger.error({ err, roomName }, "handleLiveStart: previous battle stage not cleared");
       }
     }
 

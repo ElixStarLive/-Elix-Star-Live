@@ -23,7 +23,6 @@ export const LIVE_WS_IN = {
   battle_ended: 'battle_ended',
   battle_error: 'battle_error',
   battle_invite: 'battle_invite',
-  battle_invite_sent: 'battle_invite_sent',
   battle_invite_declined: 'battle_invite_declined',
   battle_invite_roster: 'battle_invite_roster',
   battle_invite_roster_invalidate: 'battle_invite_roster_invalidate',

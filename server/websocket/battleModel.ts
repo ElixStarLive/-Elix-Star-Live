@@ -17,13 +17,17 @@ export type BattleTeamId = "teamA" | "teamB";
 export type BattleType = "1x1" | "2x2";
 export type BattleStatus = "WAITING" | "ACTIVE" | "ENDED";
 
-/** Every way a battle score may legitimately be produced. Server-side only. */
+/**
+ * Every way a battle score may legitimately be produced. Server-side only.
+ *
+ * A booster is not one of them: it multiplies the points of the paid gift that
+ * caught it, and that gift is still what scores.
+ */
 export type BattleScoreSource =
   | "paid_gift"
   | "promotional_gift"
   | "test_gift"
-  | "tap"
-  | "booster";
+  | "tap";
 
 export const BATTLE_SEATS: readonly BattleSeat[] = [
   "host",
@@ -52,7 +56,6 @@ const BATTLE_SCORE_SOURCES: readonly BattleScoreSource[] = [
   "promotional_gift",
   "test_gift",
   "tap",
-  "booster",
 ];
 
 /** Battle duration (seconds) — server owns the clock. */

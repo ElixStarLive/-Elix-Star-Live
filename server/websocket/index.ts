@@ -1725,8 +1725,11 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
       // battle_state_sync, reading the same live score hash. A reconnecting
       // client cannot receive a stale score copy or start its own timer.
       const battleStateOnJoin = await buildBattleStateForRoom(roomId);
-      if (battleStateOnJoin && battleStateOnJoin.status !== "ENDED") {
-        sendToClient(client, "battle_state_sync", battleStateOnJoin);
+      if (
+        battleStateOnJoin.state &&
+        battleStateOnJoin.state.status !== "ENDED"
+      ) {
+        sendToClient(client, "battle_state_sync", battleStateOnJoin.state);
       }
 
       const liveGiftGoal = await getGiftGoal(roomId);
