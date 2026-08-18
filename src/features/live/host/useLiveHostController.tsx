@@ -136,6 +136,7 @@ import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
 import { bindLiveModerationWs } from '../ws/bindLiveModerationWs';
+import { useStableLiveHandlers } from '../ws/useStableLiveHandlers';
 import {
   apiLiveEngagementProgress,
   apiLiveBlockUser,
@@ -3052,9 +3053,60 @@ export function useLiveHostController() {
 
   useEffect(() => { speedChallengeTapsRef.current = speedChallengeTaps; }, [speedChallengeTaps]);
 
+  /**
+   * Handlers the live subscription below calls when a server event arrives. Their
+   * identities are frozen for the life of this controller so the subscription can
+   * depend on them honestly, while each call still runs the implementation from
+   * the latest render.
+   */
+  const liveWsHandlers = useStableLiveHandlers({
+    addLiveLikes,
+    applyScores,
+    clearBattleInviteTimer,
+    clearInvitedBattleSlot,
+    endBattleCleanup,
+    enqueueFromGiftSent,
+    hasPlayedGiftVideoTxn,
+    hasSeenGiftTxn,
+    isGenericViewerName,
+    markGiftTxnSeen,
+    maybeResolveViewerIdentity,
+    navigate,
+    pushBattleTaunt,
+    requestBattleInviteRoster,
+    setGiftsCatalog,
+    setMessages,
+    spawnHeartAt,
+    triggerBattleVfx,
+  });
+
   // WebSocket: connect to room and track viewers
   useEffect(() => {
     if (!effectiveStreamId || !user?.id) return;
+
+    // Shadow the render-scope versions with the stable forwarders, so every
+    // handler below calls the current implementation without this effect having
+    // to re-run when React gives those functions a new identity.
+    const {
+      addLiveLikes,
+      applyScores,
+      clearBattleInviteTimer,
+      clearInvitedBattleSlot,
+      endBattleCleanup,
+      enqueueFromGiftSent,
+      hasPlayedGiftVideoTxn,
+      hasSeenGiftTxn,
+      isGenericViewerName,
+      markGiftTxnSeen,
+      maybeResolveViewerIdentity,
+      navigate,
+      pushBattleTaunt,
+      requestBattleInviteRoster,
+      setGiftsCatalog,
+      setMessages,
+      spawnHeartAt,
+      triggerBattleVfx,
+    } = liveWsHandlers;
 
     const getToken = async () => {
       return useAuthStore.getState().session?.access_token ?? '';
@@ -3067,7 +3119,7 @@ export function useLiveHostController() {
       const token = await getToken();
       if (!token || !mounted) return;
       websocket.connect(effectiveStreamId, token, {
-        persistent: isBroadcast,
+        persistent: isBroadcastRef.current,
         ...(user?.id ? { audienceCreatorId: user.id } : {}),
         ownerId: wsOwnerIdRef.current,
       });
@@ -3154,8 +3206,12 @@ export function useLiveHostController() {
       });
 
       // Opponent: once connected to the room, tell the server we're joining the battle
-      if (isBattleJoiner) {
-        battleJoin({ opponentName: user?.username || user?.name || 'Player' });
+      if (isBattleJoinerRef.current) {
+        // Read the identity at event time, the same way this effect already reads
+        // the access token: a profile rename mid-stream must not force the
+        // subscription to rebind just to refresh this label.
+        const me = useAuthStore.getState().user;
+        battleJoin({ opponentName: me?.username || me?.name || 'Player' });
       }
 
       if (typeof data.live_likes === 'number' && Number.isFinite(data.live_likes)) {
@@ -3477,7 +3533,7 @@ export function useLiveHostController() {
       else if (selfId && payloadP3Id && selfId === payloadP3Id) battleRoleRef.current = 'player3';
       else if (selfId && payloadP4Id && selfId === payloadP4Id) battleRoleRef.current = 'player4';
 
-      const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : 'host'));
+      const role = battleRoleRef.current || (isBattleJoinerRef.current ? 'opponent' : (isBroadcastRef.current ? 'host' : 'host'));
       const uiRole: 'host' | 'opponent' =
         role === 'opponent' || role === 'player4' ? 'opponent' : 'host';
       const perspective = scoresForBattleRole(result.totals, uiRole);
@@ -3509,7 +3565,7 @@ export function useLiveHostController() {
       // Non-host creator was removed from a seat — leave Battle UI only for self;
       // do not end the shared session for everyone else.
       if (
-        isBattleJoiner &&
+        isBattleJoinerRef.current &&
         selfId &&
         syncStatus &&
         syncStatus !== 'ENDED' &&
@@ -3542,7 +3598,7 @@ export function useLiveHostController() {
       if (data.hostReady != null) setHostIsReady(!!data.hostReady);
       if (data.opponentReady != null) setOpponentIsReady(!!data.opponentReady);
       // Host receives battle opponent video in own LiveKit room — never second-room connect.
-      if (!isBattleJoiner) {
+      if (!isBattleJoinerRef.current) {
         setOpponentStreamKey(null);
       }
       
@@ -3640,7 +3696,7 @@ export function useLiveHostController() {
       }
       setBattleState('ENDED');
       applyBattleScores(data);
-      const role = battleRoleRef.current || (isBattleJoiner ? 'opponent' : (isBroadcast ? 'host' : null));
+      const role = battleRoleRef.current || (isBattleJoinerRef.current ? 'opponent' : (isBroadcastRef.current ? 'host' : null));
       // Server endBattle: winner is red team (host) vs blue (opponent) or draw — not individual P3/P4.
       const teamWinner = resolveServerBattleWinner(data?.winner, battleServerTotalsRef.current);
       setBattleWinner(normalizeBattleWinner(teamWinner, role));
@@ -3656,7 +3712,7 @@ export function useLiveHostController() {
         endBattleCleanup();
         // After the result shows, the opponent returns to their own live page and
         // stays live; the host remains on their own room and continues live solo.
-        if (isBattleJoiner) navigate('/live/broadcast', { replace: true });
+        if (isBattleJoinerRef.current) navigate('/live/broadcast', { replace: true });
       }, 2000);
     };
 
@@ -3763,7 +3819,7 @@ export function useLiveHostController() {
 
     const handleBattleInviteAccepted = (data) => {
       // Host and battle-playing creators all update slots when someone joins.
-      if (!isBroadcast && !isBattleJoiner) return;
+      if (!isBroadcastRef.current && !isBattleJoinerRef.current) return;
       const requesterId = data.requesterUserId as string | undefined;
       const requesterName =
         (typeof data.requesterName === 'string' && data.requesterName.trim()) || 'Creator';
@@ -3833,7 +3889,7 @@ export function useLiveHostController() {
 
     const handleBattleInviteDeclined = (data: { userId?: string }) => {
       if (!mounted) return;
-      if (!isBroadcast && !isBattleJoiner) return;
+      if (!isBroadcastRef.current && !isBattleJoinerRef.current) return;
       const uid = typeof data?.userId === 'string' ? data.userId : '';
       if (!uid) return;
       clearInvitedBattleSlot(uid);
@@ -3929,13 +3985,13 @@ export function useLiveHostController() {
       if (!uid || !user?.id || uid !== user.id) return;
       // This device was removed from a seat — exit Battle UI without ending others.
       endBattleCleanup();
-      if (isBattleJoiner) {
+      if (isBattleJoinerRef.current) {
         navigate('/live/broadcast', { replace: true });
       }
     };
 
     const handleCohostRequest = (data) => {
-      if (!isBroadcast) return;
+      if (!isBroadcastRef.current) return;
       const requesterId = typeof data?.requesterUserId === 'string' ? data.requesterUserId : '';
       if (!requesterId) return;
       setPendingJoinRequests((prev) => {
@@ -4005,7 +4061,7 @@ export function useLiveHostController() {
       if (!mounted) return;
       const cohostUserId = typeof data.cohostUserId === 'string' ? data.cohostUserId : '';
       if (!cohostUserId) return;
-      if (isBroadcast && sameUserId(cohostUserId, user?.id)) return;
+      if (isBroadcastRef.current && sameUserId(cohostUserId, user?.id)) return;
       const accepterStreamKey = typeof data.streamKey === 'string' ? data.streamKey : '';
       setCoHosts((prev) => {
         const idx = prev.findIndex(
@@ -4040,7 +4096,7 @@ export function useLiveHostController() {
     };
 
     const handleCohostLayoutSync = (data) => {
-      if (!mounted || !isBroadcast) return;
+      if (!mounted || !isBroadcastRef.current) return;
       const list = Array.isArray(data?.coHosts) ? data.coHosts : [];
       const normalized = list
         .map((h) => ({
@@ -4126,8 +4182,20 @@ export function useLiveHostController() {
       // Do NOT disconnect here — unstable handler deps were dropping the host WS
       // mid-battle and server treated that as "host left" → stream_ended.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- bind once per room+user: the 24 handler deps ESLint wants here re-run this effect mid-stream, which unbinds the host WS and the server reads that as "host left" (see the teardown note above). Identity of the room is the only correct trigger.
-  }, [effectiveStreamId, user?.id]);
+    // Every dependency below is stable for the life of this room: the handler
+    // bundle is frozen by useStableLiveHandlers and the refs never change
+    // identity. The broadcast/battle-joiner role is deliberately read through
+    // isBroadcastRef / isBattleJoinerRef instead: it is derived from
+    // location.search, so entering or leaving battle mode would otherwise rebind
+    // the host socket mid-stream and the server would read that as the host
+    // leaving.
+  }, [
+    effectiveStreamId,
+    user?.id,
+    liveWsHandlers,
+    giftsCatalogRef,
+    battleServerTotalsRef,
+  ]);
 
   // Disconnect WS only when leaving the LiveStream page entirely.
   useEffect(() => {

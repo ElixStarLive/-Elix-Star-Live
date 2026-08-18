@@ -72,6 +72,7 @@ import { bindLiveBattleWs } from '../ws/bindLiveBattleWs';
 import { bindLiveBattleInviteWs } from '../ws/bindLiveBattleInviteWs';
 import { bindLiveRoomWs } from '../ws/bindLiveRoomWs';
 import { bindLiveCohostWs } from '../ws/bindLiveCohostWs';
+import { useStableLiveHandlers } from '../ws/useStableLiveHandlers';
 import {
   battleSideFromAudienceCreatorId,
   normalizeBattleGiftTarget,
@@ -676,15 +677,28 @@ export function useLiveSpectatorController() {
     return () => clearTimeout(t);
   }, [speedChallengeActive, speedChallengeTime]);
 
+  // The unlock check below reads these fields and nothing else. Reading them here
+  // rather than the whole battle object is what keeps its dependencies honest:
+  // unrelated battle metadata must not re-run the check.
+  const speedUnlockActive = spectatorBattle?.active;
+  const speedUnlockStatus = spectatorBattle?.status;
+  const speedUnlockWinner = spectatorBattle?.winner;
+  const speedUnlockHostScore = spectatorBattle?.hostScore;
+  const speedUnlockOpponentScore = spectatorBattle?.opponentScore;
+  const speedUnlockPlayer3Score = spectatorBattle?.player3Score;
+  const speedUnlockPlayer4Score = spectatorBattle?.player4Score;
+
   // Auto unlock x2 / x3 / x5 from gift points OR rose gifts OR lots of screen taps.
   useEffect(() => {
     if (!SPEED_CHALLENGE_ENABLED) return;
-    const b = spectatorBattle;
-    if (!b?.active || b.status !== 'ACTIVE' || b.winner) return;
+    if (!speedUnlockActive || speedUnlockStatus !== 'ACTIVE' || speedUnlockWinner) return;
     if (speedChallengeActive) return;
 
     const totalScore =
-      (b.hostScore || 0) + (b.opponentScore || 0) + (b.player3Score ?? 0) + (b.player4Score ?? 0);
+      (speedUnlockHostScore || 0) +
+      (speedUnlockOpponentScore || 0) +
+      (speedUnlockPlayer3Score ?? 0) +
+      (speedUnlockPlayer4Score ?? 0);
     attemptBattleSpeedChallengeUnlock({
       totalScore,
       flowers: roseCountRef.current,
@@ -694,15 +708,14 @@ export function useLiveSpectatorController() {
       speedMultiplierRef,
       startSpeedChallenge,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend on score/status fields only; full spectatorBattle would re-run on unrelated battle metadata changes
   }, [
-    spectatorBattle?.hostScore,
-    spectatorBattle?.opponentScore,
-    spectatorBattle?.player3Score,
-    spectatorBattle?.player4Score,
-    spectatorBattle?.active,
-    spectatorBattle?.status,
-    spectatorBattle?.winner,
+    speedUnlockHostScore,
+    speedUnlockOpponentScore,
+    speedUnlockPlayer3Score,
+    speedUnlockPlayer4Score,
+    speedUnlockActive,
+    speedUnlockStatus,
+    speedUnlockWinner,
     roseCount,
     battleScreenTapCount,
     speedChallengeActive,
@@ -1330,6 +1343,9 @@ export function useLiveSpectatorController() {
   streamIsLiveRef.current = streamIsLive;
   const effectiveStreamIdRef = useRef(effectiveStreamId);
   effectiveStreamIdRef.current = effectiveStreamId;
+  // Read by the stream-ended exit when that event fires, not when the room was bound.
+  const locationStateRef = useRef(location.state);
+  locationStateRef.current = location.state;
   const lkDisconnectRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const spectatorSession = useSpectatorLiveSession({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
@@ -2070,9 +2086,54 @@ export function useLiveSpectatorController() {
     setGiftQueue([]);
   }, [effectiveStreamId, seenGiftTxnRef, playedGiftVideoTxnRef, setCurrentGift, setGiftQueue]);
 
+  /**
+   * Handlers the live subscription below calls when a server event arrives. Their
+   * identities are frozen for the life of this controller so the subscription can
+   * depend on them honestly, while each call still runs the implementation from
+   * the latest render.
+   */
+  const liveWsHandlers = useStableLiveHandlers({
+    applyScores,
+    clearMessagesForStream,
+    enqueueFromGiftSent,
+    hasPlayedGiftVideoTxn,
+    hasSeenGiftTxn,
+    markGiftTxnSeen,
+    navigate,
+    pushBattleTaunt,
+    resetScores,
+    resetSpectatorSpeed,
+    setGiftsCatalog,
+    setMessages,
+    spawnHeartAt,
+    syncMvpSlots,
+    triggerBattleVfx,
+  });
+
   // WebSocket: spectators join the creator's live room (same room id = effectiveStreamId) for real-time chat, gifts, join/leave
   useEffect(() => {
     if (!effectiveStreamId || !user?.id) return;
+
+    // Shadow the render-scope versions with the stable forwarders, so every
+    // handler below calls the current implementation without this effect having
+    // to re-run when React gives those functions a new identity.
+    const {
+      applyScores,
+      clearMessagesForStream,
+      enqueueFromGiftSent,
+      hasPlayedGiftVideoTxn,
+      hasSeenGiftTxn,
+      markGiftTxnSeen,
+      navigate,
+      pushBattleTaunt,
+      resetScores,
+      resetSpectatorSpeed,
+      setGiftsCatalog,
+      setMessages,
+      spawnHeartAt,
+      syncMvpSlots,
+      triggerBattleVfx,
+    } = liveWsHandlers;
 
     let mounted = true;
 
@@ -2082,7 +2143,6 @@ export function useLiveSpectatorController() {
       const audienceCreatorId = String(
         battleAudienceCreatorIdRef.current ||
           hostUserIdRef.current ||
-          hostUserId ||
           '',
       ).trim();
       // Persistent reconnect: brief mobile blips must not synthesize stream_ended
@@ -2299,7 +2359,7 @@ export function useLiveSpectatorController() {
           if (spectatorBattleRef.current?.active) {
             const ids = battleCreatorIdsRef.current;
             const side = resolveBattleMvpSide(battleTarget, targetCreatorId, {
-              hostUserId: ids?.hostUserId || hostUserIdRef.current || hostUserId,
+              hostUserId: ids?.hostUserId || hostUserIdRef.current,
               opponentUserId: ids?.opponentUserId,
               player3UserId: ids?.player3UserId,
               player4UserId: ids?.player4UserId,
@@ -2392,7 +2452,7 @@ export function useLiveSpectatorController() {
       if (battleRoom) {
         if (battleRoom !== effectiveStreamId) {
           const audienceCreatorId = String(
-            hostUserIdRef.current || hostUserId || effectiveStreamId || '',
+            hostUserIdRef.current || effectiveStreamId || '',
           ).trim();
           if (audienceCreatorId) {
             battleAudienceCreatorIdRef.current = audienceCreatorId;
@@ -2433,7 +2493,7 @@ export function useLiveSpectatorController() {
         clearMessagesForStream(effectiveStreamId);
         setTimeout(() => {
           if (mounted) {
-            navigate(returnToFromLocationState(location.state) || FEED_HOME, {
+            navigate(returnToFromLocationState(locationStateRef.current) || FEED_HOME, {
               replace: true,
             });
           }
@@ -2767,8 +2827,16 @@ export function useLiveSpectatorController() {
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- bind once per room+user: adding the handler deps ESLint wants here re-runs this effect mid-stream, and the callback identity churn tore down the host room (see the teardown note above). Identity of the room is the only correct trigger.
-  }, [effectiveStreamId, user?.id]);
+    // Every dependency below is stable for the life of this room: the handler
+    // bundle is frozen by useStableLiveHandlers and the refs never change identity.
+  }, [
+    effectiveStreamId,
+    user?.id,
+    liveWsHandlers,
+    giftsCatalogRef,
+    battleServerTotalsRef,
+    liveKitRoomRef,
+  ]);
 
   // Disconnect WS only when leaving this stream page entirely.
   useEffect(() => {
