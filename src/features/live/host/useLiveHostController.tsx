@@ -4126,7 +4126,7 @@ export function useLiveHostController() {
       // Do NOT disconnect here — unstable handler deps were dropping the host WS
       // mid-battle and server treated that as "host left" → stream_ended.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bind once per room+user: the 24 handler deps ESLint wants here re-run this effect mid-stream, which unbinds the host WS and the server reads that as "host left" (see the teardown note above). Identity of the room is the only correct trigger.
   }, [effectiveStreamId, user?.id]);
 
   // Disconnect WS only when leaving the LiveStream page entirely.

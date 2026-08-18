@@ -2767,7 +2767,7 @@ export function useLiveSpectatorController() {
       // tearing down the host room and making the live look "closed". Leave only
       // disconnects the intentional leave / stream_ended paths.
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bind once per room+user: adding the handler deps ESLint wants here re-runs this effect mid-stream, and the callback identity churn tore down the host room (see the teardown note above). Identity of the room is the only correct trigger.
   }, [effectiveStreamId, user?.id]);
 
   // Disconnect WS only when leaving this stream page entirely.
