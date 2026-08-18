@@ -17,9 +17,23 @@
  *     derived from `endsAt`, never "assume N ticks fired".
  *
  * Exactly-once finalization:
- *   - battle:final:{battleId} — NX ownership claim. One server execution
- *     freezes scores, picks the winner, persists to Neon, broadcasts
- *     `battle_ended` and schedules cleanup. Every other caller is a no-op.
+ *   - the ENDED session, written through `mutateBattleSession`, is the gate: one
+ *     locked read-modify-write that refuses an already-ended battle, so exactly
+ *     one execution freezes scores, picks the winner, persists to Neon,
+ *     broadcasts `battle_ended` and schedules cleanup.
+ *   - battle:final:{battleId} — short NX claim that stops two workers doing that
+ *     work at the same moment. Not the uniqueness guarantee, so it expires after
+ *     one pass and a crashed worker cannot hold a result hostage.
+ *
+ * Result durability:
+ *   - battles:result_outbox + battle:result_pending:{battleId} — the record is
+ *     queued (confirmed) BEFORE the freeze, so nothing is announced until its
+ *     permanent storage is guaranteed, and leaves the queue only once Neon has
+ *     committed it. `battle_results.battle_id` is unique, so every retry is the
+ *     same idempotent insert.
+ *   - a pre-freeze entry is marked `pendingFreeze` and is not storable until a
+ *     freeze has applied, so a worker that dies mid-finalization cannot leave a
+ *     mid-match snapshot as the permanent record of a battle still being played.
  */
 
 import { randomUUID } from "crypto";
@@ -32,6 +46,7 @@ import {
   valkeyTryGet,
   valkeyDel,
   valkeySadd,
+  valkeyTrySadd,
   valkeySrem,
   valkeySmembers,
   valkeySetNx,
@@ -90,6 +105,15 @@ const SESSION_LOCK_ATTEMPTS = 25;
 const SESSION_LOCK_RETRY_MS = 40;
 const PENDING_INVITES_KEY_PREFIX = "battle:pending_invites:";
 const FINALIZE_LOCK_PREFIX = "battle:final:";
+/**
+ * The claim only stops two workers doing the same finalization at the same
+ * moment; the ENDED session itself is what makes it exactly-once. So it is sized
+ * to one pass: a worker that dies mid-finalization must not hold the result
+ * hostage — at the old session-length TTL the claim outlived the session key, so
+ * a crash between claiming and freezing meant a played battle produced no
+ * record at all and no `battle_ended` for anyone watching.
+ */
+const FINALIZE_CLAIM_TTL_MS = 15_000;
 /** How long the ENDED session stays readable so late clients still see the result. */
 const ENDED_RETENTION_MS = 10_000;
 /** Results Neon has not accepted yet: SET of battleIds + one payload key each. */
@@ -175,6 +199,13 @@ export async function saveBattleToStore(
   }
   return written;
 }
+
+/**
+ * A queued result plus whether its freeze had applied when it was written.
+ * `pendingFreeze` never reaches Neon — {@link resolveQueuedBattleResult} decides
+ * what a pending entry is worth before anything is stored.
+ */
+type StoredBattleResult = BattleResultRecord & { pendingFreeze?: boolean };
 
 /** Returning null rejects the mutation: nothing is written. */
 type BattleSessionMutator = (
@@ -914,12 +945,23 @@ export type BattleFinalizeReason =
   | "no_rivals";
 
 /**
- * Freeze a battle exactly once.
+ * Freeze a battle exactly once, and never announce a result that is not stored.
  *
- * The `battle:final:{battleId}` NX claim means only one server execution — on
- * any worker, from any trigger (tick expiry, host end, disconnect resolution,
- * expired read) — computes the winner, persists the record, broadcasts
- * `battle_ended` and schedules cleanup. Every other caller returns null.
+ * Two separate guarantees, because they fail differently:
+ *
+ * - **Exactly once** is the ENDED session, written through `mutateBattleSession`.
+ *   The read and the write are one locked step and the mutator refuses a session
+ *   that is already ENDED, so only one execution — on any worker, from any
+ *   trigger (tick expiry, host end, disconnect resolution) — ever gets to compute
+ *   the winner, persist, broadcast and clean up. The `battle:final:{battleId}`
+ *   claim is only there to stop two workers doing that work simultaneously; it is
+ *   not what makes the result unique, so it can safely expire after one pass.
+ *
+ * - **Durability** is the outbox, written BEFORE the freeze. The record is the
+ *   whole point of the match: if Neon is down and the queue write were attempted
+ *   afterwards and dropped, the room would be told the final score while nothing
+ *   anywhere was going to store it. Queuing first means the intent to persist is
+ *   durable before anyone is told, and the retry pass converges it.
  */
 export async function finalizeBattle(
   roomId: string,
@@ -934,7 +976,7 @@ export async function finalizeBattle(
   const claimed = await valkeySetNx(
     FINALIZE_LOCK_PREFIX + session.id,
     reason,
-    BATTLE_TTL,
+    FINALIZE_CLAIM_TTL_MS,
   );
   if (!claimed) return null;
 
@@ -962,28 +1004,65 @@ export async function finalizeBattle(
     winner: winnerFromScores(scores),
     finalizeReason: reason,
   };
-  // The frozen result is only real once it is stored. Giving the claim back on a
-  // failed write keeps the battle in the active set so a later tick finalizes it
-  // for real — announcing a result the store never took would leave the match
-  // running for everyone who reads it next.
-  if ((await saveBattleToStore(roomId, finalized)) !== "ok") {
+  const record = battleResultRecord(finalized, scores);
+
+  // Write-ahead: queue the result before anything is frozen or announced. A queue
+  // that cannot be confirmed means this pass cannot promise the record will ever
+  // be stored, so it stops here with the battle untouched and still ACTIVE — the
+  // next tick finalizes it for real. Nothing was said, so nothing was a lie.
+  //
+  // It is queued as PENDING FREEZE, because at this point it is only an intent:
+  // if this worker dies in the next line the battle keeps running and keeps
+  // scoring, and this snapshot must not become the permanent record of a match
+  // that had not finished. Only the freeze turns it into a result.
+  if ((await queueBattleResultForRetry(record, true)) !== "ok") {
     await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
     logger.error(
       { roomId, battleId: session.id, reason },
+      "battle not finalized — result could not be queued for permanent storage, will retry",
+    );
+    return null;
+  }
+
+  // The freeze is the exactly-once gate: one locked read-modify-write, refused if
+  // another execution already ended this battle. Whoever's write applies is the
+  // single owner of the announcement, the permanent record and the cleanup.
+  const frozen = await mutateBattleSession(roomId, (current) => {
+    if (!current || current.id !== session.id) return null;
+    if (current.status === "ENDED") return null;
+    return { session: finalized, changed: true };
+  });
+  if (frozen.status !== "applied") {
+    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    if (frozen.status === "rejected") {
+      // Already ended by another execution — it owns the identical record for
+      // this battleId, so the queued entry stays as its durability guarantee.
+      return null;
+    }
+    // The battle is still ACTIVE, so drop this pass's queued copy: leaving it
+    // would permanently store a result for a match that is still being played.
+    await dequeueBattleResult(record.battleId);
+    logger.error(
+      { roomId, battleId: session.id, reason, freeze: frozen.status },
       "battle not finalized — result write not confirmed, will retry",
     );
     return null;
   }
+
+  // The freeze applied, so the queued snapshot is now a result: mark it storable.
+  // An unconfirmed mark is not a lost result — the retry pass resolves a pending
+  // entry against the ENDED session, which is the authority for the final score.
+  await queueBattleResultForRetry(record, false);
 
   await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
   await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
 
   // Durability is a separate concern from freezing. The frozen scores are real
   // either way, so clients are told the truth immediately; if Neon is down the
-  // record goes to the retry outbox instead of being lost.
-  const record = battleResultRecord(finalized, scores);
-  const persisted = await persistBattleResult(record);
-  if (!persisted) await queueBattleResultForRetry(record);
+  // queued record stays there until a retry pass commits it.
+  if (await persistBattleResult(record)) {
+    await dequeueBattleResult(record.battleId);
+  }
 
   const totals = teamTotals(scores);
   const host = finalized.participants.find((p) => p.seat === "host");
@@ -1058,75 +1137,128 @@ async function persistBattleResult(record: BattleResultRecord): Promise<boolean>
 }
 
 /**
- * Outbox for a finalized result Neon has not accepted yet.
+ * Outbox for a result that is not in Neon yet.
  *
  * Exactly-once means ONE SUCCESSFUL persistence, so a database outage must not
  * silently drop the record: the full result waits here and every retry re-runs
  * the same idempotent insert until it commits.
+ *
+ * Both writes are confirmed, because an unconfirmed queue is not a queue. The
+ * payload goes in before the id: a member of the set with no payload is dropped
+ * by the retry pass, so the reverse order could delete a result that was only
+ * a moment away from being readable.
+ *
+ * `pendingFreeze` says whether a freeze has applied for this battle yet. Before
+ * the freeze the entry is durable but not storable; after it, it is the result.
  */
-async function queueBattleResultForRetry(record: BattleResultRecord): Promise<void> {
-  try {
-    await valkeySet(
-      RESULT_OUTBOX_PAYLOAD_PREFIX + record.battleId,
-      JSON.stringify(record),
-      RESULT_OUTBOX_TTL_MS,
-    );
-    await valkeySadd(RESULT_OUTBOX_KEY, record.battleId);
-    logger.warn(
-      { battleId: record.battleId, roomId: record.roomId },
-      "battle result awaiting permanent storage (queued)",
-    );
-  } catch (err) {
-    logger.error(
-      { err, battleId: record.battleId },
-      "could not queue battle result for retry",
-    );
+async function queueBattleResultForRetry(
+  record: BattleResultRecord,
+  pendingFreeze: boolean,
+): Promise<"ok" | "unavailable"> {
+  const payload: StoredBattleResult = pendingFreeze
+    ? { ...record, pendingFreeze: true }
+    : record;
+  const stored = await valkeyTrySet(
+    RESULT_OUTBOX_PAYLOAD_PREFIX + record.battleId,
+    JSON.stringify(payload),
+    RESULT_OUTBOX_TTL_MS,
+  );
+  if (stored !== "ok") return "unavailable";
+  const listed = await valkeyTrySadd(RESULT_OUTBOX_KEY, record.battleId);
+  if (listed !== "ok") {
+    await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + record.battleId);
+    return "unavailable";
   }
+  return "ok";
 }
 
 /**
- * Retry every queued result. The NX lock is a mutex so two workers never flush
- * at once, and it is released at the end of the pass (its TTL only covers a
- * worker dying mid-pass) — a failed pass must never stop future retries. A
- * result leaves the outbox only after Neon has actually committed it.
+ * What a queued entry is actually allowed to store, decided against the store.
+ *
+ * A confirmed entry is a result: store it. A pending one was queued by a pass
+ * that may have died before its freeze, so the battle decides:
+ *
+ * - still ACTIVE, same battle — the match is still being played and its score is
+ *   still moving. Storing this snapshot could hand a creator a permanent loss
+ *   they did not lose. Wait: whoever finalizes for real overwrites this entry.
+ * - ENDED — the freeze did happen, so the frozen session is the authority for the
+ *   final score, whatever this pass had read a moment earlier.
+ * - gone — a battle is only deleted after it was finalized, and the retention
+ *   window is far longer than a retry pass, so this is a frozen result whose
+ *   confirmation write was lost. Its scores are real and no longer moving.
+ */
+async function resolveQueuedBattleResult(
+  stored: StoredBattleResult,
+): Promise<BattleResultRecord | null> {
+  const { pendingFreeze, ...record } = stored;
+  if (!pendingFreeze) return record;
+
+  const current = await getBattleFromStore(record.roomId);
+  if (current?.id === record.battleId) {
+    if (current.status !== "ENDED") return null;
+    // Missing frozen scores are not zero scores: fall back to what this pass had
+    // actually read from the live hash, never to a fabricated 0–0.
+    if (!current.finalScores) return record;
+    return battleResultRecord(current, current.finalScores);
+  }
+  return record;
+}
+
+/** A result leaves the outbox only when Neon has it, or it was never owed. */
+async function dequeueBattleResult(battleId: string): Promise<void> {
+  await valkeySrem(RESULT_OUTBOX_KEY, battleId);
+  await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+}
+
+/**
+ * Retry every queued result. The lock is a mutex so two workers never flush at
+ * once, and it is owner-checked on release: a plain DEL would delete the NEXT
+ * worker's lock whenever a pass outran the TTL, which is precisely the case that
+ * lets two workers flush the same outbox together. Its TTL only covers a worker
+ * dying mid-pass — a failed pass must never stop future retries. A result leaves
+ * the outbox only after Neon has actually committed it.
  */
 export async function flushPendingBattleResults(): Promise<void> {
   if (!hasValkey()) return;
   const battleIds = await valkeySmembers(RESULT_OUTBOX_KEY);
   if (battleIds.length === 0) return;
-  const locked = await valkeySetNx(
+  const token = randomUUID();
+  const locked = await valkeyTrySetNx(
     RESULT_FLUSH_LOCK_KEY,
-    "1",
+    token,
     RESULT_FLUSH_LOCK_TTL_MS,
   );
-  if (!locked) return;
+  if (locked !== "set") return;
 
   try {
     for (const battleId of battleIds) {
-      const raw = await valkeyGet(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
-      if (!raw) {
+      const raw = await valkeyTryGet(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+      // A read that failed is not an empty queue entry: dropping the id here
+      // would throw away the only copy of a played battle's result.
+      if (raw.status === "unavailable") return;
+      if (!raw.value) {
         await valkeySrem(RESULT_OUTBOX_KEY, battleId);
         continue;
       }
-      let record: BattleResultRecord;
+      let stored: StoredBattleResult;
       try {
-        record = JSON.parse(raw) as BattleResultRecord;
+        stored = JSON.parse(raw.value) as StoredBattleResult;
       } catch {
-        await valkeySrem(RESULT_OUTBOX_KEY, battleId);
-        await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+        await dequeueBattleResult(battleId);
         logger.error({ battleId }, "unreadable queued battle result dropped");
         continue;
       }
-      if (!(await persistBattleResult(record))) {
+      const resolved = await resolveQueuedBattleResult(stored);
+      if (!resolved) continue;
+      if (!(await persistBattleResult(resolved))) {
         // Still failing — keep everything queued and stop this pass.
         return;
       }
-      await valkeySrem(RESULT_OUTBOX_KEY, battleId);
-      await valkeyDel(RESULT_OUTBOX_PAYLOAD_PREFIX + battleId);
+      await dequeueBattleResult(battleId);
       logger.info({ battleId }, "queued battle result persisted on retry");
     }
   } finally {
-    await valkeyDel(RESULT_FLUSH_LOCK_KEY);
+    await valkeyReleaseLock(RESULT_FLUSH_LOCK_KEY, token);
   }
 }
 

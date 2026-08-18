@@ -20,7 +20,7 @@ import { randomUUID } from "crypto";
 import {
   addFeedSubscriber,
   removeFeedSubscriber,
-  broadcastToFeedSubscribers,
+  broadcastStreamEnded,
 } from "../feedBroadcast";
 import {
   isStreamHost,
@@ -1138,7 +1138,7 @@ function scheduleHostDisconnectStreamEnd(roomId: string, userId: string): void {
           host_user_id: userId,
           reason: "host_disconnected",
         });
-        broadcastToFeedSubscribers("stream_ended", { stream_key: roomId });
+        broadcastStreamEnded(roomId, userId);
       } catch (err) {
         logger.error({ err, roomId, userId }, "host disconnect grace end failed");
       }

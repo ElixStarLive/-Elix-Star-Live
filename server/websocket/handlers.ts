@@ -48,9 +48,7 @@ import {
   resolveValidatedGiftRecipient,
 } from "./giftRecipient";
 import { creditTestCoins, debitTestCoins } from "../lib/testCoinsBalance";
-import {
-  broadcastToFeedSubscribers,
-} from "../feedBroadcast";
+import { broadcastStreamEnded } from "../feedBroadcast";
 import { removeActiveStream, resolveStreamOwnerUserId, isStreamHost, listActiveLiveStreams } from "../routes/livestream";
 import {
   grantParticipantPublish,
@@ -1401,9 +1399,7 @@ export async function handleMessage(
             reason: battleRedirect ? "host_joined_battle" : "host_ended",
             ...(battleRedirect ? { battle_room_id: battleRedirect } : {}),
           });
-          broadcastToFeedSubscribers("stream_ended", {
-            stream_key: client.roomId,
-          });
+          broadcastStreamEnded(client.roomId, client.userId);
         }
         break;
       }

@@ -9,7 +9,6 @@ export {
   isLivePublishDenied,
   isLiveTokenOffline,
   isLiveTokenTransient,
-  isUserLive,
   findLiveWatchTarget,
   type LiveStatus,
   type LiveKitCreds,

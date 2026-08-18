@@ -52,7 +52,7 @@ import {
 import { platform } from '../lib/platform';
 import { scheduleAndroidFeedPlayRetries } from '../lib/scheduleAndroidFeedPlayRetries';
 import { prepareFeedVideoEl, stripVideoMediaChrome } from '../lib/prepareLiveVideoEl';
-import { apiLiveStreams, isUserLive } from '../lib/live';
+import { useLivePresence } from '../hooks/useLivePresence';
 
 const VIDEO_SIDEBAR_AVATAR = 38;
 /** Description-row creator circle only: +1mm each side. Level pill stays {@link LEVEL_BADGE_PILL_PX}. */
@@ -109,7 +109,6 @@ export default function EnhancedVideoPlayer({
   const [showHeartAnimation, setShowHeartAnimation] = useState(false);
   const [duetOriginalUrl, setDuetOriginalUrl] = useState<string | null>(null);
   const [scrubbing, setScrubbing] = useState(false);
-  const [creatorIsLive, setCreatorIsLive] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,8 +124,16 @@ export default function EnhancedVideoPlayer({
   } = useVideoStore();
   const getVideoById = useVideoStore((s) => s.getVideoById);
   const authUserId = useAuthStore((s) => s.user?.id ?? null);
-  
+  const authToken = useAuthStore((s) => s.session?.access_token);
+
   const video = getVideoById(videoId);
+  // Host user id only — live ring only when that creator is actually on air, and
+  // it clears the moment the server says they ended, not when the slide changes.
+  const { creatorIds: liveCreatorIds } = useLivePresence(
+    authToken,
+    isActive && !!video?.user?.id,
+  );
+  const creatorIsLive = !!video?.user?.id && liveCreatorIds.has(String(video.user.id));
   const originalVideo = video?.duetWithVideoId ? getVideoById(video.duetWithVideoId) : undefined;
   const effectiveMuted = muteAllSounds || isMuted;
   const duetWithVideoId = video?.duetWithVideoId;
@@ -159,27 +166,6 @@ export default function EnhancedVideoPlayer({
     })();
     return () => { cancelled = true; };
   }, [duetWithVideoId, originalVideo]);
-
-  useEffect(() => {
-    const uid = video?.user?.id;
-    if (!isActive || !uid) {
-      setCreatorIsLive(false);
-      return;
-    }
-    let cancelled = false;
-    apiLiveStreams()
-      .then(({ streams }) => {
-        if (cancelled) return;
-        // Host user id only — live ring only when that creator is actually on air.
-        setCreatorIsLive(isUserLive(streams || [], String(uid)));
-      })
-      .catch(() => {
-        if (!cancelled) setCreatorIsLive(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, video?.user?.id]);
 
   const seekAllTo = useCallback(
     (seconds: number) => {

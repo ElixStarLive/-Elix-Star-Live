@@ -4,6 +4,8 @@ import {
   resetValkeyFake,
   setValkeyFakeHashesReachable,
   setValkeyFakeLocksAvailable,
+  setValkeyFakeSetsWritable,
+  setValkeyFakeStringsReadable,
   setValkeyFakeStringsWritable,
   valkeyFake,
 } from "./battleValkeyFake";
@@ -561,6 +563,228 @@ describe("battle authority", () => {
       expect(active?.endsAt).toBeGreaterThan(Date.now());
       // The finished battle was persisted once; the rematch is a separate record.
       expect(persisted).toHaveLength(1);
+    });
+  });
+
+  /**
+   * The permanent record is the whole point of the match, so it is queued before
+   * anything is frozen or announced. Every failure here must leave the battle
+   * exactly as it was — still ACTIVE, still finalizable — rather than telling the
+   * room a final score that nothing was ever going to store.
+   */
+  describe("a result is never announced unless its storage is guaranteed", () => {
+    function outbox() {
+      return valkeyFake.valkeySmembers("battles:result_outbox");
+    }
+
+    it("does not end the battle when the result cannot be queued", async () => {
+      insertFails = true;
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 21, source: "paid_gift" });
+      setValkeyFakeSetsWritable(false);
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+
+      // Nothing announced, nothing stored, and no half-written queue entry.
+      expect(eventsOf("battle_ended")).toHaveLength(0);
+      expect(persisted).toEqual([]);
+      expect(await outbox()).toEqual([]);
+      const after = await getBattleFromStore(ROOM);
+      expect(after?.status).toBe("ACTIVE");
+      expect(after?.finalScores).toBe(null);
+    });
+
+    it("finalizes for real once the result can be queued again", async () => {
+      insertFails = true;
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 21, source: "paid_gift" });
+      setValkeyFakeSetsWritable(false);
+      await finalizeBattle(ROOM, "timer");
+
+      setValkeyFakeSetsWritable(true);
+      const finalized = await finalizeBattle(ROOM, "timer");
+
+      expect(finalized?.status).toBe("ENDED");
+      // The real score survived the refused pass.
+      expect(finalized?.finalScores).toMatchObject({ host: 21 });
+      expect(await outbox()).toEqual([finalized?.id]);
+      insertFails = false;
+      await flushPendingBattleResults();
+      expect(persisted.map((r) => r.teamAScore)).toEqual([21]);
+    });
+
+    it("drops its queued copy when the freeze does not apply", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 9, source: "paid_gift" });
+      // Another writer holds the room: this pass cannot end the battle.
+      holdValkeyFakeLock("battle:seat_lock:" + ROOM);
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+
+      // Leaving the entry queued would permanently store a result for a match
+      // that is still being played.
+      expect(await outbox()).toEqual([]);
+      expect(persisted).toEqual([]);
+      expect(eventsOf("battle_ended")).toHaveLength(0);
+      expect((await getBattleFromStore(ROOM))?.status).toBe("ACTIVE");
+    });
+
+    it("does not hold the result hostage when a worker dies mid-finalization", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "opponent", points: 14, source: "paid_gift" });
+      const battleId = (await getBattleFromStore(ROOM))?.id as string;
+      // A worker claimed the finalization and never came back.
+      holdValkeyFakeLock("battle:final:" + battleId, "dead-worker");
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+      expect((await getBattleFromStore(ROOM))?.status).toBe("ACTIVE");
+
+      // The claim is sized to one pass, so it expires and another worker
+      // finalizes the real result instead of the battle never ending.
+      await valkeyFake.valkeyDel("battle:final:" + battleId);
+      const finalized = await finalizeBattle(ROOM, "timer");
+
+      expect(finalized?.id).toBe(battleId);
+      expect(finalized?.finalScores).toMatchObject({ opponent: 14 });
+      expect(finalized?.winner).toBe("teamB");
+      expect(persisted.map((r) => r.battleId)).toEqual([battleId]);
+      expect(eventsOf("battle_ended")).toHaveLength(1);
+    });
+
+    it("keeps a queued result whose payload could not be read", async () => {
+      insertFails = true;
+      await activeBattle();
+      const finalized = await finalizeBattle(ROOM, "timer");
+      setValkeyFakeStringsReadable(false);
+
+      await flushPendingBattleResults();
+
+      // An unreadable read is not an empty queue entry: dropping the id would
+      // throw away the only copy of a played battle's result.
+      expect(await outbox()).toEqual([finalized?.id]);
+      setValkeyFakeStringsReadable(true);
+      insertFails = false;
+      await flushPendingBattleResults();
+      expect(persisted.map((r) => r.battleId)).toEqual([finalized?.id]);
+    });
+
+    /**
+     * Exactly what a worker killed between "queue the intent to store" and
+     * "freeze the battle" leaves behind: an outbox entry marked pending, holding
+     * the score as it stood at that moment. The scores below are deliberately not
+     * the eventual final ones, so a test can tell whether this snapshot was
+     * treated as the result.
+     */
+    async function leaveCrashedIntent(battleId: string): Promise<void> {
+      await valkeyFake.valkeySet(
+        "battle:result_pending:" + battleId,
+        JSON.stringify({
+          battleId,
+          roomId: ROOM,
+          battleType: "1x1",
+          winner: "teamA",
+          teamAScore: 4,
+          teamBScore: 0,
+          startedAt: Date.now() - 30_000,
+          endedAt: Date.now(),
+          finalizeReason: "timer",
+          participants: [
+            { seat: "host", creatorUserId: "c1", teamId: "teamA", score: 4 },
+            { seat: "opponent", creatorUserId: "c2", teamId: "teamB", score: 0 },
+          ],
+          pendingFreeze: true,
+        }),
+      );
+      await valkeyFake.valkeySadd("battles:result_outbox", battleId);
+    }
+
+    it("will not store a snapshot of a battle that is still being played", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 4, source: "paid_gift" });
+      const battleId = (await getBattleFromStore(ROOM))?.id as string;
+      await leaveCrashedIntent(battleId);
+
+      await flushPendingBattleResults();
+
+      // Nothing stored: this match is still ACTIVE and its score still moving.
+      expect(persisted).toEqual([]);
+      expect(await outbox()).toEqual([battleId]);
+
+      // The rest of the battle is played, then it really ends.
+      await addBattleScore({ roomId: ROOM, seat: "opponent", points: 30, source: "paid_gift" });
+      const finalized = await finalizeBattle(ROOM, "timer");
+
+      // The permanent record is the final score, not the abandoned snapshot —
+      // storing that would have given teamA a win it did not earn.
+      expect(finalized?.id).toBe(battleId);
+      expect(persisted).toHaveLength(1);
+      expect(persisted[0]).toMatchObject({
+        battleId,
+        teamAScore: 4,
+        teamBScore: 30,
+        winner: "teamB",
+      });
+      expect(await outbox()).toEqual([]);
+    });
+
+    it("stores the frozen result when only the confirmation write was lost", async () => {
+      insertFails = true;
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 12, source: "paid_gift" });
+      await addBattleScore({ roomId: ROOM, seat: "opponent", points: 19, source: "paid_gift" });
+      const finalized = await finalizeBattle(ROOM, "timer");
+      expect(finalized?.status).toBe("ENDED");
+
+      // Frozen and announced, but the "this is storable now" write never landed.
+      await leaveCrashedIntent(finalized?.id as string);
+      insertFails = false;
+
+      await flushPendingBattleResults();
+
+      // The ENDED session is the authority for the final score, not the entry.
+      expect(persisted.map((r) => r.battleId)).toEqual([finalized?.id]);
+      expect(persisted[0]).toMatchObject({
+        teamAScore: 12,
+        teamBScore: 19,
+        winner: "teamB",
+      });
+      expect(await outbox()).toEqual([]);
+    });
+
+    it("stores a pending result whose battle has already been cleaned up", async () => {
+      insertFails = true;
+      await activeBattle();
+      const finalized = await finalizeBattle(ROOM, "timer");
+      await leaveCrashedIntent(finalized?.id as string);
+      // Retention passed: the realtime copy is gone, so the outbox entry is the
+      // only surviving copy of a battle that was played. It must not be dropped.
+      await valkeyFake.valkeyDel("battle:" + ROOM);
+      insertFails = false;
+
+      await flushPendingBattleResults();
+
+      expect(persisted.map((r) => r.battleId)).toEqual([finalized?.id]);
+      expect(persisted[0]).toMatchObject({ teamAScore: 4, teamBScore: 0 });
+      expect(await outbox()).toEqual([]);
+    });
+
+    it("does not steal another worker's retry pass", async () => {
+      insertFails = true;
+      await activeBattle();
+      const finalized = await finalizeBattle(ROOM, "timer");
+      insertFails = false;
+      holdValkeyFakeLock("battle:result_flush", "other-worker");
+
+      await flushPendingBattleResults();
+
+      // It backed off, and it did not release a lock it never held.
+      expect(persisted).toEqual([]);
+      expect(await valkeyFake.valkeyGet("battle:result_flush")).toBe("other-worker");
+
+      await valkeyFake.valkeyDel("battle:result_flush");
+      await flushPendingBattleResults();
+      expect(persisted.map((r) => r.battleId)).toEqual([finalized?.id]);
+      expect(await valkeyFake.valkeyGet("battle:result_flush")).toBe(null);
     });
   });
 

@@ -30,7 +30,7 @@ import { showToast } from '../lib/toast';
 import { trackShare } from '../features/feed/feedApi';
 import { sendDmToUser } from '../lib/chatMessages';
 import { StoryGoldRingAvatar } from './StoryGoldRingAvatar';
-import { apiLiveStreams, collectLiveUserIds } from '../lib/live';
+import { useLivePresence } from '../hooks/useLivePresence';
 import { reportFailure } from '../lib/reportFailure';
 
 interface ShareModalProps {
@@ -65,25 +65,19 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
   const [shareQuery, setShareQuery] = useState('');
   const [followers, setFollowers] = useState<{ user_id: string; username: string; avatar_url: string | null }[]>([]);
   const [sentTo, setSentTo] = useState<Set<string>>(new Set());
-  const [liveUserIds, setLiveUserIds] = useState<Set<string>>(() => new Set());
+  const session = useAuthStore((s) => s.session);
+  // Live rings follow the server while the sheet is open: a contact who ends mid
+  // share should not keep a live ring until the sheet is reopened.
+  const { creatorIds: liveUserIds } = useLivePresence(session?.access_token, isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
     (async () => {
       try {
-        const [rows, liveResult] = await Promise.all([
-          fetchAllSharePanelContacts(user?.id),
-          apiLiveStreams().catch((err) => {
-            reportFailure('share_modal_live_streams', err);
-            return null;
-          }),
-        ]);
+        const rows = await fetchAllSharePanelContacts(user?.id);
         if (cancelled) return;
         setFollowers(rows);
-        if (liveResult) {
-          setLiveUserIds(collectLiveUserIds(liveResult.streams || []));
-        }
       } catch (e) {
         if (!cancelled) {
           reportFailure('share_modal_contacts', e);

@@ -5,7 +5,8 @@ import { RoyceBackIcon } from '../../components/royce';
 import { StoryGoldRingAvatar } from '../../components/StoryGoldRingAvatar';
 import { showToast } from '../../lib/toast';
 import { apiListNotifications } from '../../features/notifications/notificationsApi';
-import { apiLiveStreams } from '../../lib/live/liveApi';
+import { useLivePresence } from '../../hooks/useLivePresence';
+import { useAuthStore } from '../../store/useAuthStore';
 import { inboxReturnState, INBOX_HOME } from '../../lib/settingsNav';
 import { apiFetchProfiles } from '../../features/feed/feedApi';
 
@@ -73,6 +74,9 @@ export default function AlertsPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState<AlertItem[]>([]);
   const [liveAvatarByHost, setLiveAvatarByHost] = useState<Record<string, string>>({});
+  const accessToken = useAuthStore((s) => s.session?.access_token);
+  const { creatorIds: liveCreatorIds, streamKeys: liveStreamKeys } =
+    useLivePresence(accessToken);
 
   const goInbox = useCallback(() => {
     navigate(INBOX_HOME, { replace: true });
@@ -95,20 +99,6 @@ export default function AlertsPage() {
           showToast(error);
           return;
         }
-        let activeLiveIds = new Set<string>();
-        try {
-          const { streams } = await apiLiveStreams();
-          for (const raw of streams) {
-            const s = raw as Record<string, unknown>;
-            const room = String(s.room_id ?? s.stream_key ?? '').trim();
-            const uid = String(s.user_id ?? '').trim();
-            if (room) activeLiveIds.add(room);
-            if (uid) activeLiveIds.add(uid);
-          }
-        } catch {
-          activeLiveIds = new Set();
-        }
-
         const list: AlertItem[] = rows
           .filter(
             (n: { type?: string }) =>
@@ -128,15 +118,7 @@ export default function AlertsPage() {
             image_url: n.image_url != null ? String(n.image_url) : null,
           }))
           .filter((n) => n.type === 'system' || n.type === 'live_started')
-          .filter((n) => n.type !== 'like' && n.type !== 'comment' && n.type !== 'gift')
-          .filter((n) => {
-            const isLiveRow =
-              n.type === 'live_started' || /\bis live\b/i.test(String(n.title || ''));
-            if (!isLiveRow) return true;
-            const hostId = liveHostIdFromActionUrl(n.action_url);
-            if (!hostId) return false;
-            return activeLiveIds.has(hostId);
-          });
+          .filter((n) => n.type !== 'like' && n.type !== 'comment' && n.type !== 'gift');
 
         setItems(list);
 
@@ -179,7 +161,23 @@ export default function AlertsPage() {
     [liveAvatarByHost],
   );
 
-  const rows = useMemo(() => items, [items]);
+  /**
+   * "X is live" rows are shown only while X is actually live, and that is checked
+   * against the server for as long as the page is open — filtering once at load
+   * left an ended live listed with a LIVE ring until the page was reopened. The
+   * link is `/live/:room`, so the room set is the one that answers this; a room
+   * name is not a creator id.
+   */
+  const rows = useMemo(
+    () =>
+      items.filter((n) => {
+        if (!isLiveStartedNotification(n)) return true;
+        const hostId = liveHostIdFromActionUrl(n.action_url);
+        if (!hostId) return false;
+        return liveStreamKeys.has(hostId) || liveCreatorIds.has(hostId);
+      }),
+    [items, liveStreamKeys, liveCreatorIds],
+  );
 
   return (
     <div className="page-above-bottom-nav bg-transparent">

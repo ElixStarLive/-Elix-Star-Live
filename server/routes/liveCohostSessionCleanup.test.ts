@@ -75,7 +75,10 @@ vi.mock("../services/livekit", () => ({
   getRoomOccupancy: vi.fn(async () => ({ participants: 0, publishers: 0 })),
 }));
 
-vi.mock("../feedBroadcast", () => ({ broadcastToFeedSubscribers: vi.fn() }));
+vi.mock("../feedBroadcast", () => ({
+  broadcastToFeedSubscribers: vi.fn(),
+  broadcastStreamEnded: vi.fn(),
+}));
 vi.mock("../lib/notifications", () => ({
   insertNotification: vi.fn(async () => {}),
   deleteLiveStartedNotificationsForRoom: vi.fn(async () => {}),

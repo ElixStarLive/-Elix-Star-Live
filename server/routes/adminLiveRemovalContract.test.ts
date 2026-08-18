@@ -13,8 +13,11 @@ import type { Request, Response } from "express";
  * the stream_ended broadcast that removeActiveStream owns.
  */
 
-const livestream = { removeActiveStream: vi.fn(async () => true) };
-const feed = { broadcastToFeedSubscribers: vi.fn() };
+const livestream = {
+  removeActiveStream: vi.fn(async () => true),
+  resolveStreamOwnerUserId: vi.fn(async () => "creator-1"),
+};
+const feed = { broadcastStreamEnded: vi.fn() };
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
 
 /** Rows returned by the report UPDATE ... RETURNING *. */
@@ -106,14 +109,15 @@ describe("admin removal of a reported live stream", () => {
     expect(sent.body?.report).toBeDefined();
   });
 
-  it("tells every discovery surface the stream ended", async () => {
+  it("tells every discovery surface the stream ended, and whose it was", async () => {
     const { res } = fakeRes();
 
     await patchReportHandler()(fakeReq("removed"), res);
 
-    expect(feed.broadcastToFeedSubscribers).toHaveBeenCalledWith("stream_ended", {
-      stream_key: "room-1",
-    });
+    // The creator id is resolved before the removal, because afterwards there is
+    // no row left to say whose live it was — and every live indicator in the app
+    // is keyed by creator, not by room.
+    expect(feed.broadcastStreamEnded).toHaveBeenCalledWith("room-1", "creator-1");
   });
 
   it("never writes the live_streams table directly", async () => {
@@ -131,7 +135,7 @@ describe("admin removal of a reported live stream", () => {
 
     await patchReportHandler()(fakeReq("removed"), res);
 
-    expect(feed.broadcastToFeedSubscribers).not.toHaveBeenCalled();
+    expect(feed.broadcastStreamEnded).not.toHaveBeenCalled();
     expect(logger.warn).toHaveBeenCalled();
   });
 

@@ -16,7 +16,7 @@ import {
   resolveLivePublishAuthority,
   resolveStreamOwnerUserId,
 } from './livestream';
-import { broadcastToFeedSubscribers } from '../feedBroadcast';
+import { broadcastStreamEnded } from '../feedBroadcast';
 import {
   listActiveRoomsFromLiveKit,
   isUserPublishingInRoom,
@@ -68,7 +68,7 @@ async function finalizeRoomFinished(
     // they started thirty seconds later share it. Ending "the live in this room"
     // without saying which one would take the new one off the air.
     if (!(await removeActiveStream(roomName, undefined, sessionId))) return;
-    broadcastToFeedSubscribers('stream_ended', { stream_key: roomName });
+    broadcastStreamEnded(roomName, ownerId || '');
     logger.info({ roomName }, '[livekit-webhook] room_finished applied after grace');
   } catch (err) {
     logger.error({ err, roomName }, '[livekit-webhook] finalizeRoomFinished failed');

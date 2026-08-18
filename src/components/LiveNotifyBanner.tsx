@@ -33,6 +33,8 @@ import { cohostInviteAccept, cohostInviteDecline } from '../features/live/cohost
 interface StartedBanner {
   kind: 'started';
   room: string;
+  /** Kept so the banner can be retired when the server says this creator ended. */
+  userId: string;
   name: string;
   avatar: string;
 }
@@ -116,6 +118,8 @@ export function LiveNotifyBanner() {
   const [inviteJoining, setInviteJoining] = useState(false);
   const shareBannerRef = useRef<ShareBanner | null>(null);
   shareBannerRef.current = shareBanner;
+  const startedBannerRef = useRef<StartedBanner | null>(null);
+  startedBannerRef.current = startedBanner;
 
   const seenStartedRef = useRef<Set<string>>(new Set());
   const startedDismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -178,21 +182,42 @@ export function LiveNotifyBanner() {
         }
       }
       if (cancelled) return;
-      setStartedBanner({ kind: 'started', room, name: name || 'Someone', avatar });
+      setStartedBanner({ kind: 'started', room, userId: uid, name: name || 'Someone', avatar });
       if (startedDismissTimer.current) clearTimeout(startedDismissTimer.current);
       startedDismissTimer.current = setTimeout(() => setStartedBanner(null), STARTED_DISMISS_MS);
     };
 
+    // A live that has ended is not something to offer: the banner invites a tap
+    // through to `/watch/:room`, so it follows the same authority that raised it
+    // instead of sitting out its dismiss timer on a room nobody can join.
+    const retireStarted = (data: unknown) => {
+      const payload = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+      const endedRoom = String(
+        payload.stream_key ?? payload.streamKey ?? payload.room_id ?? '',
+      ).trim();
+      const endedHost = String(payload.host_user_id ?? payload.hostUserId ?? '').trim();
+      const current = startedBannerRef.current;
+      if (!current) return;
+      if (
+        (endedRoom && current.room === endedRoom) ||
+        (endedHost && current.userId === endedHost)
+      ) {
+        dismissStarted();
+      }
+    };
+
     websocket.on('stream_started', showStarted);
+    websocket.on('stream_ended', retireStarted);
     return () => {
       cancelled = true;
       websocket.off('stream_started', showStarted);
+      websocket.off('stream_ended', retireStarted);
       if (startedDismissTimer.current) {
         clearTimeout(startedDismissTimer.current);
         startedDismissTimer.current = null;
       }
     };
-  }, [token, liveNotifications, user?.id]);
+  }, [token, liveNotifications, user?.id, dismissStarted]);
 
   useEffect(() => {
     if (!token || !user?.id) return;

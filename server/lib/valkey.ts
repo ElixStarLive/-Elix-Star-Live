@@ -389,6 +389,28 @@ export async function valkeySadd(key: string, ...members: string[]): Promise<num
   }
 }
 
+/**
+ * SADD that says whether the member is actually in the set.
+ *
+ * `valkeySadd` returns 0 both for "already a member" and for "the write failed",
+ * so a caller that must know the member is really recorded — a durability
+ * outbox, not a counter — cannot use it.
+ */
+export async function valkeyTrySadd(
+  key: string,
+  member: string,
+): Promise<"ok" | "unavailable"> {
+  const v = getValkey();
+  if (!v) return "unavailable";
+  try {
+    await v.sadd(key, member);
+    return "ok";
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyTrySadd failed");
+    return "unavailable";
+  }
+}
+
 export async function valkeySrem(key: string, ...members: string[]): Promise<number> {
   const v = getValkey();
   if (!v || members.length === 0) return 0;

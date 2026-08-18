@@ -137,12 +137,6 @@ export function collectLiveUserIds(streams: unknown[]): Set<string> {
   return out;
 }
 
-export function isUserLive(streams: unknown[], userId: string): boolean {
-  const uid = String(userId || '').trim();
-  if (!uid) return false;
-  return collectLiveUserIds(streams).has(uid);
-}
-
 /** Best /watch/:streamId target for a user who is currently live. */
 export function findLiveWatchTarget(streams: unknown[], userId: string): string | null {
   const uid = String(userId || '').trim();

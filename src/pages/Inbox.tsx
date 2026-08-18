@@ -24,7 +24,7 @@ import {
   apiToggleInboxFollow,
 } from '../features/notifications/notificationsApi';
 import { apiFetchProfiles } from '../features/feed/feedApi';
-import { apiLiveStreams } from '../lib/live/liveApi';
+import { useLivePresence } from '../hooks/useLivePresence';
 import { isGenuineAppUser } from '../lib/genuineUser';
 import { inboxReturnState } from '../lib/settingsNav';
 
@@ -237,7 +237,15 @@ export default function Inbox() {
   const [followers, setFollowers] = useState<FollowerProfile[]>([]);
   const [followersTotalCount, setFollowersTotalCount] = useState(0);
   const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
-  const [liveUserIds, setLiveUserIds] = useState<Set<string>>(new Set());
+  /**
+   * Live circles follow the server for as long as Inbox is open. This used to be
+   * a snapshot taken with the suggested-users fetch, so a creator who ended kept
+   * a live ring — and an ended live kept its Inbox row — until Inbox was
+   * reopened. Same authority as For You, one consumer of it.
+   */
+  const { creatorIds: liveUserIds, streamKeys: liveStreamKeys } = useLivePresence(
+    useAuthStore((s) => s.session?.access_token),
+  );
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'main' | 'requests' | 'unread' | 'starred'>('main');
   const [showNewFollowersPanel, setShowNewFollowersPanel] = useState(false);
@@ -416,32 +424,10 @@ export default function Inbox() {
           showToast(listError);
           return;
         }
-        let activeLiveIds = new Set<string>();
-        try {
-          const { streams } = await apiLiveStreams();
-          for (const raw of streams) {
-            const s = raw as Record<string, unknown>;
-            const room = String(s.room_id ?? s.stream_key ?? '').trim();
-            const uid = String(s.user_id ?? '').trim();
-            if (room) activeLiveIds.add(room);
-            if (uid) activeLiveIds.add(uid);
-          }
-        } catch {
-          activeLiveIds = new Set();
-        }
         setNotifications(rows
           .filter((n: { type?: string }) => n.type !== 'battle_invite' && n.type !== 'cohost_invite' && n.type !== 'battle_accepted' && n.type !== 'cohost_accepted')
           .filter((n: { type?: string; title?: string; body?: string }) => !isFollowNotification(n))
           .filter((n: { type?: string; title?: string; body?: string; action_url?: string }) => !isLegacyAnonymousGiftNotification(n))
-          .filter((n: { type?: string; title?: string; action_url?: string }) => {
-            // Ended lives must not stay in Inbox.
-            const isLiveRow =
-              n.type === 'live_started' || /\bis live\b/i.test(String(n.title || ''));
-            if (!isLiveRow) return true;
-            const hostId = liveHostIdFromActionUrl(n.action_url);
-            if (!hostId) return false;
-            return activeLiveIds.has(hostId);
-          })
           .map((n: { type?: string; id?: string; title?: string; body?: string; is_read?: boolean; created_at?: string; action_url?: string; data?: Record<string, unknown> }) => ({
           id: n.id,
           type: normalizeNotificationType(n.type),
@@ -588,14 +574,16 @@ export default function Inbox() {
         if (cancelled) return;
         if (suggestedError) {
           showToast(suggestedError);
-          /* keep prior suggestedUsers / liveUserIds — do not fake empty success */
+          /* keep prior suggestedUsers — do not fake empty success */
           return;
         }
+        // Live-first ordering for this list is decided once, from the same
+        // response the profiles came in. The rings themselves render from live
+        // presence, so a creator who ends loses the ring here immediately.
         const liveSet = new Set<string>(streams.map((s) => {
           const row = s as { userId?: string; user_id?: string };
           return row.userId || row.user_id || '';
         }).filter(Boolean));
-        setLiveUserIds(liveSet);
 
         const rows = profiles;
         const mapped: SuggestedUser[] = rows
@@ -773,8 +761,20 @@ export default function Inbox() {
               n.body?.toLowerCase?.().includes('check out this profile') ||
               n.action_url?.includes('/profile/' + currentUserId)
             ),
-        ),
-    [notifications, currentUserId],
+        )
+        // Ended lives must not stay in Inbox. Checked here against live presence
+        // rather than once when the list was fetched, so a live that ends while
+        // Inbox is open leaves it. The link is `/live/:room`, so the room set is
+        // what answers this; a room name is not a creator id.
+        .filter((n) => {
+          const isLiveRow =
+            n.type === 'live_started' || /\bis live\b/i.test(String(n.title || ''));
+          if (!isLiveRow) return true;
+          const hostId = liveHostIdFromActionUrl(n.action_url);
+          if (!hostId) return false;
+          return liveStreamKeys.has(hostId) || liveUserIds.has(hostId);
+        }),
+    [notifications, currentUserId, liveStreamKeys, liveUserIds],
   );
 
   const activityLine = (a: ActivityItem): string => {
@@ -839,22 +839,25 @@ export default function Inbox() {
                 </button>
 
                 {/* Suggested (Friends-style); skip users already shown as followers */}
-                {suggestedUsersNotFollowers.map((u) => (
+                {suggestedUsersNotFollowers.map((u) => {
+                    const uLive = liveUserIds.has(u.id);
+                    return (
                     <button
                         key={u.id}
                         type="button"
-                        onClick={() => openUserOrLive(u.id, !!u.is_live)}
+                        onClick={() => openUserOrLive(u.id, uLive)}
                         className="flex-shrink-0 flex flex-col items-center gap-1" style={{ width: 95, minWidth: 95 }}
                     >
                         <StoryGoldRingAvatar
-                            live={u.is_live}
-                            data-avatar-circle={u.is_live ? 'live' : undefined}
+                            live={uLive}
+                            data-avatar-circle={uLive ? 'live' : undefined}
                             src={u.avatar_url || '/royce/default-avatar.svg'}
                             alt={u.name || u.username}
                         />
                         <div className="text-[11px] text-gold-bright/80 truncate w-full text-center">{u.name || u.username}</div>
                     </button>
-                ))}
+                    );
+                })}
 
                 {followersListForUi.map((f) => {
                     const fLive = liveUserIds.has(f.user_id);

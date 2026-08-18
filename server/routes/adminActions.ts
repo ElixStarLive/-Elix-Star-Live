@@ -8,8 +8,8 @@ import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
 import { disconnectUserSessions, sendToUserGlobal } from "../websocket/index";
 import { invalidateUserSessionCache } from "./auth";
-import { removeActiveStream } from "./livestream";
-import { broadcastToFeedSubscribers } from "../feedBroadcast";
+import { removeActiveStream, resolveStreamOwnerUserId } from "./livestream";
+import { broadcastStreamEnded } from "../feedBroadcast";
 import { z } from "zod";
 import { validateBody } from "../middleware/validate";
 import { invalidateGiftsCatalogCache } from "../lib/catalogCacheValkey";
@@ -49,12 +49,16 @@ async function enforceReportAction(
       // cache. The direct UPDATE this replaced also matched a column
       // (live_streams.id) that does not exist, so the query threw and admin
       // removal of a reported live silently did nothing at all.
+      // Resolved before the removal: afterwards there is no row left to say
+      // whose live this was, and the clients' live indicators are keyed by
+      // creator id.
+      const ownerId = await resolveStreamOwnerUserId(targetId).catch(() => null);
       const removed = await removeActiveStream(targetId).catch((e) => {
         logger.warn({ err: e, targetId }, "moderation stream end failed");
         return false;
       });
       if (removed) {
-        broadcastToFeedSubscribers("stream_ended", { stream_key: targetId });
+        broadcastStreamEnded(targetId, ownerId || "");
       } else {
         logger.warn({ targetId }, "moderation stream end: no active stream removed");
       }

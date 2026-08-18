@@ -23,7 +23,10 @@ const postgres = {
   dbGetStreamOwnerUserId: vi.fn(async () => null),
 };
 
-const feed = { broadcastToFeedSubscribers: vi.fn() };
+const feed = {
+  broadcastToFeedSubscribers: vi.fn(),
+  broadcastStreamEnded: vi.fn(),
+};
 
 vi.mock("../services/livekit", () => livekit);
 vi.mock("../lib/postgres", () => postgres);
@@ -94,9 +97,9 @@ describe("live streams authority", () => {
 
     expect(result.streams).toEqual([]);
     expect(postgres.dbEndLiveStream).toHaveBeenCalledWith("stale-room");
-    expect(feed.broadcastToFeedSubscribers).toHaveBeenCalledWith("stream_ended", {
-      stream_key: "stale-room",
-    });
+    // Named: an open screen showing this creator's live ring has no other way to
+    // know it was them, because a stream key is not an identity.
+    expect(feed.broadcastStreamEnded).toHaveBeenCalledWith("stale-room", "creator-1");
   });
 
   it("keeps a just-started stream that has not finished connecting to LiveKit", async () => {
@@ -107,7 +110,7 @@ describe("live streams authority", () => {
     await listActiveLiveStreams();
 
     expect(postgres.dbEndLiveStream).not.toHaveBeenCalled();
-    expect(feed.broadcastToFeedSubscribers).not.toHaveBeenCalled();
+    expect(feed.broadcastStreamEnded).not.toHaveBeenCalled();
   });
 
   it("never ends a stream when LiveKit cannot confirm the room is empty", async () => {

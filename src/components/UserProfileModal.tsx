@@ -14,6 +14,7 @@ import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } f
 import { apiSetBlockUserAction } from '../features/safety/safetyApi';
 import { apiFetchFollowingIds } from '../features/feed/feedApi';
 import { apiLiveStreams, findLiveWatchTarget } from '../lib/live';
+import { useLivePresence } from '../hooks/useLivePresence';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
@@ -61,6 +62,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
   const toggleFollow = useVideoStore((s) => s.toggleFollow);
   const setUserFollowing = useVideoStore((s) => s.setUserFollowing);
   const { user: currentUser, session: _session } = useAuthStore();
+  const { creatorIds: liveCreatorIds } = useLivePresence(_session?.access_token, isOpen);
   const blockedUserIds = useSafetyStore((s) => s.blockedUserIds);
   const blockUser = useSafetyStore((s) => s.blockUser);
   const unblockUser = useSafetyStore((s) => s.unblockUser);
@@ -85,7 +87,15 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
   const isOwnProfile = currentUser?.id === user.id;
   const isBlocked = blockedUserIds.includes(user.id);
   const isFollowingUser = followingUsers.includes(user.id);
-  const isLiveNow = !!liveWatchKey && !isOwnProfile;
+  /**
+   * Live truth, not the snapshot taken when the sheet opened: `liveWatchKey` is
+   * the room to navigate to, and a room the creator has since left is still a
+   * room. Both of these come from the server — the set stays subscribed while the
+   * sheet is open, and the feed's hint is derived from the same authority — so a
+   * creator who ends loses the ring and the Watch Live button here too.
+   */
+  const isCreatorLive = liveCreatorIds.has(String(user.id)) || isLiveHint;
+  const isLiveNow = isCreatorLive && !isOwnProfile;
 
   const handleJoinLive = useCallback(() => {
     const key = String(liveWatchKey || user.id || '').trim();
@@ -423,7 +433,7 @@ export default function UserProfileModal({ isOpen, onClose, user, onFollow, isLi
                 size={80}
                 src={displayUser.avatar}
                 alt={displayUser.name}
-                live={!!liveWatchKey}
+                live={isCreatorLive}
               />
             </div>
             <h2 className="text-lg font-bold text-white flex items-center gap-1.5 -translate-y-[2mm]">

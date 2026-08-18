@@ -14,6 +14,7 @@ import { showToast } from '../lib/toast';
 import { getVideoPosterUrl } from '../lib/bunnyStorage';
 import { apiFetchProfileById, apiFetchProfiles, apiFetchVideoById } from '../features/feed/feedApi';
 import { apiLiveStreams } from '../lib/live';
+import { useLivePresence } from '../hooks/useLivePresence';
 import { reportFailure } from '../lib/reportFailure';
 import { inboxReturnState } from '../lib/settingsNav';
 
@@ -155,6 +156,8 @@ export default function ChatThread() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const previews = useLinkPreviews(messages);
   const [liveUsers, setLiveUsers] = useState<{ roomKey: string; userId: string; name: string; avatar: string }[]>([]);
+  const accessToken = useAuthStore((s) => s.session?.access_token);
+  const livePresence = useLivePresence(accessToken);
 
   const isSystemThread = useMemo(() => {
     return ['new', 'followers', 'likes', 'comments', 'mentions'].includes(threadId || '');
@@ -197,6 +200,9 @@ export default function ChatThread() {
   }, [navigate]);
 
   // People currently live — shown as a horizontal scroll row at the top of the chat.
+  // Rebuilt whenever the server says someone started or ended, so a creator who
+  // ends while the thread is open leaves the row instead of staying live on it
+  // until the thread is reopened. Failure still keeps the previous row.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -238,7 +244,7 @@ export default function ChatThread() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, livePresence]);
 
   useEffect(() => {
     if (!threadId || isSystemThread || !user?.id) return;

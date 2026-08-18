@@ -48,6 +48,28 @@ export function broadcastToFeedSubscribers(event: string, data: Record<string, u
   }
 }
 
+/**
+ * Announce that a live has ended, naming the creator.
+ *
+ * Every live indicator in the app — profile rings, live circles, share rows,
+ * Watch Live — is keyed by creator user id, but the room name is only the
+ * creator's id by default: `POST /api/live/start` accepts a `room`, so a stream
+ * key cannot be read as an identity. Without the id in this payload an open
+ * screen has no way to tell WHICH creator stopped, which is why those surfaces
+ * could only take a snapshot and then go stale until they were reopened.
+ *
+ * One function so the six places a live can end cannot drift into six payloads.
+ */
+export function broadcastStreamEnded(
+  streamKey: string,
+  hostUserId: string,
+): void {
+  broadcastToFeedSubscribers("stream_ended", {
+    stream_key: streamKey,
+    ...(hostUserId ? { host_user_id: hostUserId } : {}),
+  });
+}
+
 /** Subscribe to Valkey feed channel so events from other instances reach local clients. */
 export function initFeedPubSub(): void {
   if (!isValkeyConfigured()) return;

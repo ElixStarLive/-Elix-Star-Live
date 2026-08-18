@@ -15,7 +15,7 @@ import {
   roomHasActivePublisher,
   getRoomOccupancy,
 } from '../services/livekit';
-import { broadcastToFeedSubscribers } from '../feedBroadcast';
+import { broadcastToFeedSubscribers, broadcastStreamEnded } from '../feedBroadcast';
 import { dbInsertLiveStream, dbEndLiveStream, dbGetLiveStreams, dbGetStreamOwnerUserId } from '../lib/postgres';
 import { logger } from '../lib/logger';
 import {
@@ -272,7 +272,9 @@ async function endStaleLiveRows(
   listedStreamKeys: Set<string>,
 ): Promise<void> {
   const now = Date.now();
-  const stale: string[] = [];
+  // The creator id travels with the key: the row is gone by the time the end is
+  // announced, and every live indicator is keyed by creator, not by room.
+  const stale: Array<{ key: string; userId: string }> = [];
 
   for (const row of dbRows) {
     const key = row.stream_key;
@@ -289,12 +291,12 @@ async function endStaleLiveRows(
       continue;
     }
     if ((await getRoomOccupancy(key)) !== 'empty') continue;
-    stale.push(key);
+    stale.push({ key, userId: row.user_id });
   }
 
-  for (const key of stale) {
+  for (const { key, userId } of stale) {
     if (!(await removeActiveStream(key))) continue;
-    broadcastToFeedSubscribers('stream_ended', { stream_key: key });
+    broadcastStreamEnded(key, userId);
     logger.info({ streamKey: key }, 'live state reconciled: LiveKit room gone, stream marked ended');
   }
 }
@@ -708,7 +710,7 @@ export async function handleLiveEnd(req: Request, res: Response) {
   }
 
   await removeActiveStream(roomName, auth.userId);
-  broadcastToFeedSubscribers('stream_ended', { stream_key: roomName });
+  broadcastStreamEnded(roomName, auth.userId);
   return res.status(200).json({ ok: true, room: roomName });
 }
 

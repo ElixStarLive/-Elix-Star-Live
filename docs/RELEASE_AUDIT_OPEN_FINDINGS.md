@@ -5,45 +5,55 @@ A finding leaves this file only when it is fixed, with the commit recorded.
 
 ## Still open
 
-### OPEN — P2 — live indicators that snapshot once and never refresh
+### OPEN — P3 — live rings inside the host / spectator share panels
 
-Raised in Step 8, assigned to Step 13. **Needs an owner decision before it can be
-fixed**, for the reason below.
+The one live-indicator surface Step 13 could not close, with the reason.
 
-For You and Live Discover share one presence authority (authoritative
-`/api/live/streams` snapshot + `stream_started` / `stream_ended` +
-`reconcileLivePresence` + the ordering gate). These surfaces read the same REST
-authority but take a single snapshot when they open and never subscribe to
-`stream_ended`, so a creator who ends while the surface is open keeps a LIVE ring
-until it is reopened:
+`loadSharePanelContactsWithLive` feeds the share panels opened *from inside* a
+live (`useLiveHostController`, `useLiveSpectatorController`). Those screens own
+the websocket singleton for their live room, and `stream_started` /
+`stream_ended` are sent only to `__feed__` subscribers
+(`server/websocket/index.ts` registers a feed subscriber only for the `__feed__`
+room). `connectLiveFeedPresence` deliberately refuses to steal the socket back
+while a live room owns it, so a presence subscription mounted there could never
+receive an event — wiring it would have been dead code, not a fix.
 
-- `src/components/EnhancedVideoPlayer.tsx` — creator ring per active slide, and
-  the `isLiveHint` it passes into `UserProfileModal`
-- `src/components/UserProfileModal.tsx` — ring + Watch Live (open-time fetch)
-- `src/components/ShareModal.tsx` — contact rings (open-time fetch)
-- `src/pages/ChatThread.tsx` — "live now" row (mount only)
-- `src/components/RankingPanel.tsx` — LIVE Popular tab (mount only)
-- `src/pages/Inbox.tsx` — follower / suggested circles (mount only)
-- `src/pages/alerts/AlertsPage.tsx` — live rows (page load)
-- host + spectator share panels via `loadSharePanelContactsWithLive`
-- `src/components/LiveNotifyBanner.tsx` — the *started* banner has no
-  `stream_ended` handler (auto-dismisses after 6s)
-
-None of these invent live truth: every one derives from the same server snapshot,
-and none persists it to storage. The gap is refresh, not authority.
-
-Why it is still open after the Steps 1–10 cleanup gate: the fix has to be
-app-wide (a per-screen version is exactly the piecemeal behaviour the owner
-banned), and two of the nine surfaces are under owner locks that say never touch
-the file — `src/pages/Inbox.tsx` and `src/pages/ChatThread.tsx`. Subscribing them
-to `stream_ended` also changes when those screens re-render. Both need the owner
-to say go, naming those files.
-
-`src/pages/Profile.tsx` repost tiles use `is_live` / `content_kind` from the
-reposts API rather than the live registry. That is a stored property of the
-reposted item, not a presence claim; confirm the product intent in Step 13.
+Closing this properly needs one of two owner decisions, both outside Step 13:
+widen the server's presence fan-out beyond feed subscribers, or give the live
+screens a second transport. The rings are correct when the panel opens; a contact
+who ends while it is open keeps a ring until it is reopened.
 
 ## Closed
+
+### CLOSED in Step 13 — P2 — live indicators that snapshot once and never refresh
+
+Raised in Step 8. The server half was the reason a client-side fix could not
+work: `stream_ended` reached the feed with `stream_key` only, and a stream key is
+a room name (`POST /api/live/start` accepts one), so no client could tell which
+creator had ended. `broadcastStreamEnded` in `server/feedBroadcast.ts` is now the
+only way that event is emitted, and it always carries `host_user_id`; all six
+emit sites use it.
+
+The client half is `src/hooks/useLivePresence.ts` — one consumer of the existing
+authority (`apiLiveStreams` snapshot + `connectLiveFeedPresence` +
+`reconcileLivePresence` + the ordering gate), returning live creator ids and live
+room names separately so a room name cannot light up another creator's ring. No
+polling, no timers, no second architecture. Now reactive while open:
+`EnhancedVideoPlayer` (ring + the `isLiveHint` it passes down),
+`UserProfileModal` (ring + Watch Live), `ShareModal`, `ChatThread`, `Inbox`
+(circles and live rows), `AlertsPage`, and the `LiveNotifyBanner` *started*
+banner, which now retires when the server says that live ended instead of
+offering a tap into a dead room. Coverage:
+`src/hooks/useLivePresence.test.tsx`,
+`src/components/LiveNotifyBanner.presence.test.tsx`.
+
+Closed with proof rather than changed: `src/components/RankingPanel.tsx` renders
+only inside `LiveHostScreen` / `SpectatorLiveScreen`, which own the socket for
+their live room and therefore never receive feed presence events — the same
+transport limit as the share panels above; its list reloads whenever the panel is
+opened. `src/pages/Profile.tsx` declares `is_live` on the reposts row type but
+never reads it: no live ring is rendered from it, and navigation keys off
+`content_kind === 'live' && stream_key`, so there is no presence claim to fix.
 
 ### CLOSED in Step 6 — P2 — production rate-limit fallback
 

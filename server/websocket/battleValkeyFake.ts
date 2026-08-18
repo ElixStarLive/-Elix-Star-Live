@@ -13,6 +13,8 @@ const sets = new Map<string, Set<string>>();
 const hashes = new Map<string, Map<string, number>>();
 let hashesReachable = true;
 let stringsWritable = true;
+let stringsReadable = true;
+let setsWritable = true;
 let locksAvailable = true;
 
 export function resetValkeyFake(): void {
@@ -21,6 +23,8 @@ export function resetValkeyFake(): void {
   hashes.clear();
   hashesReachable = true;
   stringsWritable = true;
+  stringsReadable = true;
+  setsWritable = true;
   locksAvailable = true;
 }
 
@@ -32,6 +36,16 @@ export function setValkeyFakeHashesReachable(reachable: boolean): void {
 /** Simulate a confirmed-write helper failing (the session value itself). */
 export function setValkeyFakeStringsWritable(writable: boolean): void {
   stringsWritable = writable;
+}
+
+/** Simulate a confirmed read failing (the queued result payload). */
+export function setValkeyFakeStringsReadable(readable: boolean): void {
+  stringsReadable = readable;
+}
+
+/** Simulate a confirmed set write failing (the durability outbox membership). */
+export function setValkeyFakeSetsWritable(writable: boolean): void {
+  setsWritable = writable;
 }
 
 /** Simulate the lock helper being unable to answer. */
@@ -60,10 +74,13 @@ export const valkeyFake = {
     strings.has(key) ? (strings.get(key) as string) : null,
   valkeyTryGet: async (
     key: string,
-  ): Promise<{ status: "ok"; value: string | null } | { status: "unavailable" }> => ({
-    status: "ok",
-    value: strings.has(key) ? (strings.get(key) as string) : null,
-  }),
+  ): Promise<{ status: "ok"; value: string | null } | { status: "unavailable" }> =>
+    stringsReadable
+      ? {
+          status: "ok",
+          value: strings.has(key) ? (strings.get(key) as string) : null,
+        }
+      : { status: "unavailable" },
   valkeyDel: async (key: string): Promise<void> => {
     strings.delete(key);
     sets.delete(key);
@@ -98,6 +115,16 @@ export const valkeyFake = {
     const set = sets.get(key) ?? new Set<string>();
     set.add(member);
     sets.set(key, set);
+  },
+  valkeyTrySadd: async (
+    key: string,
+    member: string,
+  ): Promise<"ok" | "unavailable"> => {
+    if (!setsWritable) return "unavailable";
+    const set = sets.get(key) ?? new Set<string>();
+    set.add(member);
+    sets.set(key, set);
+    return "ok";
   },
   valkeySrem: async (key: string, member: string): Promise<void> => {
     sets.get(key)?.delete(member);
