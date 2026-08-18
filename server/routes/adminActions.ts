@@ -8,6 +8,8 @@ import { logger } from "../lib/logger";
 import { requireAuthWithRoles, requireAdmin } from "../middleware/rbac";
 import { disconnectUserSessions, sendToUserGlobal } from "../websocket/index";
 import { invalidateUserSessionCache } from "./auth";
+import { removeActiveStream } from "./livestream";
+import { broadcastToFeedSubscribers } from "../feedBroadcast";
 import { z } from "zod";
 import { validateBody } from "../middleware/validate";
 import { invalidateGiftsCatalogCache } from "../lib/catalogCacheValkey";
@@ -42,12 +44,20 @@ async function enforceReportAction(
         .query(`DELETE FROM comments WHERE id = $1`, [targetId])
         .catch((e) => logger.warn({ err: e, targetId }, "moderation comment delete failed"));
     } else if (type === "stream" || type === "live") {
-      await db
-        .query(
-          `UPDATE live_streams SET is_live = FALSE, ended_at = COALESCE(ended_at, NOW()) WHERE stream_key = $1 OR id::text = $1`,
-          [targetId],
-        )
-        .catch((e) => logger.warn({ err: e, targetId }, "moderation stream end failed"));
+      // Ending a live is owned by removeActiveStream: it clears the Valkey
+      // session and member set, ends the Neon row and invalidates the streams
+      // cache. The direct UPDATE this replaced also matched a column
+      // (live_streams.id) that does not exist, so the query threw and admin
+      // removal of a reported live silently did nothing at all.
+      const removed = await removeActiveStream(targetId).catch((e) => {
+        logger.warn({ err: e, targetId }, "moderation stream end failed");
+        return false;
+      });
+      if (removed) {
+        broadcastToFeedSubscribers("stream_ended", { stream_key: targetId });
+      } else {
+        logger.warn({ targetId }, "moderation stream end: no active stream removed");
+      }
     } else {
       logger.warn({ type, targetId }, "moderation remove: unsupported target type (no-op)");
     }

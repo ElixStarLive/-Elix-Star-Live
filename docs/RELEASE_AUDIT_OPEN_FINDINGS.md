@@ -42,6 +42,55 @@ only from route params and the signed-in user id in both live controllers, so a
 spectator becoming a co-host does **not** change or reconnect the WebSocket room.
 Publish permission is a LiveKit concern. That part is not a defect.
 
+## Carried to Step 13 (other live indicators) — raised in Step 8
+
+### OPEN — P2 — live indicators that snapshot once and never refresh
+
+For You and Live Discover share one presence authority (authoritative
+`/api/live/streams` snapshot + `stream_started` / `stream_ended` +
+`reconcileLivePresence` + the ordering gate). These surfaces read the same REST
+authority but take a single snapshot when they open and never subscribe to
+`stream_ended`, so a creator who ends while the surface is open keeps a LIVE ring
+until it is reopened:
+
+- `src/components/EnhancedVideoPlayer.tsx` — creator ring per active slide, and
+  the `isLiveHint` it passes into `UserProfileModal`
+- `src/components/UserProfileModal.tsx` — ring + Watch Live (open-time fetch)
+- `src/components/ShareModal.tsx` — contact rings (open-time fetch)
+- `src/pages/ChatThread.tsx` — "live now" row (mount only)
+- `src/components/RankingPanel.tsx` — LIVE Popular tab (mount only)
+- `src/pages/Inbox.tsx` — follower / suggested circles (mount only; the
+  notification filter is applied at load)
+- `src/pages/alerts/AlertsPage.tsx` — live rows (page load)
+- host + spectator share panels via `loadSharePanelContactsWithLive`
+- `src/components/LiveNotifyBanner.tsx` — the *started* banner has no
+  `stream_ended` handler (auto-dismisses after 6s)
+
+None of these invent live truth: every one derives from the same server
+snapshot, and none persists it to storage. The gap is refresh, not authority.
+Closing it means subscribing more surfaces to feed presence, which changes what
+those screens re-render and when — a decision for the Step 13 pass, not a
+drive-by.
+
+`src/pages/Profile.tsx` repost tiles use `is_live` / `content_kind` from the
+reposts API rather than the live registry. That is a stored property of the
+reposted item, not a presence claim; confirm the product intent in Step 13.
+
+### OPEN — P3 — host-disconnect grace has source-contract tests only
+
+`scheduleHostDisconnectStreamEnd` in `server/websocket/index.ts` is private and
+its re-verification chain (local room map → Valkey `room:members` →
+`isUserPublishingInRoom` → `roomHasActivePublisher` → `isStreamHost` → creator
+role room) was verified by reading the source. Coverage in
+`server/websocket/liveBattleStateContract.test.ts` asserts the source contract,
+not behaviour. Making it behavioural means restructuring a correct live-lifecycle
+path purely for testability, which is not a Step 8 fix.
+
+### OPEN — P3 — `server/scripts/_env.ts` orphan approved for deletion in Step 4
+
+Still present, still has no importers. Approved for removal by the owner in
+Step 4; not deleted here because Step 8 must not carry unrelated changes.
+
 ## Closed
 
 ### CLOSED in Step 6 — P2 — production rate-limit fallback

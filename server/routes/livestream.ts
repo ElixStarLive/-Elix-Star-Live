@@ -495,18 +495,36 @@ export async function handleLiveStart(req: Request, res: Response) {
     const startedAt = isReconnect
       ? existing.startedAt
       : new Date().toISOString();
+
+    // Mint the publish token before anything is registered or announced. It is
+    // local JWT signing with no side effects, so failing here must not leave a
+    // registered stream, a stream_started broadcast or follower notifications
+    // behind for a live that never starts.
+    const token = await createLiveToken({
+      userId: auth.userId,
+      roomName,
+      canPublish: true,
+      name: auth.userId,
+    });
+
     await setActiveStream(roomName, auth.userId, startedAt, safeDisplayName);
     try {
       await dbInsertLiveStream(roomName, auth.userId, safeDisplayName, isReconnect);
     } catch (err) {
       logger.error({ err, roomName, userId: auth.userId }, "handleLiveStart: dbInsertLiveStream failed");
-      try {
-        await removeActiveStream(roomName, auth.userId);
-      } catch (cleanupErr) {
-        logger.warn(
-          { err: cleanupErr, roomName, userId: auth.userId },
-          "handleLiveStart: removeActiveStream cleanup failed after DB insert error",
-        );
+      // Roll back only a registration this call created. On a reconnect the
+      // creator is already broadcasting, so tearing the session down over a
+      // transient DB blip would end a healthy live; failing the request leaves
+      // the existing registration exactly as it was.
+      if (!isReconnect) {
+        try {
+          await removeActiveStream(roomName, auth.userId);
+        } catch (cleanupErr) {
+          logger.warn(
+            { err: cleanupErr, roomName, userId: auth.userId },
+            "handleLiveStart: removeActiveStream cleanup failed after DB insert error",
+          );
+        }
       }
       return res.status(500).json({ error: "Failed to start live stream." });
     }
@@ -576,13 +594,6 @@ export async function handleLiveStart(req: Request, res: Response) {
         logger.warn({ err, userId: auth.userId }, 'handleLiveStart: follower push skipped');
       }
     }
-
-    const token = await createLiveToken({
-      userId: auth.userId,
-      roomName,
-      canPublish: true,
-      name: auth.userId,
-    });
 
     return res.status(200).json({
       room: roomName,

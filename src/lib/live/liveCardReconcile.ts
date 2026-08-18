@@ -61,6 +61,34 @@ export function reconcileLivePresence<T>(args: {
 }
 
 /**
+ * Ordering gate for authoritative snapshots.
+ *
+ * Both discovery surfaces refresh from several independent triggers (mount,
+ * returning to the route, visibilitychange, window focus), so two requests are
+ * regularly in flight at once and can resolve out of order. Applying the older
+ * answer rolls presence backwards: `pruneEndedBefore` has already dropped the
+ * end record that would have vetoed it, so the stale list re-adds a creator who
+ * has ended. Sequencing the responses fixes that at the source — only the
+ * newest request may write state, which is what "the newest authoritative
+ * answer wins" means.
+ *
+ * This is not a debounce: no request is delayed, coalesced or cancelled. A
+ * superseded response is simply not authoritative any more.
+ */
+export function createLiveSnapshotGate(): {
+  /** Claim a ticket for a request about to be sent. */
+  begin: () => number;
+  /** False once a later request has been sent: this answer must not be applied. */
+  isCurrent: (ticket: number) => boolean;
+} {
+  let latest = 0;
+  return {
+    begin: () => ++latest,
+    isCurrent: (ticket: number) => ticket === latest,
+  };
+}
+
+/**
  * Drop end-event records the server has already accounted for: once a snapshot
  * requested after the end has been applied, its list reflects the end and the
  * record can go. This is what keeps the record set bounded without a timer.

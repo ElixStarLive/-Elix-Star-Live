@@ -18,7 +18,11 @@ import {
 } from "../lib/liveCreatorDisplay";
 import { platform } from "../lib/platform";
 import { apiLiveStreams, connectLiveFeedPresence } from "../lib/live";
-import { pruneEndedBefore, reconcileLivePresence } from "../lib/live/liveCardReconcile";
+import {
+  createLiveSnapshotGate,
+  pruneEndedBefore,
+  reconcileLivePresence,
+} from "../lib/live/liveCardReconcile";
 import { reportFailure } from "../lib/reportFailure";
 import { apiFetchProfileById as apiFeedFetchProfileById } from "../features/feed/feedApi";
 
@@ -102,6 +106,8 @@ export default function VideoFeed() {
   // stream_ended times, so a snapshot taken before the end cannot re-add the
   // room. Records are pruned once a newer snapshot has accounted for them.
   const endedAtRef = useRef<Map<string, number>>(new Map());
+  /* Several triggers refresh this list, so responses can land out of order. */
+  const snapshotGate = useRef(createLiveSnapshotGate());
 
   const session = useAuthStore((s) => s.session);
   const token = session?.access_token || "";
@@ -126,6 +132,7 @@ export default function VideoFeed() {
 
   /* ---- Fetch live streams from REST (server owns live presence) ---- */
   const fetchLiveStreams = useCallback(async () => {
+    const ticket = snapshotGate.current.begin();
     const requestedAt = Date.now();
     try {
       const { streams: rawStreams, error } = await apiLiveStreams();
@@ -133,6 +140,12 @@ export default function VideoFeed() {
       // Failed or unchanged (304): the server told us nothing about who is
       // live, so this is not a snapshot and the current list stands.
       if (error) {
+        setLiveLoading(false);
+        return;
+      }
+      // A newer request was sent after this one, so this answer is no longer
+      // the authoritative one and must not roll the list back.
+      if (!snapshotGate.current.isCurrent(ticket)) {
         setLiveLoading(false);
         return;
       }

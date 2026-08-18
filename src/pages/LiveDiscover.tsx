@@ -4,7 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Radio, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { apiLiveStreams, connectLiveFeedPresence } from '../lib/live';
-import { pruneEndedBefore, reconcileLivePresence } from '../lib/live/liveCardReconcile';
+import {
+  createLiveSnapshotGate,
+  pruneEndedBefore,
+  reconcileLivePresence,
+} from '../lib/live/liveCardReconcile';
 import { showToast } from '../lib/toast';
 import {
   isGenericLiveCreatorName,
@@ -69,12 +73,15 @@ export default function LiveDiscover() {
   const [loading, setLoading] = useState(true);
   const [activeIds, setActiveIds] = useState<Set<string>>(() => new Set());
   const endedAtRef = useRef<Map<string, number>>(new Map());
+  /* Several triggers refresh this list, so responses can land out of order. */
+  const snapshotGate = useRef(createLiveSnapshotGate());
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
   const visibleIdsRef = useRef<Set<string>>(new Set());
 
   const fetchLiveStreams = useCallback(async (opts?: { silent?: boolean }) => {
     if (!opts?.silent) setLoading(true);
+    const ticket = snapshotGate.current.begin();
     const requestedAt = Date.now();
     try {
       const { streams, error } = await apiLiveStreams();
@@ -83,6 +90,9 @@ export default function LiveDiscover() {
         if (!opts?.silent) showToast(error || 'Could not load live streams');
         return;
       }
+      // A newer request was sent after this one, so this answer is no longer
+      // the authoritative one and must not roll the lobby back.
+      if (!snapshotGate.current.isCurrent(ticket)) return;
 
       const snapshot: LiveCreator[] = streams
         .filter((raw) => !!parseRawLiveStreamCore(raw as RawLiveStreamFields).streamKey)

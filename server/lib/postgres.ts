@@ -374,7 +374,14 @@ export async function dbInsertLiveStream(
       [streamKey, userId, displayName ?? null, preserveActiveSession],
     );
   } catch (err) {
+    // This row IS the durable live registration: /api/live/streams verifies it
+    // against LiveKit and every end path mutates it. Swallowing the failure
+    // returned a publish token and broadcast stream_started with nothing in the
+    // registry, so the creator was live but unlistable and unendable. The one
+    // caller (POST /api/live/start) rolls the session back and fails the
+    // request on this.
     logger.error({ err }, "Postgres insert live_stream failed");
+    throw err;
   }
 }
 
