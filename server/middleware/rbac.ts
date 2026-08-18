@@ -66,12 +66,3 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   }
   next();
 }
-
-export function requireCreator(req: Request, res: Response, next: NextFunction): void {
-  const ctx = req.authContext;
-  if (!ctx?.isCreator && !ctx?.isAdmin) {
-    res.status(403).json({ error: "Creator or admin required" });
-    return;
-  }
-  next();
-}

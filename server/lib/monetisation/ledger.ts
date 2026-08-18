@@ -294,28 +294,6 @@ export async function postLedgerEntry(
   return { id: ledgerId, alreadyExisted: false };
 }
 
-export async function postLedgerEntryStandalone(input: LedgerPostInput): Promise<LedgerRow | null> {
-  const pool = getPool();
-  if (!pool) return null;
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const row = await postLedgerEntry(client, input);
-    await client.query("COMMIT");
-    return row;
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch (rb) {
-      logger.error({ err: rb }, "postLedgerEntryStandalone ROLLBACK failed");
-    }
-    logger.error({ err, key: input.idempotencyKey }, "postLedgerEntryStandalone failed");
-    return null;
-  } finally {
-    client.release();
-  }
-}
-
 /**
  * Create a full reversal of an existing ledger row (refund / chargeback).
  * Original row is never deleted.

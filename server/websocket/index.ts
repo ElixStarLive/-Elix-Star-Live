@@ -184,38 +184,6 @@ export function sendToClient(
   }
 }
 
-export function sendToUser(
-  roomId: string,
-  userId: string,
-  event: string,
-  data: unknown,
-): void {
-  const room = rooms.get(roomId);
-  if (!room) return;
-
-  let message: string;
-  try {
-    message = JSON.stringify({
-      event,
-      data,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error({ err: error }, "Failed to serialize message");
-    return;
-  }
-
-  room.forEach((client) => {
-    if (client.userId === userId && client.ws.readyState === WebSocket.OPEN) {
-      try {
-        client.ws.send(message);
-      } catch (error) {
-        logger.error({ err: error }, "Failed to send to user");
-      }
-    }
-  });
-}
-
 /** True when userId already receives room broadcasts for this live (local socket or Valkey member set). */
 export async function isUserInRoomAudience(
   roomId: string,

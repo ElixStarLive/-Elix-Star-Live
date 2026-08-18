@@ -12,8 +12,7 @@
 import type { PoolClient } from "pg";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
-import { catalogGbpNumberToPence, gbpStringToPence, netAfterDeductions } from "./moneyMath";
-import { createPaidCoinLot, settlePaidCoinLot } from "./paidCoinLots";
+import { catalogGbpNumberToPence, gbpStringToPence } from "./moneyMath";
 import {
   postCreatorSubscriptionRevenue,
   postPromotePlatformRevenue,
@@ -115,56 +114,6 @@ export function membershipGrossPenceFromConfig(): number {
   const gbp = price.regions.find((r) => r.regionCode === "GB" || r.regionCode === "UK")?.price;
   if (!gbp) return gbpStringToPence(process.env.CREATOR_MEMBERSHIP_PRICE_GBP || "9.99");
   return moneyPartsToGbpPence(gbp) ?? gbpStringToPence(`${gbp.units}.99`);
-}
-
-/**
- * Create + settle a paid coin lot in one step after verified IAP credit.
- * Idempotent on provider + transaction id.
- */
-export async function autoSettlePaidCoinLot(
-  client: PoolClient,
-  input: {
-    userId: string;
-    provider: string;
-    providerTransactionId: string;
-    productId: string;
-    coins: number;
-    price: VerifiedPrice;
-  },
-): Promise<{ lotId: string; netPence: number; alreadySettled: boolean }> {
-  const net = netAfterDeductions({
-    grossPence: input.price.grossPence,
-    appStoreDeductionPence: input.price.appStoreDeductionPence,
-    taxDeductionPence: input.price.taxDeductionPence,
-    processingDeductionPence: input.price.processingDeductionPence,
-  });
-  await createPaidCoinLot(client, {
-    userId: input.userId,
-    provider: input.provider,
-    providerTransactionId: input.providerTransactionId,
-    productId: input.productId,
-    coins: input.coins,
-    grossPence: input.price.grossPence,
-    netPence: net,
-    appStoreDeductionPence: input.price.appStoreDeductionPence,
-    taxDeductionPence: input.price.taxDeductionPence,
-    processingDeductionPence: input.price.processingDeductionPence,
-    settled: true,
-  });
-  // Ensure settled even if row pre-existed as pending
-  const ok = await settlePaidCoinLot({
-    provider: input.provider,
-    providerTransactionId: input.providerTransactionId,
-    appStoreDeductionPence: input.price.appStoreDeductionPence,
-    taxDeductionPence: input.price.taxDeductionPence,
-    processingDeductionPence: input.price.processingDeductionPence,
-    netPence: net,
-  });
-  return {
-    lotId: `lot:${input.provider}:${input.providerTransactionId}`,
-    netPence: net,
-    alreadySettled: !ok,
-  };
 }
 
 /**
@@ -293,34 +242,6 @@ export async function reversePurchaseFinancialsOnClient(
     if (r && !r.alreadyExisted) reversedLedger += 1;
   }
   return { ok: true, reversedLedger, alreadyProcessed: !eventInserted && reversedLedger === 0 };
-}
-
-/** Reverse paid coin lot + all linked financial ledger rows for a store refund. */
-export async function reversePurchaseFinancials(input: {
-  provider: string;
-  providerTransactionId: string;
-  kind: "REFUND_REVERSAL" | "CHARGEBACK_REVERSAL";
-  webhookEventId: string;
-}): Promise<{ ok: boolean; reversedLedger: number }> {
-  const pool = getPool();
-  if (!pool) return { ok: false, reversedLedger: 0 };
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    const result = await reversePurchaseFinancialsOnClient(client, input);
-    await client.query("COMMIT");
-    return { ok: true, reversedLedger: result.reversedLedger };
-  } catch (err) {
-    try {
-      await client.query("ROLLBACK");
-    } catch {
-      logger.error({ err }, "reversePurchaseFinancials ROLLBACK failed");
-    }
-    logger.error({ err }, "reversePurchaseFinancials failed");
-    return { ok: false, reversedLedger: 0 };
-  } finally {
-    client.release();
-  }
 }
 
 export async function autoPostPromoteRevenue(input: {

@@ -234,11 +234,6 @@ export function battleTypeForParticipants(
   return has("player3") && has("player4") ? "2x2" : "1x1";
 }
 
-/** Seats that must hold a present creator before the battle may start. */
-export function requiredSeats(session: BattleSession): BattleSeat[] {
-  return session.participants.filter((p) => p.userId).map((p) => p.seat);
-}
-
 export function allRequiredReady(session: BattleSession): boolean {
   const seated = session.participants.filter((p) => p.userId);
   if (seated.length < 2) return false;

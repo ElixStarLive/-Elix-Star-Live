@@ -2,7 +2,6 @@
  * Paid coin lots — FIFO attribution of settled IAP net revenue to paid gifts.
  */
 import type { PoolClient } from "pg";
-import { randomUUID } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
 import { allocateLotPence } from "./moneyMath";
@@ -189,8 +188,4 @@ export async function consumeSettledNetForGift(
     lotIds,
     settled: true,
   };
-}
-
-export function newLotId(): string {
-  return randomUUID();
 }

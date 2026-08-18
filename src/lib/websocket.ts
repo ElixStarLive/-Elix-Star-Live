@@ -14,13 +14,10 @@ type WebSocketEvent =
   // Chat events
   | "chat_message"
   | "chat_ack"
-  | "chat_deleted"
   // Gift events
   | "gift_sent"
   | "gift_ack"
   | "gift_goal_sync"
-  | "big_gift_queue_update"
-  | "leaderboard_update"
   // Heart events
   | "heart_sent"
   // Battle events (server-controlled)
@@ -35,7 +32,6 @@ type WebSocketEvent =
   | "battle_tick"
   | "battle_score"
   | "battle_error"
-  | "battle_ready"
   // Co-host events
   | "cohost_invite"
   | "cohost_invite_ack"
@@ -46,15 +42,11 @@ type WebSocketEvent =
   | "cohost_layout_sync"
   | "cohost_seat_released"
   | "live_share"
-  | "live_share_ack"
   // Moderation events (AI safety: warning → pause → suspend)
-  | "user_muted"
-  | "user_kicked"
   | "user_banned"
   | "moderation_warning"
   | "moderation_pause"
   | "moderation_suspend"
-  | "room_full"
   | "stream_ended"
   | "stream_started"
   | "booster_activated"

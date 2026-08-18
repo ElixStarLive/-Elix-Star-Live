@@ -204,9 +204,6 @@ export async function connectPostgres(): Promise<void> {
   }
 }
 
-/** @deprecated Use connectPostgres — kept for ops scripts that still import this alias. */
-export const initPostgres = connectPostgres;
-
 export async function loadVideosFromDb(): Promise<Video[]> {
   if (!pool) {
     throw new Error("Postgres pool is not initialized");

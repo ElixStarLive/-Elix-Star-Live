@@ -5541,7 +5541,6 @@ export function useLiveHostController() {
     battleHideScores,
     battleJoinerConnectIdRef,
     battleLifecycleRef,
-    battleLkRoomRef,
     battleMistSide,
     battleMistTimerRef,
     battleParticipantStream,

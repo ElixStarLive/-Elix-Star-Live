@@ -140,17 +140,8 @@ async function createConnectOnboardingLink(
   return url;
 }
 
-export function isPayoutProviderConfigured(): boolean {
-  return !!getStripe();
-}
-
 export function isStripeTestMode(): boolean {
   return resolveStripeSecretKey().mode === "test";
-}
-
-export function getStripeModeSafe(): { mode: StripeKeyMode; source: StripeKeySource } {
-  const r = resolveStripeSecretKey();
-  return { mode: r.mode, source: r.source };
 }
 
 export async function createOrGetPayoutAccount(creatorUserId: string): Promise<{
