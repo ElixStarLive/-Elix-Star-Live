@@ -4,10 +4,12 @@ import type { BattleSession } from "./battleModel";
 
 const state: {
   battle: BattleSession | null;
+  battleUnavailable: boolean;
   publishGrants: Set<string>;
   layoutCoHosts: Array<{ userId: string; status?: string }>;
 } = {
   battle: null,
+  battleUnavailable: false,
   publishGrants: new Set(),
   layoutCoHosts: [],
 };
@@ -19,7 +21,10 @@ vi.mock("./index", () => ({
 }));
 
 vi.mock("./battle", () => ({
-  getBattleFromStore: async () => state.battle,
+  getBattleSessionState: async () =>
+    state.battleUnavailable
+      ? { status: "unavailable" as const }
+      : { status: "ok" as const, battle: state.battle },
 }));
 
 const { normalizeRequestedBattleSeat, resolveValidatedGiftRecipient } =
@@ -35,8 +40,42 @@ const ACTIVE_2X2 = () =>
 describe("validated gift recipient", () => {
   beforeEach(() => {
     state.battle = null;
+    state.battleUnavailable = false;
     state.publishGrants = new Set();
     state.layoutCoHosts = [];
+  });
+
+  it("refuses a seated gift when battle state is unknown, instead of paying the host", async () => {
+    // Valkey could not answer. The battle may well be active, so dropping the
+    // requested seat here would silently pay the stream owner instead of the
+    // creator the sender chose.
+    state.battleUnavailable = true;
+    await expect(
+      resolveValidatedGiftRecipient({
+        roomId: "host-room",
+        streamOwnerUserId: "c1",
+        requestedBattleTarget: "player4",
+      }),
+    ).resolves.toEqual({ ok: false, error: "BATTLE_STATE_UNAVAILABLE" });
+  });
+
+  it("still credits the stream owner when no seat was named and state is unknown", async () => {
+    // Nothing was misrouted: with no requested seat the owner is the intended
+    // recipient whether or not a battle is running.
+    state.battleUnavailable = true;
+    const r = await resolveValidatedGiftRecipient({
+      roomId: "host-room",
+      streamOwnerUserId: "c1",
+    });
+    expect(r).toEqual({
+      ok: true,
+      recipient: {
+        creatorId: "c1",
+        battleSeat: null,
+        teamId: null,
+        origin: "stream_owner",
+      },
+    });
   });
 
   it("normalizes only real seats", () => {

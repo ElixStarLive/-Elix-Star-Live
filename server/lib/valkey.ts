@@ -308,6 +308,25 @@ export async function valkeyGet(key: string): Promise<string | null> {
   }
 }
 
+/**
+ * GET for callers that must tell an absent key apart from a Valkey failure.
+ * `valkeyGet` answers `null` for both, which reads as "this does not exist" and
+ * lets an outage look like normal absence. Callers deciding who receives money
+ * need the difference.
+ */
+export async function valkeyTryGet(
+  key: string,
+): Promise<{ status: "ok"; value: string | null } | { status: "unavailable" }> {
+  const v = getValkey();
+  if (!v) return { status: "unavailable" };
+  try {
+    return { status: "ok", value: await v.get(key) };
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyTryGet failed");
+    return { status: "unavailable" };
+  }
+}
+
 export async function valkeyDel(key: string): Promise<void> {
   const v = getValkey();
   if (!v) return;

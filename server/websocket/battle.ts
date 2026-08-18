@@ -27,6 +27,7 @@ import {
   isValkeyConfigured,
   valkeySet,
   valkeyGet,
+  valkeyTryGet,
   valkeyDel,
   valkeySadd,
   valkeySrem,
@@ -101,26 +102,46 @@ function hasValkey(): boolean {
 
 // ── Store ───────────────────────────────────────────────────────────────────
 
-export async function getBattleFromStore(
+/**
+ * Battle state with the failure case kept separate from the empty case.
+ *
+ * "ok" with a null battle means Valkey answered and there is no battle. The
+ * "unavailable" status means Valkey could not answer, so nothing is known.
+ * Callers that route money must not read the second as the first: a gift aimed
+ * at a battle seat would otherwise fall through to the stream owner and pay the
+ * wrong creator.
+ */
+export async function getBattleSessionState(
   roomId: string,
-): Promise<BattleSession | null> {
-  if (!hasValkey() || !roomId) return null;
+): Promise<
+  { status: "ok"; battle: BattleSession | null } | { status: "unavailable" }
+> {
+  if (!roomId) return { status: "ok", battle: null };
+  if (!hasValkey()) return { status: "unavailable" };
   try {
-    const raw = await valkeyGet(BATTLE_KEY_PREFIX + roomId);
-    if (!raw) return null;
-    const session = parseBattleSession(JSON.parse(raw));
+    const read = await valkeyTryGet(BATTLE_KEY_PREFIX + roomId);
+    if (read.status === "unavailable") return { status: "unavailable" };
+    if (!read.value) return { status: "ok", battle: null };
+    const session = parseBattleSession(JSON.parse(read.value));
     if (!session) {
       // Not a canonical session — never guess at authoritative state.
       await valkeyDel(BATTLE_KEY_PREFIX + roomId);
       await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
       logger.warn({ roomId }, "battle store: dropped non-canonical session");
-      return null;
+      return { status: "ok", battle: null };
     }
-    return session;
+    return { status: "ok", battle: session };
   } catch (err) {
-    logger.error({ err, roomId }, "getBattleFromStore failed");
-    return null;
+    logger.error({ err, roomId }, "getBattleSessionState failed");
+    return { status: "unavailable" };
   }
+}
+
+export async function getBattleFromStore(
+  roomId: string,
+): Promise<BattleSession | null> {
+  const state = await getBattleSessionState(roomId);
+  return state.status === "ok" ? state.battle : null;
 }
 
 export async function saveBattleToStore(

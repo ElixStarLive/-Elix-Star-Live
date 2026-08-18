@@ -20,7 +20,7 @@
  */
 
 import { getCohostLayout, hasCohostPublishGrant } from "./index";
-import { getBattleFromStore } from "./battle";
+import { getBattleSessionState } from "./battle";
 import {
   type BattleSeat,
   type BattleTeamId,
@@ -40,6 +40,7 @@ export type GiftRecipient = {
 export type GiftRecipientError =
   | "INVALID_BATTLE_TARGET"
   | "INVALID_COHOST_TARGET"
+  | "BATTLE_STATE_UNAVAILABLE"
   | "NO_RECIPIENT";
 
 export type GiftRecipientResult =
@@ -89,7 +90,18 @@ export async function resolveValidatedGiftRecipient(opts: {
   const roomId = trimId(opts.roomId);
   const owner = trimId(opts.streamOwnerUserId);
 
-  const battle = await getBattleFromStore(roomId);
+  const requestedSeat = opts.requestedBattleTarget;
+  const namedASeat =
+    requestedSeat !== undefined && requestedSeat !== null && requestedSeat !== "";
+
+  const battleState = await getBattleSessionState(roomId);
+  if (battleState.status === "unavailable") {
+    // Falling through here would drop the requested seat and pay the stream
+    // owner instead of the creator the sender chose. Only reject when a seat was
+    // actually named: with no seat the owner is the intended recipient either way.
+    if (namedASeat) return { ok: false, error: "BATTLE_STATE_UNAVAILABLE" };
+  }
+  const battle = battleState.status === "ok" ? battleState.battle : null;
   if (battle && battle.status === "ACTIVE") {
     const requested = opts.requestedBattleTarget;
     // Default to the host seat only when the client did not name a target.

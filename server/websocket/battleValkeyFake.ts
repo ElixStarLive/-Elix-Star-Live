@@ -30,6 +30,12 @@ export const valkeyFake = {
   },
   valkeyGet: async (key: string): Promise<string | null> =>
     strings.has(key) ? (strings.get(key) as string) : null,
+  valkeyTryGet: async (
+    key: string,
+  ): Promise<{ status: "ok"; value: string | null } | { status: "unavailable" }> => ({
+    status: "ok",
+    value: strings.has(key) ? (strings.get(key) as string) : null,
+  }),
   valkeyDel: async (key: string): Promise<void> => {
     strings.delete(key);
     sets.delete(key);
