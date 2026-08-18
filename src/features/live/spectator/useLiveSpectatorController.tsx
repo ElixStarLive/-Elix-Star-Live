@@ -723,9 +723,21 @@ export function useLiveSpectatorController() {
     SPEED_CHALLENGE_ENABLED,
   ]);
 
-  /** When battle is active, gifts credit host (red) or opponent (blue) MVP tallies. */
-  const [spectatorGiftBattleTarget, setSpectatorGiftBattleTarget] = useState<'host' | 'opponent'>('host');
-  /** From battle_state_sync — map /watch/:streamId to red vs blue team for gifts (defaults were always host). */
+  /**
+   * Which creator's audience this spectator belongs to.
+   *
+   * One answer for the whole battle: it routes the full gift video, the MVP
+   * column and — because there is no target picker — who a gift actually pays.
+   * Resolved from the creator this viewer came in for (kept across the redirect
+   * into the battle room), so a 2×2 support creator's audience credits that
+   * creator instead of falling back to the host.
+   */
+  const [battleAudienceSlot, setBattleAudienceSlot] = useState<ServerBattleGiftTarget>('host');
+  const battleAudienceSlotRef = useRef<ServerBattleGiftTarget>('host');
+  battleAudienceSlotRef.current = battleAudienceSlot;
+  const battleAudienceCreatorIdRef = useRef<string>('');
+  const spectatorGiftBattleTarget = battleAudienceSlot;
+  /** From battle_state_sync — the four seated creators, for gift + media routing. */
   const [battleStreamIds, setBattleStreamIds] = useState<{
     hostRoomId: string;
     hostUserId: string;
@@ -748,35 +760,8 @@ export function useLiveSpectatorController() {
     syncMvpSlotsRef.current();
   }, [battleStreamIds, spectatorBattle?.player3UserId, spectatorBattle?.player4UserId, spectatorBattle?.opponentRoomId]);
 
-  // No Left/Right picker — gift + mist target follows the stream room you're watching.
-  useEffect(() => {
-    if (!spectatorBattle?.active) {
-      setSpectatorGiftBattleTarget('host');
-      return;
-    }
-    const sid = String(effectiveStreamId || '').trim();
-    const oppRoom = String(battleStreamIds?.opponentRoomId || spectatorBattle.opponentRoomId || '').trim();
-    const hostRoom = String(battleStreamIds?.hostRoomId || '').trim();
-    if (oppRoom && sid && sid === oppRoom) {
-      setSpectatorGiftBattleTarget('opponent');
-      return;
-    }
-    if (hostRoom && sid && sid === hostRoom) {
-      setSpectatorGiftBattleTarget('host');
-      return;
-    }
-    // Fallback: if watching opponent room id embedded in battle state.
-    if (oppRoom && sid === oppRoom) setSpectatorGiftBattleTarget('opponent');
-    else setSpectatorGiftBattleTarget('host');
-  }, [
-    spectatorBattle?.active,
-    spectatorBattle?.opponentRoomId,
-    battleStreamIds?.hostRoomId,
-    battleStreamIds?.opponentRoomId,
-    effectiveStreamId,
-  ]);
-
-  // Resolve which creator's audience this spectator is for full gift-video routing.
+  // No target picker — gift, mist and gift video all follow the creator this
+  // viewer is here for, resolved once below.
   useEffect(() => {
     const navState = location.state as { battleAudienceCreatorId?: string } | null;
     const fromNav =
@@ -826,7 +811,10 @@ export function useLiveSpectatorController() {
 
   const fireMistFog = useCallback(() => {
     if (mistFog && mistFog.expiresAt > Date.now()) return;
-    liveMistActivated({ target: spectatorGiftBattleTarget });
+    // Mist covers a side of the stage, so a support seat maps to its team's side.
+    liveMistActivated({
+      target: normalizeBattleGiftTarget(spectatorGiftBattleTarget) ?? 'host',
+    });
   }, [mistFog, spectatorGiftBattleTarget]);
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   const [battleHideScores, setBattleHideScores] = useState(false);
@@ -892,18 +880,9 @@ export function useLiveSpectatorController() {
   const [showOpponentPanel, setShowOpponentPanel] = useState(false);
   /** Which battle half opened the bottom partner panel. */
   const [battleSidePanel, setBattleSidePanel] = useState<'host' | 'opponent' | null>(null);
-  /**
-   * Which creator's audience this spectator belongs to for full gift-video routing.
-   * Preserved across battle-room redirect via location.state + in-memory ref.
-   */
-  const [battleAudienceSlot, setBattleAudienceSlot] = useState<ServerBattleGiftTarget>('host');
-  const battleAudienceSlotRef = useRef<ServerBattleGiftTarget>('host');
-  battleAudienceSlotRef.current = battleAudienceSlot;
-
   useEffect(() => {
     syncMvpSlotsRef.current();
   }, [battleAudienceSlot]);
-  const battleAudienceCreatorIdRef = useRef<string>('');
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
   const [cohostGiftScores, setCohostGiftScores] = useState<Record<string, number>>({});
@@ -3293,7 +3272,9 @@ export function useLiveSpectatorController() {
         // Sender always plays the gift they just sent to the target.
         enqueueGiftVideo(
           videoUrl,
-          spectatorBattle?.active ? spectatorGiftBattleTarget : null,
+          spectatorBattle?.active
+            ? normalizeBattleGiftTarget(spectatorGiftBattleTarget)
+            : null,
         );
       }
     }
@@ -3616,7 +3597,6 @@ export function useLiveSpectatorController() {
     setSpeakingIds,
     setSpectatorBattle,
     setSpectatorCoHosts,
-    setSpectatorGiftBattleTarget,
     setSpeedChallengeActive,
     setSpeedChallengeTime,
     setSpeedMultiplier,

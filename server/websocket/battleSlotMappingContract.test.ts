@@ -77,8 +77,8 @@ describe("battle slot mapping contracts", () => {
     // The seat is dropped by user id and its score reset — the remaining
     // creators keep the seat they were invited into.
     expect(block).toContain("(p) => p.userId !== participant.userId");
-    expect(block).toContain("await resetSeatScore(roomId, participant.seat)");
-    expect(block).toContain("if (isBattleHost(session, userId)) return false");
+    expect(block).toContain("await resetSeatScore(roomId, vacatedSeat)");
+    expect(block).toContain("if (isBattleHost(session, userId)) return null");
     expect(block).not.toContain("splice(");
   });
 

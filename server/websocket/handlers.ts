@@ -15,6 +15,7 @@ import {
   buildBattleStateForRoom,
   claimBattleSeat,
   claimBattleVoteOnce,
+  releaseBattleVoteOnce,
   clearPendingBattleInvites,
   confirmBattleParticipantPresence,
   ensureBattleForHost,
@@ -820,7 +821,7 @@ export async function handleMessage(
         // server decides: seats come from real accepts, and the clock starts
         // only when a complete side is confirmed present. Entering battle mode
         // with no rival yet simply stays WAITING — that is not an error.
-        const started = await startBattleIfReady(client.roomId, presentSession);
+        const started = await startBattleIfReady(client.roomId);
         if (
           started.ok === false &&
           started.reason !== "no_rivals" &&
@@ -854,15 +855,25 @@ export async function handleMessage(
         // Seat claim + presence only. One creator connecting never starts the
         // clock. The creator's own room comes from the server's live
         // registration, never from the client payload.
-        const battleSession = await claimBattleSeat(
+        const seatClaim = await claimBattleSeat(
           client.roomId,
           client.userId,
           client.displayName || client.username,
           await resolveCreatorOwnStreamKey(client.userId),
         );
-        if (!battleSession) {
+        if (seatClaim.status !== "seated") {
+          // A lost lock or an unreachable store is not a full stage: telling this
+          // creator the battle is full would end a join that is still valid.
           sendToClient(client, "battle_error", {
-            message: invited || acceptedGrant ? "Battle is full" : "No battle to join",
+            message:
+              seatClaim.status === "full"
+                ? "Battle is full"
+                : seatClaim.status === "no_battle"
+                  ? "No battle to join"
+                  : "Battle is unavailable",
+            ...(seatClaim.status === "contended" || seatClaim.status === "unavailable"
+              ? { reason: "unavailable" }
+              : {}),
           });
           break;
         }
@@ -910,6 +921,11 @@ export async function handleMessage(
           points: 5,
           source: "tap",
         });
+        // The claim was taken before the write. If the points did not land, this
+        // viewer keeps the one tap this battle gives them.
+        if (tapScore.ok === false) {
+          await releaseBattleVoteOnce(voteBattle.id, client.userId);
+        }
         sendToClient(client, "battle_vote_ack", {
           target: voteTarget,
           points: tapScore.ok === true ? tapScore.points : 0,
@@ -932,7 +948,11 @@ export async function handleMessage(
           await finalizeBattle(client.roomId, "host_end");
         } else {
           // Non-host leave: drop only this creator — never end the whole battle.
+          // Both grants go: the Valkey grant the next token is issued from, and
+          // the permission LiveKit is already holding for this room, or they keep
+          // publishing into a match they have left.
           await revokeBattlePublish(client.roomId, client.userId);
+          await revokeParticipantPublish(client.roomId, client.userId);
           const removed = await removeBattleParticipant(client.roomId, client.userId);
           if (removed) {
             sendToUserGlobal(client.userId, "battle_participant_removed", {
@@ -1269,11 +1289,15 @@ export async function handleMessage(
           client.displayName || client.username,
           accepterStreamKey,
         );
-        if (!claimed) {
-          await clearBattleInvite(hostRoomForInvite, client.userId);
+        if (claimed.status !== "seated") {
+          // Only a genuinely full stage ends this invite. Contention between the
+          // creators accepting at once, or a store that could not answer, leaves
+          // the invite in place so the same accept can succeed on retry.
+          const seatsFull = claimed.status === "full" || claimed.status === "no_battle";
+          if (seatsFull) await clearBattleInvite(hostRoomForInvite, client.userId);
           sendToClient(client, "battle_error", {
-            message: "Battle is full",
-            reason: "battle_full",
+            message: seatsFull ? "Battle is full" : "Battle is unavailable",
+            reason: seatsFull ? "battle_full" : "unavailable",
           });
           break;
         }

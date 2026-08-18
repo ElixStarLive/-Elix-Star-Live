@@ -120,7 +120,9 @@ describe("LIVE + battle server state-machine contracts", () => {
 
   it("removeBattleParticipant drops a non-host creator without ending the match", () => {
     const fn = battle.slice(battle.indexOf("export async function removeBattleParticipant"));
-    expect(fn).toContain("if (isBattleHost(session, userId)) return false");
+    // The host seat is not removable through this path: refusing inside the
+    // guarded mutator leaves the session untouched and returns false.
+    expect(fn).toContain("if (isBattleHost(session, userId)) return null");
     expect(fn).toContain("broadcastBattleState");
   });
 

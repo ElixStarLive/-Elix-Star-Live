@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  holdValkeyFakeLock,
   resetValkeyFake,
   setValkeyFakeHashesReachable,
+  setValkeyFakeLocksAvailable,
+  setValkeyFakeStringsWritable,
   valkeyFake,
 } from "./battleValkeyFake";
 import type { BattleResultRecord } from "../lib/postgres";
@@ -162,9 +165,11 @@ describe("battle authority", () => {
     it("fills rival seats in order and refuses a fifth creator", async () => {
       await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
       for (const id of ["c2", "c3", "c4"]) {
-        expect(await claimBattleSeat(ROOM, id, id, `${id}-room`)).not.toBe(null);
+        expect((await claimBattleSeat(ROOM, id, id, `${id}-room`)).status).toBe(
+          "seated",
+        );
       }
-      expect(await claimBattleSeat(ROOM, "c5", "c5", "c5-room")).toBe(null);
+      expect((await claimBattleSeat(ROOM, "c5", "c5", "c5-room")).status).toBe("full");
       const session = await getBattleFromStore(ROOM);
       expect(session?.participants.map((p) => [p.seat, p.userId])).toEqual([
         ["host", "c1"],
@@ -181,19 +186,25 @@ describe("battle authority", () => {
       expect(await startBattleIfReady(ROOM)).toMatchObject({ reason: "no_rivals" });
 
       // Creator 2 → a complete 1x1 that starts.
-      expect(await claimBattleSeat(ROOM, "c2", "C2", "c2-room")).not.toBe(null);
+      expect((await claimBattleSeat(ROOM, "c2", "C2", "c2-room")).status).toBe(
+        "seated",
+      );
       await confirmBattleParticipantPresence(ROOM, "c2");
       expect((await startBattleIfReady(ROOM)).ok).toBe(true);
       expect((await getBattleFromStore(ROOM))?.battleType).toBe("1x1");
       expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(2);
 
       // Creator 3 IS seated (never refused) — it is only the 2x2 START that waits.
-      expect(await claimBattleSeat(ROOM, "c3", "C3", "c3-room")).not.toBe(null);
+      expect((await claimBattleSeat(ROOM, "c3", "C3", "c3-room")).status).toBe(
+        "seated",
+      );
       await confirmBattleParticipantPresence(ROOM, "c3");
       expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(3);
 
       // Creator 4 completes the 2x2 roster.
-      expect(await claimBattleSeat(ROOM, "c4", "C4", "c4-room")).not.toBe(null);
+      expect((await claimBattleSeat(ROOM, "c4", "C4", "c4-room")).status).toBe(
+        "seated",
+      );
       await confirmBattleParticipantPresence(ROOM, "c4");
       const full = await getBattleFromStore(ROOM);
       expect(full?.participants.map((p) => [p.seat, p.userId, p.teamId])).toEqual([
@@ -205,7 +216,7 @@ describe("battle authority", () => {
       expect(full?.battleType).toBe("2x2");
 
       // Creator 5 is refused: four seats is the hard maximum.
-      expect(await claimBattleSeat(ROOM, "c5", "C5", "c5-room")).toBe(null);
+      expect((await claimBattleSeat(ROOM, "c5", "C5", "c5-room")).status).toBe("full");
       expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(4);
     });
 
@@ -680,6 +691,239 @@ describe("battle authority", () => {
       // A brand new WAITING session with only the host — not the old stage.
       expect(fresh?.status).toBe("WAITING");
       expect(fresh?.participants.map((p) => p.userId)).toEqual(["c1"]);
+    });
+  });
+
+  /**
+   * A 2x2 has four creators acting at once, each possibly on a different server
+   * instance. Every seat, ready flag and start decision is a read-modify-write
+   * of one shared session, so they all go through one guarded writer.
+   */
+  describe("four creators writing the same session at once", () => {
+    it("keeps every seat when all three rivals accept simultaneously", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+
+      const claims = await Promise.all([
+        claimBattleSeat(ROOM, "c2", "C2", "c2-room"),
+        claimBattleSeat(ROOM, "c3", "C3", "c3-room"),
+        claimBattleSeat(ROOM, "c4", "C4", "c4-room"),
+      ]);
+
+      expect(claims.map((c) => c.status)).toEqual(["seated", "seated", "seated"]);
+      const session = await getBattleFromStore(ROOM);
+      // No accept overwrote another: four distinct creators on four seats.
+      expect(session?.participants.map((p) => p.seat)).toEqual([
+        "host",
+        "opponent",
+        "player3",
+        "player4",
+      ]);
+      expect(session?.participants.map((p) => p.userId)).toEqual([
+        "c1",
+        "c2",
+        "c3",
+        "c4",
+      ]);
+    });
+
+    it("seats exactly four when a fifth creator accepts in the same instant", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+
+      const claims = await Promise.all(
+        ["c2", "c3", "c4", "c5", "c6"].map((id) =>
+          claimBattleSeat(ROOM, id, id, `${id}-room`),
+        ),
+      );
+
+      expect(claims.filter((c) => c.status === "seated")).toHaveLength(3);
+      expect(claims.filter((c) => c.status === "full")).toHaveLength(2);
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(4);
+    });
+
+    it("does not lose a ready flag when all four confirm together", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      for (const id of ["c2", "c3", "c4"]) {
+        await claimBattleSeat(ROOM, id, id, `${id}-room`);
+      }
+
+      await Promise.all(
+        ["c1", "c2", "c3", "c4"].map((id) =>
+          confirmBattleParticipantPresence(ROOM, id),
+        ),
+      );
+
+      const session = await getBattleFromStore(ROOM);
+      expect(session?.participants.map((p) => p.ready)).toEqual([
+        true,
+        true,
+        true,
+        true,
+      ]);
+      // All four present means the 2x2 is allowed to start.
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+    });
+
+    it("starts the match once when the host's start races itself", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      for (const id of ["c2", "c3", "c4"]) {
+        await claimBattleSeat(ROOM, id, id, `${id}-room`);
+        await confirmBattleParticipantPresence(ROOM, id);
+      }
+      await confirmBattleParticipantPresence(ROOM, "c1");
+
+      const starts = await Promise.all([
+        startBattleIfReady(ROOM),
+        startBattleIfReady(ROOM),
+        startBattleIfReady(ROOM),
+      ]);
+
+      // One start stamps the clock; the others see a match already running.
+      expect(starts.filter((s) => s.ok)).toHaveLength(1);
+      const session = await getBattleFromStore(ROOM);
+      expect(session?.status).toBe("ACTIVE");
+      expect(session?.battleType).toBe("2x2");
+      const startedEvents = eventsOf("battle_state_sync").filter(
+        (b) => (b.payload as { status?: string }).status === "ACTIVE",
+      );
+      expect(startedEvents.length).toBeGreaterThan(0);
+    });
+
+    it("does not lose the four scores when all four seats are gifted at once", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      for (const id of ["c2", "c3", "c4"]) {
+        await claimBattleSeat(ROOM, id, id, `${id}-room`);
+        await confirmBattleParticipantPresence(ROOM, id);
+      }
+      await confirmBattleParticipantPresence(ROOM, "c1");
+      await startBattleIfReady(ROOM);
+
+      await Promise.all([
+        addBattleScore({ roomId: ROOM, seat: "host", points: 10, source: "paid_gift" }),
+        addBattleScore({ roomId: ROOM, seat: "opponent", points: 20, source: "paid_gift" }),
+        addBattleScore({ roomId: ROOM, seat: "player3", points: 30, source: "paid_gift" }),
+        addBattleScore({ roomId: ROOM, seat: "player4", points: 40, source: "tap" }),
+        addBattleScore({ roomId: ROOM, seat: "host", points: 5, source: "tap" }),
+      ]);
+
+      // Team A = host + player3, team B = opponent + player4.
+      expect(await scoresOf(ROOM)).toMatchObject({
+        host: 15,
+        opponent: 20,
+        player3: 30,
+        player4: 40,
+      });
+    });
+  });
+
+  /**
+   * A seat that was not written is not a seat. Every refusal has to say which
+   * refusal it is, or a creator with a valid invite is told the stage is full.
+   */
+  describe("refusals are honest", () => {
+    it("reports contention as retryable, never as a full stage", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      holdValkeyFakeLock("battle:seat_lock:" + ROOM);
+
+      const claim = await claimBattleSeat(ROOM, "c2", "C2", "c2-room");
+
+      expect(claim.status).toBe("contended");
+      // The invite is still good: the accepter simply did not get the lock.
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(1);
+    });
+
+    it("reports an unreachable store as unavailable, never as a full stage", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      setValkeyFakeLocksAvailable(false);
+
+      expect((await claimBattleSeat(ROOM, "c2", "C2", "c2-room")).status).toBe(
+        "unavailable",
+      );
+    });
+
+    it("distinguishes no battle from a full battle", async () => {
+      expect((await claimBattleSeat(ROOM, "c2", "C2", "c2-room")).status).toBe(
+        "no_battle",
+      );
+    });
+
+    it("never reports a seat it could not write", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      setValkeyFakeStringsWritable(false);
+
+      const claim = await claimBattleSeat(ROOM, "c2", "C2", "c2-room");
+
+      expect(claim.status).toBe("unavailable");
+      setValkeyFakeStringsWritable(true);
+      // Nothing was persisted, so the stage really is still host-only.
+      expect((await getBattleFromStore(ROOM))?.participants).toHaveLength(1);
+    });
+
+    it("never reports a start it could not write", async () => {
+      await seatedWaitingBattle();
+      setValkeyFakeStringsWritable(false);
+
+      expect(await startBattleIfReady(ROOM)).toMatchObject({
+        ok: false,
+        reason: "unavailable",
+      });
+
+      setValkeyFakeStringsWritable(true);
+      // No half-started match: still WAITING, no clock, nothing broadcast ACTIVE.
+      const session = await getBattleFromStore(ROOM);
+      expect(session?.status).toBe("WAITING");
+      expect(session?.endsAt).toBe(0);
+    });
+
+    it("does not finalize a battle whose result could not be written", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 25, source: "paid_gift" });
+      setValkeyFakeStringsWritable(false);
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+
+      setValkeyFakeStringsWritable(true);
+      // The match is still live and finalizable — not silently "ended".
+      expect((await getBattleFromStore(ROOM))?.status).toBe("ACTIVE");
+      const retried = await finalizeBattle(ROOM, "timer");
+      expect(retried?.status).toBe("ENDED");
+      expect(retried?.finalScores).toMatchObject({ host: 25 });
+    });
+  });
+
+  /**
+   * Leaving a 2x2 must end that creator's authority in the match and nothing
+   * else: the other three keep their seats and their live streams.
+   */
+  describe("leaving a 2x2", () => {
+    it("takes the leaver's accept with them so they cannot walk back in", async () => {
+      await activeBattle();
+      await claimBattleSeat(ROOM, "c3", "C3", "c3-room");
+      await battle.setBattleAcceptedGrant(ROOM, "c3");
+
+      expect(await removeBattleParticipant(ROOM, "c3")).toBe(true);
+
+      // Without this, c3's next connect is still authorised to take a seat.
+      expect(await battle.hasBattleAcceptedGrant(ROOM, "c3")).toBe(false);
+      expect(await battle.getUserBattleRoom("c3")).toBe(null);
+    });
+
+    it("leaves the other three creators seated and the match running", async () => {
+      await ensureBattleForHost({ roomId: ROOM, hostUserId: "c1", hostName: "C1" });
+      for (const id of ["c2", "c3", "c4"]) {
+        await claimBattleSeat(ROOM, id, id, `${id}-room`);
+        await confirmBattleParticipantPresence(ROOM, id);
+      }
+      await confirmBattleParticipantPresence(ROOM, "c1");
+      await startBattleIfReady(ROOM);
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 18, source: "paid_gift" });
+
+      expect(await removeBattleParticipant(ROOM, "c4")).toBe(true);
+
+      const session = await getBattleFromStore(ROOM);
+      expect(session?.status).toBe("ACTIVE");
+      expect(session?.participants.map((p) => p.userId)).toEqual(["c1", "c2", "c3"]);
+      // The seats that stayed keep the points their team already earned.
+      expect(await scoresOf(ROOM)).toMatchObject({ host: 18 });
     });
   });
 });

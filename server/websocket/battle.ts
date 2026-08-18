@@ -22,10 +22,12 @@
  *     `battle_ended` and schedules cleanup. Every other caller is a no-op.
  */
 
+import { randomUUID } from "crypto";
 import { broadcastToRoom, revokeBattlePublish } from "./index";
 import {
   isValkeyConfigured,
   valkeySet,
+  valkeyTrySet,
   valkeyGet,
   valkeyTryGet,
   valkeyDel,
@@ -33,6 +35,8 @@ import {
   valkeySrem,
   valkeySmembers,
   valkeySetNx,
+  valkeyTrySetNx,
+  valkeyReleaseLock,
   valkeyTryHincrby,
   valkeyTryHgetall,
   valkeyHset,
@@ -80,7 +84,10 @@ export const BATTLE_TICK_LOCK_KEY_PREFIX = "battle:tick:";
 const ACTIVE_BATTLES_KEY = "battles:active";
 const BATTLE_KEY_PREFIX = "battle:";
 const SCORE_KEY_PREFIX = "battle:scores:";
-const SEAT_CLAIM_LOCK_PREFIX = "battle:seat_lock:";
+const SESSION_LOCK_PREFIX = "battle:seat_lock:";
+const SESSION_LOCK_TTL_MS = 5_000;
+const SESSION_LOCK_ATTEMPTS = 25;
+const SESSION_LOCK_RETRY_MS = 40;
 const PENDING_INVITES_KEY_PREFIX = "battle:pending_invites:";
 const FINALIZE_LOCK_PREFIX = "battle:final:";
 /** How long the ENDED session stays readable so late clients still see the result. */
@@ -144,19 +151,106 @@ export async function getBattleFromStore(
   return state.status === "ok" ? state.battle : null;
 }
 
+/**
+ * Write the session, and say whether it was actually stored.
+ *
+ * Everything a creator or a viewer is told about a battle — you have a seat, the
+ * clock is running, this is the final score — is this one value. A write that
+ * was dropped must therefore never be reported as state: the seat would show on
+ * one screen and be gone on the next read, and the room the accepter is sent to
+ * would have no record of them in it.
+ */
 export async function saveBattleToStore(
   roomId: string,
   session: BattleSession,
-): Promise<void> {
-  if (!hasValkey() || !roomId) return;
+): Promise<"ok" | "unavailable"> {
+  if (!hasValkey() || !roomId) return "unavailable";
+  const written = await valkeyTrySet(
+    BATTLE_KEY_PREFIX + roomId,
+    JSON.stringify(session),
+    BATTLE_TTL,
+  );
+  if (written !== "ok") {
+    logger.error({ roomId, battleId: session.id }, "battle session write not confirmed");
+  }
+  return written;
+}
+
+/** Returning null rejects the mutation: nothing is written. */
+type BattleSessionMutator = (
+  session: BattleSession | null,
+) => { session: BattleSession; changed: boolean } | null;
+
+export type BattleSessionMutation =
+  | { status: "applied" | "unchanged"; session: BattleSession }
+  | { status: "rejected" }
+  | { status: "contended" }
+  | { status: "unavailable" };
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * THE only way the battle session changes.
+ *
+ * A battle is one Valkey value, so every change to it is a read-modify-write.
+ * Four creators reach a 2×2 stage at the same moment and each confirms presence
+ * from whichever instance holds their socket; a host kicks a creator while
+ * another accepts an invite. Performed in the open, those overlap: each computes
+ * its new session from a snapshot the others have already replaced, the last
+ * write wins, and what it silently drops is a ready flag (so the match can never
+ * start), a seat (so an accepted creator is not in the battle they were sent
+ * to), or a removal (so a kicked creator is back).
+ *
+ * Every mutation therefore runs inside a short per-room lock, so the read and
+ * the write are one step. The lock is owner-checked: a plain DEL would also
+ * delete the lock of the next holder if this one's TTL expired mid-work, which
+ * is exactly the case that lets two writers believe they are alone. Broadcasts
+ * and LiveKit calls stay outside it.
+ *
+ * Nothing here reports a change it cannot prove: a caller that could not take
+ * the lock gets `contended`, and a failed read or write gets `unavailable`.
+ * Neither may be presented to a client as a seat, a start or a result.
+ */
+async function mutateBattleSession(
+  roomId: string,
+  mutate: BattleSessionMutator,
+): Promise<BattleSessionMutation> {
+  const room = String(roomId || "").trim();
+  if (!room) return { status: "rejected" };
+  if (!hasValkey()) return { status: "unavailable" };
+
+  const lockKey = SESSION_LOCK_PREFIX + room;
+  const token = randomUUID();
+  let held = false;
+  for (let attempt = 0; attempt < SESSION_LOCK_ATTEMPTS; attempt++) {
+    const outcome = await valkeyTrySetNx(lockKey, token, SESSION_LOCK_TTL_MS);
+    if (outcome === "set") {
+      held = true;
+      break;
+    }
+    if (outcome === "unavailable") return { status: "unavailable" };
+    await sleep(SESSION_LOCK_RETRY_MS);
+  }
+  if (!held) {
+    logger.warn({ roomId: room }, "mutateBattleSession: session lock not acquired");
+    return { status: "contended" };
+  }
+
   try {
-    await valkeySet(
-      BATTLE_KEY_PREFIX + roomId,
-      JSON.stringify(session),
-      BATTLE_TTL,
-    );
-  } catch (err) {
-    logger.error({ err, roomId }, "saveBattleToStore failed");
+    const read = await getBattleSessionState(room);
+    if (read.status === "unavailable") return { status: "unavailable" };
+
+    const write = mutate(read.battle);
+    if (!write) return { status: "rejected" };
+    if (!write.changed) return { status: "unchanged", session: write.session };
+
+    const stored = await saveBattleToStore(room, write.session);
+    if (stored !== "ok") return { status: "unavailable" };
+    return { status: "applied", session: write.session };
+  } finally {
+    await valkeyReleaseLock(lockKey, token);
   }
 }
 
@@ -324,6 +418,20 @@ export async function claimBattleVoteOnce(
   return valkeySetNx(`battle_vote_once:${battleId}:${userId}`, voteTarget, ttlMs);
 }
 
+/**
+ * Give a viewer their one tap back when the points did not land.
+ *
+ * The claim is taken before the score is written, so a write that fails would
+ * otherwise cost them the single +5 this battle allows them.
+ */
+export async function releaseBattleVoteOnce(
+  battleId: string,
+  userId: string,
+): Promise<void> {
+  if (!hasValkey() || !battleId || !userId) return;
+  await valkeyDel(`battle_vote_once:${battleId}:${userId}`);
+}
+
 // ── Create / seat / presence ────────────────────────────────────────────────
 
 /**
@@ -336,25 +444,33 @@ export async function ensureBattleForHost(opts: {
   hostUserId: string;
   hostName: string;
 }): Promise<BattleSession | null> {
-  if (!hasValkey()) return null;
-  const existing = await getBattleFromStore(opts.roomId);
-  let session: BattleSession;
-  if (existing) {
-    if (!isBattleHost(existing, opts.hostUserId)) return null;
-    if (existing.status !== "ENDED") return existing;
-    session = rematchBattleSession(existing);
-  } else {
-    session = createBattleSession({
-      roomId: opts.roomId,
-      hostUserId: opts.hostUserId,
-      hostName: opts.hostName,
-      hostRoomId: opts.roomId,
-    });
+  let fresh = false;
+  const mutation = await mutateBattleSession(opts.roomId, (existing) => {
+    if (existing) {
+      if (!isBattleHost(existing, opts.hostUserId)) return null;
+      if (existing.status !== "ENDED") return { session: existing, changed: false };
+      fresh = true;
+      return { session: rematchBattleSession(existing), changed: true };
+    }
+    fresh = true;
+    return {
+      session: createBattleSession({
+        roomId: opts.roomId,
+        hostUserId: opts.hostUserId,
+        hostName: opts.hostName,
+        hostRoomId: opts.roomId,
+      }),
+      changed: true,
+    };
+  });
+  if (mutation.status !== "applied" && mutation.status !== "unchanged") return null;
+  // A running match keeps its scoreboard and its host mapping untouched; only a
+  // brand-new session (first entry or rematch) starts from zero.
+  if (fresh) {
+    await resetScoreHash(opts.roomId);
+    await setUserBattleRoom(opts.hostUserId, opts.roomId, BATTLE_TTL);
   }
-  await resetScoreHash(opts.roomId);
-  await setUserBattleRoom(opts.hostUserId, opts.roomId, BATTLE_TTL);
-  await saveBattleToStore(opts.roomId, session);
-  return session;
+  return mutation.session;
 }
 
 /**
@@ -362,37 +478,43 @@ export async function ensureBattleForHost(opts: {
  * own room all come from the server (socket identity + DB profile) — never
  * from a client-supplied roster.
  */
+export type BattleSeatClaim =
+  | { status: "seated"; session: BattleSession }
+  | { status: "full" }
+  | { status: "no_battle" }
+  /** Another writer held the room's lock — the accept is still valid, retry. */
+  | { status: "contended" }
+  | { status: "unavailable" };
+
 export async function claimBattleSeat(
   roomId: string,
   userId: string,
   userName: string,
   creatorRoomId = "",
-): Promise<BattleSession | null> {
-  if (!hasValkey()) return null;
-  const lockKey = SEAT_CLAIM_LOCK_PREFIX + roomId;
-  let locked = await valkeySetNx(lockKey, "1", 2_000);
-  if (!locked) {
-    // Brief contention — retry once so a valid accept is not lost.
-    await new Promise((r) => setTimeout(r, 50));
-    locked = await valkeySetNx(lockKey, "1", 2_000);
-    if (!locked) return null;
-  }
-  try {
-    const session = await getBattleFromStore(roomId);
-    if (!session || session.status === "ENDED") return null;
+): Promise<BattleSeatClaim> {
+  let outcome: "seated" | "full" | "no_battle" = "seated";
+  const mutation = await mutateBattleSession(roomId, (session) => {
+    if (!session || session.status === "ENDED") {
+      outcome = "no_battle";
+      return null;
+    }
 
+    // One account holds at most one seat: a second device, or a repeated accept,
+    // returns the seat this creator already has instead of taking another.
     const already = participantOfUser(session, userId);
     if (already) {
       if (creatorRoomId && already.roomId !== creatorRoomId) {
         already.roomId = creatorRoomId;
-        await saveBattleToStore(roomId, session);
-        await broadcastBattleState(roomId, session);
+        return { session, changed: true };
       }
-      return session;
+      return { session, changed: false };
     }
 
     const seat = nextOpenRivalSeat(session);
-    if (!seat) return null;
+    if (!seat) {
+      outcome = "full";
+      return null;
+    }
 
     session.participants.push({
       userId,
@@ -404,14 +526,18 @@ export async function claimBattleSeat(
       joinedAt: Date.now(),
     });
     session.battleType = battleTypeForParticipants(session.participants);
+    return { session, changed: true };
+  });
 
-    await setUserBattleRoom(userId, roomId, BATTLE_TTL);
-    await saveBattleToStore(roomId, session);
-    await broadcastBattleState(roomId, session);
-    return session;
-  } finally {
-    await valkeyDel(lockKey);
+  if (mutation.status === "rejected") return { status: outcome as "full" | "no_battle" };
+  if (mutation.status === "contended") return { status: "contended" };
+  if (mutation.status === "unavailable") return { status: "unavailable" };
+
+  await setUserBattleRoom(userId, roomId, BATTLE_TTL);
+  if (mutation.status === "applied") {
+    await broadcastBattleState(roomId, mutation.session);
   }
+  return { status: "seated", session: mutation.session };
 }
 
 /**
@@ -423,27 +549,36 @@ export async function confirmBattleParticipantPresence(
   roomId: string,
   userId: string,
 ): Promise<BattleSession | null> {
-  const session = await getBattleFromStore(roomId);
-  if (!session || session.status === "ENDED") return null;
-  const participant = participantOfUser(session, userId);
-  if (!participant || participant.ready) return session;
-  participant.ready = true;
-  await saveBattleToStore(roomId, session);
-  await broadcastBattleState(roomId, session);
-  return session;
+  const mutation = await mutateBattleSession(roomId, (session) => {
+    if (!session || session.status === "ENDED") return null;
+    const participant = participantOfUser(session, userId);
+    if (!participant || participant.ready) {
+      return participant ? { session, changed: false } : null;
+    }
+    participant.ready = true;
+    return { session, changed: true };
+  });
+  if (mutation.status === "applied") {
+    await broadcastBattleState(roomId, mutation.session);
+    return mutation.session;
+  }
+  return mutation.status === "unchanged" ? mutation.session : null;
 }
 
 export async function clearBattleParticipantPresence(
   roomId: string,
   userId: string,
 ): Promise<void> {
-  const session = await getBattleFromStore(roomId);
-  if (!session || session.status === "ENDED") return;
-  const participant = participantOfUser(session, userId);
-  if (!participant || !participant.ready) return;
-  participant.ready = false;
-  await saveBattleToStore(roomId, session);
-  await broadcastBattleState(roomId, session);
+  const mutation = await mutateBattleSession(roomId, (session) => {
+    if (!session || session.status === "ENDED") return null;
+    const participant = participantOfUser(session, userId);
+    if (!participant || !participant.ready) return null;
+    participant.ready = false;
+    return { session, changed: true };
+  });
+  if (mutation.status === "applied") {
+    await broadcastBattleState(roomId, mutation.session);
+  }
 }
 
 /**
@@ -454,22 +589,29 @@ export async function removeBattleParticipant(
   roomId: string,
   userId: string,
 ): Promise<boolean> {
-  const session = await getBattleFromStore(roomId);
-  if (!session || session.status === "ENDED") return false;
-  if (isBattleHost(session, userId)) return false;
+  let vacatedSeat: BattleSeat | "" = "";
+  const mutation = await mutateBattleSession(roomId, (session) => {
+    if (!session || session.status === "ENDED") return null;
+    if (isBattleHost(session, userId)) return null;
 
-  const participant = participantOfUser(session, userId);
-  if (!participant) return false;
+    const participant = participantOfUser(session, userId);
+    if (!participant) return null;
+    vacatedSeat = participant.seat;
 
-  session.participants = session.participants.filter(
-    (p) => p.userId !== participant.userId,
-  );
-  session.battleType = battleTypeForParticipants(session.participants);
+    session.participants = session.participants.filter(
+      (p) => p.userId !== participant.userId,
+    );
+    session.battleType = battleTypeForParticipants(session.participants);
+    return { session, changed: true };
+  });
+  if (mutation.status !== "applied" || !vacatedSeat) return false;
 
   await clearUserBattleRoom(userId);
-  await resetSeatScore(roomId, participant.seat);
-  await saveBattleToStore(roomId, session);
-  await broadcastBattleState(roomId, session);
+  // Leaving ends this creator's authority in the match: without clearing the
+  // accept, a kicked creator's next connect is still authorised to take a seat.
+  await clearBattleAcceptedGrant(roomId, userId);
+  await resetSeatScore(roomId, vacatedSeat);
+  await broadcastBattleState(roomId, mutation.session);
   return true;
 }
 
@@ -515,27 +657,41 @@ export type StartBattleResult =
  */
 export async function startBattleIfReady(
   roomId: string,
-  known?: BattleSession | null,
 ): Promise<StartBattleResult> {
-  if (!hasValkey()) return { ok: false, reason: "unavailable", notReady: [] };
-  const session = known ?? (await getBattleFromStore(roomId));
-  if (!session) return { ok: false, reason: "not_waiting", notReady: [] };
+  let blocked: StartBattleResult | null = null;
+  // Zero the board before the clock, never after: a gift already in flight would
+  // otherwise be scored against the started battle and then wiped. A battle still
+  // forming cannot be scored at all, so this only guarantees a rematch starts at 0.
+  const forming = await getBattleFromStore(roomId);
+  if (forming && forming.status === "WAITING") await resetScoreHash(roomId);
+  // The roster is read inside the lock: starting from a snapshot taken before the
+  // last creator confirmed presence would both miss them and write their seat away.
+  const mutation = await mutateBattleSession(roomId, (session) => {
+    if (!session) {
+      blocked = { ok: false, reason: "not_waiting", notReady: [] };
+      return null;
+    }
+    const reason = battleStartBlockedReason(session);
+    if (reason) {
+      blocked = { ok: false, reason, notReady: notReadyUserIds(session) };
+      return null;
+    }
+    const now = Date.now();
+    session.status = "ACTIVE";
+    session.startedAt = now;
+    session.endsAt = now + BATTLE_DURATION_SECONDS * 1000;
+    session.battleType = battleTypeForParticipants(session.participants);
+    session.winner = null;
+    session.finalScores = null;
+    return { session, changed: true };
+  });
 
-  const blocked = battleStartBlockedReason(session);
-  if (blocked) {
-    return { ok: false, reason: blocked, notReady: notReadyUserIds(session) };
+  if (mutation.status === "rejected" && blocked) return blocked;
+  if (mutation.status !== "applied") {
+    return { ok: false, reason: "unavailable", notReady: [] };
   }
 
-  const now = Date.now();
-  session.status = "ACTIVE";
-  session.startedAt = now;
-  session.endsAt = now + BATTLE_DURATION_SECONDS * 1000;
-  session.battleType = battleTypeForParticipants(session.participants);
-  session.winner = null;
-  session.finalScores = null;
-
-  await resetScoreHash(roomId);
-  await saveBattleToStore(roomId, session);
+  const session = mutation.session;
   await valkeySadd(ACTIVE_BATTLES_KEY, roomId);
   await broadcastBattleState(roomId, session);
   logger.info(
@@ -798,9 +954,6 @@ export async function finalizeBattle(
   }
   const scores = read.scores;
 
-  await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
-  await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
-
   const finalized: BattleSession = {
     ...session,
     status: "ENDED",
@@ -809,7 +962,21 @@ export async function finalizeBattle(
     winner: winnerFromScores(scores),
     finalizeReason: reason,
   };
-  await saveBattleToStore(roomId, finalized);
+  // The frozen result is only real once it is stored. Giving the claim back on a
+  // failed write keeps the battle in the active set so a later tick finalizes it
+  // for real — announcing a result the store never took would leave the match
+  // running for everyone who reads it next.
+  if ((await saveBattleToStore(roomId, finalized)) !== "ok") {
+    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    logger.error(
+      { roomId, battleId: session.id, reason },
+      "battle not finalized — result write not confirmed, will retry",
+    );
+    return null;
+  }
+
+  await valkeySrem(ACTIVE_BATTLES_KEY, roomId);
+  await valkeyDel(BATTLE_TICK_LOCK_KEY_PREFIX + roomId);
 
   // Durability is a separate concern from freezing. The frozen scores are real
   // either way, so clients are told the truth immediately; if Neon is down the

@@ -12,17 +12,36 @@ const strings = new Map<string, string>();
 const sets = new Map<string, Set<string>>();
 const hashes = new Map<string, Map<string, number>>();
 let hashesReachable = true;
+let stringsWritable = true;
+let locksAvailable = true;
 
 export function resetValkeyFake(): void {
   strings.clear();
   sets.clear();
   hashes.clear();
   hashesReachable = true;
+  stringsWritable = true;
+  locksAvailable = true;
 }
 
 /** Simulate Valkey being unable to serve the score hash. */
 export function setValkeyFakeHashesReachable(reachable: boolean): void {
   hashesReachable = reachable;
+}
+
+/** Simulate a confirmed-write helper failing (the session value itself). */
+export function setValkeyFakeStringsWritable(writable: boolean): void {
+  stringsWritable = writable;
+}
+
+/** Simulate the lock helper being unable to answer. */
+export function setValkeyFakeLocksAvailable(available: boolean): void {
+  locksAvailable = available;
+}
+
+/** Take a lock out of band, so a test can make the next mutation contend. */
+export function holdValkeyFakeLock(key: string, token = "other-writer"): void {
+  strings.set(key, token);
 }
 
 export function valkeyFakeKeys(): string[] {
@@ -54,6 +73,26 @@ export const valkeyFake = {
     if (strings.has(key)) return false;
     strings.set(key, value);
     return true;
+  },
+  valkeyTrySet: async (
+    key: string,
+    value: string,
+  ): Promise<"ok" | "unavailable"> => {
+    if (!stringsWritable) return "unavailable";
+    strings.set(key, value);
+    return "ok";
+  },
+  valkeyTrySetNx: async (
+    key: string,
+    value: string,
+  ): Promise<"set" | "exists" | "unavailable"> => {
+    if (!locksAvailable) return "unavailable";
+    if (strings.has(key)) return "exists";
+    strings.set(key, value);
+    return "set";
+  },
+  valkeyReleaseLock: async (key: string, token: string): Promise<void> => {
+    if (strings.get(key) === token) strings.delete(key);
   },
   valkeySadd: async (key: string, member: string): Promise<void> => {
     const set = sets.get(key) ?? new Set<string>();

@@ -24,7 +24,16 @@ const invites = new Set<string>();
 const inviteKey = (roomId: string, userId: string) => `${roomId}|${userId}`;
 const roomOwners = new Map<string, string>();
 /** The battle a room is currently running, as the store would answer. */
-const battleSessions = new Map<string, { id: string; status: string }>();
+const battleSessions = new Map<string, Record<string, unknown>>();
+/** What the guarded seat writer answers for the next accept/join. */
+let seatClaimResult: { status: string; session?: unknown } = { status: "seated" };
+/** What the atomic score writer answers for the next tap. */
+let scoreResult: Record<string, unknown> = { ok: true, points: 5 };
+const votesClaimed: string[] = [];
+const votesReleased: string[] = [];
+const revokedBattleGrants: Array<{ roomId: string; userId: string }> = [];
+const revokedMedia: Array<{ roomId: string; userId: string }> = [];
+const removedParticipants: Array<{ roomId: string; userId: string }> = [];
 const blockedPairs = new Set<string>();
 const blockKey = (a: string, b: string) => [a, b].sort().join("|");
 
@@ -56,7 +65,9 @@ vi.mock("./index", () => ({
     battleGrants.push({ roomId, userId });
   }),
   hasBattlePublishGrant: vi.fn(async () => false),
-  revokeBattlePublish: vi.fn(async () => {}),
+  revokeBattlePublish: vi.fn(async (roomId: string, userId: string) => {
+    revokedBattleGrants.push({ roomId, userId });
+  }),
   grantCohostPublish: vi.fn(async () => true),
   releaseCohostPublish: vi.fn(async () => "revoked" as const),
   upsertCohostJoinRequest: vi.fn(async () => {}),
@@ -89,7 +100,11 @@ vi.mock("./battle", () => ({
   setUserBattleRoom: vi.fn(async () => {}),
   claimBattleSeat: vi.fn(async (roomId: string, userId: string) => {
     seatClaims.push({ roomId, userId });
-    return { id: "battle-1", roomId, status: "WAITING", participants: [] };
+    if (seatClaimResult.status !== "seated") return { status: seatClaimResult.status };
+    return {
+      status: "seated",
+      session: { id: "battle-1", roomId, status: "WAITING", participants: [] },
+    };
   }),
   getBattleFromStore: vi.fn(async (roomId: string) =>
     battleSessions.get(roomId) ?? null,
@@ -99,10 +114,23 @@ vi.mock("./battle", () => ({
   confirmBattleParticipantPresence: vi.fn(async () => null),
   ensureBattleForHost: vi.fn(async () => null),
   finalizeBattle: vi.fn(async () => null),
-  removeBattleParticipant: vi.fn(async () => false),
+  removeBattleParticipant: vi.fn(async (roomId: string, userId: string) => {
+    removedParticipants.push({ roomId, userId });
+    return true;
+  }),
   startBattleIfReady: vi.fn(async () => ({ ok: false, reason: "no_rivals", notReady: [] })),
-  addBattleScore: vi.fn(async () => ({ ok: false, reason: "no_battle" })),
-  claimBattleVoteOnce: vi.fn(async () => true),
+  addBattleScore: vi.fn(async () => scoreResult),
+  claimBattleVoteOnce: vi.fn(async (battleId: string, userId: string) => {
+    if (votesClaimed.includes(`${battleId}|${userId}`)) return false;
+    votesClaimed.push(`${battleId}|${userId}`);
+    return true;
+  }),
+  releaseBattleVoteOnce: vi.fn(async (battleId: string, userId: string) => {
+    const key = `${battleId}|${userId}`;
+    votesReleased.push(key);
+    const at = votesClaimed.indexOf(key);
+    if (at >= 0) votesClaimed.splice(at, 1);
+  }),
 }));
 
 vi.mock("../services/livekit", () => ({
@@ -112,7 +140,10 @@ vi.mock("../services/livekit", () => ({
     liveCreators.has(userId),
   ),
   grantParticipantPublish: vi.fn(async () => "granted" as const),
-  revokeParticipantPublish: vi.fn(async () => "revoked" as const),
+  revokeParticipantPublish: vi.fn(async (roomId: string, userId: string) => {
+    revokedMedia.push({ roomId, userId });
+    return "revoked" as const;
+  }),
 }));
 
 vi.mock("../routes/livestream", () => ({
@@ -183,6 +214,13 @@ describe("battle invite authority", () => {
     rosterPublishes.length = 0;
     rateChecks.length = 0;
     rateLimitAllows = true;
+    votesClaimed.length = 0;
+    votesReleased.length = 0;
+    revokedBattleGrants.length = 0;
+    revokedMedia.length = 0;
+    removedParticipants.length = 0;
+    seatClaimResult = { status: "seated" };
+    scoreResult = { ok: true, points: 5 };
 
     roomOwners.set(HOST_ROOM, HOST);
     roomOwners.set(RIVAL, RIVAL);
@@ -322,6 +360,123 @@ describe("battle invite authority", () => {
       expect(roomBroadcasts).toEqual([]);
       expect(battleGrants).toEqual([]);
       expect(invites.has(inviteKey(HOST_ROOM, RIVAL))).toBe(true);
+    });
+  });
+
+  /**
+   * A 2×2 has three creators accepting into the same stage, so two of the three
+   * accepts routinely arrive while another holds the room's writer. Only a stage
+   * that is genuinely full may end an invite — a lost lock or an unreachable
+   * store must leave the accept usable, or the invite dies for no reason.
+   */
+  describe("a refused seat only ends the invite when the stage is really full", () => {
+    it("ends the invite and says so when all four seats are taken", async () => {
+      seatClaimResult = { status: "full" };
+
+      await acceptInvite();
+
+      expect(errorReasons()).toEqual(["battle_full"]);
+      expect(invites.has(inviteKey(HOST_ROOM, RIVAL))).toBe(false);
+      // Never publish rights without a seat.
+      expect(battleGrants).toEqual([]);
+    });
+
+    it("keeps the invite alive when another creator held the writer", async () => {
+      seatClaimResult = { status: "contended" };
+
+      await acceptInvite();
+
+      expect(errorReasons()).toEqual(["unavailable"]);
+      // The same accept has to be able to succeed on retry.
+      expect(invites.has(inviteKey(HOST_ROOM, RIVAL))).toBe(true);
+      expect(battleGrants).toEqual([]);
+    });
+
+    it("keeps the invite alive when the store could not answer", async () => {
+      seatClaimResult = { status: "unavailable" };
+
+      await acceptInvite();
+
+      expect(errorReasons()).toEqual(["unavailable"]);
+      expect(invites.has(inviteKey(HOST_ROOM, RIVAL))).toBe(true);
+      expect(battleGrants).toEqual([]);
+    });
+  });
+
+  /**
+   * A viewer gets one +5 per battle. The claim is taken before the write, so a
+   * write that does not land would otherwise spend the viewer's only tap.
+   */
+  describe("the one tap per battle survives a failed write", () => {
+    function tap() {
+      return handleMessage(client("viewer-1", HOST_ROOM), "battle_spectator_vote", {
+        target: "player3",
+      });
+    }
+
+    beforeEach(() => {
+      battleSessions.set(HOST_ROOM, {
+        id: "battle-1",
+        status: "ACTIVE",
+        endsAt: Date.now() + 60_000,
+        participants: [],
+      });
+    });
+
+    it("awards the +5 once and refuses the second tap", async () => {
+      await tap();
+      await tap();
+
+      const acks = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(acks.map((a) => a.data.status)).toEqual(["ok", "already_awarded"]);
+      expect(acks.map((a) => a.data.points)).toEqual([5, 0]);
+      // Gameplay only, on every ack.
+      expect(acks.every((a) => a.data.financialValueGbp === 0)).toBe(true);
+    });
+
+    it("gives the tap back when the points did not land", async () => {
+      scoreResult = { ok: false, reason: "unavailable" };
+
+      await tap();
+
+      expect(votesReleased).toEqual(["battle-1|viewer-1"]);
+      const first = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(first[0].data).toMatchObject({ points: 0, status: "unavailable" });
+
+      // The viewer still has their one tap for this battle.
+      scoreResult = { ok: true, points: 5 };
+      await tap();
+      const acks = sentToClient.filter((s) => s.event === "battle_vote_ack");
+      expect(acks[1].data).toMatchObject({ points: 5, status: "ok" });
+    });
+  });
+
+  /**
+   * One creator walking out of a 2×2 ends their own part in it. It must not end
+   * the match for the other three, and it must not leave them publishing into a
+   * battle they have left.
+   */
+  describe("a creator leaving a 2×2", () => {
+    beforeEach(() => {
+      battleSessions.set(HOST_ROOM, {
+        id: "battle-1",
+        status: "ACTIVE",
+        endsAt: Date.now() + 60_000,
+        participants: [
+          { userId: HOST, seat: "host", teamId: "teamA", name: HOST, roomId: HOST_ROOM, ready: true, joinedAt: 1 },
+          { userId: RIVAL, seat: "opponent", teamId: "teamB", name: RIVAL, roomId: RIVAL, ready: true, joinedAt: 2 },
+        ],
+      });
+    });
+
+    it("drops only that creator and takes both publish rights with them", async () => {
+      await handleMessage(client(RIVAL, HOST_ROOM), "battle_end", {});
+
+      expect(removedParticipants).toEqual([{ roomId: HOST_ROOM, userId: RIVAL }]);
+      // The Valkey grant the next token is minted from AND the permission
+      // LiveKit is already holding — one without the other leaves them live.
+      expect(revokedBattleGrants).toEqual([{ roomId: HOST_ROOM, userId: RIVAL }]);
+      expect(revokedMedia).toEqual([{ roomId: HOST_ROOM, userId: RIVAL }]);
     });
   });
 });

@@ -84,8 +84,11 @@ describe("battle invite eligibility", () => {
     const grantAt = accept.indexOf("await grantBattlePublish(");
     expect(claimAt).toBeGreaterThan(-1);
     expect(grantAt).toBeGreaterThan(claimAt);
-    // A refused claim is a visible failure, never a silent fake join.
-    expect(accept).toContain('reason: "battle_full"');
+    // A refused claim is a visible failure, never a silent fake join. A full
+    // stage ends the invite; a lost lock or an unreachable store does not.
+    expect(accept).toContain('"battle_full"');
+    expect(accept).toContain('claimed.status === "full"');
+    expect(accept).toContain("if (seatsFull) await clearBattleInvite(");
     expect(accept).toContain('reason: "grant_failed"');
   });
 
