@@ -249,6 +249,16 @@ export async function reversePurchaseFinancialsOnClient(
   );
   const eventInserted = (wh.rowCount ?? 0) > 0;
 
+  // Read the lots before zeroing them: a paid gift's GBP revenue is keyed by the
+  // gift, not by the store transaction, so the lot id is the only durable link
+  // back from that revenue to the purchase the store is taking back.
+  const lots = await client.query(
+    `SELECT id FROM elix_paid_coin_lots
+      WHERE provider = $1 AND provider_transaction_id = $2`,
+    [input.provider, input.providerTransactionId],
+  );
+  const lotIds = lots.rows.map((r) => String(r.id)).filter(Boolean);
+
   await client.query(
     `UPDATE elix_paid_coin_lots SET
        settlement_status = 'reversed',
@@ -268,8 +278,9 @@ export async function reversePurchaseFinancialsOnClient(
         AND (
           external_transaction_id = ANY($1::text[])
           OR idempotency_key LIKE $2
+          OR (rule_snapshot -> 'lot_ids') ?| $3::text[]
         )`,
-    [extIds, `%${input.providerTransactionId}%`],
+    [extIds, `%${input.providerTransactionId}%`, lotIds],
   );
   let reversedLedger = 0;
   for (const row of rows.rows) {

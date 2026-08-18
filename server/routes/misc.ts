@@ -325,37 +325,67 @@ async function verifyGooglePlayPurchase(
 }
 
 // --- Apple receipt verification via App Store Server API ---
-async function verifyAppleReceipt(
-  transactionId: string,
-): Promise<{
+type AppleReceiptCheck = {
   valid: boolean;
+  /** Only meaningful when valid is false. "unavailable" must be retryable. */
+  reason?: 'invalid' | 'unavailable';
   productId?: string;
   detail?: string;
   payload?: Record<string, unknown>;
-}> {
+};
+
+async function verifyAppleReceipt(transactionId: string): Promise<AppleReceiptCheck> {
   const result = await fetchAppleTransaction(transactionId);
+  if (result.valid === false) {
+    return {
+      valid: false,
+      reason: result.reason,
+      productId: result.productId,
+      detail: result.detail,
+      payload: result.payload as Record<string, unknown> | undefined,
+    };
+  }
   // Consumable coin purchases must NOT credit for a transaction that Apple has
-  // revoked or refunded. fetchAppleTransaction only checks JWS validity, so
-  // reject any transaction carrying a revocationDate here.
+  // revoked or refunded. fetchAppleTransaction checks signature, app and
+  // environment, so revocation is rejected here.
   if (
-    result.valid &&
-    result.payload &&
     typeof result.payload.revocationDate === 'number' &&
     result.payload.revocationDate > 0
   ) {
     return {
       valid: false,
+      reason: 'invalid',
       productId: result.productId,
       detail: 'apple-transaction-revoked',
       payload: result.payload as Record<string, unknown>,
     };
   }
   return {
-    valid: result.valid,
+    valid: true,
     productId: result.productId,
     detail: result.detail,
-    payload: result.payload as Record<string, unknown> | undefined,
+    payload: result.payload as Record<string, unknown>,
   };
+}
+
+/**
+ * Apple binds a purchase to the account that made it through appAccountToken,
+ * which this app always sets. A transaction carrying somebody else's token is a
+ * replay of their purchase and must never settle here.
+ */
+function appleTokenOwnershipError(
+  userId: string,
+  payload: Record<string, unknown> | null | undefined,
+  opts: { required: boolean },
+): 'missing_app_account_token' | 'app_account_token_mismatch' | null {
+  const actual =
+    payload && typeof payload.appAccountToken === 'string'
+      ? payload.appAccountToken.trim()
+      : '';
+  if (!actual) return opts.required ? 'missing_app_account_token' : null;
+  return actual.toLowerCase() === appAccountTokenForUserId(userId).toLowerCase()
+    ? null
+    : 'app_account_token_mismatch';
 }
 
 // --- Verify Purchase ---
@@ -428,6 +458,21 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     let applePayload: Record<string, unknown> | null = null;
     if (safeProvider === 'apple') {
       const apple = await verifyAppleReceipt(String(transactionId));
+      if (apple.valid === false && apple.reason === 'unavailable') {
+        // No verdict was reached. The customer may already have been charged, and
+        // the StoreKit transaction is still unfinished, so this must read as
+        // "try again" — not as a rejected receipt.
+        logger.error(
+          { provider: 'apple', packageId, userId: user.sub, detail: apple.detail },
+          'Apple verification unavailable — coins not credited, retry is safe',
+        );
+        return res.status(503).json({
+          error: 'Apple verification is temporarily unavailable',
+          code: 'verification_unavailable',
+          retry: true,
+          detail: typeof apple.detail === 'string' ? apple.detail.slice(0, 300) : undefined,
+        });
+      }
       isValid = apple.valid;
       applePayload = apple.payload ?? null;
       verificationResponse = { provider: 'apple', verified: apple.valid, productId: apple.productId, detail: apple.detail };
@@ -475,18 +520,16 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
     }
 
     if (safeProvider === 'apple') {
-      const expectedToken = appAccountTokenForUserId(user.sub);
-      const actualToken =
-        applePayload && typeof applePayload.appAccountToken === 'string'
-          ? String(applePayload.appAccountToken).trim()
-          : '';
-      if (!actualToken) {
-        logger.warn({ userId: user.sub }, 'IAP rejected — Apple appAccountToken missing');
-        return res.status(400).json({ error: 'Missing appAccountToken', code: 'missing_app_account_token' });
-      }
-      if (actualToken.toLowerCase() !== expectedToken.toLowerCase()) {
-        logger.warn({ userId: user.sub }, 'IAP rejected — Apple appAccountToken mismatch');
-        return res.status(400).json({ error: 'appAccountToken mismatch', code: 'app_account_token_mismatch' });
+      const ownership = appleTokenOwnershipError(user.sub, applePayload, { required: true });
+      if (ownership) {
+        logger.warn({ userId: user.sub, ownership }, `IAP rejected — Apple ${ownership}`);
+        return res.status(400).json({
+          error:
+            ownership === 'missing_app_account_token'
+              ? 'Missing appAccountToken'
+              : 'appAccountToken mismatch',
+          code: ownership,
+        });
       }
     }
 
@@ -592,8 +635,29 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
     return res.status(500).json({ error: 'Deduplication check failed' });
   }
   let valid = false;
+  let applePayload: Record<string, unknown> | null = null;
   if (provider === 'apple') {
     const apple = await verifyAppleReceipt(String(transactionId));
+    if (apple.valid === false && apple.reason === 'unavailable') {
+      logger.error(
+        { productId, userId: user.sub, detail: apple.detail },
+        'Apple promote verification unavailable — retry is safe',
+      );
+      return res.status(503).json({
+        error: 'Apple verification is temporarily unavailable',
+        code: 'verification_unavailable',
+        retry: true,
+      });
+    }
+    applePayload = apple.payload ?? null;
+    // A promote transaction that carries another account's Apple token is a
+    // replay of that person's purchase. Older builds sent no token at all, so a
+    // token that is absent falls back to the durable transaction-id dedupe.
+    const ownership = appleTokenOwnershipError(user.sub, applePayload, { required: false });
+    if (ownership) {
+      logger.warn({ userId: user.sub, ownership }, 'Promote rejected — Apple token belongs to another account');
+      return res.status(403).json({ error: 'Transaction belongs to another account', code: ownership });
+    }
     valid = apple.valid && apple.productId === String(productId);
   } else {
     const packageName = process.env.GOOGLE_PLAY_PACKAGE_NAME || 'com.elixstarlive.app';
@@ -614,11 +678,6 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
       amountGbp: meta.amountGbp,
     });
     const { autoPostPromoteRevenue } = await import('../lib/monetisation/storeSettlement');
-    let applePayload: Record<string, unknown> | null = null;
-    if (provider === 'apple') {
-      const apple = await verifyAppleReceipt(String(transactionId));
-      applePayload = apple.payload ?? null;
-    }
     const posted = await autoPostPromoteRevenue({
       providerTransactionId,
       userId: user.sub,
@@ -777,11 +836,40 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
     }
 
     const verified = await verifyAppleSubscription(appleTransactionId, expectedProductId);
+    if (verified.ok === false && verified.reason === 'unavailable') {
+      logger.error(
+        { userId: user.sub, creatorId, detail: verified.error },
+        'Apple subscription verification unavailable — retry is safe',
+      );
+      return res.status(503).json({
+        error: 'Apple verification is temporarily unavailable',
+        code: 'verification_unavailable',
+        retry: true,
+      });
+    }
     if (verified.ok === false || !verified.entitled) {
       return res.status(400).json({
         error: 'Invalid or unverified subscription',
         detail: verified.ok === false ? verified.error : undefined,
         subscriptionState: verified.subscriptionState ?? null,
+      });
+    }
+
+    // This app has always set appAccountToken on the membership purchase, so a
+    // subscription that reports a different owner is somebody else's.
+    const subOwnership = appleTokenOwnershipError(
+      user.sub,
+      verified.rawTransaction as Record<string, unknown>,
+      { required: true },
+    );
+    if (subOwnership) {
+      logger.warn(
+        { userId: user.sub, creatorId, ownership: subOwnership },
+        'Membership rejected — Apple subscription does not belong to this account',
+      );
+      return res.status(403).json({
+        error: 'Subscription belongs to another account',
+        code: subOwnership,
       });
     }
 

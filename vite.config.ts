@@ -120,6 +120,11 @@ export default defineConfig(({ mode }) => ({
       '**/dist/**',
       // Money DB suite is isolated — run via `npm run test:money` only.
       '**/moneyIntegration.test.ts',
+      // These assert exact pence movements on the single shared platform wallet
+      // row, so they are only meaningful when no other file is spending at the
+      // same time. vitest.money.config.ts runs them serially.
+      '**/monetisation/paidGift.db.test.ts',
+      '**/monetisation/appleIapPaidLot.db.test.ts',
     ],
   },
 }))

@@ -5,7 +5,7 @@
  * iOS uses one shared auto-renewable SKU in App Store Connect (all creators).
  * Android keeps per-creator IDs (`elix.creator.<24-hex>`).
  */
-import { createHash, createPublicKey, X509Certificate } from "node:crypto";
+import { createHash, X509Certificate } from "node:crypto";
 import * as jose from "jose";
 import { logger } from "./logger";
 import { getPool } from "./postgres";
@@ -51,6 +51,8 @@ export type AppleSubscriptionRejection = {
   ok: false;
   entitled: false;
   error: string;
+  /** "unavailable" means no verdict was reached — the caller must allow a retry. */
+  reason: "invalid" | "not_entitled" | "unavailable";
   subscriptionState?: string;
   detail?: string;
 };
@@ -63,6 +65,45 @@ function appleCredentialsConfigured(): boolean {
   );
 }
 
+/** The one app this server accepts Apple money for. */
+export function appleBundleId(): string {
+  return process.env.APPLE_BUNDLE_ID?.trim() || "com.elixstarlive.app";
+}
+
+/**
+ * The one Apple environment this server settles. A Sandbox/TestFlight purchase
+ * costs nobody anything, so accepting it here would mint real paid coins and a
+ * real GBP lot for money Apple never took.
+ */
+export function expectedAppleEnvironment(): "Production" | "Sandbox" {
+  return (process.env.APPLE_IAP_ENVIRONMENT || "Production").trim().toLowerCase() ===
+    "sandbox"
+    ? "Sandbox"
+    : "Production";
+}
+
+/**
+ * Assert that verified transaction evidence belongs to this app and this
+ * environment. Apple's own library rejects on both, and both must be present:
+ * a payload that simply omits them is not evidence that they match.
+ * Returns null when the identity is good, else the rejection detail.
+ */
+export function appleTransactionIdentityError(
+  payload: Record<string, unknown> | null | undefined,
+): string | null {
+  if (!payload) return "apple-transaction-missing";
+  const bundleId = typeof payload.bundleId === "string" ? payload.bundleId.trim() : "";
+  if (!bundleId) return "apple-transaction-missing-bundle-id";
+  if (bundleId !== appleBundleId()) return "apple-transaction-bundle-mismatch";
+  const environment =
+    typeof payload.environment === "string" ? payload.environment.trim() : "";
+  if (!environment) return "apple-transaction-missing-environment";
+  if (environment.toLowerCase() !== expectedAppleEnvironment().toLowerCase()) {
+    return "apple-transaction-environment-mismatch";
+  }
+  return null;
+}
+
 export function hashAppleOriginalTransactionId(originalTransactionId: string): string {
   return createHash("sha256").update(originalTransactionId.trim()).digest("hex");
 }
@@ -71,7 +112,7 @@ async function createAppleApiJwt(): Promise<string | null> {
   const issuerId = process.env.APPLE_ISSUER_ID?.trim();
   const keyId = process.env.APPLE_KEY_ID?.trim();
   const privateKeyPem = process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  const bundleId = process.env.APPLE_BUNDLE_ID || "com.elixstarlive.app";
+  const bundleId = appleBundleId();
   if (!issuerId || !keyId || !privateKeyPem) return null;
   try {
     const key = await jose.importPKCS8(privateKeyPem, "ES256");
@@ -89,15 +130,24 @@ async function createAppleApiJwt(): Promise<string | null> {
 }
 
 function appleBaseUrls(): string[] {
-  const preferred = (process.env.APPLE_IAP_ENVIRONMENT || "Production").trim();
   const production = "https://api.storekit.itunes.apple.com";
   const sandbox = "https://api.storekit-sandbox.itunes.apple.com";
-  return preferred === "Sandbox" ? [sandbox, production] : [production, sandbox];
+  // Apple's documented order: try the expected environment, then the other on
+  // 404, because a transaction id alone does not say which one it belongs to.
+  // The environment the payload reports is then checked against ours.
+  return expectedAppleEnvironment() === "Sandbox"
+    ? [sandbox, production]
+    : [production, sandbox];
 }
 
 /**
  * Cryptographically verify an App Store Server API / ASN V2 JWS.
  * Trusts only chains that terminate at Apple Root CA - G3 (published Apple PKI).
+ *
+ * Signature only. This same function verifies transaction info, renewal info and
+ * notification envelopes, and only transaction info carries bundleId/environment,
+ * so app and environment identity is asserted by `appleTransactionIdentityError`
+ * at each transaction boundary instead of being half-checked here.
  */
 const APPLE_ROOT_CA_G3_PEM = `-----BEGIN CERTIFICATE-----
 MIICQzCCAcmgAwIBAgIILcX8iNLFS5UwCgYIKoZIzj0EAwMwZzEbMBkGA1UEAwwS
@@ -169,15 +219,14 @@ export async function verifyAppleJwsPayload(
       return null;
     }
 
-    const key = createPublicKey(leaf.publicKey);
-    const { payload } = await jose.jwtVerify(jws, key, { algorithms: ["ES256"] });
-    const p = payload as AppleTxPayload;
-    const expectedBundleId = process.env.APPLE_BUNDLE_ID || "com.elixstarlive.app";
-    if (p.bundleId && p.bundleId !== expectedBundleId) {
-      logger.warn({ bundleId: p.bundleId }, "Apple JWS bundleId mismatch — rejecting");
-      return null;
-    }
-    return p;
+    // `leaf.publicKey` is already a public KeyObject, and Node's createPublicKey
+    // only accepts a private KeyObject — passing it through there threw
+    // ERR_CRYPTO_INVALID_KEY_OBJECT_TYPE for every Apple JWS. jose verifies
+    // against the KeyObject directly.
+    const { payload } = await jose.jwtVerify(jws, leaf.publicKey, {
+      algorithms: ["ES256"],
+    });
+    return payload as AppleTxPayload;
   } catch (err) {
     logger.warn({ err }, "Apple JWS verification failed");
     return null;
@@ -219,18 +268,52 @@ async function appleApiGet(path: string): Promise<{ ok: boolean; status: number;
   return last;
 }
 
+export type AppleTransactionLookup =
+  | { valid: true; productId: string; payload: AppleTxPayload; detail: string }
+  | {
+      valid: false;
+      /**
+       * "invalid" — Apple answered and this transaction is not acceptable.
+       * "unavailable" — we could not reach a verdict (credentials, upstream,
+       * timeout). The caller must offer a retry, never a permanent refusal.
+       */
+      reason: "invalid" | "unavailable";
+      productId?: string;
+      payload?: AppleTxPayload;
+      detail: string;
+    };
+
+/**
+ * A non-2xx App Store Server API answer is only the customer's problem when
+ * Apple says the transaction does not exist or is malformed. Our own missing
+ * credentials, a 401/403, a throttle or a 5xx are our outage, and calling those
+ * "invalid receipt" tells a paying customer their purchase was rejected.
+ */
+function appleApiFailureReason(status: number): "invalid" | "unavailable" {
+  if (status === 400 || status === 404) return "invalid";
+  return "unavailable";
+}
+
 export async function fetchAppleTransaction(
   transactionId: string,
-): Promise<{ valid: boolean; productId?: string; payload?: AppleTxPayload; detail?: string }> {
+): Promise<AppleTransactionLookup> {
   if (!appleCredentialsConfigured()) {
-    return { valid: false, detail: "APPLE_CREDENTIALS_NOT_CONFIGURED" };
+    return {
+      valid: false,
+      reason: "unavailable",
+      detail: "APPLE_CREDENTIALS_NOT_CONFIGURED",
+    };
   }
   const tid = transactionId.trim();
-  if (!tid) return { valid: false, detail: "missing_transaction_id" };
+  if (!tid) return { valid: false, reason: "invalid", detail: "missing_transaction_id" };
 
   const resp = await appleApiGet(`/inApps/v1/transactions/${encodeURIComponent(tid)}`);
   if (!resp.ok) {
-    return { valid: false, detail: `apple-api-${resp.status}: ${resp.text || ""}` };
+    return {
+      valid: false,
+      reason: appleApiFailureReason(resp.status),
+      detail: `apple-api-${resp.status}: ${resp.text || ""}`,
+    };
   }
   const signed =
     resp.json &&
@@ -240,9 +323,28 @@ export async function fetchAppleTransaction(
       : "";
   const payload = signed ? await verifyAppleJwsPayload(signed) : null;
   if (!payload?.productId) {
-    return { valid: false, detail: "apple-jws-missing-or-malformed" };
+    return { valid: false, reason: "invalid", detail: "apple-jws-missing-or-malformed" };
   }
-  return { valid: true, productId: String(payload.productId), payload, detail: JSON.stringify(payload) };
+  const identity = appleTransactionIdentityError(payload);
+  if (identity) {
+    logger.warn(
+      {
+        transactionId: tid,
+        bundleId: payload.bundleId,
+        environment: payload.environment,
+        expectedEnvironment: expectedAppleEnvironment(),
+        identity,
+      },
+      "Apple transaction rejected — wrong app or wrong environment",
+    );
+    return { valid: false, reason: "invalid", payload, detail: identity };
+  }
+  return {
+    valid: true,
+    productId: String(payload.productId),
+    payload,
+    detail: JSON.stringify(payload),
+  };
 }
 
 function mapAppleSubscriptionState(input: {
@@ -264,18 +366,34 @@ export async function verifyAppleSubscription(
   expectedProductId: string,
 ): Promise<AppleSubscriptionEntitlement | AppleSubscriptionRejection> {
   const tx = await fetchAppleTransaction(transactionId);
-  if (!tx.valid || !tx.payload) {
-    return { ok: false, entitled: false, error: tx.detail || "apple_verify_failed" };
+  if (tx.valid === false) {
+    return {
+      ok: false,
+      entitled: false,
+      error: tx.detail || "apple_verify_failed",
+      reason: tx.reason,
+    };
   }
   const productId = String(tx.payload.productId || "");
   if (productId !== expectedProductId) {
-    return { ok: false, entitled: false, error: "product_mismatch", detail: productId };
+    return {
+      ok: false,
+      entitled: false,
+      error: "product_mismatch",
+      reason: "invalid",
+      detail: productId,
+    };
   }
   const originalTransactionId = String(
     tx.payload.originalTransactionId || tx.payload.transactionId || "",
   ).trim();
   if (!originalTransactionId) {
-    return { ok: false, entitled: false, error: "missing_original_transaction" };
+    return {
+      ok: false,
+      entitled: false,
+      error: "missing_original_transaction",
+      reason: "invalid",
+    };
   }
 
   let autoRenewEnabled = true;
@@ -325,6 +443,7 @@ export async function verifyAppleSubscription(
       ok: false,
       entitled: false,
       error: "not_entitled",
+      reason: "not_entitled",
       subscriptionState,
       detail: tx.detail,
     };

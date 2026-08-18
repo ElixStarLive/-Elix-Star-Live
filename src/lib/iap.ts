@@ -643,10 +643,14 @@ export async function purchasePromoteProduct(productId: PromoteProductId): Promi
 
   promotePurchaseInProgress = true;
   try {
+    const { user } = useAuthStore.getState();
     const result = await mod.NativePurchases.purchaseProduct({
       productIdentifier: productId,
       productType: mod.PURCHASE_TYPE.INAPP,
       quantity: 1,
+      // Binds the transaction to this account at the store, so the server can
+      // refuse a promote transaction replayed from somebody else's purchase.
+      ...(user?.id ? { appAccountToken: appAccountTokenForUser(user.id) } : {}),
     });
 
     const transactionId = result.transactionId;

@@ -58,11 +58,13 @@ describe("release architecture contracts", () => {
     expect(apple).not.toContain("does not look Apple-issued");
   });
 
-  it("enforces Apple appAccountToken on coin verify", () => {
+  it("enforces Apple appAccountToken ownership on coins, promote and membership", () => {
     const misc = read("server/routes/misc.ts");
-    expect(misc).toContain("appAccountTokenForUserId(user.sub)");
+    expect(misc).toContain("appAccountTokenForUserId(userId)");
     expect(misc).toContain("missing_app_account_token");
     expect(misc).toContain("app_account_token_mismatch");
+    // One ownership check, used by every Apple settlement route.
+    expect(misc.match(/appleTokenOwnershipError\(\s*\n?\s*user\.sub/g)?.length).toBe(3);
   });
 
   it("Google consume is server-authoritative after durable credit", () => {

@@ -101,6 +101,12 @@ export function collectProductionEnvironmentFailures(
       "APPLE_IAP_NOTIFICATION_SECRET is required in production for App Store Server Notifications V2",
     );
   }
+  const appleEnv = (env.APPLE_IAP_ENVIRONMENT || "Production").trim();
+  if (appleEnv.toLowerCase() === "sandbox") {
+    failures.push(
+      "APPLE_IAP_ENVIRONMENT=Sandbox must not be set in production — sandbox purchases would settle as real paid coins",
+    );
+  }
 
   if (!env.GOOGLE_RTDN_WEBHOOK_SECRET?.trim()) {
     failures.push(

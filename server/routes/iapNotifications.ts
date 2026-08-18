@@ -18,6 +18,8 @@ import {
   verifyGoogleSubscription,
 } from "../lib/googlePlaySubscriptions";
 import {
+  appleTransactionIdentityError,
+  expectedAppleEnvironment,
   hashAppleOriginalTransactionId,
   verifyAppleJwsPayload,
   verifyAppleSubscription,
@@ -153,6 +155,17 @@ async function reconcileAppleSubscriptionEntitlement(
       logger.warn({ err, creatorId }, "Apple sub renewal GBP post skipped");
     }
     return { ok: true, updated: true };
+  }
+
+  // No verdict from Apple is not "not entitled". Downgrading here would revoke a
+  // paying subscriber because the App Store Server API was briefly unreachable,
+  // so leave the stored state alone and let Apple redeliver the notification.
+  if (verified.ok === false && verified.reason === "unavailable") {
+    logger.warn(
+      { originalTransactionId, detail: verified.error },
+      "Apple subscription reconcile deferred — verification unavailable",
+    );
+    return { ok: false, updated: false, detail: "apple_verification_unavailable" };
   }
 
   const state = verified.subscriptionState || "EXPIRED";
@@ -386,6 +399,24 @@ export async function handleAppleIapNotification(req: Request, res: Response) {
     const tx = signedTransactionInfo
       ? await decodeAppleNotificationPayload(signedTransactionInfo)
       : null;
+    if (tx) {
+      // A sandbox notification must not reverse or renew production money, and a
+      // notification for another app must not touch this one's records.
+      const identity = appleTransactionIdentityError(tx);
+      if (identity) {
+        logger.warn(
+          {
+            notificationType: String(outer.notificationType || ""),
+            bundleId: tx.bundleId,
+            environment: tx.environment,
+            expectedEnvironment: expectedAppleEnvironment(),
+            identity,
+          },
+          "Apple notification rejected — wrong app or wrong environment",
+        );
+        return res.status(400).json({ error: identity });
+      }
+    }
     const transactionId =
       (tx && typeof tx.transactionId === "string" && tx.transactionId) || "";
     const originalTransactionId =
