@@ -588,21 +588,37 @@ export async function valkeyHgetallBatch(
   }
 }
 
-/** One Valkey round-trip for many EXISTS (e.g. live room presence sweep). */
-export async function valkeyExistsBatch(keys: string[]): Promise<boolean[]> {
+/**
+ * One Valkey round-trip for many EXISTS (e.g. live room presence sweep).
+ *
+ * Answers with an explicit status, because the caller prunes the keys it reports
+ * as absent. "Valkey did not answer" and "these people have left" are the same
+ * empty array, and a blip that read as the second one deleted the authoritative
+ * membership of every live room it touched.
+ */
+export async function valkeyExistsBatch(
+  keys: string[],
+): Promise<{ status: "ok"; present: boolean[] } | { status: "unavailable" }> {
   const v = getValkey();
-  if (!v || keys.length === 0) return keys.map(() => false);
+  if (!v) return { status: "unavailable" };
+  if (keys.length === 0) return { status: "ok", present: [] };
   try {
     const pipe = v.pipeline();
     for (const k of keys) {
       pipe.exists(k);
     }
     const raw = await pipe.exec();
-    if (!raw) return keys.map(() => false);
-    return raw.map(([err, res]) => !err && res === 1);
+    if (!raw) return { status: "unavailable" };
+    // A single failed command in the pipeline is unreadable too: reporting it as
+    // absent would prune a member who is still in the room.
+    if (raw.some(([err]) => err)) {
+      logger.warn({ n: keys.length }, "valkeyExistsBatch partially failed");
+      return { status: "unavailable" };
+    }
+    return { status: "ok", present: raw.map(([, res]) => res === 1) };
   } catch (err) {
     logger.warn({ err: err?.message, n: keys.length }, "valkeyExistsBatch failed");
-    return keys.map(() => false);
+    return { status: "unavailable" };
   }
 }
 

@@ -1032,9 +1032,15 @@ async function listRoomMemberUserIds(roomId: string): Promise<string[]> {
     if (c.ws.readyState === WebSocket.OPEN) localUserIds.add(c.userId);
   }
 
-  const present = await valkeyExistsBatch(
+  const read = await valkeyExistsBatch(
     ids.map((id) => roomPresenceKey(roomId, id)),
   );
+  // Presence unreadable: nobody is proven gone, so nobody is swept. Pruning on a
+  // failed read would delete the whole room's membership — including the host the
+  // disconnect grace checks for — because Valkey blinked. Members carry their own
+  // TTL, and the next readable pass prunes for real.
+  if (read.status === "unavailable") return ids;
+  const present = read.present;
   const live: string[] = [];
   const stale: string[] = [];
   ids.forEach((id, i) => {
@@ -1221,7 +1227,11 @@ function cancelBattleDisconnectGrace(roomId: string, userId: string): void {
   }
 }
 
-function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void {
+function scheduleBattleDisconnectEnd(
+  battleRoomId: string,
+  userId: string,
+  battleId: string,
+): void {
   const key = hostDisconnectKey(battleRoomId, userId);
   const existing = battleDisconnectTimers.get(key);
   if (existing) clearTimeout(existing);
@@ -1240,6 +1250,9 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
         }
         const battle = await getBattleFromStore(battleRoomId);
         if (!battle || battle.status === "ENDED") return;
+        // The battle this grace period belongs to. A rematch in the same room is
+        // a different battle, and this timer has no authority over it.
+        if (battle.id !== battleId) return;
         if (!isBattleHost(battle, userId)) return;
         logger.info(
           { battleRoomId, role: "host" },
@@ -1247,7 +1260,7 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
         );
         // Finalization freezes the scores, stores the result and revokes the
         // battle publish grants exactly once.
-        await finalizeBattle(battleRoomId, "host_disconnect");
+        await finalizeBattle(battleRoomId, "host_disconnect", battleId);
       } catch (err) {
         logger.error({ err, battleRoomId, userId }, "battle disconnect grace end failed");
       }
@@ -1268,7 +1281,11 @@ function scheduleBattleDisconnectEnd(battleRoomId: string, userId: string): void
  * Reuses battleDisconnectTimers keyed by roomId:userId, so a reconnect within the
  * grace cancels it via cancelBattleDisconnectGrace (same as the host path).
  */
-function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: string): void {
+function scheduleBattleParticipantDisconnectEnd(
+  battleRoomId: string,
+  userId: string,
+  battleId: string,
+): void {
   const key = hostDisconnectKey(battleRoomId, userId);
   const existing = battleDisconnectTimers.get(key);
   if (existing) clearTimeout(existing);
@@ -1285,6 +1302,10 @@ function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: st
         }
         const battle = await getBattleFromStore(battleRoomId);
         if (!battle || battle.status === "ENDED") return;
+        // The rematch that replaced this battle has its own seats and its own
+        // publish grants. Dropping a creator out of it here, or revoking their
+        // camera, would punish them for a disconnect from the previous match.
+        if (battle.id !== battleId) return;
         // Host disconnect is handled by scheduleBattleDisconnectEnd, not here.
         if (isBattleHost(battle, userId)) return;
         if (!participantOfUser(battle, userId)) return;
@@ -1301,13 +1322,13 @@ function scheduleBattleParticipantDisconnectEnd(battleRoomId: string, userId: st
             { battleRoomId, userId },
             "Battle opponent gone after grace, resolving battle from current scores",
           );
-          await finalizeBattle(battleRoomId, "participant_disconnect");
+          await finalizeBattle(battleRoomId, "participant_disconnect", battleId);
         } else {
           logger.info(
             { battleRoomId, userId },
             "Battle creator gone after grace, removing from match (others continue)",
           );
-          await removeBattleParticipant(battleRoomId, userId);
+          await removeBattleParticipant(battleRoomId, userId, battleId);
           // Seat freed — clients refresh Invite Creator from authoritative roster.
           broadcastToRoom(battleRoomId, "battle_invite_roster_invalidate", {
             streamKey: battleRoomId,
@@ -1512,9 +1533,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
               // multi-creator match, so the remaining creator is never stuck
               // until the timer expires.
               if (isHost) {
-                scheduleBattleDisconnectEnd(battleRoomId, client.userId);
+                scheduleBattleDisconnectEnd(battleRoomId, client.userId, battle.id);
               } else {
-                scheduleBattleParticipantDisconnectEnd(battleRoomId, client.userId);
+                scheduleBattleParticipantDisconnectEnd(
+                  battleRoomId,
+                  client.userId,
+                  battle.id,
+                );
               }
             }
           }

@@ -1347,6 +1347,17 @@ export function useLiveSpectatorController() {
   const locationStateRef = useRef(location.state);
   locationStateRef.current = location.state;
   const lkDisconnectRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Leaving live cancels a pending rebuild: the controller that scheduled it no
+  // longer owns any room.
+  useEffect(
+    () => () => {
+      if (lkDisconnectRetryRef.current) {
+        clearTimeout(lkDisconnectRetryRef.current);
+        lkDisconnectRetryRef.current = null;
+      }
+    },
+    [],
+  );
   const spectatorSession = useSpectatorLiveSession({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
     roomId: effectiveStreamId,
@@ -1685,8 +1696,14 @@ export function useLiveSpectatorController() {
         const attempt = liveConnectRetryAttemptsRef.current;
         if (attempt >= 5) return;
         const delayMs = Math.min(30_000, 2_000 * Math.pow(2, attempt));
+        // The retry belongs to the room that dropped. Swiping to another live
+        // within the backoff used to hand this timer the new room id, so it
+        // rebuilt a connection the new room had not asked for and charged it the
+        // previous room's failed attempts.
+        const retryForStreamId = effectiveStreamIdRef.current;
         lkDisconnectRetryRef.current = setTimeout(() => {
           lkDisconnectRetryRef.current = null;
+          if (effectiveStreamIdRef.current !== retryForStreamId) return;
           if (streamIsLiveRef.current && effectiveStreamIdRef.current) {
             liveConnectRetryAttemptsRef.current = attempt + 1;
             setLiveConnectRetryKey((k) => k + 1);

@@ -52,6 +52,12 @@ describe("LIVE + battle server state-machine contracts", () => {
     );
     expect(listFn).toContain("valkeyExistsBatch");
     expect(listFn).toContain("valkeySrem(`room:members:${roomId}`, ...stale)");
+    // Only a read that answered may prune. Pruning on an unreadable presence
+    // check deleted the whole room's membership whenever Valkey blipped.
+    expect(listFn).toContain('if (read.status === "unavailable") return ids;');
+    expect(listFn.indexOf('read.status === "unavailable"')).toBeLessThan(
+      listFn.indexOf("valkeySrem(`room:members:${roomId}`"),
+    );
     // Count and list read the same pruned membership + same exclude set.
     const viewerListFn = wsIndex.slice(wsIndex.indexOf("async function buildViewerList"));
     expect(viewerListFn).toContain("await listRoomMemberUserIds(roomId)");
@@ -100,16 +106,21 @@ describe("LIVE + battle server state-machine contracts", () => {
       wsIndex.indexOf("function scheduleBattleParticipantDisconnectEnd"),
     );
     // 2-player battle → end through the one authoritative (idempotent)
-    // finalizer; multi-creator → drop just that seat.
+    // finalizer; multi-creator → drop just that seat. Both name the battle this
+    // grace period was scheduled for, so a rematch started inside the window is
+    // never ended or unseated by the previous match's disconnect.
     expect(fn).toContain(
-      'await finalizeBattle(battleRoomId, "participant_disconnect")',
+      'await finalizeBattle(battleRoomId, "participant_disconnect", battleId)',
     );
-    expect(fn).toContain("await removeBattleParticipant(battleRoomId, userId)");
+    expect(fn).toContain(
+      "await removeBattleParticipant(battleRoomId, userId, battleId)",
+    );
+    expect(fn).toContain("if (battle.id !== battleId) return;");
     expect(fn).toContain("BATTLE_DISCONNECT_GRACE_MS");
-    // The disconnect handler must actually route non-host creators here.
-    expect(wsIndex).toContain(
-      "scheduleBattleParticipantDisconnectEnd(battleRoomId, client.userId)",
-    );
+    // The disconnect handler must actually route non-host creators here, with the
+    // battle it read at disconnect time.
+    expect(wsIndex).toContain("scheduleBattleParticipantDisconnectEnd(");
+    expect(wsIndex).toContain("scheduleBattleDisconnectEnd(battleRoomId, client.userId, battle.id)");
   });
 
   it("battle participant reconnect within grace cancels the pending resolution", () => {

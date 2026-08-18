@@ -567,6 +567,99 @@ describe("battle authority", () => {
   });
 
   /**
+   * A disconnect grace period is 15 seconds of delay between reading the battle
+   * and acting on it. Within that window the match can end and the creators can
+   * start a rematch in the same room, so the delayed action must belong to the
+   * battle it was scheduled for and to no other.
+   */
+  describe("a delayed caller has no authority over a later battle", () => {
+    async function endedThenRematched(): Promise<{ endedId: string; rematchId: string }> {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 40, source: "paid_gift" });
+      const ended = await finalizeBattle(ROOM, "host_end");
+      const rematch = await ensureBattleForHost({
+        roomId: ROOM,
+        hostUserId: "c1",
+        hostName: "C1",
+      });
+      expect(rematch?.id).toBeTruthy();
+      expect(rematch?.id).not.toBe(ended?.id);
+      return { endedId: String(ended?.id), rematchId: String(rematch?.id) };
+    }
+
+    it("cannot freeze a rematch that has not been played as a 0-0 result", async () => {
+      const { endedId, rematchId } = await endedThenRematched();
+      const endedResults = persisted.length;
+
+      // The host's disconnect grace from the PREVIOUS battle fires here.
+      const stale = await finalizeBattle(ROOM, "host_disconnect", endedId);
+
+      expect(stale).toBe(null);
+      const current = await getBattleFromStore(ROOM);
+      expect(current?.id).toBe(rematchId);
+      expect(current?.status).toBe("WAITING");
+      expect(current?.finalScores).toBe(null);
+      expect(persisted).toHaveLength(endedResults);
+      expect(persisted.some((r) => r.battleId === rematchId)).toBe(false);
+    });
+
+    it("cannot end a rematch that is already being played", async () => {
+      const { endedId, rematchId } = await endedThenRematched();
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+      await addBattleScore({ roomId: ROOM, seat: "opponent", points: 10, source: "paid_gift" });
+      const endedBefore = eventsOf("battle_ended").length;
+
+      const stale = await finalizeBattle(ROOM, "participant_disconnect", endedId);
+
+      expect(stale).toBe(null);
+      const current = await getBattleFromStore(ROOM);
+      expect(current?.id).toBe(rematchId);
+      expect(current?.status).toBe("ACTIVE");
+      expect(eventsOf("battle_ended")).toHaveLength(endedBefore);
+      expect(await scoresOf(ROOM)).toMatchObject({ opponent: 10 });
+    });
+
+    it("cannot take a creator's seat out of the rematch they are seated in", async () => {
+      const { endedId, rematchId } = await endedThenRematched();
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+
+      const removed = await removeBattleParticipant(ROOM, "c2", endedId);
+
+      expect(removed).toBe(false);
+      const current = await getBattleFromStore(ROOM);
+      expect(current?.id).toBe(rematchId);
+      expect(current?.participants.map((p) => p.userId)).toEqual(["c1", "c2"]);
+    });
+
+    /**
+     * The control for the three tests above: the same call with no battle named
+     * really does end whatever is in the room. The captured battle id is the only
+     * thing standing between a 15-second-old disconnect and the next match.
+     */
+    it("would otherwise end whatever battle is in the room", async () => {
+      const { rematchId } = await endedThenRematched();
+
+      const ended = await finalizeBattle(ROOM, "host_disconnect");
+
+      expect(ended?.id).toBe(rematchId);
+      expect((await getBattleFromStore(ROOM))?.status).toBe("ENDED");
+    });
+
+    it("still ends the battle it was actually scheduled for", async () => {
+      await activeBattle();
+      const active = await getBattleFromStore(ROOM);
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 15, source: "paid_gift" });
+
+      const finalized = await finalizeBattle(ROOM, "host_disconnect", String(active?.id));
+
+      expect(finalized?.id).toBe(active?.id);
+      expect(finalized?.status).toBe("ENDED");
+      expect(finalized?.finalScores).toMatchObject({ host: 15 });
+      expect(persisted.some((r) => r.battleId === active?.id)).toBe(true);
+    });
+  });
+
+  /**
    * The permanent record is the whole point of the match, so it is queued before
    * anything is frozen or announced. Every failure here must leave the battle
    * exactly as it was — still ACTIVE, still finalizable — rather than telling the
@@ -1111,6 +1204,96 @@ describe("battle authority", () => {
       const retried = await finalizeBattle(ROOM, "timer");
       expect(retried?.status).toBe("ENDED");
       expect(retried?.finalScores).toMatchObject({ host: 25 });
+    });
+  });
+
+  /**
+   * The tick set is how the only loop that can finalize a battle finds it. A
+   * clock that starts while nothing is watching runs out with nobody to end it,
+   * so the battle must be registered before it becomes ACTIVE — and a start that
+   * cannot register is not a start.
+   */
+  describe("no battle counts down unwatched", () => {
+    function activeSet() {
+      return valkeyFake.valkeySmembers("battles:active");
+    }
+
+    it("is being watched by the tick loop before its clock starts", async () => {
+      await seatedWaitingBattle();
+      expect(await activeSet()).not.toContain(ROOM);
+
+      expect((await startBattleIfReady(ROOM)).ok).toBe(true);
+
+      expect(await activeSet()).toContain(ROOM);
+      expect((await getBattleFromStore(ROOM))?.endsAt).toBeGreaterThan(Date.now());
+    });
+
+    it("does not start a match it could not register for finalization", async () => {
+      await seatedWaitingBattle();
+      setValkeyFakeSetsWritable(false);
+
+      expect(await startBattleIfReady(ROOM)).toMatchObject({
+        ok: false,
+        reason: "unavailable",
+      });
+
+      setValkeyFakeSetsWritable(true);
+      // No clock was started, so nothing is counting down unwatched.
+      const session = await getBattleFromStore(ROOM);
+      expect(session?.status).toBe("WAITING");
+      expect(session?.endsAt).toBe(0);
+      expect(eventsOf("battle_state").some((e) => (e.payload as { status?: string })?.status === "ACTIVE")).toBe(false);
+    });
+
+    it("stops being watched once it is finalized", async () => {
+      await activeBattle();
+      expect(await activeSet()).toContain(ROOM);
+
+      await finalizeBattle(ROOM, "timer");
+
+      expect(await activeSet()).not.toContain(ROOM);
+    });
+  });
+
+  /**
+   * The finalize claim stops two workers finalizing the same battle at the same
+   * moment. A pass that hands back a claim it no longer holds — because its own
+   * claim expired and another worker took over — puts a third pass onto a battle
+   * that is already being finalized.
+   */
+  describe("the finalize claim is given back only by its owner", () => {
+    it("leaves a claim taken over by another worker alone", async () => {
+      await activeBattle();
+      const session = await getBattleFromStore(ROOM);
+      const claimKey = `battle:final:${session?.id}`;
+      // This pass claims, then stalls long enough for its claim to lapse and
+      // another worker to take it; the scores then read as unavailable, which is
+      // the path that hands the claim back.
+      setValkeyFakeHashesReachable(false);
+      holdValkeyFakeLock(claimKey, "worker-b");
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+
+      // Worker B still holds its claim, so no third pass can start.
+      expect(await valkeyFake.valkeyGet(claimKey)).toBe("worker-b");
+      setValkeyFakeHashesReachable(true);
+      expect((await getBattleFromStore(ROOM))?.status).toBe("ACTIVE");
+    });
+
+    it("gives its own claim back so the next pass can finalize for real", async () => {
+      await activeBattle();
+      await addBattleScore({ roomId: ROOM, seat: "host", points: 30, source: "paid_gift" });
+      const session = await getBattleFromStore(ROOM);
+      const claimKey = `battle:final:${session?.id}`;
+      setValkeyFakeHashesReachable(false);
+
+      expect(await finalizeBattle(ROOM, "timer")).toBe(null);
+      expect(await valkeyFake.valkeyGet(claimKey)).toBe(null);
+
+      setValkeyFakeHashesReachable(true);
+      const finalized = await finalizeBattle(ROOM, "timer");
+      expect(finalized?.status).toBe("ENDED");
+      expect(finalized?.finalScores).toMatchObject({ host: 30 });
     });
   });
 

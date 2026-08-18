@@ -126,6 +126,8 @@ const RESULT_FLUSH_LOCK_KEY = "battle:result_flush";
 const RESULT_FLUSH_LOCK_TTL_MS = 10_000;
 
 let globalTickInterval: ReturnType<typeof setInterval> | null = null;
+/** Guards against a slow tick pass overlapping the next one in this process. */
+let tickPassRunning = false;
 
 function hasValkey(): boolean {
   return isValkeyConfigured();
@@ -619,10 +621,14 @@ export async function clearBattleParticipantPresence(
 export async function removeBattleParticipant(
   roomId: string,
   userId: string,
+  expectBattleId?: string,
 ): Promise<boolean> {
   let vacatedSeat: BattleSeat | "" = "";
   const mutation = await mutateBattleSession(roomId, (session) => {
     if (!session || session.status === "ENDED") return null;
+    // Same rule as finalizeBattle: a delayed caller may only drop a creator from
+    // the battle it actually saw, never from the rematch that replaced it.
+    if (expectBattleId && session.id !== expectBattleId) return null;
     if (isBattleHost(session, userId)) return null;
 
     const participant = participantOfUser(session, userId);
@@ -695,6 +701,18 @@ export async function startBattleIfReady(
   // forming cannot be scored at all, so this only guarantees a rematch starts at 0.
   const forming = await getBattleFromStore(roomId);
   if (forming && forming.status === "WAITING") await resetScoreHash(roomId);
+  // Join the tick set BEFORE the clock starts, and refuse to start if that write
+  // is not confirmed. The tick set is how the only loop that can finalize this
+  // battle finds it: registering afterwards left a window where a battle was
+  // ACTIVE and counting down while no worker was watching it, and the registration
+  // swallowed its own failure, so a played battle could reach its end time with
+  // nothing to finalize it and expire without ever producing a result.
+  // Registering first is the safe direction to fail — a room in the set whose
+  // battle is not ACTIVE is simply dropped again by the next tick.
+  if ((await valkeyTrySadd(ACTIVE_BATTLES_KEY, roomId)) !== "ok") {
+    logger.error({ roomId }, "battle not started — tick registration unavailable");
+    return { ok: false, reason: "unavailable", notReady: [] };
+  }
   // The roster is read inside the lock: starting from a snapshot taken before the
   // last creator confirmed presence would both miss them and write their seat away.
   const mutation = await mutateBattleSession(roomId, (session) => {
@@ -723,7 +741,6 @@ export async function startBattleIfReady(
   }
 
   const session = mutation.session;
-  await valkeySadd(ACTIVE_BATTLES_KEY, roomId);
   await broadcastBattleState(roomId, session);
   logger.info(
     {
@@ -966,19 +983,34 @@ export type BattleFinalizeReason =
 export async function finalizeBattle(
   roomId: string,
   reason: BattleFinalizeReason,
+  expectBattleId?: string,
 ): Promise<BattleSession | null> {
   if (!hasValkey() || !roomId) return null;
 
   const session = await getBattleFromStore(roomId);
   if (!session) return null;
+  // A delayed caller (a disconnect grace that has been counting for 15 seconds)
+  // asked to end the battle it saw, not whatever is in this room now. A rematch
+  // in the same room is a different battle with a different id, and ending it
+  // here would freeze a permanent 0-0 record for a match nobody has played yet.
+  if (expectBattleId && session.id !== expectBattleId) {
+    logger.info(
+      { roomId, expectBattleId, currentBattleId: session.id, reason },
+      "battle not finalized — this battle was already replaced by a newer one",
+    );
+    return null;
+  }
   if (session.status === "ENDED") return null;
 
-  const claimed = await valkeySetNx(
-    FINALIZE_LOCK_PREFIX + session.id,
-    reason,
-    FINALIZE_CLAIM_TTL_MS,
-  );
-  if (!claimed) return null;
+  // Claimed with a token unique to this pass, released only by this pass. The
+  // release used to be an unconditional DEL of a claim whose value was the
+  // finalize reason, so a pass that outran the 15 s TTL handed the claim back on
+  // behalf of whichever worker had taken it over, letting a third start
+  // finalizing the same battle alongside it.
+  const claimKey = FINALIZE_LOCK_PREFIX + session.id;
+  const claimToken = randomUUID();
+  const claimed = await valkeyTrySetNx(claimKey, claimToken, FINALIZE_CLAIM_TTL_MS);
+  if (claimed !== "set") return null;
 
   // The result is the whole point of the match, and this is the only pass that
   // will ever compute it. Scores that cannot be read are not zero: freezing them
@@ -987,7 +1019,7 @@ export async function finalizeBattle(
   // trigger — finalizes for real once the hash can be read.
   const read = await getBattleScoresState(roomId);
   if (read.status === "unavailable") {
-    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    await valkeyReleaseLock(claimKey, claimToken);
     logger.error(
       { roomId, battleId: session.id, reason },
       "battle not finalized — live scores unreadable, will retry",
@@ -1016,7 +1048,7 @@ export async function finalizeBattle(
   // scoring, and this snapshot must not become the permanent record of a match
   // that had not finished. Only the freeze turns it into a result.
   if ((await queueBattleResultForRetry(record, true)) !== "ok") {
-    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    await valkeyReleaseLock(claimKey, claimToken);
     logger.error(
       { roomId, battleId: session.id, reason },
       "battle not finalized — result could not be queued for permanent storage, will retry",
@@ -1033,7 +1065,7 @@ export async function finalizeBattle(
     return { session: finalized, changed: true };
   });
   if (frozen.status !== "applied") {
-    await valkeyDel(FINALIZE_LOCK_PREFIX + session.id);
+    await valkeyReleaseLock(claimKey, claimToken);
     if (frozen.status === "rejected") {
       // Already ended by another execution — it owns the identical record for
       // this battleId, so the queued entry stays as its durability guarantee.
@@ -1331,19 +1363,28 @@ async function processBattleTick(roomId: string): Promise<void> {
 
 async function globalTickLoop(): Promise<void> {
   if (!hasValkey()) return;
-  // Runs even with no active battle: a result queued during a Neon outage must
-  // still reach permanent storage once the database is back.
+  // One pass at a time in this process. The interval does not wait for the async
+  // body, so a pass slowed by Valkey used to have the next one start on top of
+  // it, and a sustained slowdown piled passes up against the same rooms.
+  if (tickPassRunning) return;
+  tickPassRunning = true;
   try {
-    await flushPendingBattleResults();
-  } catch (err) {
-    logger.error({ err }, "battle result retry pass failed");
-  }
-  try {
-    const activeRoomIds = await valkeySmembers(ACTIVE_BATTLES_KEY);
-    if (activeRoomIds.length === 0) return;
-    await Promise.all(activeRoomIds.map((roomId) => processBattleTick(roomId)));
-  } catch (err) {
-    logger.error({ err }, "globalTickLoop error");
+    // Runs even with no active battle: a result queued during a Neon outage must
+    // still reach permanent storage once the database is back.
+    try {
+      await flushPendingBattleResults();
+    } catch (err) {
+      logger.error({ err }, "battle result retry pass failed");
+    }
+    try {
+      const activeRoomIds = await valkeySmembers(ACTIVE_BATTLES_KEY);
+      if (activeRoomIds.length === 0) return;
+      await Promise.all(activeRoomIds.map((roomId) => processBattleTick(roomId)));
+    } catch (err) {
+      logger.error({ err }, "globalTickLoop error");
+    }
+  } finally {
+    tickPassRunning = false;
   }
 }
 

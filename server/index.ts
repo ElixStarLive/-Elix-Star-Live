@@ -604,6 +604,25 @@ if (!isValkeyConfigured()) {
   }
 }
 
+/**
+ * Recurring background passes owned by this process. Shutdown stops them before
+ * the pool closes: an unstopped maturation or reconciliation tick could open a
+ * money transaction on a pool that is already ending, so the pass would fail on a
+ * closing connection instead of simply running on the next instance.
+ */
+const backgroundTimers: ReturnType<typeof setInterval>[] = [];
+function everyMs(ms: number, run: () => void): void {
+  const timer = setInterval(run, ms);
+  timer.unref();
+  backgroundTimers.push(timer);
+}
+function stopBackgroundTimers(): void {
+  while (backgroundTimers.length > 0) {
+    const timer = backgroundTimers.pop();
+    if (timer) clearInterval(timer);
+  }
+}
+
 const jobWorkerEnv = process.env.ELIX_JOB_WORKER;
 /** Cluster children must not each run the job consumer / startup enqueue — only `ELIX_JOB_WORKER=1` on one leader. */
 const isClusterChild = cluster.isWorker;
@@ -632,7 +651,7 @@ try {
   // LOCKED + status guard) but there is no reason for every cluster worker to
   // scan every 5 minutes.
   if (runBackgroundJobs) {
-    setInterval(() => {
+    everyMs(5 * 60 * 1000, () => {
       void neonMatureCreatorEarnings().then((n) => {
         if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
       });
@@ -641,7 +660,7 @@ try {
           if (n > 0) logger.info({ matured: n }, "GBP creator ledger matured to available");
         }),
       );
-    }, 5 * 60 * 1000).unref();
+    });
     void neonMatureCreatorEarnings();
     void loadMonetisationConfig().then((cfg) => matureGbpPendingEarnings(cfg.giftSettlementHours));
 
@@ -667,18 +686,18 @@ try {
       }
     };
     void tickRewardsPeriods();
-    setInterval(() => {
+    everyMs(60 * 60 * 1000, () => {
       void tickRewardsPeriods();
-    }, 60 * 60 * 1000).unref();
+    });
 
-    setInterval(() => {
+    everyMs(6 * 60 * 60 * 1000, () => {
       void runWalletLedgerReconciliation();
-    }, 6 * 60 * 60 * 1000).unref();
+    });
     void runWalletLedgerReconciliation();
 
-    setInterval(() => {
+    everyMs(15 * 60 * 1000, () => {
       void sweepForYouLifecycle(300);
-    }, 15 * 60 * 1000).unref();
+    });
     void sweepForYouLifecycle(100);
   }
   server.listen(PORT, "0.0.0.0", 8192, () => {
@@ -690,9 +709,9 @@ try {
       startJobWorker(processJob, 1500);
       // Note: enqueueJob false ignored — only if Valkey and memory both fail.
       void enqueueJob({ type: "cleanup_retention" });
-      setInterval(() => {
+      everyMs(24 * 60 * 60 * 1000, () => {
         void enqueueJob({ type: "cleanup_retention" });
-      }, 24 * 60 * 60 * 1000).unref();
+      });
       logger.info("Background job consumer enabled on this process (non-production or ELIX_JOB_WORKER=1)");
     } else {
       logger.info(
@@ -702,12 +721,12 @@ try {
 
     const poolPressureMs = Number(process.env.LOG_POOL_PRESSURE_MS) || 0;
     if (poolPressureMs > 0) {
-      setInterval(() => {
+      everyMs(poolPressureMs, () => {
         const s = getPgPoolStats();
         if (s && s.waiting > 0) {
           logger.warn({ pg_pool: s }, "pool_pressure");
         }
-      }, poolPressureMs).unref();
+      });
       logger.info({ interval_ms: poolPressureMs }, "LOG_POOL_PRESSURE_MS enabled — logs when pool has waiters");
     }
   });
@@ -730,8 +749,16 @@ process.on("uncaughtException", (error) => {
 });
 function gracefulShutdown(signal: string) {
   logger.info({ signal }, "Shutting down...");
+  // Stop taking on new work first. Shared authoritative state (live streams,
+  // presence, battles, seats) is deliberately left alone: this instance going
+  // down must not end anyone's live, and the other instances still own it.
   stopJobWorker();
   stopBattleTickLoop();
+  stopBackgroundTimers();
+  if (_evLoopLagTimer) {
+    clearInterval(_evLoopLagTimer);
+    _evLoopLagTimer = null;
+  }
   server.close(async () => {
     try {
       const pool = getPool();
