@@ -57,9 +57,64 @@ describe("graceful shutdown", () => {
     // which is how every background pass is registered. A new bare setInterval
     // here would be a timer nothing can stop.
     expect(indexSrc.match(/setInterval\(/g)).toHaveLength(2);
-    expect(indexSrc).toContain("backgroundTimers.push(timer)");
+    expect(indexSrc).toContain("into.push(timer)");
     expect(indexSrc).toContain("function stopBackgroundTimers()");
     expect(shutdown).toContain("clearInterval(_evLoopLagTimer)");
+  });
+
+  it("hands the job lease back instead of holding it for its whole TTL", () => {
+    // Releasing is owner-checked, so an instance that already lost the lease
+    // cannot take the work away from whoever picked it up.
+    expect(shutdown).toContain("valkeyReleaseLock(JOB_LEADER_KEY, jobLeaderToken)");
+  });
+});
+
+describe("who runs the background jobs", () => {
+  /** The lease block: acquisition, renewal and the two start/stop paths. */
+  const leadership = indexSrc.slice(
+    indexSrc.indexOf("const JOB_LEADER_KEY"),
+    indexSrc.indexOf("try {\n  await connectPostgres()"),
+  );
+
+  it("is decided by a Valkey lease, not by an env flag", () => {
+    // Production boots through server/cluster.ts, so every process is a cluster
+    // child holding the same env: a flag can only run these jobs in all of them
+    // or none of them, and it cannot move the work when the chosen one dies.
+    expect(leadership).toContain("valkeyTrySetNx(JOB_LEADER_KEY, jobLeaderToken");
+    expect(leadership).toContain("valkeyRenewLock(JOB_LEADER_KEY, jobLeaderToken");
+    expect(indexSrc).not.toContain("if (runBackgroundJobs)");
+  });
+
+  it("starts the recurring money jobs only while it holds the lease", () => {
+    const start = indexSrc.slice(
+      indexSrc.indexOf("function startBackgroundJobs()"),
+      indexSrc.indexOf("function stopBackgroundJobs()"),
+    );
+    for (const leaderOnlyJob of [
+      "neonMatureCreatorEarnings",
+      "matureGbpPendingEarnings",
+      "tickRewardsPeriods",
+      "runWalletLedgerReconciliation",
+      "startJobWorker",
+    ]) {
+      expect(start).toContain(leaderOnlyJob);
+    }
+    // Every one of them is registered where losing the lease can stop it.
+    expect(start.match(/leaderTimers/g)?.length ?? 0).toBeGreaterThanOrEqual(5);
+    expect(indexSrc).toContain("clearTimerList(leaderTimers)");
+  });
+
+  it("stops the jobs when the lease is proven lost, and not when Valkey is merely unreadable", () => {
+    // "unavailable" is not evidence another process took over. Stopping on it
+    // would leave nobody maturing earnings during a Valkey blip; the lease
+    // expires by itself if this process is the one that is cut off.
+    expect(leadership).toContain('if (renewed === "lost") stopBackgroundJobs();');
+    expect(leadership).not.toContain('renewed !== "renewed"');
+  });
+
+  it("takes the lease once, and does not stack a second set of timers", () => {
+    expect(indexSrc).toContain("if (backgroundJobsRunning) return;");
+    expect(indexSrc).toContain('if (claimed === "set") startBackgroundJobs();');
   });
 });
 

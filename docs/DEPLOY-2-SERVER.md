@@ -94,7 +94,6 @@ Load Balancer = distributes traffic, sticky sessions for WebSocket
 NODE_ENV=production
 PORT=8080
 WEB_CONCURRENCY=8
-ELIX_JOB_WORKER=1
 
 # ── Database (Neon) — REQUIRED
 DATABASE_URL=postgresql://YOUR_NEON_URL_HERE
@@ -163,6 +162,10 @@ CLIENT_URL=https://www.elixstarlive.co.uk
 ```env
 ELIX_JOB_WORKER=0
 ```
+
+`ELIX_JOB_WORKER=0` keeps this server out of the background job election. Without
+it, both servers contend for the Valkey job lease and exactly one holds it at a
+time anyway — which is what lets the work move if Server 1 goes down.
 
 Everything else is **identical** to Server 1. Same JWT_SECRET, same DATABASE_URL, same VALKEY_URL (pointing to Server 1 Valkey).
 
@@ -281,5 +284,5 @@ Check Coolify logs. Common causes:
 | Database        | Neon (cloud)          | via DATABASE_URL           |
 | Load Balancer   | Hetzner LB            | :443 (public)              |
 | Domain          | www.elixstarlive.co.uk| → Load Balancer IP         |
-| Job Worker      | Server 1 only         | ELIX_JOB_WORKER=1          |
+| Job Worker      | One lease holder      | Valkey `elix:jobs:leader`  |
 | Workers/server  | 8 each (16 total)     | WEB_CONCURRENCY=8          |

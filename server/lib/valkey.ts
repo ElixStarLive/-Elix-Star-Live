@@ -722,6 +722,34 @@ export async function valkeyReleaseLock(key: string, token: string): Promise<voi
   }
 }
 
+/**
+ * Extend a lease taken with `valkeyTrySetNx`, and report honestly when this
+ * caller no longer holds it. A holder that renews blindly would keep believing
+ * it is the only worker after a pause long enough for the lease to expire and
+ * another process to take over.
+ */
+export async function valkeyRenewLock(
+  key: string,
+  token: string,
+  ttlMs: number,
+): Promise<"renewed" | "lost" | "unavailable"> {
+  const v = getValkey();
+  if (!v || !token) return "unavailable";
+  try {
+    const result = await v.eval(
+      "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end",
+      1,
+      key,
+      token,
+      String(ttlMs),
+    );
+    return result === 1 ? "renewed" : "lost";
+  } catch (err) {
+    logger.warn({ err: err?.message, key }, "valkeyRenewLock failed");
+    return "unavailable";
+  }
+}
+
 // ── Cache stampede protection ────────────────────────────────────
 
 const STAMPEDE_LOCK_TTL_MS = 15_000;

@@ -34,7 +34,6 @@ import { runWalletLedgerReconciliation } from "./lib/monetisation/reconcile";
 import { sweepForYouLifecycle } from "./lib/feed/foryouLifecycle";
 import { initFeedPubSub } from "./feedBroadcast";
 import crypto from "crypto";
-import cluster from "node:cluster";
 import { apiLimiter, LOADTEST_BYPASS_ENABLED } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 import { sessionGuard } from "./middleware/sessionGuard";
@@ -48,6 +47,9 @@ import {
   valkeyHealthCheck,
   waitForValkeyReady,
   closeValkeyConnections,
+  valkeyTrySetNx,
+  valkeyRenewLock,
+  valkeyReleaseLock,
 } from "./lib/valkey";
 import { connectPostgres, getPool, getPgPoolStats } from "./lib/postgres";
 import { runWithDbStats, getDbRequestStats } from "./lib/dbRequestContext";
@@ -611,27 +613,169 @@ if (!isValkeyConfigured()) {
  * closing connection instead of simply running on the next instance.
  */
 const backgroundTimers: ReturnType<typeof setInterval>[] = [];
-function everyMs(ms: number, run: () => void): void {
+const leaderTimers: ReturnType<typeof setInterval>[] = [];
+function everyMs(
+  ms: number,
+  run: () => void,
+  into: ReturnType<typeof setInterval>[] = backgroundTimers,
+): void {
   const timer = setInterval(run, ms);
   timer.unref();
-  backgroundTimers.push(timer);
+  into.push(timer);
 }
-function stopBackgroundTimers(): void {
-  while (backgroundTimers.length > 0) {
-    const timer = backgroundTimers.pop();
+function clearTimerList(list: ReturnType<typeof setInterval>[]): void {
+  while (list.length > 0) {
+    const timer = list.pop();
     if (timer) clearInterval(timer);
   }
 }
+function stopBackgroundTimers(): void {
+  clearTimerList(leaderTimers);
+  clearTimerList(backgroundTimers);
+}
 
 const jobWorkerEnv = process.env.ELIX_JOB_WORKER;
-/** Cluster children must not each run the job consumer / startup enqueue — only `ELIX_JOB_WORKER=1` on one leader. */
-const isClusterChild = cluster.isWorker;
-const runBackgroundJobs =
-  jobWorkerEnv === "1" ||
-  jobWorkerEnv === "true" ||
-  (jobWorkerEnv !== "0" &&
-    jobWorkerEnv !== "false" &&
-    (!isClusterChild || process.env.NODE_ENV !== "production"));
+/** An instance that must never run background jobs (second server in the two-server layout). */
+const backgroundJobsOptOut = jobWorkerEnv === "0" || jobWorkerEnv === "false";
+
+/**
+ * Which process runs maturation, creator rewards, reconciliation and the job
+ * consumer is decided by a Valkey lease, not by an environment variable.
+ * Production starts through `server/cluster.ts`, so every process is a cluster
+ * child with the same env: an `ELIX_JOB_WORKER` flag could only either switch
+ * these jobs off everywhere or run them in every child at once, and neither one
+ * survives the chosen process dying. The lease gives exactly one holder at a
+ * time and lets another instance take over once it expires.
+ */
+const JOB_LEADER_KEY = "elix:jobs:leader";
+const JOB_LEADER_TTL_MS = 45_000;
+const JOB_LEADER_RENEW_MS = 15_000;
+const jobLeaderToken = crypto.randomUUID();
+let backgroundJobsRunning = false;
+
+function startBackgroundJobs(): void {
+  if (backgroundJobsRunning) return;
+  backgroundJobsRunning = true;
+
+  // Mature pending gift earnings after the store refund hold window. The
+  // maturation query is idempotent (FOR UPDATE SKIP LOCKED + status guard), so a
+  // handover that overlaps by one pass cannot double-mature a row.
+  everyMs(
+    5 * 60 * 1000,
+    () => {
+      void neonMatureCreatorEarnings().then((n) => {
+        if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
+      });
+      void loadMonetisationConfig().then((cfg) =>
+        matureGbpPendingEarnings(cfg.giftSettlementHours).then((n) => {
+          if (n > 0) logger.info({ matured: n }, "GBP creator ledger matured to available");
+        }),
+      );
+    },
+    leaderTimers,
+  );
+  void neonMatureCreatorEarnings();
+  void loadMonetisationConfig().then((cfg) => matureGbpPendingEarnings(cfg.giftSettlementHours));
+
+  void tickRewardsPeriods();
+  everyMs(
+    60 * 60 * 1000,
+    () => {
+      void tickRewardsPeriods();
+    },
+    leaderTimers,
+  );
+
+  everyMs(
+    6 * 60 * 60 * 1000,
+    () => {
+      void runWalletLedgerReconciliation();
+    },
+    leaderTimers,
+  );
+  void runWalletLedgerReconciliation();
+
+  everyMs(
+    15 * 60 * 1000,
+    () => {
+      void sweepForYouLifecycle(300);
+    },
+    leaderTimers,
+  );
+  void sweepForYouLifecycle(100);
+
+  startJobWorker(processJob, 1500);
+  // Note: enqueueJob false ignored — only if Valkey and memory both fail.
+  void enqueueJob({ type: "cleanup_retention" });
+  everyMs(
+    24 * 60 * 60 * 1000,
+    () => {
+      void enqueueJob({ type: "cleanup_retention" });
+    },
+    leaderTimers,
+  );
+  logger.info({ leaseToken: jobLeaderToken }, "Background job leader — this process now runs the recurring jobs");
+}
+
+function stopBackgroundJobs(): void {
+  if (!backgroundJobsRunning) return;
+  backgroundJobsRunning = false;
+  clearTimerList(leaderTimers);
+  stopJobWorker();
+  logger.warn("Background job lease lost — recurring jobs stopped on this process");
+}
+
+/** Creator Rewards: ensure an open monthly period; close overdue periods. */
+async function tickRewardsPeriods(): Promise<void> {
+  try {
+    const pool = getPool();
+    if (!pool) return;
+    const open = await pool.query(
+      `SELECT id, ends_at FROM elix_creator_reward_periods WHERE status = 'open' ORDER BY starts_at DESC LIMIT 1`,
+    );
+    if (!open.rowCount) {
+      await openCreatorRewardPeriod();
+      return;
+    }
+    const ends = new Date(open.rows[0].ends_at);
+    if (ends.getTime() <= Date.now()) {
+      await closeCreatorRewardPeriod(String(open.rows[0].id));
+      await openCreatorRewardPeriod();
+    }
+  } catch (err) {
+    logger.warn({ err }, "creator rewards period tick failed");
+  }
+}
+
+async function pollJobLeadership(): Promise<void> {
+  if (backgroundJobsRunning) {
+    const renewed = await valkeyRenewLock(JOB_LEADER_KEY, jobLeaderToken, JOB_LEADER_TTL_MS);
+    // An unreadable Valkey is not proof this process lost the lease, and it is
+    // not proof it still holds it either. Keep running until the answer is a
+    // definite "someone else owns this now": the lease will expire on its own if
+    // this process is the one that is cut off.
+    if (renewed === "lost") stopBackgroundJobs();
+    return;
+  }
+  const claimed = await valkeyTrySetNx(JOB_LEADER_KEY, jobLeaderToken, JOB_LEADER_TTL_MS);
+  if (claimed === "set") startBackgroundJobs();
+}
+
+function initJobLeadership(): void {
+  if (backgroundJobsOptOut) {
+    logger.info("Background jobs disabled on this instance by ELIX_JOB_WORKER=0");
+    return;
+  }
+  if (!isValkeyConfigured()) {
+    // Single-process development: there is no second process to contend with.
+    startBackgroundJobs();
+    return;
+  }
+  void pollJobLeadership();
+  everyMs(JOB_LEADER_RENEW_MS, () => {
+    void pollJobLeadership();
+  });
+}
 
 try {
   await connectPostgres();
@@ -646,78 +790,12 @@ try {
   }
   await loadGiftValuesFromDb();
   initBattleTickLoop();
-  // Mature pending gift earnings after the store refund hold window. Only the
-  // job leader runs this — the maturation query is idempotent (FOR UPDATE SKIP
-  // LOCKED + status guard) but there is no reason for every cluster worker to
-  // scan every 5 minutes.
-  if (runBackgroundJobs) {
-    everyMs(5 * 60 * 1000, () => {
-      void neonMatureCreatorEarnings().then((n) => {
-        if (n > 0) logger.info({ matured: n }, "Creator earnings matured to available");
-      });
-      void loadMonetisationConfig().then((cfg) =>
-        matureGbpPendingEarnings(cfg.giftSettlementHours).then((n) => {
-          if (n > 0) logger.info({ matured: n }, "GBP creator ledger matured to available");
-        }),
-      );
-    });
-    void neonMatureCreatorEarnings();
-    void loadMonetisationConfig().then((cfg) => matureGbpPendingEarnings(cfg.giftSettlementHours));
-
-    // Creator Rewards: ensure an open monthly period; close overdue periods.
-    const tickRewardsPeriods = async () => {
-      try {
-        const pool = getPool();
-        if (!pool) return;
-        const open = await pool.query(
-          `SELECT id, ends_at FROM elix_creator_reward_periods WHERE status = 'open' ORDER BY starts_at DESC LIMIT 1`,
-        );
-        if (!open.rowCount) {
-          await openCreatorRewardPeriod();
-          return;
-        }
-        const ends = new Date(open.rows[0].ends_at);
-        if (ends.getTime() <= Date.now()) {
-          await closeCreatorRewardPeriod(String(open.rows[0].id));
-          await openCreatorRewardPeriod();
-        }
-      } catch (err) {
-        logger.warn({ err }, "creator rewards period tick failed");
-      }
-    };
-    void tickRewardsPeriods();
-    everyMs(60 * 60 * 1000, () => {
-      void tickRewardsPeriods();
-    });
-
-    everyMs(6 * 60 * 60 * 1000, () => {
-      void runWalletLedgerReconciliation();
-    });
-    void runWalletLedgerReconciliation();
-
-    everyMs(15 * 60 * 1000, () => {
-      void sweepForYouLifecycle(300);
-    });
-    void sweepForYouLifecycle(100);
-  }
   server.listen(PORT, "0.0.0.0", 8192, () => {
     logger.info(
       { port: PORT, version: BUILD_VERSION },
       "Server running successfully — no startup bulk loads (DB is source of truth)",
     );
-    if (runBackgroundJobs) {
-      startJobWorker(processJob, 1500);
-      // Note: enqueueJob false ignored — only if Valkey and memory both fail.
-      void enqueueJob({ type: "cleanup_retention" });
-      everyMs(24 * 60 * 60 * 1000, () => {
-        void enqueueJob({ type: "cleanup_retention" });
-      });
-      logger.info("Background job consumer enabled on this process (non-production or ELIX_JOB_WORKER=1)");
-    } else {
-      logger.info(
-        "Background job consumer disabled — set ELIX_JOB_WORKER=1 on exactly one instance to process the Valkey job queue",
-      );
-    }
+    initJobLeadership();
 
     const poolPressureMs = Number(process.env.LOG_POOL_PRESSURE_MS) || 0;
     if (poolPressureMs > 0) {
@@ -760,6 +838,13 @@ function gracefulShutdown(signal: string) {
     _evLoopLagTimer = null;
   }
   server.close(async () => {
+    // Hand the job lease back so the next instance picks the work up now instead
+    // of waiting out the TTL. Owner-checked, so a lease already taken over by
+    // another process is left alone.
+    if (backgroundJobsRunning) {
+      backgroundJobsRunning = false;
+      await valkeyReleaseLock(JOB_LEADER_KEY, jobLeaderToken).catch(() => {});
+    }
     try {
       const pool = getPool();
       if (pool) await pool.end().catch((err: unknown) => {
