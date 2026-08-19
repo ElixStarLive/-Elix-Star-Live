@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "1029218792068",
-    "project_id": "elix-star-live-d99ee",
-    "storage_bucket": "elix-star-live-d99ee.firebasestorage.app"
+    "project_number": "645212288524",
+    "project_id": "elix-star-live-86271",
+    "storage_bucket": "elix-star-live-86271.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1029218792068:android:bca82f206ea881f2bb88d1",
+        "mobilesdk_app_id": "1:645212288524:android:fc75ae83f12fa3fd3ce029",
         "android_client_info": {
           "package_name": "com.elixstarlive.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBI5RuHDIMdHUaQ74ZxssXjLbMBSSw3Zhw"
+          "current_key": "AIzaSyBnKMqpNL_Dp6bggVNKSvVf0s-OjhFpMDI"
         }
       ],
       "services": {
