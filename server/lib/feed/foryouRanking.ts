@@ -70,6 +70,3 @@ export function computeForYouRankingScore(signals: RankingSignals, cfg: ForYouCo
 
   return Number.isFinite(score) ? score : 0;
 }
-
-/** Stages actively recommended in For You. */
-export const FORYOU_ACTIVE_STAGES = ["initial", "promoted", "reentered"] as const;
