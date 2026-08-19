@@ -12,6 +12,24 @@ export type XpApplyResult = {
 };
 
 /**
+ * Read a stored `profiles.level` / `user_progression.current_level` value.
+ *
+ * Level 0 is a real level: `current_level` is NOT NULL DEFAULT 0 CHECK (>= 0),
+ * `xp_level_requirements` starts at level 1, and applyXpGainAndSyncLevel below
+ * writes `profiles.level = 0` for anyone under the level-1 XP threshold. Readers
+ * that used `Number(level) || 1` therefore reported those users one level too
+ * high. NULL — a profile row the level-curve migration never synced — keeps the
+ * column's own DEFAULT 1.
+ *
+ * Presentation is unaffected: LevelBadge floors the displayed level to 1.
+ */
+export function storedProfileLevel(value: unknown): number {
+  if (value == null) return 1;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 1;
+}
+
+/**
  * Ensure progression row exists and lock it for update. Shared by live-watch + paid-gift XP.
  */
 export async function ensureAndLockUserProgression(

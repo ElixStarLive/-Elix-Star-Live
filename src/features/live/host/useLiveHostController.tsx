@@ -186,8 +186,6 @@ declare global {
   }
 }
 
-const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
-
 /** Battle speed challenge ships enabled; the screens read it for their gating. */
 const SPEED_CHALLENGE_ENABLED = true;
 
@@ -234,7 +232,6 @@ export function useLiveHostController() {
   const followingUsers = useVideoStore((s) => s.followingUsers);
   const _rawStreamId = streamId;
   const PROMOTE_LIKES_THRESHOLD_LIVE = 100;
-  const _PROMOTE_LIKES_THRESHOLD_BATTLE = 50;
   
   const [showRankingPanel, setShowRankingPanel] = useState(false);
   const [rankingInitialTab, setRankingInitialTab] = useState<LiveRankTab>('weekly');
@@ -354,12 +351,6 @@ export function useLiveHostController() {
   }, [effectiveStreamId]);
 
   const liveKitHandlersRef = useRef<LiveKitSessionHandlers>({});
-  const _formatStreamName = (id: string) =>
-    id
-      .split(/[-_]/g)
-      .filter(Boolean)
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ');
   const resolveCircleAvatar = useCallback(
     (avatar: string | null | undefined, name: string | null | undefined) =>
       resolveUiAvatarUrl(avatar, name, LIVE_MVP_PROFILE_RING_PX * 2),
@@ -406,8 +397,6 @@ export function useLiveHostController() {
     const creatorId = isBroadcast ? (user?.id || '') : effectiveStreamId;
     return loadDiamondLeagueRankForCreator(creatorId, setDiamondLeagueRank);
   }, [isBroadcast, effectiveStreamId, user?.id]);
-
-  const [_battleGiftIconFailed, _setBattleGiftIconFailed] = useState(false);
 
   // Handle keyboard/viewport resizing for Viewer List
   useEffect(() => {
@@ -938,8 +927,6 @@ export function useLiveHostController() {
 
   const filledSlots = battleSlots.filter(s => s.status !== 'empty');
   const allFilledAccepted = filledSlots.length > 0 && filledSlots.every(s => s.status === 'accepted');
-  const _anySlotFilled = filledSlots.length > 0;
-  const _allSlotsAccepted = allFilledAccepted;
 
   // ═══════════════════════════════════════════════════════════════
   // MULTI-HOST (8 co-host slots + 1 host = 8+1) — Normal Live only, NOT battle
@@ -1314,8 +1301,6 @@ export function useLiveHostController() {
     c.name.toLowerCase().includes(hostSearchQuery.trim().toLowerCase()) &&
     !coHosts.some(h => h.userId === c.id || h.name === c.name)
   );
-  const _liveHostCreators = filteredHostCreators.filter(c => c.isLive);
-  const _offlineHostCreators = filteredHostCreators.filter(c => !c.isLive);
 
   // Battle Mode State
   const [battleState, setBattleState] = useState<BattleState>('LIVE_SOLO');
@@ -1615,7 +1600,6 @@ export function useLiveHostController() {
   const battleSpectatorOverlayRef = useRef<HTMLDivElement | null>(null);
   /** Video battle grid — position fallback when watched stream id does not match any participant. */
   const battleVoteGridRef = useRef<HTMLDivElement | null>(null);
-  const _lastBattleTapTimeRef = useRef<number>(0);
   const spectatorTapPointsRef = useRef<number>(0);
   const [, setSpectatorTapsUsed] = useState<number>(0);
   const battleFreeTapUsedRef = useRef<boolean>(false);
@@ -1635,9 +1619,7 @@ export function useLiveHostController() {
     return null;
   }, [effectiveStreamId]);
 
-  const _battleKeyboardLikeArmedRef = useRef(true);
   const [liveLikes, setLiveLikes] = useState(0);
-  const [_battleReadiness, _setBattleReadiness] = useState(0);
   const [hasOpponentStream, setHasOpponentStream] = useState(false);
   useEffect(() => { hasOpponentStreamRef.current = hasOpponentStream; }, [hasOpponentStream]);
   const [opponentStreamKey, setOpponentStreamKey] = useState<string | null>(null);
@@ -1761,7 +1743,6 @@ export function useLiveHostController() {
     applyScores,
     resetScores,
   } = useBattleServerTotals();
-  const _lastBattleScoreUpdateTraceSigRef = useRef('');
   const [battleMistSide, setBattleMistSide] = useState<BattleMistSide>(null);
   // Point Multiplier Booster (glove) — transient glove-send animations (fly to the
   // weekly-ranking corner when a spectator sends one) and transient "caught" popups.
@@ -1832,7 +1813,6 @@ export function useLiveHostController() {
     prepareLiveVideoEl(videoRef.current);
   }, [isBattleParticipant, battleParticipantStream, videoRef]);
 
-  const _isRegularViewer = !isBroadcast && !isBattleParticipant;
 
   // Battle creators publish into the HOST room only. Never open a second LiveKit
   // room to the invitee's solo stream (duplicate encode/decode/network heat).
@@ -1976,7 +1956,6 @@ export function useLiveHostController() {
   useEffect(() => { speedChallengeActiveRef.current = speedChallengeActive; }, [speedChallengeActive]);
   useEffect(() => { speedMultiplierRef.current = speedMultiplier; }, [speedMultiplier]);
 
-  const _speedChallengeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reachedThresholdsRef = useRef<Set<number>>(new Set());
   /** Tap a co-host tile to gift them (null = gift goes to the stream host). */
   const [selectedCohostGiftUserId, setSelectedCohostGiftUserId] = useState<string | null>(null);
@@ -2011,7 +1990,6 @@ export function useLiveHostController() {
   }>(null);
   /** Synced from GET /following when panel user id is known; used so Follow matches server (does not touch host top-bar isFollowing). */
   const [miniProfileFollowsThem, setMiniProfileFollowsThem] = useState<boolean | undefined>(undefined);
-  const [_showMembershipBar, _setShowMembershipBar] = useState(false);
   const [showTeamStatus, setShowTeamStatus] = useState(false);
   // Refresh team stats once when the panel opens so hearts/coins are current.
   useEffect(() => {
@@ -2019,8 +1997,6 @@ export function useLiveHostController() {
     refreshMembershipStats();
   }, [showTeamStatus, user?.id, refreshMembershipStats]);
   const [showJoinAnimation, setShowJoinAnimation] = useState(false);
-  const [_showEmojiPicker, _setShowEmojiPicker] = useState(false);
-  const [_membershipHeartActive, _setMembershipHeartActive] = useState(false);
   const membershipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // FAN CLUB PANEL - removed top bar, now using Sheet
@@ -2405,25 +2381,6 @@ export function useLiveHostController() {
   }, [isBattleMode, requestBattleInviteRoster, clearInvitedBattleSlot]);
 
   // No auto-start - user must press Match to begin
-
-  const _startBattleWithCreator = (creatorId: string, creatorName: string) => {
-    setOpponentCreatorName(creatorName);
-    if (!isBattleMode) {
-      setIsBattleMode(true);
-      setBattleTime(0);
-      setMyScore(0);
-      setOpponentScore(0);
-      setPlayer3Score(0);
-      setPlayer4Score(0);
-        setBattleWinner(null);
-    setBattleTeamWinner(null);
-        setGiftTarget('me');
-      const params = new URLSearchParams(location.search);
-      params.set('battle', '1');
-      navigate({ pathname: location.pathname, search: `?${params.toString()}` }, { replace: true });
-    }
-    inviteCreatorToSlot(creatorId);
-  };
 
   useEffect(() => {
     if (currentUniverse || universeQueue.length === 0) return;
@@ -5488,8 +5445,6 @@ export function useLiveHostController() {
   const universeText = currentUniverse
     ? `${currentUniverse.sender} sent ${universeGiftLabel} to ${currentUniverse.receiver}`
     : '';
-  const _universeDurationSeconds = Math.max(6, Math.min(16, universeText.length * 0.12));
-  const _isLiveNormal = isBroadcast && !isBattleMode;
   const activeLikes = liveLikes;
 
 
@@ -5497,39 +5452,7 @@ export function useLiveHostController() {
     MAX_CO_HOSTS,
     PROMOTE_LIKES_THRESHOLD_LIVE,
     SPEED_CHALLENGE_ENABLED,
-    _PROMOTE_LIKES_THRESHOLD_BATTLE,
-    _allSlotsAccepted,
-    _anySlotFilled,
-    _battleGiftIconFailed,
-    _battleKeyboardLikeArmedRef,
-    _battleReadiness,
-    _battleUiRole,
-    _formatStreamName,
-    _hostIsReady,
-    _iAmReady,
-    _isLiveNormal,
-    _isRegularViewer,
-    _lastBattleScoreUpdateTraceSigRef,
-    _lastBattleTapTimeRef,
-    _liveHostCreators,
-    _memberCount,
-    _membershipHeartActive,
-    _offlineHostCreators,
     _openMembershipBar,
-    _opponentIsReady,
-    _rawStreamId,
-    _setBattleGiftIconFailed,
-    _setBattleReadiness,
-    _setHostSearchQuery,
-    _setMembershipHeartActive,
-    _setShowEmojiPicker,
-    _setShowMembershipBar,
-    _setViewerHasStream,
-    _showEmojiPicker,
-    _showMembershipBar,
-    _speedChallengeTimerRef,
-    _startBattleWithCreator,
-    _universeDurationSeconds,
     acceptBattleInvite,
     applyMembershipStats,
     acceptBattleInviteClick,

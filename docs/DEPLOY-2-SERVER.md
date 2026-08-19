@@ -110,9 +110,7 @@ BUNNY_STORAGE_API_KEY=your-storage-api-key
 BUNNY_STORAGE_HOSTNAME=storage.bunnycdn.com
 BUNNY_STORAGE_REGION=de
 
-# ── Bunny Video — REQUIRED
-BUNNY_LIBRARY_ID=your-library-id
-BUNNY_LIBRARY_API_KEY=your-library-api-key
+# ── Bunny CDN (public media URLs) — REQUIRED
 BUNNY_CDN_HOSTNAME=your-cdn.b-cdn.net
 
 # ── LiveKit — REQUIRED

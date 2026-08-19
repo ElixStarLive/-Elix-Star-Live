@@ -17,6 +17,7 @@ import {
   profilesListDataKey,
 } from "../lib/catalogCacheValkey";
 import { bumpCacheLayer } from "../lib/cacheLayerMetrics";
+import { storedProfileLevel } from "../lib/xpProgressionApply";
 
 export interface Profile {
   userId: string;
@@ -213,7 +214,7 @@ async function loadProfileFromDb(userId: string): Promise<Profile | null> {
       following: Number(r.following) || 0,
       videoCount: Number(r.video_count) || 0,
       coins: Number(r.coins) || 0,
-      level: Number(r.level) || 1,
+      level: storedProfileLevel(r.level),
       isVerified: Boolean(r.is_verified),
       uniqueProfileViews: Number(r.unique_profile_views) || 0,
       createdAt: toIsoTimestamp(r.created_at),
@@ -612,7 +613,7 @@ export async function handleListProfiles(req: Request, res: Response): Promise<v
       display_name: String(r.display_name || ""),
       avatar_url: String(r.avatar_url || ""),
       email: "",
-      level: Number(r.level) || 1,
+      level: storedProfileLevel(r.level),
       is_creator: Boolean(r.is_verified),
       followers_count: Number(r.followers) || 0,
       following_count: Number(r.following) || 0,
@@ -1063,7 +1064,7 @@ export async function handleGetProfileByUsername(req: Request, res: Response): P
           display_name: r.display_name,
           avatar_url: r.avatar_url,
           bio: r.bio || "",
-          level: Number(r.level) || 1,
+          level: storedProfileLevel(r.level),
           followers_count: Number(r.followers) || 0,
           following_count: Number(r.following) || 0,
         });

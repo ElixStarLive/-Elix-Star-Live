@@ -28,6 +28,7 @@ import { incrementGiftGoal } from "./giftGoal";
 import { addBattleScore, getBattleFromStore } from "./battle";
 import { resolveBoosterCatch } from "../lib/booster";
 import { getPool } from "../lib/postgres";
+import { storedProfileLevel } from "../lib/xpProgressionApply";
 import { logger } from "../lib/logger";
 import { resolveStreamOwnerUserId } from "../routes/livestream";
 import { addMvpPoints, bumpAchievement, bumpMission, fanEnergyGiftMultiplier } from "../lib/engagement";
@@ -246,7 +247,7 @@ async function resolveSenderProfile(
     return {
       username,
       avatar: typeof row.avatar_url === "string" ? row.avatar_url : "",
-      level: Number(row.level) || 1,
+      level: storedProfileLevel(row.level),
     };
   } catch (err) {
     logger.warn({ err, userId }, "resolveSenderProfile failed");

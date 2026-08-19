@@ -1,7 +1,6 @@
 /**
- * Bunny Storage + Stream service: upload files to Bunny.
- * Primary: Bunny Storage API (PUT to storage.bunnycdn.com)
- * Fallback: Bunny Stream Library API (for videos when Storage key fails)
+ * Bunny Storage service: upload files to Bunny.
+ * Bunny Storage API (PUT to storage.bunnycdn.com) is the only upload path.
  */
 
 import { logger } from "../lib/logger";
@@ -12,11 +11,8 @@ const STORAGE_ZONE_RAW = process.env.BUNNY_STORAGE_ZONE || '';
 const STORAGE_ZONE_NAME = STORAGE_ZONE_RAW.split('.')[0] || STORAGE_ZONE_RAW;
 const ACCESS_KEY = process.env.BUNNY_STORAGE_API_KEY;
 
-const STREAM_LIBRARY_ID = process.env.BUNNY_LIBRARY_ID || '';
-const STREAM_API_KEY = process.env.BUNNY_LIBRARY_API_KEY || '';
-
 export function isBunnyConfigured(): boolean {
-  return Boolean((ACCESS_KEY && STORAGE_ZONE_NAME) || (STREAM_LIBRARY_ID && STREAM_API_KEY));
+  return Boolean(ACCESS_KEY && STORAGE_ZONE_NAME);
 }
 
 /**
@@ -29,11 +25,11 @@ function bunnyErrorDetail(text: string): string {
 }
 
 export function getBunnyConfigError(): string {
-  if (!STORAGE_ZONE_NAME && !STREAM_LIBRARY_ID) {
-    return 'Bunny not configured. Set BUNNY_STORAGE_ZONE or BUNNY_LIBRARY_ID.';
+  if (!STORAGE_ZONE_NAME) {
+    return 'Bunny not configured. Set BUNNY_STORAGE_ZONE.';
   }
-  if (!ACCESS_KEY && !STREAM_API_KEY) {
-    return 'Bunny API key missing. Set BUNNY_STORAGE_API_KEY or BUNNY_LIBRARY_API_KEY.';
+  if (!ACCESS_KEY) {
+    return 'Bunny API key missing. Set BUNNY_STORAGE_API_KEY.';
   }
   return 'Bunny is not configured.';
 }
@@ -95,89 +91,7 @@ async function uploadViaStorage(
 }
 
 /**
- * Upload via Bunny Stream Library API (for video files).
- * 1. Create video entry: POST /library/{id}/videos
- * 2. Upload file: PUT /library/{id}/videos/{videoId}
- * 3. Returns the CDN iframe/direct URL
- */
-async function _uploadViaStream(
-  path: string,
-  body: Buffer,
-  _contentType?: string
-): Promise<{ success: boolean; path: string; cdnUrl?: string; error?: string }> {
-  if (!STREAM_LIBRARY_ID || !STREAM_API_KEY) {
-    return { success: false, path, error: 'Stream Library not configured' };
-  }
-
-  const filename = path.split('/').pop() || 'video.mp4';
-
-  try {
-    // Step 1: Create video entry
-    const createRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIBRARY_ID}/videos`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'AccessKey': STREAM_API_KEY,
-      },
-      body: JSON.stringify({ title: filename }),
-    });
-
-    if (!createRes.ok) {
-      const text = await createRes.text();
-      logger.error(
-        { status: createRes.status, body: bunnyErrorDetail(text) },
-        "Bunny Stream create video failed",
-      );
-      return {
-        success: false,
-        path,
-        error: `Stream create failed (${createRes.status}): ${bunnyErrorDetail(text)}`,
-      };
-    }
-
-    const videoData = await createRes.json() as { guid?: string };
-    const videoGuid = videoData.guid;
-    if (!videoGuid) {
-      return { success: false, path, error: 'Stream API did not return video GUID' };
-    }
-
-    // Step 2: Upload the video file
-    const uploadRes = await fetch(`https://video.bunnycdn.com/library/${STREAM_LIBRARY_ID}/videos/${videoGuid}`, {
-      method: 'PUT',
-      headers: {
-        'AccessKey': STREAM_API_KEY,
-      },
-      body,
-      duplex: 'half',
-    } as RequestInit);
-
-    if (!uploadRes.ok) {
-      const text = await uploadRes.text();
-      logger.error(
-        { status: uploadRes.status, body: bunnyErrorDetail(text) },
-        "Bunny Stream upload failed",
-      );
-      return {
-        success: false,
-        path,
-        error: `Stream upload failed (${uploadRes.status}): ${bunnyErrorDetail(text)}`,
-      };
-    }
-
-    logger.info({ videoGuid, libraryId: STREAM_LIBRARY_ID }, "Bunny Stream upload success");
-
-    const cdnUrl = `https://vz-5a4105cf-3f6.b-cdn.net/${videoGuid}/play_720p.mp4`;
-
-    return { success: true, path, cdnUrl };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    logger.error({ err, path }, "Bunny Stream upload exception");
-    return { success: false, path, error: message };
-  }
-}
-
-/**
- * Upload a file to Bunny. Tries Storage API first, falls back to Stream Library for videos.
+ * Upload a file to Bunny Storage.
  */
 export async function uploadToBunny(
   path: string,
@@ -190,12 +104,13 @@ export async function uploadToBunny(
 
   const bodyBuffer = body instanceof Buffer ? body : Buffer.from(body instanceof ArrayBuffer ? body : await (body as Blob).arrayBuffer());
 
-  // All files go to Bunny Storage (served via elix-storage.b-cdn.net pull zone)
-  if (ACCESS_KEY && STORAGE_ZONE_NAME) {
-    const result = await uploadViaStorage(path, bodyBuffer, contentType);
-    if (result.success) return result;
+  // All files go to Bunny Storage (served via elix-storage.b-cdn.net pull zone).
+  // isBunnyConfigured() above already proved the Storage credentials are present.
+  const result = await uploadViaStorage(path, bodyBuffer, contentType);
+  if (!result.success) {
+    // Callers surface result.error; replacing it with a generic message here hid
+    // the actual Bunny status from the operator and the client.
     logger.warn({ error: result.error }, "Storage API failed");
   }
-
-  return { success: false, path, error: 'All upload methods failed' };
+  return result;
 }

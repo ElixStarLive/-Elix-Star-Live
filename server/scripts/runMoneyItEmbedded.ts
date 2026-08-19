@@ -123,4 +123,9 @@ async function main() {
   process.exit(exitCode);
 }
 
-main();
+// A throw before the process.exit above surfaced only as a bare unhandled
+// rejection on a money-gate script. Report it and exit non-zero explicitly.
+void main().catch((err) => {
+  console.error("[money-it] FAILED", err);
+  process.exit(1);
+});

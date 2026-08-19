@@ -62,6 +62,7 @@ import {
   valkeyHgetall,
 } from "../lib/valkey";
 import { getPool } from "../lib/postgres";
+import { storedProfileLevel } from "../lib/xpProgressionApply";
 import { createCoalescedWriter } from "../lib/coalescedWriter";
 import { GIFT_TRANSACTION_CLAIM_TTL_MS } from "../lib/giftDeliveryWindow";
 import {
@@ -1341,7 +1342,7 @@ async function buildViewerList(
           username: String(r.username || ""),
           display_name: String(r.display_name || ""),
           avatar_url: String(r.avatar_url || ""),
-          level: Number(r.level) || 1,
+          level: storedProfileLevel(r.level),
           country: "",
         }));
       } catch {

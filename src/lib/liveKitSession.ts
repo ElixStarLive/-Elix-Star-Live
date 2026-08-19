@@ -93,7 +93,11 @@ export class LiveKitSession {
     if (previous) {
       previous.removeAllListeners();
       try {
-        previous.disconnect();
+        // disconnect() settles asynchronously, so a rejected teardown escaped the
+        // catch below as an unhandled rejection instead of being ignored here.
+        void previous.disconnect().catch(() => {
+          /* already disconnected */
+        });
       } catch {
         /* already disconnected */
       }
@@ -102,7 +106,9 @@ export class LiveKitSession {
     const room = new Room(getLiveRoomOptions());
     if (generation !== this.connectGeneration) {
       try {
-        room.disconnect();
+        void room.disconnect().catch(() => {
+          /* superseded */
+        });
       } catch {
         /* superseded */
       }
@@ -183,7 +189,9 @@ export class LiveKitSession {
     if (generation !== this.connectGeneration) {
       try {
         room.removeAllListeners();
-        room.disconnect();
+        void room.disconnect().catch(() => {
+          /* superseded */
+        });
       } catch {
         /* superseded */
       }
@@ -300,7 +308,9 @@ export class LiveKitSession {
     if (room) {
       room.removeAllListeners();
       try {
-        room.disconnect();
+        void room.disconnect().catch(() => {
+          /* already disconnected */
+        });
       } catch {
         /* already disconnected */
       }
