@@ -18,6 +18,15 @@ import { createServer } from "http";
 import type { AddressInfo } from "net";
 import express, { Router } from "express";
 import { describe, expect, it } from "vitest";
+// Imported at module scope on purpose: loading these routers pulls in the real
+// provider handlers, which took longer than the default test timeout when the
+// whole suite competes for CPU. Module loading is not charged to a test.
+import {
+  appleIapNotifyRouter,
+  googlePlayRtdnRouter,
+  livekitWebhookRouter,
+  stripeWebhookRouter,
+} from "./webhooks.router";
 
 async function statusFor(
   mount: (app: express.Express, router: Router) => void,
@@ -72,10 +81,14 @@ describe("production webhook mounts", () => {
   );
 
   const providers = [
-    { router: "livekitWebhookRouter", path: "/api/livekit/webhook" },
-    { router: "googlePlayRtdnRouter", path: "/api/webhooks/google-play" },
-    { router: "appleIapNotifyRouter", path: "/api/webhooks/apple-iap" },
-    { router: "stripeWebhookRouter", path: "/api/stripe-webhook" },
+    { router: "livekitWebhookRouter", path: "/api/livekit/webhook", instance: livekitWebhookRouter },
+    {
+      router: "googlePlayRtdnRouter",
+      path: "/api/webhooks/google-play",
+      instance: googlePlayRtdnRouter,
+    },
+    { router: "appleIapNotifyRouter", path: "/api/webhooks/apple-iap", instance: appleIapNotifyRouter },
+    { router: "stripeWebhookRouter", path: "/api/stripe-webhook", instance: stripeWebhookRouter },
   ];
 
   for (const { router, path } of providers) {
@@ -86,14 +99,12 @@ describe("production webhook mounts", () => {
     });
   }
 
-  it("every provider router declares a POST-only handler at '/'", async () => {
+  it("every provider router declares a POST-only handler at '/'", () => {
     // Measured on the real routers, not read from the source: the Stripe router
     // used `.use()`, which answers every method, so /api/stripe-webhook replied
     // to GET and DELETE as well as the POST Stripe actually sends.
-    const mod = await import("./webhooks.router");
-    for (const { router } of providers) {
-      const stack = (mod as unknown as Record<string, Router>)[router].stack;
-      const routes = stack.filter((layer) => layer.route);
+    for (const { router, instance } of providers) {
+      const routes = instance.stack.filter((layer) => layer.route);
       expect(routes.length, `${router} declares no route layer`).toBe(1);
       const route = routes[0].route as unknown as {
         path: string;

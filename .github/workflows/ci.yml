@@ -19,8 +19,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # check:all, not check: `check` covers the client only, so a server type
+      # error reached main without CI ever compiling server/**. The production
+      # image runs the server from TypeScript, so that error would first appear
+      # as a worker crash on boot.
       - name: Typecheck
-        run: npm run check
+        run: npm run check:all
 
       - name: Unit tests
         run: npm test
