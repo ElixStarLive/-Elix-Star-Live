@@ -8,11 +8,6 @@ import { websocket } from '../../../lib/websocket';
 
 type LivePayload = Record<string, unknown>;
 
-/** Test-coin gift request. Server debits the test balance before it plays. */
-export function liveGiftSentWs(payload: LivePayload): void {
-  liveWsSend(LIVE_WS_OUT.gift_sent, payload);
-}
-
 export type TestCoinGiftAck = {
   ok: boolean;
   status: string;

@@ -9,7 +9,6 @@ import {
   valkeySetNx,
   isValkeyConfigured,
 } from "../lib/valkey";
-import { logger } from "../lib/logger";
 
 export const MILESTONES_MIN = [5, 10, 20, 30, 60] as const;
 export const MILESTONE_BONUS_XP: Record<number, number> = {
@@ -648,8 +647,3 @@ export async function voteEngagementPoll(input: {
   };
 }
 
-export async function clearRoomEngagement(roomId: string): Promise<void> {
-  if (!isValkeyConfigured()) return;
-  await valkeyDel(roomKey(roomId));
-  logger.info({ roomId }, "engagement room cleared");
-}

@@ -182,14 +182,6 @@ export async function buildMusicPlaylistsForClient(
   return playlists;
 }
 
-export async function buildEpidemicSoundTracksForClient(
-  limit = 60,
-  clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
-): Promise<ClientSoundTrack[]> {
-  const tracks = await fetchPickerTracks(limit);
-  return mapTracksWithLicensedClips(tracks, clipMaxSec);
-}
-
 export async function handleMusicStatus(_req: Request, res: Response) {
   return res.status(200).json({
     configured: isEpidemicSoundConfigured(),

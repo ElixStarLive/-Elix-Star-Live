@@ -44,39 +44,6 @@ export async function dbRepostExists(
   return (r.rowCount ?? 0) > 0;
 }
 
-/** Returns true when a new row was inserted; false when already present. */
-export async function dbInsertRepost(
-  userId: string,
-  targetType: RepostTargetType,
-  targetId: string,
-): Promise<boolean> {
-  const pool = getPool();
-  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
-  const r = await pool.query(
-    `INSERT INTO elix_reposts (user_id, target_type, target_id)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (user_id, target_type, target_id) DO NOTHING`,
-    [userId, targetType, targetId],
-  );
-  return (r.rowCount ?? 0) > 0;
-}
-
-/** Returns true when a row was deleted. */
-export async function dbDeleteRepost(
-  userId: string,
-  targetType: RepostTargetType,
-  targetId: string,
-): Promise<boolean> {
-  const pool = getPool();
-  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
-  const r = await pool.query(
-    `DELETE FROM elix_reposts
-      WHERE user_id = $1 AND target_type = $2 AND target_id = $3`,
-    [userId, targetType, targetId],
-  );
-  return (r.rowCount ?? 0) > 0;
-}
-
 /**
  * Toggle: if present → remove; else → insert.
  * Single transaction owner for one tap.

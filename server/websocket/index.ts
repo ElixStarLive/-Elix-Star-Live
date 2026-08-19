@@ -454,14 +454,6 @@ export async function releaseTransactionClaim(transactionId: string): Promise<vo
   await valkeyDel(`txn:${id}`);
 }
 
-export async function markTransactionProcessed(
-  transactionId: string,
-  timestamp: number,
-): Promise<void> {
-  if (!isValkeyConfigured()) return;
-  await valkeySet(`txn:${transactionId}`, String(timestamp), 300_000);
-}
-
 // ── Cohost layout (Valkey-only) ──────────────────────────────────
 
 export async function getCohostLayout(

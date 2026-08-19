@@ -68,10 +68,6 @@ export function holdValkeyFakeLock(key: string, token = "other-writer"): void {
   strings.set(key, token);
 }
 
-export function valkeyFakeKeys(): string[] {
-  return [...strings.keys(), ...sets.keys(), ...hashes.keys()];
-}
-
 export const valkeyFake = {
   isValkeyConfigured: () => true,
   valkeySet: async (

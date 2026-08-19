@@ -57,6 +57,3 @@ export async function setRuntimeConfigValue(
   }
 }
 
-export function clearRuntimeConfigCache(): void {
-  cache.clear();
-}

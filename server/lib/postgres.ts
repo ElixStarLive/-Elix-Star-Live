@@ -50,10 +50,6 @@ export function getPgPoolStats(): { total: number; idle: number; waiting: number
   };
 }
 
-export function isPostgresConfigured(): boolean {
-  return Boolean((process.env.DATABASE_URL || "").trim());
-}
-
 const MIGRATIONS_TABLE = "elix_schema_migrations";
 
 /**
@@ -200,41 +196,6 @@ export async function connectPostgres(): Promise<void> {
   } catch (err) {
     await newPool.end().catch(() => {});
     pool = null;
-    throw err;
-  }
-}
-
-export async function loadVideosFromDb(): Promise<Video[]> {
-  if (!pool) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    const res = await pool.query(
-      `SELECT id, url, thumbnail, duration, description, hashtags, views, likes, comments, shares, saves, created_at, privacy, user_id
-       FROM videos ORDER BY created_at DESC LIMIT 5000`
-    );
-    return (res.rows || []).map((row: Record<string, unknown>) => ({
-      id: String(row.id),
-      url: firstNonEmptyString(row.url, row.video_url),
-      thumbnail: firstNonEmptyString(row.thumbnail, row.thumbnail_url),
-      duration: Number(row.duration ?? 0),
-      userId: String(row.userId ?? row.user_id ?? ""),
-      username: String(row.username ?? ""),
-      displayName: String(row.displayName ?? row.display_name ?? ""),
-      avatar: String(row.avatar ?? ""),
-      description: String(row.description ?? ""),
-      hashtags: Array.isArray(row.hashtags) ? row.hashtags : [],
-      music: row.music && typeof row.music === "object" ? (row.music as Video["music"]) : null,
-      views: Number(row.views ?? 0),
-      likes: Number(row.likes ?? 0),
-      comments: Number(row.comments ?? 0),
-      shares: Number(row.shares ?? 0),
-      saves: Number(row.saves ?? 0),
-      createdAt: firstNonEmptyString(row.createdAt, row.created_at),
-      privacy: String(row.privacy ?? "public"),
-    }));
-  } catch (err) {
-    logger.error({ err }, "Postgres load videos failed");
     throw err;
   }
 }

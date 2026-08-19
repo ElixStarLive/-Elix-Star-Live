@@ -814,22 +814,6 @@ export async function neonInsertPromotePurchase(row: {
   }
 }
 
-export async function neonInsertMembershipPurchase(row: {
-  userId: string;
-  creatorId: string | null;
-  provider: string;
-  providerTransactionId: string;
-}): Promise<void> {
-  const pool = getPool();
-  if (!pool) throw new Error("DATABASE_UNAVAILABLE");
-  await pool.query(
-    `INSERT INTO elix_membership_purchases (user_id, creator_id, provider, provider_transaction_id)
-     VALUES ($1, $2, $3, $4)
-     ON CONFLICT (provider_transaction_id) DO NOTHING`,
-    [row.userId, row.creatorId, row.provider, row.providerTransactionId],
-  );
-}
-
 // --- Creator-specific Google Play subscription entitlements ---
 // Rows live in elix_membership_purchases keyed by purchase_token_hash
 // (sha256 hex — raw purchase tokens are never stored).

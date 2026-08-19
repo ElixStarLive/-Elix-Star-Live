@@ -27,7 +27,6 @@ export const RISING_STARS_HOME = '/rising-stars';
 export const AI_STUDIO_EXIT_TO = FEED_HOME;
 export const FOLLOW_LIST_EXIT_TO = SETTINGS_EXIT_TO;
 export const SAVED_HOME = '/saved';
-export const FRIENDS_HOME = '/friends';
 /** Inbox hub — named parent for chat threads, alerts, and screens opened from Inbox. */
 export const INBOX_HOME = '/inbox';
 

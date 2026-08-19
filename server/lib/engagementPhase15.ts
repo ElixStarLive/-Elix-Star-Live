@@ -102,10 +102,6 @@ async function awardXp(userId: string, xp: number): Promise<void> {
   await awardEngagementXp(userId, xp, "treasure_chest");
 }
 
-export function getTreasureCatalog() {
-  return CHEST_CATALOG;
-}
-
 export async function listUserChests(userId: string) {
   const db = getPool();
   if (!db || !userId) {

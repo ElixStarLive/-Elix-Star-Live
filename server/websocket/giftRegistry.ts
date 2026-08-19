@@ -8,7 +8,6 @@ import { SEAT_TEAM, type BattleSeat } from "./battleModel";
 
 let giftValueCache: Record<string, number> = {};
 let giftAnimationCache: Record<string, string> = {};
-let cacheLoaded = false;
 
 export async function loadGiftValuesFromDb(): Promise<void> {
   try {
@@ -25,7 +24,6 @@ export async function loadGiftValuesFromDb(): Promise<void> {
     if (Object.keys(map).length > 0) {
       giftValueCache = map;
       giftAnimationCache = anim;
-      cacheLoaded = true;
       logger.info({ count: Object.keys(map).length }, "Gift battle values loaded from DB");
     }
   } catch (err) {
@@ -75,10 +73,6 @@ export async function resolvePlayableGiftVideoUrl(
 export function getGiftIconUrl(giftId: string): string | null {
   const anim = getGiftAnimationUrl(giftId);
   return giftIconUrlFromAnimation(anim);
-}
-
-export function isGiftCacheLoaded(): boolean {
-  return cacheLoaded;
 }
 
 /**

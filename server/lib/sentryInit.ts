@@ -84,6 +84,3 @@ export function captureExceptionToSentry(err: unknown, context?: Record<string, 
   }
 }
 
-export function getSentry(): typeof Sentry | null {
-  return inited ? Sentry : null;
-}

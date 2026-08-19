@@ -73,8 +73,3 @@ export function computeForYouRankingScore(signals: RankingSignals, cfg: ForYouCo
 
 /** Stages actively recommended in For You. */
 export const FORYOU_ACTIVE_STAGES = ["initial", "promoted", "reentered"] as const;
-export type ForYouActiveStage = (typeof FORYOU_ACTIVE_STAGES)[number];
-
-export function isForYouActiveStage(stage: string): boolean {
-  return (FORYOU_ACTIVE_STAGES as readonly string[]).includes(stage);
-}

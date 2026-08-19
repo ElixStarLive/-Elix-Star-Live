@@ -598,22 +598,6 @@ export async function confirmBattleParticipantPresence(
   return mutation.status === "unchanged" ? mutation.session : null;
 }
 
-export async function clearBattleParticipantPresence(
-  roomId: string,
-  userId: string,
-): Promise<void> {
-  const mutation = await mutateBattleSession(roomId, (session) => {
-    if (!session || session.status === "ENDED") return null;
-    const participant = participantOfUser(session, userId);
-    if (!participant || !participant.ready) return null;
-    participant.ready = false;
-    return { session, changed: true };
-  });
-  if (mutation.status === "applied") {
-    await broadcastBattleState(roomId, mutation.session);
-  }
-}
-
 /**
  * Remove a rival creator without ending the match for the others.
  * Clears exactly that seat so it can be refilled via Invite Creator.

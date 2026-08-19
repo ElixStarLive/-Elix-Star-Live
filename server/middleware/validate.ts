@@ -22,23 +22,3 @@ export function validateBody(schema: ZodSchema) {
   };
 }
 
-export function validateQuery(schema: ZodSchema) {
-  return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      req.query = schema.parse(req.query) as typeof req.query;
-      next();
-    } catch (err) {
-      if (err instanceof ZodError) {
-        const issues = "issues" in err && Array.isArray((err as ZodError).issues) ? (err as ZodError).issues : [];
-        return res.status(400).json({
-          error: "VALIDATION_ERROR",
-          details: issues.map((e) => ({
-            path: (Array.isArray(e.path) ? e.path : []).map(String).join("."),
-            message: e.message,
-          })),
-        });
-      }
-      next(err);
-    }
-  };
-}

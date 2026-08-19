@@ -78,31 +78,6 @@ export async function getFollowerIdsAsync(userId: string): Promise<string[]> {
   return (res.rows || []).map((r: Record<string, unknown>) => String(r.follower_id));
 }
 
-/** DB-primary mutual follow IDs. Throws on error (fail-closed). */
-export async function getMutualFollowIdsAsync(userId: string): Promise<string[]> {
-  const db = getPool();
-  if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  const res = await db.query(
-    `SELECT f1.following_id
-     FROM follows f1
-     INNER JOIN follows f2 ON f2.follower_id = f1.following_id AND f2.following_id = f1.follower_id
-     WHERE f1.follower_id = $1 AND f1.following_id <> $1`,
-    [userId],
-  );
-  return (res.rows || []).map((r: Record<string, unknown>) => String(r.following_id));
-}
-
-/** DB-primary isFollowing check. Throws on error (fail-closed). */
-export async function isFollowingAsync(followerId: string, targetId: string): Promise<boolean> {
-  const db = getPool();
-  if (!db) throw new Error("DATABASE_UNAVAILABLE");
-  const res = await db.query(
-    `SELECT 1 FROM follows WHERE follower_id = $1 AND following_id = $2 LIMIT 1`,
-    [followerId, targetId],
-  );
-  return (res.rows?.length ?? 0) > 0;
-}
-
 // ── PostgreSQL profile persistence ──────────────────────────────────────────
 // Schema comes from migrations — do not invent DDL / fake ensure here.
 
