@@ -91,7 +91,10 @@ export const BottomNav = () => {
     >
       <div className="flex justify-center pointer-events-none">
         <div className="feed-column-width pointer-events-auto bg-transparent border-0 border-b-0">
-          <div className="flex items-center justify-around px-1 pt-1.5 pb-[max(2px,env(safe-area-inset-bottom,0px))]">
+          <div
+            className="flex items-center justify-around px-1 pt-1.5"
+            style={{ paddingBottom: "max(2px, calc(env(safe-area-inset-bottom, 0px) - 8mm))" }}
+          >
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
               const size = ICON_SIZE;
