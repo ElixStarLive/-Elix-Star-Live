@@ -1,4 +1,10 @@
 node_modules
+# .dockerignore is not .gitignore: a bare pattern matches only at the context
+# root, so `node_modules` above does not exclude a nested install. Any
+# server/node_modules in the working tree would be copied by `COPY . .`, land in
+# the runner stage via `COPY /app/server`, survive `npm prune --omit=dev`, and
+# then win Node resolution over the locked root install.
+**/node_modules
 dist
 .git
 .env

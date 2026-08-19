@@ -571,6 +571,16 @@ describe("release architecture contracts", () => {
     }
   });
 
+  it("the container build context excludes nested dependency installs", () => {
+    // Unlike .gitignore, a .dockerignore pattern without `**` matches only at the
+    // context root. A leftover server/node_modules was therefore invisible to git
+    // but still copied by `COPY . .`, carried into the runner stage by
+    // `COPY /app/server`, untouched by the root `npm prune --omit=dev`, and
+    // resolved by Node ahead of the locked install — it served helmet 7 in place
+    // of the locked helmet 8.
+    expect(read(".dockerignore").split(/\r?\n/)).toContain("**/node_modules");
+  });
+
   it("no release source hides a defect behind a lint or type suppression", () => {
     const offenders: string[] = [];
     const walk = (dir: string) => {

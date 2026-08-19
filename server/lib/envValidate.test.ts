@@ -1,9 +1,23 @@
 import { describe, expect, it } from "vitest";
+import { generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { collectProductionEnvironmentFailures } from "./envValidate";
 
 const envValidateSrc = readFileSync(resolve(__dirname, "envValidate.ts"), "utf8");
+
+function pkcs8(type: "ec" | "rsa"): string {
+  const { privateKey } =
+    type === "ec"
+      ? generateKeyPairSync("ec", { namedCurve: "P-256" })
+      : generateKeyPairSync("rsa", { modulusLength: 2048 });
+  return privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+}
+
+/** What App Store Connect issues: an ES256 key, so an EC PKCS8 PEM. */
+const APPLE_ES256_PKCS8 = pkcs8("ec");
+/** What a Google service account carries in `private_key`: an RSA PKCS8 PEM. */
+const GOOGLE_RSA_PKCS8 = pkcs8("rsa");
 
 function prodEnv(overrides: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
   return {
@@ -13,7 +27,7 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     VALKEY_URL: "redis://valkey",
     GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({
       client_email: "sa@elix.iam.gserviceaccount.com",
-      private_key: "-----BEGIN PRIVATE KEY-----\nkey\n-----END PRIVATE KEY-----\n",
+      private_key: GOOGLE_RSA_PKCS8,
     }),
     STRIPE_SECRET_KEY: "sk_live_test",
     STRIPE_WEBHOOK_SECRET: "whsec_test",
@@ -25,7 +39,7 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     GOOGLE_PLAY_PACKAGE_NAME: "com.elixstarlive.app",
     APPLE_ISSUER_ID: "issuer",
     APPLE_KEY_ID: "kid",
-    APPLE_PRIVATE_KEY: "pem",
+    APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8,
     APPLE_BUNDLE_ID: "com.elixstarlive.app",
     APPLE_IAP_NOTIFICATION_SECRET: "assn",
     GOOGLE_RTDN_WEBHOOK_SECRET: "rtdn",
@@ -122,6 +136,74 @@ describe("production environment boot gate", () => {
         prodEnv({ GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ private_key: "pem" }) }),
       );
       expect(failures.some((m) => m.includes("missing client_email"))).toBe(true);
+    });
+
+    it("production refuses to start when the signing key is present but unreadable", () => {
+      // Valid JSON with both fields filled in still verified nothing when the key
+      // itself was a truncated paste.
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({
+            client_email: "sa@elix.iam.gserviceaccount.com",
+            private_key: "-----BEGIN PRIVATE KEY-----\nnot-a-key\n-----END PRIVATE KEY-----\n",
+          }),
+        }),
+      );
+      expect(failures.some((m) => m.includes("private_key is not a readable private key"))).toBe(
+        true,
+      );
+    });
+  });
+
+  /**
+   * `appleIap.ts` needs `jose.importPKCS8(key, "ES256")` to succeed. Anything it
+   * cannot import makes every iOS purchase verification report "unavailable"
+   * while the charge stands, so the paste is proven at boot instead of at the
+   * first purchase.
+   */
+  describe("Apple signing key credibility", () => {
+    it("accepts the ES256 PKCS8 key App Store Connect issues", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key" }),
+      );
+      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+    });
+
+    it("accepts the same key pasted with escaped newlines", () => {
+      // The consumer normalises \\n before importing, so boot must judge the
+      // value the same way or it would reject a key that actually works.
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.replace(/\n/g, "\\n"),
+        }),
+      );
+      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+    });
+
+    it("production refuses to start when the key is a placeholder, not a PEM", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: "your_apple_private_key" }),
+      );
+      expect(failures.some((m) => m.includes("must be the PKCS8 PEM"))).toBe(true);
+    });
+
+    it("production refuses to start when the PEM is truncated", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.slice(0, 60) + "\n-----END PRIVATE KEY-----\n",
+        }),
+      );
+      expect(failures.some((m) => m.includes("not a readable private key"))).toBe(true);
+    });
+
+    it("production refuses to start when the key is RSA instead of ES256", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: GOOGLE_RSA_PKCS8 }),
+      );
+      expect(failures.some((m) => m.includes("must be the EC (ES256) key"))).toBe(true);
     });
   });
 

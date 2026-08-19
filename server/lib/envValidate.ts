@@ -1,8 +1,36 @@
 /**
  * Production environment validation — fails fast on missing critical config.
  */
+import { createPrivateKey } from "node:crypto";
 import { logger } from "./logger";
 import { normalizeLiveKitSignalUrl } from "../services/livekit";
+
+/**
+ * `appleIap.ts` signs the App Store Server API JWT with
+ * `jose.importPKCS8(APPLE_PRIVATE_KEY.replace(/\\n/g, "\n"), "ES256")`, so the
+ * value has to be the PKCS8 PEM App Store Connect issues, normalised the same
+ * way. A key that is merely present — truncated, quote-mangled, SEC1 instead of
+ * PKCS8, or RSA instead of EC — passed the old presence check and then made
+ * every iOS purchase verification return "unavailable" for good: Apple keeps the
+ * money, the buyer never gets the coins, and boot reported nothing. Parsed here
+ * with node:crypto (what jose itself uses) so the paste is proven at start-up.
+ */
+function applePrivateKeyFailure(raw: string): string | null {
+  const pem = raw.replace(/\\n/g, "\n").trim();
+  if (!pem.includes("-----BEGIN PRIVATE KEY-----")) {
+    return "APPLE_PRIVATE_KEY must be the PKCS8 PEM from App Store Connect (-----BEGIN PRIVATE KEY-----) — jose.importPKCS8 rejects any other PEM label, so iOS purchase verification would never reach a verdict";
+  }
+  let keyType: string | null | undefined;
+  try {
+    keyType = createPrivateKey(pem).asymmetricKeyType;
+  } catch {
+    return "APPLE_PRIVATE_KEY is not a readable private key in production — check for a truncated or quote-mangled paste, otherwise iOS purchase verification never reaches a verdict";
+  }
+  if (keyType !== "ec") {
+    return `APPLE_PRIVATE_KEY must be the EC (ES256) key App Store Connect issues, got ${keyType} — iOS purchase verification would never reach a verdict`;
+  }
+  return null;
+}
 
 /** Returns fatal production boot messages. Empty when NODE_ENV is not production. */
 export function collectProductionEnvironmentFailures(
@@ -53,6 +81,19 @@ export function collectProductionEnvironmentFailures(
       }
       if (typeof creds?.private_key !== "string" || !creds.private_key.trim()) {
         failures.push("GOOGLE_SERVICE_ACCOUNT_JSON is missing private_key in production");
+      } else {
+        // `googlePlaySubscriptions.ts` hands this string straight to the
+        // google-auth JWT client, so validate it exactly as written — no
+        // newline rewriting the consumer does not do. Present but unreadable
+        // fails the same way a missing field does: every Android purchase
+        // verification returns "unavailable" while the charge stands.
+        try {
+          createPrivateKey(creds.private_key);
+        } catch {
+          failures.push(
+            "GOOGLE_SERVICE_ACCOUNT_JSON private_key is not a readable private key in production — Android IAP verification would fail on every purchase",
+          );
+        }
       }
     }
   }
@@ -128,6 +169,9 @@ export function collectProductionEnvironmentFailures(
     failures.push(
       "APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are required in production for iOS IAP verification",
     );
+  } else {
+    const appleKeyProblem = applePrivateKeyFailure(env.APPLE_PRIVATE_KEY as string);
+    if (appleKeyProblem) failures.push(appleKeyProblem);
   }
   if (!appleBundle) {
     failures.push("APPLE_BUNDLE_ID is required in production for iOS IAP verification");

@@ -8,10 +8,22 @@ if (!url) {
   process.exit(1);
 }
 const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+/**
+ * Same TLS policy as `lib/postgres.ts` and `migrate.ts`: production verifies the
+ * certificate, and `PG_SSL_REJECT_UNAUTHORIZED=false` is the documented
+ * emergency escape. This script runs inside the production container and logs in
+ * with the production database credentials, so it must not be the one place that
+ * accepts any certificate.
+ */
+const rejectUnauthorized =
+  process.env.PG_SSL_REJECT_UNAUTHORIZED === "false"
+    ? false
+    : process.env.PG_SSL_REJECT_UNAUTHORIZED === "true" ||
+      process.env.NODE_ENV === "production";
 const pool = new pg.Pool({
   connectionString: url,
   max: 1,
-  ssl: needsSsl ? { rejectUnauthorized: false } : undefined,
+  ssl: needsSsl ? { rejectUnauthorized } : undefined,
 });
 const c = await pool.connect();
 try {

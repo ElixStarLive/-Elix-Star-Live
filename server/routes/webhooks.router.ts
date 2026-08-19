@@ -5,7 +5,10 @@ import { handleLiveKitWebhook } from "./livekit-webhook";
 import { handleAppleIapNotification, handleGooglePlayRtdn } from "./iapNotifications";
 
 const stripeWebhookRouter = Router();
-stripeWebhookRouter.use(express.raw({ type: "application/json" }), handleStripeWebhook);
+// `.post("/")`, like every other provider router here. Registered with `.use()`
+// this router answered any method on /api/stripe-webhook, so a GET or DELETE
+// reached the signature check instead of not existing. Stripe only ever POSTs.
+stripeWebhookRouter.post("/", express.raw({ type: "application/json" }), handleStripeWebhook);
 
 const livekitWebhookRouter = Router();
 livekitWebhookRouter.post("/", express.raw({ type: "application/webhook+json" }), handleLiveKitWebhook);

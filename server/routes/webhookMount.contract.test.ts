@@ -86,6 +86,27 @@ describe("production webhook mounts", () => {
     });
   }
 
+  it("every provider router declares a POST-only handler at '/'", async () => {
+    // Measured on the real routers, not read from the source: the Stripe router
+    // used `.use()`, which answers every method, so /api/stripe-webhook replied
+    // to GET and DELETE as well as the POST Stripe actually sends.
+    const mod = await import("./webhooks.router");
+    for (const { router } of providers) {
+      const stack = (mod as unknown as Record<string, Router>)[router].stack;
+      const routes = stack.filter((layer) => layer.route);
+      expect(routes.length, `${router} declares no route layer`).toBe(1);
+      const route = routes[0].route as unknown as {
+        path: string;
+        methods: Record<string, boolean>;
+      };
+      expect(route.path, `${router} must declare its handler at "/"`).toBe("/");
+      expect(
+        Object.keys(route.methods).filter((m) => route.methods[m]),
+        `${router} must accept POST only`,
+      ).toEqual(["post"]);
+    }
+  });
+
   it("raw-body webhook routes are registered before express.json()", () => {
     const jsonAt = index.indexOf('app.use(express.json(');
     expect(jsonAt).toBeGreaterThan(-1);
