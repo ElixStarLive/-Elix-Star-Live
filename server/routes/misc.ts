@@ -835,6 +835,25 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
           [claimedProductId],
         );
         if (mapped.rowCount) creatorId = String(mapped.rows[0].creator_id);
+      } else if (provider === 'apple' && appleTransactionId) {
+        // Apple bills every creator membership through one shared SKU, so the
+        // product ID cannot name the creator on a restore. Recover it from this
+        // user's own purchase row, keyed by Apple's originalTransactionId — the
+        // identity that survives renewals. Scoped to user_id so a restore can
+        // never bind another account's membership.
+        const restored = await verifyAppleSubscription(
+          appleTransactionId,
+          APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID,
+        );
+        if (restored.ok !== false && restored.originalTransactionId) {
+          const owned = await pool.query(
+            `SELECT creator_id FROM elix_membership_purchases
+              WHERE user_id = $1 AND provider = 'apple' AND purchase_token_hash = $2
+              LIMIT 1`,
+            [user.sub, hashAppleOriginalTransactionId(restored.originalTransactionId)],
+          );
+          if (owned.rowCount) creatorId = String(owned.rows[0].creator_id);
+        }
       }
     } catch (err) {
       logger.warn({ err, claimedProductId }, 'Membership product→creator lookup failed');

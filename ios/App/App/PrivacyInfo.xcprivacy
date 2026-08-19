@@ -138,32 +138,6 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
-		<!-- Crash data (Firebase Crashlytics) -->
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypeCrashData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
-		<!-- Performance data (Firebase Performance / analytics) -->
-		<dict>
-			<key>NSPrivacyCollectedDataType</key>
-			<string>NSPrivacyCollectedDataTypePerformanceData</string>
-			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<false/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-			</array>
-		</dict>
 	</array>
 
 	<!-- ============================================================
@@ -182,7 +156,7 @@
 				<string>CA92.1</string>
 			</array>
 		</dict>
-		<!-- File timestamp APIs — Capacitor filesystem plugin reads file dates for cache management -->
+		<!-- File timestamp APIs — Capacitor runtime / WKWebView read file dates for cache management -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
@@ -192,7 +166,7 @@
 				<string>C617.1</string>
 			</array>
 		</dict>
-		<!-- System boot time — used by Capacitor or Firebase for session timing, not for fingerprinting -->
+		<!-- System boot time — Capacitor runtime session timing, not for fingerprinting -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
@@ -202,7 +176,7 @@
 				<string>35F9.1</string>
 			</array>
 		</dict>
-		<!-- Disk space APIs — Capacitor filesystem checks available space before writing drafts -->
+		<!-- Disk space APIs — Capacitor runtime / WKWebView cache management -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>

@@ -1,6 +1,8 @@
 import React from 'react';
 import { Heart } from 'lucide-react';
 import { MEMBERSHIP_DISPLAY_PRICE } from './membershipPurchaseFlow';
+import { openExternalLink } from '../../lib/platform';
+import { getPublicWebOrigin } from '../../lib/api';
 
 /**
  * Buy block for Team Status / Join Membership panel.
@@ -69,7 +71,20 @@ export function MembershipBuySection(props: {
           )}
         </button>
         <p className="text-[8px] text-white/30 text-center mt-1.5">
-          Non-refundable. Cancel anytime in store settings.
+          Non-refundable. Cancel anytime in store settings.{' '}
+          <span
+            className="underline cursor-pointer"
+            onClick={() => openExternalLink(`${getPublicWebOrigin()}/terms.html`)}
+          >
+            Terms of Use
+          </span>
+          {' · '}
+          <span
+            className="underline cursor-pointer"
+            onClick={() => openExternalLink(`${getPublicWebOrigin()}/privacy.html`)}
+          >
+            Privacy Policy
+          </span>
         </p>
       </div>
     </div>
