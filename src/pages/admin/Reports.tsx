@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Flag, CheckCircle, XCircle, Eye } from 'lucide-react';
 import { showToast } from '../../lib/toast';
+import { asRecord, rowString } from '../../lib/rowReaders';
 import { apiAdminListReports, apiAdminResolveReport } from '../../features/admin/adminApi';
 
 interface Report {
@@ -14,6 +15,25 @@ interface Report {
   status: string;
   created_at: string;
   reporter?: { username: string };
+}
+
+/** A report row with no id cannot be resolved, so it is dropped rather than rendered. */
+function toReport(row: Record<string, unknown>): Report | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  const reporter = asRecord(row.reporter);
+  const reporterUsername = reporter ? rowString(reporter, 'username') : null;
+  return {
+    id,
+    reporter_id: rowString(row, 'reporter_id') ?? '',
+    target_type: rowString(row, 'target_type') ?? '',
+    target_id: rowString(row, 'target_id') ?? '',
+    reason: rowString(row, 'reason') ?? '',
+    details: rowString(row, 'details'),
+    status: rowString(row, 'status') ?? '',
+    created_at: rowString(row, 'created_at') ?? '',
+    ...(reporterUsername ? { reporter: { username: reporterUsername } } : {}),
+  };
 }
 
 export default function AdminReports() {
@@ -32,7 +52,7 @@ export default function AdminReports() {
     try {
       const { reports: list, error } = await apiAdminListReports(filter);
       if (error) throw new Error(error);
-      setReports(list as unknown as Report[]);
+      setReports(list.map(toReport).filter((row): row is Report => row !== null));
     } catch {
       showToast('Failed to load reports');
     } finally {

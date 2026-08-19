@@ -6,6 +6,7 @@ import { trackEvent } from '../lib/analytics';
 import { apiFetchHashtag, apiFetchHashtagVideos } from '../features/feed/feedApi';
 import { showToast } from '../lib/toast';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
+import { rowNumber, rowString } from '../lib/rowReaders';
 import { DISCOVER_HOME, containerReturnState, exitToFromLocationState } from '../lib/settingsNav';
 
 interface Video {
@@ -14,6 +15,22 @@ interface Video {
   views_count?: number;
   views?: number;
   likes_count: number;
+}
+
+/**
+ * `views_count` and `views` stay absent when the response omits them, so the
+ * `views_count ?? views ?? 0` fallback in the grid still resolves in that order.
+ */
+function toHashtagVideo(row: Record<string, unknown>): Video | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  return {
+    id,
+    thumbnail_url: rowString(row, 'thumbnail_url') ?? '',
+    ...(row.views_count != null ? { views_count: rowNumber(row, 'views_count') } : {}),
+    ...(row.views != null ? { views: rowNumber(row, 'views') } : {}),
+    likes_count: rowNumber(row, 'likes_count'),
+  };
 }
 
 export default function Hashtag() {
@@ -54,7 +71,7 @@ export default function Hashtag() {
 
         const { videos: vids } = await apiFetchHashtagVideos(tag);
         if (!cancelled) {
-          setVideos(vids as unknown as Video[]);
+          setVideos(vids.map(toHashtagVideo).filter((v): v is Video => v !== null));
         }
       } catch {
         if (!cancelled) {

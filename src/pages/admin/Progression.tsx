@@ -16,6 +16,7 @@ import {
   apiAdminProgressionToggleFeatureFlag,
 } from "../../features/admin/adminApi";
 import { showToast } from "../../lib/toast";
+import { rowNumber } from "../../lib/rowReaders";
 
 interface XpConfig {
   source: string;
@@ -35,6 +36,16 @@ interface Progression {
   starter_coin_balance: number;
   total_xp: number;
   current_level: number;
+}
+
+/** Postgres can return these counters as numeric strings, so each is read explicitly. */
+function toProgression(row: Record<string, unknown> | null): Progression | null {
+  if (!row) return null;
+  return {
+    starter_coin_balance: rowNumber(row, "starter_coin_balance"),
+    total_xp: rowNumber(row, "total_xp"),
+    current_level: rowNumber(row, "current_level"),
+  };
 }
 
 export default function AdminProgression() {
@@ -208,7 +219,7 @@ export default function AdminProgression() {
       showToast(error);
       return;
     }
-    setUserProgression((progression as unknown as Progression | null) || null);
+    setUserProgression(toProgression(progression));
     setXpHistory(xp_history as Array<Record<string, unknown>>);
     setStarterHistory(starter_history as Array<Record<string, unknown>>);
   };

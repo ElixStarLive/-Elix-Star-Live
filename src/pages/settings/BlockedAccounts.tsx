@@ -9,6 +9,7 @@ import {
   apiListBlockedUsers,
   apiUnblockUser,
 } from '../../features/safety/safetyApi';
+import { rowString } from '../../lib/rowReaders';
 import { SETTINGS_HOME, exitToFromLocationState } from '../../lib/settingsNav';
 import { useSafetyStore } from '../../store/useSafetyStore';
 
@@ -18,6 +19,23 @@ interface BlockedUser {
   display_name?: string;
   avatar_url?: string;
   created_at?: string;
+}
+
+/** A row without a blocked user id cannot be rendered or unblocked, so it is dropped. */
+function toBlockedUser(row: Record<string, unknown>): BlockedUser | null {
+  const blockedUserId = rowString(row, 'blocked_user_id');
+  if (!blockedUserId) return null;
+  const username = rowString(row, 'username');
+  const displayName = rowString(row, 'display_name');
+  const avatarUrl = rowString(row, 'avatar_url');
+  const createdAt = rowString(row, 'created_at');
+  return {
+    blocked_user_id: blockedUserId,
+    ...(username ? { username } : {}),
+    ...(displayName ? { display_name: displayName } : {}),
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+    ...(createdAt ? { created_at: createdAt } : {}),
+  };
 }
 
 export default function BlockedAccounts() {
@@ -54,8 +72,7 @@ export default function BlockedAccounts() {
     try {
       const { rows, error } = await apiListBlockedUsers();
       if (error) throw error;
-      const list = rows as unknown as BlockedUser[];
-      setBlockedUsers(list);
+      setBlockedUsers(rows.map(toBlockedUser).filter((row): row is BlockedUser => row !== null));
     } catch {
       showToast('Failed to load blocked users');
     } finally {

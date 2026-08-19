@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Star, Users, MapPin, Music, ChevronRight } from "lucide-react";
 import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
 import { showToast } from "../lib/toast";
+import { asRecord, rowNumber, rowRecords, rowString } from "../lib/rowReaders";
 import { AvatarRing } from "../components/AvatarRing";
 import {
   apiRisingStarsCategories,
@@ -67,6 +68,75 @@ interface Team {
   member_count: number;
 }
 
+/**
+ * Hub rows are read field by field instead of asserting the response arrays into
+ * these interfaces. Rows without the id the UI keys and navigates by are dropped.
+ */
+function toSeason(body: unknown): Season | null {
+  const row = asRecord(body);
+  const id = row ? rowString(row, 'id') : null;
+  if (!row || !id) return null;
+  return {
+    id,
+    title: rowString(row, 'title') ?? '',
+    description: rowString(row, 'description'),
+    status: rowString(row, 'status') ?? '',
+    starts_at: rowString(row, 'starts_at') ?? '',
+    ends_at: rowString(row, 'ends_at') ?? '',
+  };
+}
+
+function toTitledRow(row: Record<string, unknown>): Category | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  return { id, title: rowString(row, 'title') ?? '', slug: rowString(row, 'slug') ?? '' };
+}
+
+function toChallenge(row: Record<string, unknown>): Challenge | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  return {
+    id,
+    title: rowString(row, 'title') ?? '',
+    status: rowString(row, 'status') ?? '',
+    week_index: rowNumber(row, 'week_index'),
+    category_id: rowString(row, 'category_id') ?? '',
+    region_id: rowString(row, 'region_id'),
+    sound_track_id: rowString(row, 'sound_track_id') ?? '',
+    opens_at: rowString(row, 'opens_at') ?? '',
+    closes_at: rowString(row, 'closes_at') ?? '',
+  };
+}
+
+function toStanding(row: Record<string, unknown>): Standing | null {
+  const creatorUserId = rowString(row, 'creator_user_id');
+  if (!creatorUserId) return null;
+  return {
+    rank: rowNumber(row, 'rank'),
+    creator_user_id: creatorUserId,
+    username: rowString(row, 'username') ?? '',
+    avatar_url: rowString(row, 'avatar_url'),
+    total_votes: rowNumber(row, 'total_votes'),
+  };
+}
+
+function toTeam(row: Record<string, unknown>): Team | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  return {
+    id,
+    name: rowString(row, 'name') ?? '',
+    team_votes: rowNumber(row, 'team_votes'),
+    member_count: rowNumber(row, 'member_count'),
+  };
+}
+
+function mapRows<T>(value: unknown, read: (row: Record<string, unknown>) => T | null): T[] {
+  return rowRecords(value)
+    .map(read)
+    .filter((row): row is T => row !== null);
+}
+
 export default function RisingStars() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,7 +179,7 @@ export default function RisingStars() {
     try {
       const { season: seasonBody, error } = await apiRisingStarsCurrentSeason();
       if (error) throw new Error(error);
-      const s = seasonBody as unknown as Season | null;
+      const s = toSeason(seasonBody);
       setSeason(s);
       if (!s?.id) {
         setCategories([]);
@@ -125,10 +195,10 @@ export default function RisingStars() {
         apiRisingStarsStandings(s.id),
         apiRisingStarsTeams(s.id),
       ]);
-      setCategories(cats.categories as unknown as Category[]);
-      setRegions(regs.regions as unknown as Region[]);
-      setStandings(stand.standings as unknown as Standing[]);
-      setTeams(teamRes.teams as unknown as Team[]);
+      setCategories(mapRows(cats.categories, toTitledRow));
+      setRegions(mapRows(regs.regions, toTitledRow));
+      setStandings(mapRows(stand.standings, toStanding));
+      setTeams(mapRows(teamRes.teams, toTeam));
     } catch {
       showToast("Could not load Rising Stars");
     } finally {
@@ -142,7 +212,7 @@ export default function RisingStars() {
     if (categoryId) params.set("categoryId", categoryId);
     if (regionId) params.set("regionId", regionId);
     const { challenges } = await apiRisingStarsChallenges(params.toString());
-    setChallenges(challenges as unknown as Challenge[]);
+    setChallenges(mapRows(challenges, toChallenge));
   }, [season?.id, categoryId, regionId]);
 
   useEffect(() => {

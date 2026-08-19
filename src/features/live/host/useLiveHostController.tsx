@@ -175,6 +175,17 @@ import { useWalletStore } from '../../../store/useWalletStore';
 import { App as CapacitorApp } from '@capacitor/app';
 
 
+declare global {
+  interface HTMLAudioElement {
+    /**
+     * Set on attached remote audio so iOS WebViews keep playback inline. The DOM
+     * lib only declares `playsInline` on video, which is why this was written
+     * through a cast before.
+     */
+    playsInline: boolean;
+  }
+}
+
 const _EMOJI_LIST = ['😀','😂','🥰','😍','🔥','💯','👏','🎉','❤️','💜','💙','⭐','🌟','✨','🙌','👑','💎','🚀','🎵','💃','🕺','😎','🤩','💪','🫶','💖'];
 
 /** Battle speed challenge ships enabled; the screens read it for their gating. */
@@ -326,7 +337,7 @@ export function useLiveHostController() {
     el.muted = false;
     el.volume = 1;
     el.autoplay = true;
-    (el as unknown as { playsInline: boolean }).playsInline = true;
+    el.playsInline = true;
     void el.play().catch(() => {});
   }, []);
 
@@ -2045,7 +2056,7 @@ export function useLiveHostController() {
       targetCount: goalTargetCount,
       currentCount: giftGoal?.giftId === goalPick.id ? giftGoal.currentCount : 0,
     };
-    liveGiftGoalSet(nextGoal as unknown as Record<string, unknown>);
+    liveGiftGoalSet(nextGoal);
     setGiftGoal(nextGoal);
     setGoalSaving(false);
     showToast('Gift goal set');

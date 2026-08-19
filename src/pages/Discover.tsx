@@ -12,6 +12,7 @@ import { nativeShareUrl } from '../lib/platform';
 import { showToast } from '../lib/toast';
 import { reportFailure } from '../lib/reportFailure';
 import { formatCompactNumber as formatNumber } from '../lib/formatCompactNumber';
+import { rowNumber, rowRecords, rowString } from '../lib/rowReaders';
 import { generateWebLink } from '../lib/deepLinks';
 import {
   apiFetchAllVideos,
@@ -38,6 +39,8 @@ interface Video {
 interface User {
   user_id: string;
   username: string;
+  /** Carried because search matches on display name as well as username. */
+  display_name?: string;
   avatar_url: string | null;
   followers_count: number;
 }
@@ -54,6 +57,33 @@ interface CreatorRanking {
   display_name: string;
   avatar_url: string | null;
   total_coins: number;
+}
+
+/** Search rows and ranking rows are read field by field; a row with no user id is unusable. */
+function toSearchUser(row: Record<string, unknown>): User | null {
+  const userId = rowString(row, 'user_id');
+  if (!userId) return null;
+  const displayName = rowString(row, 'display_name');
+  return {
+    user_id: userId,
+    username: rowString(row, 'username') ?? '',
+    ...(displayName ? { display_name: displayName } : {}),
+    avatar_url: rowString(row, 'avatar_url'),
+    followers_count: rowNumber(row, 'followers_count'),
+  };
+}
+
+function toCreatorRanking(row: Record<string, unknown>): CreatorRanking | null {
+  const userId = rowString(row, 'user_id');
+  if (!userId) return null;
+  return {
+    rank: rowNumber(row, 'rank'),
+    user_id: userId,
+    username: rowString(row, 'username') ?? '',
+    display_name: rowString(row, 'display_name') ?? '',
+    avatar_url: rowString(row, 'avatar_url'),
+    total_coins: rowNumber(row, 'total_coins'),
+  };
 }
 
 export default function Discover() {
@@ -150,7 +180,9 @@ export default function Discover() {
       const { data: rankBody, error } = await apiLiveRankingsWeekly();
       if (error) throw new Error(error || 'Failed');
       setRankings(
-        (Array.isArray(rankBody?.rankings) ? rankBody.rankings : []) as unknown as CreatorRanking[],
+        rowRecords(rankBody?.rankings)
+          .map(toCreatorRanking)
+          .filter((row): row is CreatorRanking => row !== null),
       );
     } catch (err) {
       reportFailure('discover_rankings', err);
@@ -178,13 +210,15 @@ export default function Discover() {
         return;
       }
       const allVids = videosResult.videos || [];
-      const allProfiles = (profilesResult.profiles || []) as unknown as User[];
+      const allProfiles = rowRecords(profilesResult.profiles)
+        .map(toSearchUser)
+        .filter((row): row is User => row !== null);
       const q = searchQuery.toLowerCase();
       const matchedVids = allVids.filter((v: { description?: string }) => (v.description || '').toLowerCase().includes(q)).slice(0, 20);
-      const matchedUsers = allProfiles.filter((p: { username?: string; display_name?: string }) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
+      const matchedUsers = allProfiles.filter((p) => (p.username || '').toLowerCase().includes(q) || (p.display_name || '').toLowerCase().includes(q)).slice(0, 20);
 
       const profileMap: Record<string, { username: string; avatar_url: string | null }> = {};
-      allProfiles.forEach((p: { user_id: string; username?: string; avatar_url?: string | null }) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
+      allProfiles.forEach((p) => { profileMap[p.user_id] = { username: p.username || 'User', avatar_url: p.avatar_url ?? null }; });
       setSearchResults({
         videos: matchedVids.map((v: { id: string; userId: string; user_id: string; thumbnail?: string; url?: string; description?: string; views?: number; likes?: number; username?: string; avatar?: string | null }) => ({
           id: v.id, user_id: v.userId || v.user_id, thumbnail_url: v.thumbnail || '', url: v.url || '',

@@ -88,7 +88,9 @@ export const LIVE_WS_OUT = {
 
 export function liveWsSend(
   type: (typeof LIVE_WS_OUT)[keyof typeof LIVE_WS_OUT],
-  payload?: Record<string, unknown>,
+  // Any JSON object body: the payload is serialised, never indexed, so requiring
+  // an index signature only forced callers to cast their own typed payloads.
+  payload?: object,
 ): void {
   websocket.send(type, payload ?? {});
 }

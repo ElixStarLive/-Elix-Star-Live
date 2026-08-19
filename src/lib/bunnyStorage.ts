@@ -17,12 +17,10 @@
 import { Capacitor } from "@capacitor/core";
 import { apiUrl } from "./api";
 import { request } from "./apiClient";
+import { asRecord, rowString } from "./rowReaders";
 import { useAuthStore } from "../store/useAuthStore";
 
-const runtimeEnv =
-  typeof window !== "undefined"
-    ? (window as unknown as { __ENV?: Record<string, string> }).__ENV
-    : undefined;
+const runtimeEnv = typeof window !== "undefined" ? window.__ENV : undefined;
 
 function getCdnHostname(): string {
   return (
@@ -61,8 +59,11 @@ export async function bunnyUpload(
   const qs = new URLSearchParams({ path: storagePath, ct });
 
   const _storeState = useAuthStore.getState();
+  // `accessToken` is not part of AuthSession; it is only read in case a session
+  // persisted by an older build rehydrates with the camelCase key.
+  const sessionRow = asRecord(_storeState.session);
   const _token = _storeState.session?.access_token
-    || (_storeState.session as unknown as { accessToken?: string })?.accessToken
+    || (sessionRow ? rowString(sessionRow, "accessToken") : null)
     || null;
 
   // Binary body cannot go through CapacitorHttp JSON `data` — same native fetch

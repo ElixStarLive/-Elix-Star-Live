@@ -49,7 +49,15 @@ export default function AdminEconomy() {
           is_active: Boolean(g.is_active),
         })).filter((g) => g.id),
       );
-      setBoosters(data.boosters as unknown as BoosterCatalogItem[]);
+      setBoosters(
+        data.boosters.map((b: Record<string, unknown>) => ({
+          id: String(b.id ?? b.booster_id ?? ''),
+          name: String(b.name ?? ''),
+          coin_cost: Number(b.coin_cost ?? 0),
+          effect_type: String(b.effect_type ?? ''),
+          is_active: Boolean(b.is_active),
+        })).filter((b) => b.id),
+      );
       const rawPkgs = data.packages;
       setPackages(
         (rawPkgs as Record<string, unknown>[])

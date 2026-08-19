@@ -73,7 +73,7 @@ export function sendTestCoinGiftWs(
   });
 }
 
-export function liveGiftGoalSet(payload: LivePayload): void {
+export function liveGiftGoalSet(payload: object): void {
   liveWsSend(LIVE_WS_OUT.gift_goal_set, payload);
 }
 

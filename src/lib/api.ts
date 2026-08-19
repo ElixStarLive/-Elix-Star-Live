@@ -6,7 +6,14 @@
 import { Capacitor } from "@capacitor/core";
 import { normalizeLiveKitSignalUrl } from "./live/liveKitDiagnostics";
 
-const env = typeof window !== "undefined" ? (window as unknown as { __ENV?: Record<string, string> }).__ENV : undefined;
+declare global {
+  interface Window {
+    /** Injected at runtime by `/env.js` when VITE_* values are not baked into the build. */
+    __ENV?: Record<string, string>;
+  }
+}
+
+const env = typeof window !== "undefined" ? window.__ENV : undefined;
 
 /**
  * Production site/API origin. Must match capacitor.config.ts `server.hostname`

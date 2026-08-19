@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Music, Vote, Video, Radio } from "lucide-react";
 import { RisingStarsTopBar } from "../components/RisingStarsTopBar";
 import { showToast } from "../lib/toast";
+import { asRecord, rowBoolean, rowNumber, rowRecords, rowString } from "../lib/rowReaders";
 import { useAuthStore } from "../store/useAuthStore";
 import { AvatarRing } from "../components/AvatarRing";
 import { nativeShareUrl } from "../lib/platform";
@@ -38,6 +39,42 @@ interface Entry {
   status: string;
   username?: string;
   avatar_url?: string | null;
+}
+
+function toChallenge(body: unknown): Challenge | null {
+  const row = asRecord(body);
+  const id = row ? rowString(row, 'id') : null;
+  if (!row || !id) return null;
+  return {
+    id,
+    title: rowString(row, 'title') ?? '',
+    description: rowString(row, 'description'),
+    status: rowString(row, 'status') ?? '',
+    week_index: rowNumber(row, 'week_index'),
+    sound_track_id: rowString(row, 'sound_track_id') ?? '',
+    sound_meta: asRecord(row.sound_meta) ?? {},
+    opens_at: rowString(row, 'opens_at') ?? '',
+    closes_at: rowString(row, 'closes_at') ?? '',
+    live_qualifier_room_id: rowString(row, 'live_qualifier_room_id'),
+    live_final_room_id: rowString(row, 'live_final_room_id'),
+    leaderboard_frozen: rowBoolean(row, 'leaderboard_frozen'),
+  };
+}
+
+/** An entry with no id cannot be voted on, so it is dropped rather than rendered. */
+function toEntry(row: Record<string, unknown>): Entry | null {
+  const id = rowString(row, 'id');
+  if (!id) return null;
+  const username = rowString(row, 'username');
+  return {
+    id,
+    creator_user_id: rowString(row, 'creator_user_id') ?? '',
+    video_id: rowString(row, 'video_id') ?? '',
+    vote_count: rowNumber(row, 'vote_count'),
+    status: rowString(row, 'status') ?? '',
+    ...(username ? { username } : {}),
+    avatar_url: rowString(row, 'avatar_url'),
+  };
 }
 
 export default function RisingStarsChallenge() {
@@ -108,9 +145,13 @@ export default function RisingStarsChallenge() {
         apiRisingStarsChallengeEntries(challengeId),
       ]);
       if (ch.error) throw new Error(ch.error);
-      setChallenge((ch.body?.challenge as Challenge) || null);
+      setChallenge(toChallenge(ch.body?.challenge));
       setVotedToday(Boolean(ch.body?.voted_today));
-      setEntries(en.entries as unknown as Entry[]);
+      setEntries(
+        rowRecords(en.entries)
+          .map(toEntry)
+          .filter((entry): entry is Entry => entry !== null),
+      );
 
       const currentUserId = userIdRef.current;
       if (currentUserId) {
