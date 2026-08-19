@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { generateKeyPairSync } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { collectProductionEnvironmentFailures } from "./envValidate";
+import {
+  collectProductionEnvironmentFailures,
+  collectProductionEnvironmentWarnings,
+} from "./envValidate";
 
 const envValidateSrc = readFileSync(resolve(__dirname, "envValidate.ts"), "utf8");
 
@@ -164,22 +167,22 @@ describe("production environment boot gate", () => {
    */
   describe("Apple signing key credibility", () => {
     it("accepts the ES256 PKCS8 key App Store Connect issues", () => {
-      const failures = collectProductionEnvironmentFailures(
+      const warnings = collectProductionEnvironmentWarnings(
         prodEnv({ PEX_API_KEY: "pex-live-key" }),
       );
-      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+      expect(warnings).toHaveLength(0);
     });
 
     it("accepts the same key pasted with escaped newlines", () => {
-      // The consumer normalises \\n before importing, so boot must judge the
-      // value the same way or it would reject a key that actually works.
-      const failures = collectProductionEnvironmentFailures(
+      // The consumer normalises through the same helper before importing, so boot
+      // must judge the value the same way or it would reject a key that works.
+      const warnings = collectProductionEnvironmentWarnings(
         prodEnv({
           PEX_API_KEY: "pex-live-key",
           APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.replace(/\n/g, "\\n"),
         }),
       );
-      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+      expect(warnings).toHaveLength(0);
     });
 
     /**
@@ -190,58 +193,93 @@ describe("production environment boot gate", () => {
      * repairing the wrapping here means the key really does sign.
      */
     it("accepts a key whose newlines the env UI stripped", () => {
-      const failures = collectProductionEnvironmentFailures(
+      const warnings = collectProductionEnvironmentWarnings(
         prodEnv({
           PEX_API_KEY: "pex-live-key",
           APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.replace(/\n/g, ""),
         }),
       );
-      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+      expect(warnings).toHaveLength(0);
     });
 
-    it("accepts the whole PEM handed over as base64", () => {
-      const failures = collectProductionEnvironmentFailures(
+    it("accepts the whole PEM handed over as base64 without warning", () => {
+      const warnings = collectProductionEnvironmentWarnings(
         prodEnv({
           PEX_API_KEY: "pex-live-key",
           APPLE_PRIVATE_KEY: Buffer.from(APPLE_ES256_PKCS8, "utf8").toString("base64"),
         }),
       );
-      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+      expect(warnings).toHaveLength(0);
     });
 
-    it("still refuses a stripped key that is also truncated", () => {
+    /**
+     * An unusable Apple key must not take the platform down with it. iOS purchase
+     * verification fails closed on its own path — it reports "unavailable", which
+     * grants no coins — so nothing settles on an unverified receipt, while live
+     * streaming, gifts and the web app keep serving. Reported every boot instead.
+     */
+    it("reports, but does not refuse to start on, a truncated key", () => {
       const stripped = APPLE_ES256_PKCS8.replace(/\n/g, "");
-      const failures = collectProductionEnvironmentFailures(
-        prodEnv({
-          PEX_API_KEY: "pex-live-key",
-          APPLE_PRIVATE_KEY: `${stripped.slice(0, 70)}-----END PRIVATE KEY-----`,
-        }),
-      );
-      expect(failures.some((m) => m.includes("not a readable private key"))).toBe(true);
+      const env = prodEnv({
+        PEX_API_KEY: "pex-live-key",
+        APPLE_PRIVATE_KEY: `${stripped.slice(0, 70)}-----END PRIVATE KEY-----`,
+      });
+
+      expect(collectProductionEnvironmentFailures(env)).toHaveLength(0);
+      expect(
+        collectProductionEnvironmentWarnings(env).some((m) =>
+          m.includes("not a readable private key"),
+        ),
+      ).toBe(true);
     });
 
-    it("production refuses to start when the key is a placeholder, not a PEM", () => {
-      const failures = collectProductionEnvironmentFailures(
-        prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: "your_apple_private_key" }),
-      );
-      expect(failures.some((m) => m.includes("must be the PKCS8 PEM"))).toBe(true);
+    /** The shape must name the damage, without leaking any key material. */
+    it("reports the non-secret shape of a rejected key", () => {
+      const env = prodEnv({
+        PEX_API_KEY: "pex-live-key",
+        APPLE_PRIVATE_KEY: "-----BEGIN PRIVATE KEY-----",
+      });
+
+      const [warning] = collectProductionEnvironmentWarnings(env);
+      expect(warning).toContain("bodyChars=0");
+      expect(warning).toContain("footer=false");
+      expect(warning).toContain("rawChars=27");
     });
 
-    it("production refuses to start when the PEM is truncated", () => {
-      const failures = collectProductionEnvironmentFailures(
-        prodEnv({
-          PEX_API_KEY: "pex-live-key",
-          APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.slice(0, 60) + "\n-----END PRIVATE KEY-----\n",
-        }),
-      );
-      expect(failures.some((m) => m.includes("not a readable private key"))).toBe(true);
+    it("reports a placeholder that is not a PEM at all", () => {
+      const env = prodEnv({
+        PEX_API_KEY: "pex-live-key",
+        APPLE_PRIVATE_KEY: "your_apple_private_key",
+      });
+
+      expect(collectProductionEnvironmentFailures(env)).toHaveLength(0);
+      expect(
+        collectProductionEnvironmentWarnings(env).some((m) => m.includes("must be the PKCS8 PEM")),
+      ).toBe(true);
     });
 
-    it("production refuses to start when the key is RSA instead of ES256", () => {
+    it("reports an RSA key where App Store Connect issues ES256", () => {
+      const env = prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: GOOGLE_RSA_PKCS8 });
+
+      expect(
+        collectProductionEnvironmentWarnings(env).some((m) =>
+          m.includes("must be the EC (ES256) key"),
+        ),
+      ).toBe(true);
+    });
+
+    /** Absent credentials stay fatal: that contract predates the warning split. */
+    it("still refuses to start when the key is missing entirely", () => {
       const failures = collectProductionEnvironmentFailures(
-        prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: GOOGLE_RSA_PKCS8 }),
+        prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: "" }),
       );
-      expect(failures.some((m) => m.includes("must be the EC (ES256) key"))).toBe(true);
+      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY are required"))).toBe(true);
+    });
+
+    it("a usable key produces no warning", () => {
+      expect(
+        collectProductionEnvironmentWarnings(prodEnv({ PEX_API_KEY: "pex-live-key" })),
+      ).toHaveLength(0);
     });
   });
 

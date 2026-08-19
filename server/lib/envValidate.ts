@@ -20,18 +20,33 @@ import { normalizePrivateKeyPem } from "./serviceAccountEnv";
 function applePrivateKeyFailure(raw: string): string | null {
   const pem = normalizePrivateKeyPem(raw);
   if (!pem.includes("-----BEGIN PRIVATE KEY-----")) {
-    return "APPLE_PRIVATE_KEY must be the PKCS8 PEM from App Store Connect (-----BEGIN PRIVATE KEY-----) — jose.importPKCS8 rejects any other PEM label, so iOS purchase verification would never reach a verdict";
+    return `APPLE_PRIVATE_KEY must be the PKCS8 PEM from App Store Connect (-----BEGIN PRIVATE KEY-----) — jose.importPKCS8 rejects any other PEM label, so iOS purchase verification never reaches a verdict. ${applePrivateKeyShape(raw, pem)}`;
   }
   let keyType: string | null | undefined;
   try {
     keyType = createPrivateKey(pem).asymmetricKeyType;
   } catch {
-    return "APPLE_PRIVATE_KEY is not a readable private key in production — check for a truncated or quote-mangled paste, otherwise iOS purchase verification never reaches a verdict";
+    return `APPLE_PRIVATE_KEY is not a readable private key — the paste is truncated or mangled, so iOS purchase verification never reaches a verdict. ${applePrivateKeyShape(raw, pem)}`;
   }
   if (keyType !== "ec") {
-    return `APPLE_PRIVATE_KEY must be the EC (ES256) key App Store Connect issues, got ${keyType} — iOS purchase verification would never reach a verdict`;
+    return `APPLE_PRIVATE_KEY must be the EC (ES256) key App Store Connect issues, got ${keyType} — iOS purchase verification never reaches a verdict`;
   }
   return null;
+}
+
+/**
+ * Non-secret shape of a rejected key, so the deploy log says which paste damage
+ * happened instead of only that something is wrong. Counts and booleans only —
+ * no key material, no fragment of the base64 body. An ES256 P-256 key normalises
+ * to a body of roughly 180 characters, so a much shorter body is a truncated
+ * paste and an empty one is a header with nothing after it.
+ */
+function applePrivateKeyShape(raw: string, normalized: string): string {
+  const body = normalized
+    .replace(/-----BEGIN [A-Z0-9 ]+-----/, "")
+    .replace(/-----END [A-Z0-9 ]+-----/, "")
+    .replace(/\s+/g, "");
+  return `[rawChars=${raw.length} normalizedLines=${normalized.trim().split("\n").length} header=${normalized.includes("-----BEGIN PRIVATE KEY-----")} footer=${normalized.includes("-----END PRIVATE KEY-----")} bodyChars=${body.length} expectedBodyChars≈180]`;
 }
 
 /** Returns fatal production boot messages. Empty when NODE_ENV is not production. */
@@ -171,9 +186,6 @@ export function collectProductionEnvironmentFailures(
     failures.push(
       "APPLE_ISSUER_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY are required in production for iOS IAP verification",
     );
-  } else {
-    const appleKeyProblem = applePrivateKeyFailure(env.APPLE_PRIVATE_KEY as string);
-    if (appleKeyProblem) failures.push(appleKeyProblem);
   }
   if (!appleBundle) {
     failures.push("APPLE_BUNDLE_ID is required in production for iOS IAP verification");
@@ -227,8 +239,38 @@ export function collectProductionEnvironmentFailures(
   return failures;
 }
 
+/**
+ * Misconfiguration that breaks one provider but must not stop the server.
+ *
+ * A credential that is present but unusable used to be fatal here. That is the
+ * wrong blast radius: an iOS receipt key nobody can parse stops iOS purchases
+ * from being verified, but it is not a reason to take live streaming, gifts and
+ * the web app down with it — and a restart loop serves nobody while the operator
+ * still has to fix the same paste. These are reported at every boot, loudly and
+ * with the non-secret shape needed to fix them, and the affected provider keeps
+ * failing closed on its own path: Apple verification returns "unavailable", which
+ * grants no coins, so no purchase is ever settled on an unverified receipt.
+ */
+export function collectProductionEnvironmentWarnings(
+  env: NodeJS.ProcessEnv = process.env,
+): string[] {
+  if (env.NODE_ENV !== "production") return [];
+  const warnings: string[] = [];
+
+  const applePrivateKey = env.APPLE_PRIVATE_KEY?.trim();
+  if (applePrivateKey) {
+    const appleKeyProblem = applePrivateKeyFailure(applePrivateKey);
+    if (appleKeyProblem) warnings.push(appleKeyProblem);
+  }
+
+  return warnings;
+}
+
 export function validateProductionEnvironment(): void {
   const failures = collectProductionEnvironmentFailures();
+  for (const msg of collectProductionEnvironmentWarnings()) {
+    logger.error(msg);
+  }
   if (!failures.length) {
     if (process.env.NODE_ENV === "production") {
       logger.info(
