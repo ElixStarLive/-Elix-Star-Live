@@ -73,6 +73,21 @@ export function collectProductionEnvironmentFailures(
     );
   }
 
+  // Stripe shop checkout builds its success/cancel URLs from CLIENT_URL and
+  // refuses anything that is not a public https origin. Left unset, boot passed
+  // and the failure only appeared as a 500 the first time a buyer pressed
+  // checkout, so the same condition is checked here where it can be seen.
+  const clientUrl = (env.CLIENT_URL || "").trim();
+  if (!clientUrl) {
+    failures.push(
+      "CLIENT_URL is required in production — Stripe shop checkout builds its return URLs from it",
+    );
+  } else if (!clientUrl.startsWith("https://") || /127\.0\.0\.1|localhost/i.test(clientUrl)) {
+    failures.push(
+      "CLIENT_URL must be a public https:// origin in production (no localhost) for Stripe shop checkout return URLs",
+    );
+  }
+
   if (!env.LIVEKIT_URL?.trim() || !env.LIVEKIT_API_KEY?.trim() || !env.LIVEKIT_API_SECRET?.trim()) {
     failures.push(
       "LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET are required in production for live streaming",

@@ -33,6 +33,14 @@ export interface SendGiftResult {
   newLevel: number | null;
   totalXp: number | null;
   leveledUp: boolean;
+  /**
+   * `false` when the server settled the gift but could not confirm it reached
+   * the live room, so no animation or battle score followed. `null` when the
+   * response does not speak about delivery at all.
+   */
+  roomDelivered: boolean | null;
+  /** The server's own account of what happened, shown when delivery failed. */
+  serverMessage: string | null;
 }
 
 function wireChannel(channel: GiftChannel): string {
@@ -145,6 +153,9 @@ export async function sendGift(
       newLevel: data?.new_level != null ? Number(data.new_level) : null,
       totalXp: data?.total_xp != null ? Number(data.total_xp) : null,
       leveledUp: Boolean(data?.leveled_up),
+      roomDelivered:
+        typeof data?.room_delivered === 'boolean' ? data.room_delivered : null,
+      serverMessage: typeof data?.message === 'string' ? data.message : null,
     },
     error: null,
   };

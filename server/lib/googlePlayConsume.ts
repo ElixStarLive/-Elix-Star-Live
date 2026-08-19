@@ -5,6 +5,7 @@
 import { getPool } from "./postgres";
 import { logger } from "./logger";
 import { enqueueJob } from "./jobQueue";
+import { postAlertWebhook } from "./alerting";
 import { consumeGooglePlayProduct } from "./googlePlaySubscriptions";
 
 export async function markGooglePurchaseConsumed(externalPurchaseId: string): Promise<void> {
@@ -35,12 +36,31 @@ export async function consumeGooglePlayAfterCredit(input: {
     { productId: input.productId, status: result.status, detail: result.detail },
     "Google Play consume after credit failed — enqueue retry",
   );
-  await enqueueJob({
+  const queued = await enqueueJob({
     type: "google_play_consume",
     productId: input.productId,
     purchaseToken: input.purchaseToken,
     externalPurchaseId: input.externalPurchaseId,
   });
+  if (!queued) {
+    // The coins are already credited, so this cannot throw and undo a paid
+    // purchase. The retry job is gone though, and until the token is consumed
+    // Google keeps the SKU owned and the player cannot buy it again. The row
+    // stays visible to enqueueUnconsumedGooglePlayPurchases; say so loudly
+    // rather than dropping the retry silently as this used to.
+    logger.error(
+      { productId: input.productId, externalPurchaseId: input.externalPurchaseId },
+      "Google Play consume retry could not be queued — awaiting unconsumed-purchase sweep",
+    );
+    await postAlertWebhook({
+      severity: "critical",
+      text: "Google Play consume retry could not be queued",
+      context: {
+        productId: input.productId,
+        externalPurchaseId: input.externalPurchaseId,
+      },
+    });
+  }
 }
 
 export async function processGooglePlayConsumeJob(input: {

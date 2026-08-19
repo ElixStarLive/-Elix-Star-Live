@@ -125,8 +125,14 @@ async function reverifyJoinedPublisher(
  */
 export async function handleLiveKitWebhook(req: Request, res: Response) {
   if (!receiver) {
-    logger.warn('[livekit-webhook] LiveKit not configured, ignoring webhook');
-    return res.status(200).end();
+    // A 200 tells LiveKit the event was handled and it never sends it again, so
+    // an unconfigured receiver silently dropped room_finished and
+    // participant_joined — leaving ghost lives behind and skipping publish
+    // re-verification. 503 keeps the event in LiveKit's retry queue instead.
+    logger.error(
+      '[livekit-webhook] LiveKit keys missing — cannot verify webhook signature, refusing delivery',
+    );
+    return res.status(503).json({ error: 'LiveKit webhook receiver not configured' });
   }
 
   const rawBody = req.body;

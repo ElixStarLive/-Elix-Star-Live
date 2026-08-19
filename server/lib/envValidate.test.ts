@@ -29,6 +29,7 @@ function prodEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     APPLE_BUNDLE_ID: "com.elixstarlive.app",
     APPLE_IAP_NOTIFICATION_SECRET: "assn",
     GOOGLE_RTDN_WEBHOOK_SECRET: "rtdn",
+    CLIENT_URL: "https://www.elixstarlive.co.uk",
     ...overrides,
   };
 }
@@ -121,6 +122,35 @@ describe("production environment boot gate", () => {
         prodEnv({ GOOGLE_SERVICE_ACCOUNT_JSON: JSON.stringify({ private_key: "pem" }) }),
       );
       expect(failures.some((m) => m.includes("missing client_email"))).toBe(true);
+    });
+  });
+
+  /**
+   * Stripe shop checkout refuses to build return URLs from anything that is not
+   * a public https origin. That check lived only in the request handler, so a
+   * missing or local CLIENT_URL started cleanly and surfaced as a 500 at the
+   * first attempt to buy something.
+   */
+  describe("shop checkout return origin", () => {
+    it("production refuses to start with no CLIENT_URL", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", CLIENT_URL: "" }),
+      );
+      expect(failures.some((m) => m.includes("CLIENT_URL is required"))).toBe(true);
+    });
+
+    it("production refuses to start when CLIENT_URL is local", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", CLIENT_URL: "http://localhost:5173" }),
+      );
+      expect(failures.some((m) => m.includes("CLIENT_URL must be a public https"))).toBe(true);
+    });
+
+    it("production refuses to start when CLIENT_URL is not https", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({ PEX_API_KEY: "pex-live-key", CLIENT_URL: "http://www.elixstarlive.co.uk" }),
+      );
+      expect(failures.some((m) => m.includes("CLIENT_URL must be a public https"))).toBe(true);
     });
   });
 

@@ -212,7 +212,12 @@ app.use((req, res, next) => {
 
 // ── Raw-body routes (must come BEFORE express.json()) ────────────
 app.use("/api/stripe-webhook", stripeWebhookRouter);
-app.post("/api/livekit/webhook", livekitWebhookRouter);
+// `app.use`, not `app.post`: only `app.use` strips the mount path before the
+// router matches, and every router here declares its handler at "/". Mounted with
+// `app.post` the router saw the full "/api/livekit/webhook" path, matched nothing,
+// and each delivery fell through to the /api 404 — so room_finished and
+// participant_joined were never processed. The router itself is POST-only.
+app.use("/api/livekit/webhook", livekitWebhookRouter);
 app.use("/api/webhooks/google-play", googlePlayRtdnRouter);
 app.use("/api/webhooks/apple-iap", appleIapNotifyRouter);
 

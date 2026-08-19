@@ -7,7 +7,7 @@
  */
 import "./config";
 import pg from "pg";
-import { normalizeDatabaseUrl } from "./lib/databaseUrl";
+import { directDatabaseUrl, normalizeDatabaseUrl } from "./lib/databaseUrl";
 import { logger } from "./lib/logger";
 import { invalidateGiftsCatalogCache } from "./lib/catalogCacheValkey";
 import { closeValkeyConnections } from "./lib/valkey";
@@ -16,11 +16,17 @@ import { listMigrationFilenames, readMigrationSql } from "./lib/migrationSql";
 const ADVISORY_KEY = 87236401;
 
 async function main(): Promise<void> {
-  const url = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
-  if (!url) {
+  const configured = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
+  if (!configured) {
     logger.fatal("DATABASE_URL is required for migrations");
     process.exit(1);
   }
+  // Production runs the app on Neon's pooled endpoint, but the advisory lock
+  // below is a session lock and pgbouncer's transaction pooling does not keep a
+  // session — see `directDatabaseUrl`. Migrations therefore run on the direct
+  // endpoint, so "one writer per database" is real and the key is released when
+  // this process disconnects.
+  const url = directDatabaseUrl(configured);
 
   const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
   /** Production verifies TLS by default; set PG_SSL_REJECT_UNAUTHORIZED=false only as an emergency escape. */

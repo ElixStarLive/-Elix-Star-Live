@@ -19,6 +19,15 @@ export function isBunnyConfigured(): boolean {
   return Boolean((ACCESS_KEY && STORAGE_ZONE_NAME) || (STREAM_LIBRARY_ID && STREAM_API_KEY));
 }
 
+/**
+ * Bounded, single-line form of a Bunny error body. The whole upstream response
+ * used to go into the log and into the error returned to the caller, so an
+ * unexpected HTML or verbose JSON error page was reproduced in full.
+ */
+function bunnyErrorDetail(text: string): string {
+  return String(text || "").replace(/\s+/g, " ").trim().slice(0, 200);
+}
+
 export function getBunnyConfigError(): string {
   if (!STORAGE_ZONE_NAME && !STREAM_LIBRARY_ID) {
     return 'Bunny not configured. Set BUNNY_STORAGE_ZONE or BUNNY_LIBRARY_ID.';
@@ -59,8 +68,11 @@ async function uploadViaStorage(
 
     if (!res.ok) {
       const text = await res.text();
-      logger.error({ path, status: res.status, body: text }, "Bunny Storage upload failed");
-      return { success: false, path, error: `Bunny API ${res.status}: ${text}` };
+      logger.error(
+        { path, status: res.status, body: bunnyErrorDetail(text) },
+        "Bunny Storage upload failed",
+      );
+      return { success: false, path, error: `Bunny API ${res.status}: ${bunnyErrorDetail(text)}` };
     }
 
     const rawHost =
@@ -112,8 +124,15 @@ async function _uploadViaStream(
 
     if (!createRes.ok) {
       const text = await createRes.text();
-      logger.error({ status: createRes.status, body: text }, "Bunny Stream create video failed");
-      return { success: false, path, error: `Stream create failed (${createRes.status}): ${text}` };
+      logger.error(
+        { status: createRes.status, body: bunnyErrorDetail(text) },
+        "Bunny Stream create video failed",
+      );
+      return {
+        success: false,
+        path,
+        error: `Stream create failed (${createRes.status}): ${bunnyErrorDetail(text)}`,
+      };
     }
 
     const videoData = await createRes.json() as { guid?: string };
@@ -134,8 +153,15 @@ async function _uploadViaStream(
 
     if (!uploadRes.ok) {
       const text = await uploadRes.text();
-      logger.error({ status: uploadRes.status, body: text }, "Bunny Stream upload failed");
-      return { success: false, path, error: `Stream upload failed (${uploadRes.status}): ${text}` };
+      logger.error(
+        { status: uploadRes.status, body: bunnyErrorDetail(text) },
+        "Bunny Stream upload failed",
+      );
+      return {
+        success: false,
+        path,
+        error: `Stream upload failed (${uploadRes.status}): ${bunnyErrorDetail(text)}`,
+      };
     }
 
     logger.info({ videoGuid, libraryId: STREAM_LIBRARY_ID }, "Bunny Stream upload success");

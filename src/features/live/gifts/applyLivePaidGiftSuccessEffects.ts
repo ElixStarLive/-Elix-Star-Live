@@ -65,6 +65,15 @@ export async function applyLivePaidGiftSuccessEffects(
     showToast('Could not refresh wallet balance');
   }
 
+  // The gift is paid for — that part of the response is true and its wallet and
+  // XP effects above still stand. When the server also says it could not confirm
+  // the gift reached the live room, there is no animation and no battle score,
+  // and staying quiet about that read as a completed gift.
+  if (result.roomDelivered === false) {
+    reportFailure('live_gift_room_delivery', 'room delivery not confirmed');
+    showToast(result.serverMessage || 'Gift paid, but the live room did not receive it');
+  }
+
   let newLevel = currentLevel;
   if (result.newLevel != null) {
     newLevel = Math.max(0, Number(result.newLevel) || 0);

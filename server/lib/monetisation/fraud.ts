@@ -73,40 +73,39 @@ export function isBotUserAgent(ua: string | undefined | null): boolean {
   return BOT_UA.test(String(ua));
 }
 
-/** View-farm heuristic: too many distinct videos qualified by one user in a short window. */
+/**
+ * View-farm heuristic: too many distinct videos qualified by one user in a short window.
+ *
+ * A database failure is not an answer. Every detector in this file used to
+ * swallow one and report "no fraud found", so an outage turned the whole
+ * qualified-view and creator-rewards gate into a pass. The error is raised so
+ * the caller declines to credit the view instead of crediting an unchecked one.
+ */
 export async function isViewFarmBurst(viewerUserId: string, windowSeconds = 60, maxVideos = 40): Promise<boolean> {
   const pool = getPool();
   if (!pool || !viewerUserId) return false;
-  try {
-    const r = await pool.query(
-      `SELECT COUNT(DISTINCT video_id)::int AS c
-         FROM elix_qualified_video_views
-        WHERE viewer_user_id = $1
-          AND first_qualified_at >= NOW() - ($2::text || ' seconds')::interval`,
-      [viewerUserId, String(windowSeconds)],
-    );
-    return Math.floor(Number(r.rows[0]?.c) || 0) >= maxVideos;
-  } catch {
-    return false;
-  }
+  const r = await pool.query(
+    `SELECT COUNT(DISTINCT video_id)::int AS c
+       FROM elix_qualified_video_views
+      WHERE viewer_user_id = $1
+        AND first_qualified_at >= NOW() - ($2::text || ' seconds')::interval`,
+    [viewerUserId, String(windowSeconds)],
+  );
+  return Math.floor(Number(r.rows[0]?.c) || 0) >= maxVideos;
 }
 
 export async function hasUnresolvedFraudFlag(userId: string): Promise<boolean> {
   const pool = getPool();
   if (!pool || !userId) return false;
-  try {
-    const r = await pool.query(
-      `SELECT 1 FROM elix_fraud_decisions
-        WHERE user_id = $1
-          AND reason_code IN ('unresolved_fraud', 'purchased_engagement_suspected', 'multi_account_device', 'community_guidelines')
-          AND created_at >= NOW() - interval '90 days'
-        LIMIT 1`,
-      [userId],
-    );
-    return (r.rowCount ?? 0) > 0;
-  } catch {
-    return false;
-  }
+  const r = await pool.query(
+    `SELECT 1 FROM elix_fraud_decisions
+      WHERE user_id = $1
+        AND reason_code IN ('unresolved_fraud', 'purchased_engagement_suspected', 'multi_account_device', 'community_guidelines')
+        AND created_at >= NOW() - interval '90 days'
+      LIMIT 1`,
+    [userId],
+  );
+  return (r.rowCount ?? 0) > 0;
 }
 
 /**
@@ -248,18 +247,14 @@ export async function isViewingVelocitySuspicious(
 ): Promise<boolean> {
   const pool = getPool();
   if (!pool || !viewerUserId) return false;
-  try {
-    const r = await pool.query(
-      `SELECT COUNT(*)::int AS c
-         FROM elix_qualified_video_views
-        WHERE viewer_user_id = $1
-          AND last_seen_at >= NOW() - ($2::text || ' seconds')::interval`,
-      [viewerUserId, String(windowSeconds)],
-    );
-    return Math.floor(Number(r.rows[0]?.c) || 0) >= maxViews;
-  } catch {
-    return false;
-  }
+  const r = await pool.query(
+    `SELECT COUNT(*)::int AS c
+       FROM elix_qualified_video_views
+      WHERE viewer_user_id = $1
+        AND last_seen_at >= NOW() - ($2::text || ' seconds')::interval`,
+    [viewerUserId, String(windowSeconds)],
+  );
+  return Math.floor(Number(r.rows[0]?.c) || 0) >= maxViews;
 }
 
 /** Coordinated device: many distinct users from same IP+UA fingerprint recently. */
@@ -276,28 +271,24 @@ export async function isMultiAccountDeviceBurst(input: {
     ipHash: input.ipHash || undefined,
     userAgent: input.userAgent || undefined,
   });
-  try {
-    await pool.query(
-      `INSERT INTO elix_fraud_decisions (subject_type, subject_id, user_id, reason_code, details)
-       VALUES ('device_seen', $1, $2, 'duplicate_device_burst', $3::jsonb)`,
-      [
-        fp,
-        input.viewerUserId,
-        JSON.stringify({ ipHash: input.ipHash, ua: String(input.userAgent || "").slice(0, 120) }),
-      ],
-    );
-    const r = await pool.query(
-      `SELECT COUNT(DISTINCT user_id)::int AS c
-         FROM elix_fraud_decisions
-        WHERE subject_type = 'device_seen'
-          AND subject_id = $1
-          AND created_at >= NOW() - ($2::text || ' hours')::interval`,
-      [fp, String(input.windowHours ?? 24)],
-    );
-    return Math.floor(Number(r.rows[0]?.c) || 0) >= (input.maxUsers ?? 8);
-  } catch {
-    return false;
-  }
+  await pool.query(
+    `INSERT INTO elix_fraud_decisions (subject_type, subject_id, user_id, reason_code, details)
+     VALUES ('device_seen', $1, $2, 'duplicate_device_burst', $3::jsonb)`,
+    [
+      fp,
+      input.viewerUserId,
+      JSON.stringify({ ipHash: input.ipHash, ua: String(input.userAgent || "").slice(0, 120) }),
+    ],
+  );
+  const r = await pool.query(
+    `SELECT COUNT(DISTINCT user_id)::int AS c
+       FROM elix_fraud_decisions
+      WHERE subject_type = 'device_seen'
+        AND subject_id = $1
+        AND created_at >= NOW() - ($2::text || ' hours')::interval`,
+    [fp, String(input.windowHours ?? 24)],
+  );
+  return Math.floor(Number(r.rows[0]?.c) || 0) >= (input.maxUsers ?? 8);
 }
 
 export async function isSuspiciousFollowerGrowth(
@@ -307,30 +298,26 @@ export async function isSuspiciousFollowerGrowth(
 ): Promise<boolean> {
   const pool = getPool();
   if (!pool || !userId) return false;
-  try {
-    // `follows` is the only follow table in the schema — there is no
-    // `elix_follows` for this to fall back to.
-    const r = await pool.query(
-      `SELECT COUNT(*)::int AS c FROM follows
-        WHERE following_id = $1
-          AND created_at >= NOW() - ($2::text || ' hours')::interval`,
-      [userId, String(windowHours)],
-    );
-    const c = Math.floor(Number(r.rows[0]?.c) || 0);
-    if (c >= maxNewFollowers) {
-      await recordFraudDecision({
-        subjectType: "followers",
-        subjectId: userId,
-        userId,
-        reasonCode: "suspicious_follower_growth",
-        details: { new_followers: c, windowHours },
-      });
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
+  // `follows` is the only follow table in the schema — there is no
+  // `elix_follows` for this to fall back to.
+  const r = await pool.query(
+    `SELECT COUNT(*)::int AS c FROM follows
+      WHERE following_id = $1
+        AND created_at >= NOW() - ($2::text || ' hours')::interval`,
+    [userId, String(windowHours)],
+  );
+  const c = Math.floor(Number(r.rows[0]?.c) || 0);
+  if (c >= maxNewFollowers) {
+    await recordFraudDecision({
+      subjectType: "followers",
+      subjectId: userId,
+      userId,
+      reasonCode: "suspicious_follower_growth",
+      details: { new_followers: c, windowHours },
+    });
+    return true;
   }
+  return false;
 }
 
 export async function evaluateCreatorEligibilityFlags(userId: string): Promise<{
@@ -343,16 +330,16 @@ export async function evaluateCreatorEligibilityFlags(userId: string): Promise<{
   manualReviewHold: boolean;
 }> {
   const pool = getPool();
-  if (!pool || !userId) {
-    return {
-      countryEligible: true,
-      ageEligible: true,
-      publicAccountOk: true,
-      goodStanding: true,
-      unresolvedFraud: false,
-      suspiciousFollowers: false,
-      manualReviewHold: false,
-    };
+  // Eligibility is a judgement about a specific account made from database
+  // state. Without a database, or without an account to judge, there is no
+  // judgement — and answering "eligible on every count" would have paid an
+  // unchecked creator. The caller runs inside a database transaction, so this
+  // refusal aborts that run and the next one re-decides.
+  if (!pool) {
+    throw new Error("evaluateCreatorEligibilityFlags: database not configured");
+  }
+  if (!userId) {
+    throw new Error("evaluateCreatorEligibilityFlags: userId is required");
   }
 
   // Only the columns this schema has. This used to ask for country, birth date,
@@ -406,17 +393,13 @@ export async function openFraudReview(input: {
 export async function hasManualReviewHold(userId: string): Promise<boolean> {
   const pool = getPool();
   if (!pool || !userId) return false;
-  try {
-    const r = await pool.query(
-      `SELECT 1 FROM elix_fraud_reviews
-        WHERE user_id = $1 AND status IN ('open', 'under_review')
-        LIMIT 1`,
-      [userId],
-    );
-    return (r.rowCount ?? 0) > 0;
-  } catch {
-    return false;
-  }
+  const r = await pool.query(
+    `SELECT 1 FROM elix_fraud_reviews
+      WHERE user_id = $1 AND status IN ('open', 'under_review')
+      LIMIT 1`,
+    [userId],
+  );
+  return (r.rowCount ?? 0) > 0;
 }
 
 export async function setFraudReviewOutcome(input: {

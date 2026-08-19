@@ -13,8 +13,14 @@ Steps:
 7. Optional: Clear build cache or "Redeploy without cache" if available.
 8. Click Deploy / Redeploy.
 
-The repo root has a Dockerfile that uses "npm install" (not npm ci).
+The repo root has a Dockerfile that installs with "npm ci --include=dev" against
+the committed package-lock.json, builds the client, then prunes dev dependencies.
 Port for the app: 8080.
+
+Also required in Coolify (see COOLIFY.md):
+- Pre-deployment / Release command:  npm run migrate
+  The container start command does NOT migrate, so without this the workers boot
+  against an un-migrated database and exit.
 
 If you cannot find the build pack setting, try creating a NEW application
 and when asked for build type, choose Dockerfile from the start.

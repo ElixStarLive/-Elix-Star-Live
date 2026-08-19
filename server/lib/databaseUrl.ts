@@ -7,6 +7,38 @@
  *
  * @see https://www.postgresql.org/docs/current/libpq-ssl.html
  */
+/**
+ * Rewrite a Neon connection string onto the **direct** endpoint by dropping the
+ * `-pooler` label from the host.
+ *
+ * Application queries belong on the pooled endpoint (see `connectPostgres`), but
+ * the migration runner does not: Neon's pooler is pgbouncer in transaction
+ * pooling mode, where `pg_advisory_lock` — a *session* lock — is taken on
+ * whichever server backend happens to serve that one statement, and pgbouncer
+ * hands that backend to the next client immediately afterwards. Measured against
+ * the pooled endpoint, two clients held the same exclusive key at once (so the
+ * "one writer" guarantee was not in force at all), `pg_advisory_unlock` released
+ * nothing, and the key stayed granted to an idle pgbouncer backend that nobody
+ * owns. Once that happens every later migration run blocks on the lock forever —
+ * a deploy whose release command never returns.
+ *
+ * Non-Neon and already-direct URLs are returned unchanged.
+ */
+export function directDatabaseUrl(urlString: string): string {
+  const trimmed = urlString.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (!u.hostname.includes("neon.tech")) return trimmed;
+    const [first, ...rest] = u.hostname.split(".");
+    if (!first.endsWith("-pooler")) return trimmed;
+    u.hostname = [first.slice(0, -"-pooler".length), ...rest].join(".");
+    return u.toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 export function normalizeDatabaseUrl(urlString: string): string {
   const trimmed = urlString.trim();
   if (!trimmed) return trimmed;

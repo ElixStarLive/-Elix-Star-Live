@@ -90,13 +90,7 @@ Thumbs.db
 # Git rewrite / internal
 .git-rewrite/
 
-# Local assistant artifacts
-.do/backup_*/
-.do/*.ps1
 # Local backups and IDE artifacts
-.do/Backups/
-.do/restorepoint_*/
-.do/app-simple.yaml
 .trae/
 Saved_Files/
 backups/

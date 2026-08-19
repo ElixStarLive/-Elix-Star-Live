@@ -10,6 +10,8 @@
  *   concurrent `CREATE TABLE`, so parallel suites raced into "relation already
  *   exists" and duplicate `pg_type` keys. The advisory lock makes the whole
  *   bootstrap a critical section; vitest can run these files in parallel again.
+ *   The lock only means that on a **direct** endpoint, which is why
+ *   `createTestPool` connects there rather than through Neon's pooler.
  * - **One transaction per file.** Applying a file and recording its marker
  *   separately means a mid-file failure leaves objects created but unrecorded, so
  *   the next run replays that file and fails on what already exists. Committed
@@ -22,6 +24,7 @@
  */
 
 import pg from "pg";
+import { directDatabaseUrl } from "./databaseUrl";
 import { listMigrationFilenames, readMigrationSql } from "./migrationSql";
 
 /** Shared with `server/migrate.ts` — one writer per database, whichever runs. */
@@ -107,11 +110,24 @@ export async function applyRepoMigrations(pool: pg.Pool): Promise<string[]> {
   return appliedNow;
 }
 
-/** A pool for a test database, with the SSL settings Neon needs. */
+/**
+ * A pool for a test database, with the SSL settings Neon needs, on the **direct**
+ * endpoint.
+ *
+ * A `TEST_DATABASE_URL` copied from the Neon dashboard is usually the pooled
+ * (`-pooler`) string, and pgbouncer's transaction pooling does not preserve a
+ * session: the advisory lock above was granted to a backend that pgbouncer then
+ * lent to someone else, so parallel suites bootstrapped at the same time and the
+ * key was left granted to an idle backend forever — every later suite, and every
+ * later `npm run migrate`, then blocked on it. These suites also assert real
+ * session and transaction semantics, which the pooler distorts. See
+ * `directDatabaseUrl`.
+ */
 export function createTestPool(url: string, max: number): pg.Pool {
-  const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");
+  const direct = directDatabaseUrl(url);
+  const needsSsl = direct.includes("neon.tech") || direct.includes("sslmode=require");
   return new pg.Pool({
-    connectionString: url,
+    connectionString: direct,
     max,
     connectionTimeoutMillis: 30_000,
     ...(needsSsl ? { ssl: { rejectUnauthorized: false } } : {}),

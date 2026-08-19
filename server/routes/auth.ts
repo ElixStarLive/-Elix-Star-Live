@@ -876,13 +876,19 @@ export async function handleRegister(req: Request, res: Response) {
       if (!sent.ok) {
         logger.error({ error: sent.error, userId: id }, 'handleRegister: confirmation email failed');
       }
-      // Do not issue a session until the email is confirmed.
+      // The account exists either way, so this stays 201 — rolling it back would
+      // leave the caller unable to register the same address again. What must not
+      // happen is telling them a confirmation email is on its way when sending
+      // it failed; `confirmation_email_sent` reports what actually happened and
+      // POST /api/auth/resend-confirmation is the way out.
       return res.status(201).json({
         user: toAuthUser(stored),
         session: null,
         needsEmailConfirmation: true,
-        welcome_message:
-          'Check your email to confirm your account before signing in.',
+        confirmation_email_sent: sent.ok === true,
+        welcome_message: sent.ok
+          ? 'Check your email to confirm your account before signing in.'
+          : 'Account created, but the confirmation email could not be sent. Request a new confirmation email to sign in.',
       });
     }
 

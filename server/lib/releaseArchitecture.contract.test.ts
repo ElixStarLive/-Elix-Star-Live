@@ -469,4 +469,124 @@ describe("release architecture contracts", () => {
     expect(env).toContain("client_email");
     expect(env).toContain("private_key");
   });
+
+  /**
+   * Static production-release guards. Each of these describes a failure that
+   * once read as a success: a fraud gate that passed during a database outage, a
+   * webhook acknowledged without being verified, a purchase priced at nothing, a
+   * retry dropped, an email promised but never sent, a gift charged for without
+   * reaching the room.
+   */
+  describe("failures are not reported as successes", () => {
+    it("fraud gates raise database failures instead of answering 'no fraud found'", () => {
+      const fraud = read("server/lib/monetisation/fraud.ts");
+      for (const detector of [
+        "export async function isViewFarmBurst",
+        "export async function hasUnresolvedFraudFlag",
+        "export async function isViewingVelocitySuspicious",
+        "export async function isMultiAccountDeviceBurst",
+        "export async function isSuspiciousFollowerGrowth",
+        "export async function hasManualReviewHold",
+      ]) {
+        const start = fraud.indexOf(detector);
+        expect(start, `${detector} is missing`).toBeGreaterThan(-1);
+        const body = fraud.slice(start, fraud.indexOf("\n}", start));
+        expect(body, `${detector} still swallows a database failure`).not.toMatch(
+          /catch\s*(\([^)]*\))?\s*\{\s*return (false|true);?\s*\}/,
+        );
+      }
+      // Eligibility with no database is not "eligible on every count".
+      expect(fraud).toContain(
+        'throw new Error("evaluateCreatorEligibilityFlags: database not configured")',
+      );
+    });
+
+    it("an unverifiable LiveKit webhook is not acknowledged", () => {
+      const webhook = read("server/routes/livekit-webhook.ts");
+      const start = webhook.indexOf("export async function handleLiveKitWebhook");
+      const guard = webhook.slice(start, webhook.indexOf("const rawBody", start));
+      // A 200 retires the event in LiveKit's queue, so room_finished and
+      // participant_joined would be lost with no signature ever checked.
+      expect(guard).not.toContain("res.status(200)");
+      expect(guard).toContain("res.status(503)");
+    });
+
+    it("a paid coin lot is never priced from a failed catalog read", () => {
+      const settlement = read("server/lib/monetisation/storeSettlement.ts");
+      const start = settlement.indexOf("export async function lookupCatalogGrossPence");
+      const fn = settlement.slice(start, settlement.indexOf("\n}", start));
+      // `0` is the answer for "no catalog row", so it must not also be the answer
+      // for "the query failed" — the creator's 60/40 share is computed from it.
+      expect(fn).not.toMatch(/catch\s*(\([^)]*\))?\s*\{\s*return 0;?\s*\}/);
+    });
+
+    it("a Google Play consume retry is never dropped silently", () => {
+      const consume = read("server/lib/googlePlayConsume.ts");
+      const start = consume.indexOf("export async function consumeGooglePlayAfterCredit");
+      const fn = consume.slice(start, consume.indexOf("\nexport async function processGooglePlayConsumeJob"));
+      expect(fn).toContain("const queued = await enqueueJob(");
+      expect(fn).toContain("if (!queued)");
+      expect(fn).toContain("postAlertWebhook");
+    });
+
+    it("registration does not claim a confirmation email that was not sent", () => {
+      const auth = read("server/routes/auth.ts");
+      expect(auth).toContain("confirmation_email_sent: sent.ok === true");
+      expect(auth).toContain("the confirmation email could not be sent");
+    });
+
+    it("a gift that did not reach the live room is not shown as delivered", () => {
+      const send = read("src/lib/giftSend.ts");
+      // The server states delivery per gift; the client used to discard it, so a
+      // charged gift with no animation and no battle score looked complete.
+      expect(send).toContain("roomDelivered:");
+      expect(send).toContain("data?.room_delivered === 'boolean'");
+      const effects = read("src/features/live/gifts/applyLivePaidGiftSuccessEffects.ts");
+      expect(effects).toContain("result.roomDelivered === false");
+      expect(effects).toContain("reportFailure('live_gift_room_delivery'");
+    });
+  });
+
+  it("migrations hold their advisory lock on a connection that can keep it", () => {
+    // Production DATABASE_URL is Neon's pooled endpoint by design, and a session
+    // advisory lock does not survive transaction pooling: measured there, two
+    // clients held the same exclusive key at once and the key was then left
+    // granted to an idle pgbouncer backend, which blocks every later migration
+    // run for good.
+    const migrate = read("server/migrate.ts");
+    expect(migrate).toContain("directDatabaseUrl");
+    expect(migrate).toContain("pg_advisory_lock");
+    const bootstrap = read("server/lib/testMigrationBootstrap.ts");
+    expect(bootstrap).toContain("directDatabaseUrl(url)");
+  });
+
+  it("the container build context excludes credential material", () => {
+    const dockerignore = read(".dockerignore");
+    // The builder stage does `COPY . .`, so an untracked key in the working tree
+    // is baked into that layer and stays recoverable from the image history.
+    for (const pattern of ["*.pem", "*.key", "*.p8", "*.p12", "*.keystore", "*.jks", ".env"]) {
+      expect(dockerignore.split(/\r?\n/), `.dockerignore must exclude ${pattern}`).toContain(
+        pattern,
+      );
+    }
+  });
+
+  it("no release source hides a defect behind a lint or type suppression", () => {
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(resolve(root, dir), { withFileTypes: true })) {
+        if (entry.name === "node_modules") continue;
+        const rel = `${dir}/${entry.name}`;
+        if (entry.isDirectory()) walk(rel);
+        else if (/\.(ts|tsx)$/.test(entry.name) && !entry.name.includes(".test.")) {
+          if (/eslint-disable|@ts-ignore|@ts-expect-error|@ts-nocheck/.test(read(rel))) {
+            offenders.push(rel);
+          }
+        }
+      }
+    };
+    walk("server");
+    walk("src");
+    expect(offenders).toEqual([]);
+  });
 });

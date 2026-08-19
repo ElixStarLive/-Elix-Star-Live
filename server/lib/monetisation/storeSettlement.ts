@@ -69,19 +69,25 @@ export function extractAppleVerifiedPrice(payload: Record<string, unknown> | nul
   };
 }
 
+/**
+ * Catalog GBP price for a verified product, in pence. `0` means the catalog has
+ * no row for it — a real answer.
+ *
+ * A failed lookup is not that answer. Swallowing one returned `0` as well, and
+ * the caller writes that straight into the paid coin lot the creator's 60/40
+ * share is computed from, so a database blip priced a real purchase at nothing.
+ * The lot is created in the same transaction as the coin credit specifically so
+ * it can fail closed, so the error is raised for that transaction to roll back.
+ */
 export async function lookupCatalogGrossPence(productId: string): Promise<number> {
   const pool = getPool();
   if (!pool) return 0;
-  try {
-    const r = await pool.query(
-      `SELECT price FROM elix_coin_packages WHERE product_id = $1 OR id = $1 LIMIT 1`,
-      [productId],
-    );
-    if (!r.rowCount) return 0;
-    return catalogGbpNumberToPence(Number(r.rows[0].price));
-  } catch {
-    return 0;
-  }
+  const r = await pool.query(
+    `SELECT price FROM elix_coin_packages WHERE product_id = $1 OR id = $1 LIMIT 1`,
+    [productId],
+  );
+  if (!r.rowCount) return 0;
+  return catalogGbpNumberToPence(Number(r.rows[0].price));
 }
 
 /**

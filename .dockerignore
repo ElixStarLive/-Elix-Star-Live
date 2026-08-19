@@ -17,6 +17,22 @@ _aab_peek
 *.apks
 *.keystore
 *.jks
+# Credential material .gitignore already blocks from the repo. The builder stage
+# does `COPY . .`, so an untracked key sitting in the working tree would still be
+# baked into that layer and be recoverable from the image history.
+*.pem
+*.key
+*.p8
+*.p12
+*.mobileprovision
+service-account*.json
+google-service-account*.json
+backups/
+local-backups/
+local-save/
+Saved_Files/
+tools/_audit/
+.varmem
 loadtest
 docs
 agent-transcripts
