@@ -1,6 +1,7 @@
 import React, { useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Home, Users, Plus, MessageCircle, User, type LucideIcon } from "lucide-react";
+import { platform } from "../lib/platform";
 
 type NavItem = {
   path: string;
@@ -20,6 +21,16 @@ const NAV_ITEMS: NavItem[] = [
 type BottomNavPath = (typeof NAV_ITEMS)[number]["path"];
 
 const ICON_SIZE = 26;
+
+/**
+ * Android reserves the full ~48dp system navigation-bar inset here, which lifts
+ * the bar clear of the system buttons and leaves dead space under the labels.
+ * Trim 8mm of that reserve on Android only: iOS reports just the home indicator
+ * (~34px), so the same trim would push the tabs into it.
+ */
+const NAV_PADDING_BOTTOM = platform.isAndroid
+  ? "max(2px, calc(env(safe-area-inset-bottom, 0px) - 8mm))"
+  : "max(2px, env(safe-area-inset-bottom, 0px))";
 
 function isActiveRoute(pathname: string, path: string): boolean {
   if (path === "/feed") return pathname === "/feed" || pathname === "/";
@@ -93,7 +104,7 @@ export const BottomNav = () => {
         <div className="feed-column-width pointer-events-auto bg-transparent border-0 border-b-0">
           <div
             className="flex items-center justify-around px-1 pt-1.5"
-            style={{ paddingBottom: "max(2px, calc(env(safe-area-inset-bottom, 0px) - 8mm))" }}
+            style={{ paddingBottom: NAV_PADDING_BOTTOM }}
           >
             {NAV_ITEMS.map(({ path, label, Icon, center }) => {
               const active = isActiveRoute(location.pathname, path);
