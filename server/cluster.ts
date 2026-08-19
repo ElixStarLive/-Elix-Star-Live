@@ -70,5 +70,10 @@ if (cluster.isPrimary && CONCURRENCY > 1) {
     setTimeout(() => process.exit(0), 10_000);
   });
 } else {
-  import("./index.js");
+  // A boot failure used to surface as a bare unhandled rejection. Log it and exit
+  // non-zero so the primary's crash-restart backoff sees a real worker exit.
+  void import("./index.js").catch((err) => {
+    logger.error({ err }, "Worker failed to start");
+    process.exit(1);
+  });
 }

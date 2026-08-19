@@ -581,12 +581,6 @@ async function dbRegisterUser(
   }
 }
 
-async function _dbDeleteUserById(id: string): Promise<void> {
-  const pool = getPool();
-  if (!pool) return;
-  await pool.query(`DELETE FROM elix_auth_users WHERE id = $1`, [id]);
-}
-
 async function dbUpsertSession(userId: string, token: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;

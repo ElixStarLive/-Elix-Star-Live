@@ -193,7 +193,12 @@ export function valkeyPublish(
   if (!pub) return;
 
   try {
-    pub.publish(channel, JSON.stringify(data));
+    // publish() settles asynchronously, so a rejected send never reached the
+    // catch below — it escaped as an unhandled rejection. The catch still covers
+    // the synchronous throws (JSON.stringify, closed connection).
+    void pub.publish(channel, JSON.stringify(data)).catch((err) => {
+      logger.warn({ err: err?.message, channel }, "valkeyPublish failed");
+    });
   } catch (err) {
     logger.warn({ err: err?.message, channel }, "valkeyPublish failed");
   }

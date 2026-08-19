@@ -75,7 +75,7 @@ export default function Report() {
         details: details.trim(),
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error);
 
       trackEvent('report_submit', {
         content_type: contentType,

@@ -334,7 +334,7 @@ export default function Shop() {
     setLoading(true);
     try {
       const { data: rows, error } = await api.shop.listItems();
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       let list = (rows as ShopItem[]) || [];
       if (activeFilter !== 'all') {
         list = list.filter((item: ShopItem) => item.category === activeFilter);
@@ -479,7 +479,7 @@ export default function Shop() {
 
       if (editingItemId) {
         const { error: updateError } = await api.shop.updateItem(editingItemId, payload);
-        if (updateError) throw updateError;
+        if (updateError) throw new Error(updateError.message);
         showToast('Item updated');
       } else {
         const { error: insertError } = await api.shop.createItem({
@@ -487,7 +487,7 @@ export default function Shop() {
           user_id: user.id,
           is_active: true,
         });
-        if (insertError) throw insertError;
+        if (insertError) throw new Error(insertError.message);
         showToast('Item listed!');
       }
 
@@ -564,7 +564,7 @@ export default function Shop() {
     setMenuItemId(null);
     try {
       const { error } = await api.shop.deleteItem(item.id);
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       setItems((prev) => prev.filter((i) => i.id !== item.id));
       showToast('Item deleted');
     } catch {

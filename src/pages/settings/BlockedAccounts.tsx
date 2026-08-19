@@ -71,7 +71,7 @@ export default function BlockedAccounts() {
     setLoading(true);
     try {
       const { rows, error } = await apiListBlockedUsers();
-      if (error) throw error;
+      if (error) throw new Error(error);
       setBlockedUsers(rows.map(toBlockedUser).filter((row): row is BlockedUser => row !== null));
     } catch {
       showToast('Failed to load blocked users');
@@ -89,7 +89,7 @@ export default function BlockedAccounts() {
   const unblockUser = async (blockedUserId: string) => {
     try {
       const { error } = await apiUnblockUser(blockedUserId);
-      if (error) throw error;
+      if (error) throw new Error(error);
       setBlockedUsers(prev => prev.filter(b => b.blocked_user_id !== blockedUserId));
       // Keep For You filter in sync (do not re-add videos until next feed refresh).
       useSafetyStore.setState((s) => ({

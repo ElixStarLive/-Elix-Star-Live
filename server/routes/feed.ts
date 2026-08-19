@@ -547,7 +547,7 @@ export async function handleTrackInteraction(req: Request, res: Response) {
     const userId = await getUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const { videoId, type, data: _data } = req.body;
+    const { videoId, type } = req.body;
     if (!videoId || !type)
       return res.status(400).json({ error: "videoId and type required" });
 

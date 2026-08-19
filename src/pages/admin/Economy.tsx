@@ -80,7 +80,7 @@ export default function AdminEconomy() {
     try {
       const { error } = await apiAdminUpdateGiftPrice(giftId, newPrice);
 
-      if (error) throw error;
+      if (error) throw new Error(error);
       showToast('Price updated');
       loadData();
     } catch {
