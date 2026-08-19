@@ -137,7 +137,11 @@ app.use(cors({
     if (!origin || ALLOWED_ORIGINS.includes(origin) || process.env.NODE_ENV !== "production") {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      // Withhold the CORS header so the browser blocks the read. Passing an
+      // Error here instead makes Express answer 500, which reports a server
+      // fault for a client-origin policy decision and inflates the 5xx rate
+      // that production alerting watches.
+      callback(null, false);
     }
   },
 }));
