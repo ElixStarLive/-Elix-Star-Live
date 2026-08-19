@@ -553,11 +553,28 @@ describe("release architecture contracts", () => {
     // clients held the same exclusive key at once and the key was then left
     // granted to an idle pgbouncer backend, which blocks every later migration
     // run for good.
-    const migrate = read("server/migrate.ts");
-    expect(migrate).toContain("directDatabaseUrl");
-    expect(migrate).toContain("pg_advisory_lock");
+    const runner = read("server/lib/applyMigrations.ts");
+    expect(runner).toContain("directDatabaseUrl");
+    expect(runner).toContain("pg_advisory_lock");
     const bootstrap = read("server/lib/testMigrationBootstrap.ts");
     expect(bootstrap).toContain("directDatabaseUrl(url)");
+  });
+
+  it("the container applies its own migrations before any worker serves traffic", () => {
+    // Workers refuse a schema missing a migration (`assertMigrationsApplied`), so
+    // when nothing applied them the whole container crash-looped and the deploy
+    // silently kept the previous image. The primary owns this now, so a deploy
+    // carries its own schema instead of depending on a separate release step.
+    const cluster = read("server/cluster.ts");
+    expect(cluster).toContain("applyPendingMigrations");
+    // Forking must be downstream of the migration promise, never beside it.
+    const forkIndex = cluster.indexOf("cluster.fork()");
+    expect(cluster.indexOf("migrateBeforeWorkers")).toBeLessThan(forkIndex);
+    // A failed migration must stop the boot, not start workers that cannot serve.
+    expect(cluster).toContain("Migrations failed — not starting workers");
+    expect(cluster).toContain("process.exit(1)");
+    // Only a primary may migrate: siblings would all race the same files.
+    expect(cluster).toContain("cluster.isPrimary");
   });
 
   it("the container build context excludes credential material", () => {

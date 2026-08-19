@@ -2,7 +2,7 @@
  * The migrations directory contract — one place, used by every reader.
  *
  * Consumers:
- *  - `server/migrate.ts`                  applies migrations (deploy / CI / shell)
+ *  - `server/lib/applyMigrations.ts`      applies migrations (container boot / CLI)
  *  - `server/lib/testMigrationBootstrap.ts` applies them to a test database
  *  - `server/lib/postgres.ts`             verifies at boot that they are applied
  *
