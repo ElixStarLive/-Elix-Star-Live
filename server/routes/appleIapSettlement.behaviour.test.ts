@@ -26,7 +26,8 @@ const markAppleCreatorMembershipActive = vi.fn();
 
 vi.mock("../lib/valkey", () => ({
   isValkeyConfigured: () => true,
-  valkeyRateCheck: async () => true,
+  valkeyRateConsume: async () => ({ allowed: true, member: "slot" }),
+  valkeyRateRelease: async () => {},
 }));
 
 vi.mock("./auth", () => ({
@@ -36,6 +37,7 @@ vi.mock("./auth", () => ({
 
 vi.mock("../lib/fraud", () => ({
   assertIapVerifyVelocityOk: async () => ({ ok: true }),
+  releaseIapVerifyVelocity: async () => {},
 }));
 
 vi.mock("../lib/postgres", () => ({

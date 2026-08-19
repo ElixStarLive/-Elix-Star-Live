@@ -154,11 +154,17 @@ export async function closeValkeyConnections(): Promise<void> {
 
 // ── Rate limiting via Valkey sliding window ──────────────────────
 
-export async function valkeyRateCheck(
+/**
+ * Consume one slot of the sliding window and report the member that was
+ * recorded, so a caller which later learns the attempt never reached a verdict
+ * can hand the slot back with `valkeyRateRelease`. Metering our own upstream
+ * outages against a paying customer locks them out of buying for a full window.
+ */
+export async function valkeyRateConsume(
   key: string,
   windowMs: number,
   max: number,
-): Promise<boolean> {
+): Promise<{ allowed: boolean; member: string }> {
   const v = getValkey();
   if (!v) {
     throw new Error("Valkey not available for rate check");
@@ -180,7 +186,27 @@ export async function valkeyRateCheck(
   }
 
   const count = (results[2]?.[1] as number) ?? 0;
-  return count <= max;
+  return { allowed: count <= max, member };
+}
+
+export async function valkeyRateCheck(
+  key: string,
+  windowMs: number,
+  max: number,
+): Promise<boolean> {
+  return (await valkeyRateConsume(key, windowMs, max)).allowed;
+}
+
+/** Give back a slot taken by `valkeyRateConsume`. Never throws: the caller is
+ * already answering a failed request and must not be turned into a 500. */
+export async function valkeyRateRelease(key: string, member: string): Promise<void> {
+  const v = getValkey();
+  if (!v || !member) return;
+  try {
+    await v.zrem(key, member);
+  } catch (err) {
+    logger.warn({ err, key }, "Valkey rate-limit slot release failed");
+  }
 }
 
 // ── Pub/Sub helpers ──────────────────────────────────────────────

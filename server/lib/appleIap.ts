@@ -260,8 +260,14 @@ async function appleApiGet(path: string): Promise<{ ok: boolean; status: number;
       }
       if (resp.ok) return { ok: true, status: resp.status, json, text };
       last = { ok: false, status: resp.status, json, text };
-      // Retry the other environment on 404 (common sandbox/production mismatch).
-      if (resp.status !== 404) return last;
+      // Retry the other environment on 404 and on 401. A transaction id does not
+      // say which environment issued it, and Apple answers 401 — not 404 — when
+      // these credentials are not accepted by the host being asked, so stopping
+      // on 401 reported a working key as an outage and never tried the other
+      // host. Settlement is still gated by `appleTransactionIdentityError`,
+      // which requires the payload environment to equal ours, so reaching the
+      // other host here cannot let Sandbox money through as real coins.
+      if (resp.status !== 404 && resp.status !== 401) return last;
     } catch (err) {
       last = { ok: false, status: 502, text: (err as Error)?.message || "fetch_failed" };
     }

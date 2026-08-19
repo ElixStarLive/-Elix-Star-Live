@@ -12,9 +12,9 @@ import {
   neonUpsertMembershipEntitlement,
 } from '../lib/walletNeon';
 import { getPool, dbLoadCoinMap } from '../lib/postgres';
-import { valkeyRateCheck, isValkeyConfigured } from '../lib/valkey';
+import { valkeyRateConsume, valkeyRateRelease, isValkeyConfigured } from '../lib/valkey';
 import { logger } from '../lib/logger';
-import { assertIapVerifyVelocityOk } from '../lib/fraud';
+import { assertIapVerifyVelocityOk, releaseIapVerifyVelocity } from '../lib/fraud';
 import {
   acknowledgeGoogleSubscription,
   CREATOR_MEMBERSHIP_BASE_PLAN_ID,
@@ -65,14 +65,25 @@ if (allowLocalRateLimit) {
   }, 60_000).unref();
 }
 
+const noRelease = async () => {};
+
+/**
+ * `release` gives the consumed slot back. Call it when the request failed for a
+ * reason that is ours — a store verification outage — so a customer the store
+ * has already charged is not locked out of retrying for the rest of the window.
+ */
 async function checkRateLimit(userId: string, action: string, limit: number, windowMs: number) {
   const key = `${userId}:${action}`;
   const retryAfter = Math.ceil(windowMs / 1000);
 
   if (isValkeyConfigured()) {
     try {
-      const allowed = await valkeyRateCheck(`rl:${key}`, windowMs, limit);
-      return { allowed, retryAfter };
+      const { allowed, member } = await valkeyRateConsume(`rl:${key}`, windowMs, limit);
+      return {
+        allowed,
+        retryAfter,
+        release: () => valkeyRateRelease(`rl:${key}`, member),
+      };
     } catch (err) {
       // These limits guard IAP verify, promote and membership purchases. A
       // per-process window would multiply the real limit by the instance count,
@@ -80,12 +91,12 @@ async function checkRateLimit(userId: string, action: string, limit: number, win
       // API limiter and wsRateCheck: fail closed in production.
       if (!allowLocalRateLimit) {
         logger.error({ err, action }, "checkRateLimit: Valkey unavailable — failing closed");
-        return { allowed: false, retryAfter };
+        return { allowed: false, retryAfter, release: noRelease };
       }
     }
   } else if (!allowLocalRateLimit) {
     logger.error({ action }, "checkRateLimit: Valkey required in production");
-    return { allowed: false, retryAfter };
+    return { allowed: false, retryAfter, release: noRelease };
   }
 
   const now = Date.now();
@@ -105,7 +116,13 @@ async function checkRateLimit(userId: string, action: string, limit: number, win
 
   return {
     allowed: record.count <= limit,
-    retryAfter: Math.ceil((record.timestamp + windowMs - now) / 1000)
+    retryAfter: Math.ceil((record.timestamp + windowMs - now) / 1000),
+    release: async () => {
+      const current = rateLimits.get(key);
+      if (current && current.timestamp === record.timestamp && current.count > 0) {
+        current.count--;
+      }
+    },
   };
 }
 
@@ -424,6 +441,9 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
           { provider: 'apple', packageId, userId: user.sub, detail: apple.detail },
           'Apple verification unavailable — coins not credited, retry is safe',
         );
+        // The retry we are asking for must still be affordable.
+        await rateCheck.release();
+        await releaseIapVerifyVelocity(user.sub);
         return res.status(503).json({
           error: 'Apple verification is temporarily unavailable',
           code: 'verification_unavailable',
@@ -447,6 +467,8 @@ export async function handleVerifyPurchase(req: Request, res: Response) {
           { provider: 'google', packageId, userId: user.sub, detail: google.detail },
           'Google verification unavailable — coins not credited, retry is safe',
         );
+        await rateCheck.release();
+        await releaseIapVerifyVelocity(user.sub);
         return res.status(503).json({
           error: 'Google Play verification is temporarily unavailable',
           code: 'verification_unavailable',
@@ -647,6 +669,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
         { productId, userId: user.sub, detail: apple.detail },
         'Apple promote verification unavailable — retry is safe',
       );
+      await rateCheck.release();
       return res.status(503).json({
         error: 'Apple verification is temporarily unavailable',
         code: 'verification_unavailable',
@@ -673,6 +696,7 @@ export async function handlePromoteIAPComplete(req: Request, res: Response) {
         { productId, userId: user.sub, detail: google.detail },
         'Google promote verification unavailable — retry is safe',
       );
+      await rateCheck.release();
       return res.status(503).json({
         error: 'Google Play verification is temporarily unavailable',
         code: 'verification_unavailable',
@@ -887,6 +911,7 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
         { userId: user.sub, creatorId, detail: verified.error },
         'Apple subscription verification unavailable — retry is safe',
       );
+      await rateCheck.release();
       return res.status(503).json({
         error: 'Apple verification is temporarily unavailable',
         code: 'verification_unavailable',
@@ -1040,6 +1065,7 @@ export async function handleMembershipIAPComplete(req: Request, res: Response) {
       { productId: expectedProductId, userId: user.sub, detail: verified.error },
       'Google subscription verification unavailable — retry is safe',
     );
+    await rateCheck.release();
     return res.status(503).json({
       error: 'Google Play verification is temporarily unavailable',
       code: 'verification_unavailable',

@@ -77,3 +77,22 @@ export async function assertIapVerifyVelocityOk(userId: string): Promise<{ ok: t
     return { ok: false, code: "FRAUD_CHECK_ERROR" };
   }
 }
+
+/**
+ * Give back the slot taken by `assertIapVerifyVelocityOk` when the verification
+ * never reached a verdict — a store outage on our side is not buyer velocity,
+ * and counting it locks a charged customer out of retrying for the full window.
+ */
+export async function releaseIapVerifyVelocity(userId: string): Promise<void> {
+  const v = getValkey();
+  if (!v) return;
+  const key = `fraud:iap_verify:${userId}`;
+  try {
+    // DECR on a window that has already expired would recreate the key at -1
+    // with no TTL, so drop it once the count is spent.
+    const n = await v.decr(key);
+    if (n <= 0) await v.del(key);
+  } catch (e) {
+    logger.warn({ err: e, userId }, "fraud IAP velocity release failed");
+  }
+}
