@@ -14,6 +14,7 @@ import {
   type EnsureMembershipProductResult,
   type MembershipProvisionStatus,
 } from "./googlePlaySubscriptions";
+import { normalizePrivateKeyPem } from "./serviceAccountEnv";
 
 /** Single App Store Connect subscription product for all creator memberships on iOS. */
 export const APPLE_CREATOR_MEMBERSHIP_PRODUCT_ID =
@@ -111,7 +112,7 @@ export function hashAppleOriginalTransactionId(originalTransactionId: string): s
 async function createAppleApiJwt(): Promise<string | null> {
   const issuerId = process.env.APPLE_ISSUER_ID?.trim();
   const keyId = process.env.APPLE_KEY_ID?.trim();
-  const privateKeyPem = process.env.APPLE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKeyPem = normalizePrivateKeyPem(process.env.APPLE_PRIVATE_KEY);
   const bundleId = appleBundleId();
   if (!issuerId || !keyId || !privateKeyPem) return null;
   try {

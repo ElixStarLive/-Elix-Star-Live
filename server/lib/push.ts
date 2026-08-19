@@ -6,7 +6,7 @@ import * as jose from "jose";
 import http2 from "node:http2";
 import { getPool } from "./postgres";
 import { logger } from "./logger";
-import { loadServiceAccountFromEnv } from "./serviceAccountEnv";
+import { loadServiceAccountFromEnv, normalizePrivateKeyPem } from "./serviceAccountEnv";
 
 let fcmJwt: JWT | null = null;
 let fcmProjectId: string | null = null;
@@ -120,7 +120,7 @@ async function sendApns(deviceToken: string, title: string, body: string, data?:
   const keyId = process.env.APNS_KEY_ID;
   const teamId = process.env.APNS_TEAM_ID;
   const bundleId = process.env.APNS_BUNDLE_ID;
-  const privateKeyPem = process.env.APNS_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKeyPem = normalizePrivateKeyPem(process.env.APNS_PRIVATE_KEY);
   if (!keyId || !teamId || !bundleId || !privateKeyPem) return false;
 
   const host = process.env.APNS_PRODUCTION === "1" ? "api.push.apple.com" : "api.sandbox.push.apple.com";

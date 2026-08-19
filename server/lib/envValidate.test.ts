@@ -182,6 +182,44 @@ describe("production environment boot gate", () => {
       expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
     });
 
+    /**
+     * The shape a Coolify paste actually delivered in production: the PEM's line
+     * breaks were deleted, not escaped, so the value still opens with
+     * -----BEGIN PRIVATE KEY----- and every presence check passed while jose
+     * could never import it. The signer and this gate share one normaliser, so
+     * repairing the wrapping here means the key really does sign.
+     */
+    it("accepts a key whose newlines the env UI stripped", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          APPLE_PRIVATE_KEY: APPLE_ES256_PKCS8.replace(/\n/g, ""),
+        }),
+      );
+      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+    });
+
+    it("accepts the whole PEM handed over as base64", () => {
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          APPLE_PRIVATE_KEY: Buffer.from(APPLE_ES256_PKCS8, "utf8").toString("base64"),
+        }),
+      );
+      expect(failures.some((m) => m.includes("APPLE_PRIVATE_KEY"))).toBe(false);
+    });
+
+    it("still refuses a stripped key that is also truncated", () => {
+      const stripped = APPLE_ES256_PKCS8.replace(/\n/g, "");
+      const failures = collectProductionEnvironmentFailures(
+        prodEnv({
+          PEX_API_KEY: "pex-live-key",
+          APPLE_PRIVATE_KEY: `${stripped.slice(0, 70)}-----END PRIVATE KEY-----`,
+        }),
+      );
+      expect(failures.some((m) => m.includes("not a readable private key"))).toBe(true);
+    });
+
     it("production refuses to start when the key is a placeholder, not a PEM", () => {
       const failures = collectProductionEnvironmentFailures(
         prodEnv({ PEX_API_KEY: "pex-live-key", APPLE_PRIVATE_KEY: "your_apple_private_key" }),

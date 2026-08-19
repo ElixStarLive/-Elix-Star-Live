@@ -53,6 +53,54 @@ function parseJsonObject(raw: string): ServiceAccountCreds {
   return JSON.parse(raw) as ServiceAccountCreds;
 }
 
+/** Base64 of a whole PEM. PEM text itself contains "-", so that rules it out. */
+function tryBase64Pem(s: string): string | null {
+  const t = s.trim().replace(/\s+/g, "");
+  if (t.length < 64 || t.includes("-")) return null;
+  if (!/^[A-Za-z0-9+/_]+=*$/.test(t)) return null;
+  try {
+    const decoded = Buffer.from(t.replace(/_/g, "/"), "base64").toString("utf8");
+    return decoded.includes("-----BEGIN ") && decoded.includes("PRIVATE KEY") ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Rebuild a PEM private key from the shapes an env UI paste produces.
+ *
+ * A .p8 is multi-line, and `jose.importPKCS8` / `createPrivateKey` need the line
+ * structure — but Coolify and .env files routinely deliver it as one line with the
+ * newlines either escaped as literal "\n" or deleted outright. Deleted newlines
+ * are the damaging case: the value still starts with -----BEGIN PRIVATE KEY-----,
+ * so every presence check passes while the key never parses, and iOS purchase
+ * verification returns "unavailable" for every buyer.
+ *
+ * This only repairs whitespace and transport encoding: the base64 body is taken
+ * as pasted and re-wrapped at the 64 columns PEM expects. It never invents key
+ * material, so a truncated paste still fails to parse — loudly, at boot.
+ *
+ * Must be the single normaliser for both the consumer and the boot check: if they
+ * judge the value differently, boot passes on a key that cannot sign.
+ */
+export function normalizePrivateKeyPem(raw: string | undefined | null): string {
+  if (!raw) return "";
+  let text = stripWrappingQuotes(raw).trim();
+  if (!text) return "";
+
+  const decoded = tryBase64Pem(text);
+  if (decoded) text = decoded;
+
+  text = text.replace(/\\r\\n|\\n/g, "\n").replace(/\r\n/g, "\n");
+
+  const match = /-----BEGIN ([A-Z0-9 ]+)-----([\s\S]*?)-----END \1-----/.exec(text);
+  if (!match) return text.trim();
+  const body = match[2].replace(/\s+/g, "");
+  if (!body) return text.trim();
+  const wrapped = body.replace(/(.{64})/g, "$1\n").replace(/\n$/, "");
+  return `-----BEGIN ${match[1]}-----\n${wrapped}\n-----END ${match[1]}-----\n`;
+}
+
 /**
  * Resolve service-account credentials from common env shapes.
  * @param primaryEnv e.g. FIREBASE_SERVICE_ACCOUNT_JSON

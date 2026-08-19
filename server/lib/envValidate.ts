@@ -4,19 +4,21 @@
 import { createPrivateKey } from "node:crypto";
 import { logger } from "./logger";
 import { normalizeLiveKitSignalUrl } from "../services/livekit";
+import { normalizePrivateKeyPem } from "./serviceAccountEnv";
 
 /**
  * `appleIap.ts` signs the App Store Server API JWT with
- * `jose.importPKCS8(APPLE_PRIVATE_KEY.replace(/\\n/g, "\n"), "ES256")`, so the
- * value has to be the PKCS8 PEM App Store Connect issues, normalised the same
- * way. A key that is merely present — truncated, quote-mangled, SEC1 instead of
- * PKCS8, or RSA instead of EC — passed the old presence check and then made
- * every iOS purchase verification return "unavailable" for good: Apple keeps the
- * money, the buyer never gets the coins, and boot reported nothing. Parsed here
- * with node:crypto (what jose itself uses) so the paste is proven at start-up.
+ * `jose.importPKCS8(normalizePrivateKeyPem(APPLE_PRIVATE_KEY), "ES256")`, so the
+ * value has to be the PKCS8 PEM App Store Connect issues, normalised through the
+ * same helper. A key that is merely present — truncated, quote-mangled, SEC1
+ * instead of PKCS8, or RSA instead of EC — passed the old presence check and then
+ * made every iOS purchase verification return "unavailable" for good: Apple keeps
+ * the money, the buyer never gets the coins, and boot reported nothing. Parsed
+ * here with node:crypto (what jose itself uses) so the paste is proven at
+ * start-up, against the exact string the signer will use.
  */
 function applePrivateKeyFailure(raw: string): string | null {
-  const pem = raw.replace(/\\n/g, "\n").trim();
+  const pem = normalizePrivateKeyPem(raw);
   if (!pem.includes("-----BEGIN PRIVATE KEY-----")) {
     return "APPLE_PRIVATE_KEY must be the PKCS8 PEM from App Store Connect (-----BEGIN PRIVATE KEY-----) — jose.importPKCS8 rejects any other PEM label, so iOS purchase verification would never reach a verdict";
   }
