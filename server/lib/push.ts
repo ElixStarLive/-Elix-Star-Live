@@ -42,6 +42,31 @@ export function isPushConfigured(): boolean {
   );
 }
 
+/**
+ * `sendFcm` lets FIREBASE_PROJECT_ID override the service account's own project,
+ * so a key generated in a different Firebase project mints an access token FCM
+ * answers with 403 for every device token. `sendFcm` then only returns false,
+ * which is indistinguishable from "this user has no reachable devices", and
+ * `isPushConfigured()` still reports true because the credential itself parses.
+ * Reported at boot, where the pairing is still cheap to fix, rather than as a
+ * permanent silent loss of every notification. Project ids are not secrets.
+ */
+export function checkFcmProjectAlignment(): void {
+  const configured = (process.env.FIREBASE_PROJECT_ID || "").trim();
+  if (!configured) return;
+  const creds = loadServiceAccountFromEnv(
+    "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "FIREBASE_SERVICE_ACCOUNT_BASE64",
+  );
+  const credentialProject =
+    typeof creds?.project_id === "string" ? creds.project_id.trim() : "";
+  if (!credentialProject || credentialProject === configured) return;
+  logger.error(
+    { configuredProject: configured, serviceAccountProject: credentialProject },
+    "FCM misconfigured: FIREBASE_PROJECT_ID and the Firebase service account belong to different projects — every push notification will be rejected with 403. Generate the service account key in the Firebase project that owns the app's device tokens.",
+  );
+}
+
 async function sendFcm(
   token: string,
   title: string,
