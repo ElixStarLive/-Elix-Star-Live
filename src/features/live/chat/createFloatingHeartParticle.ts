@@ -2,7 +2,7 @@
  * Shared host↔spectator floating-heart particle geometry.
  */
 
-export type FloatingHeartParticle = {
+type FloatingHeartParticle = {
   id: string;
   x: number;
   y: number;

@@ -1,5 +1,5 @@
 export type BattleTauntSide = 'host' | 'opponent';
-export type BattleTauntKind = 'cheer' | 'win' | 'boo' | 'mvp' | 'lead';
+type BattleTauntKind = 'cheer' | 'win' | 'boo' | 'mvp' | 'lead';
 
 let audioCtx: AudioContext | null = null;
 let lastMvpAnnounceAt = 0;

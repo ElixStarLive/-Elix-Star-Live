@@ -84,7 +84,7 @@ export type RawLiveStreamFields = {
   viewerCount?: number;
 };
 
-export function rawLiveStreamKey(s: RawLiveStreamFields): string {
+function rawLiveStreamKey(s: RawLiveStreamFields): string {
   return String(s.stream_key ?? s.streamKey ?? s.room_id ?? s.roomId ?? s.id ?? "");
 }
 

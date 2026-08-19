@@ -10,15 +10,15 @@ function db(): pg.Pool | null {
   return getPool();
 }
 
-export type RsSeasonStatus = "draft" | "active" | "closed";
-export type RsChallengeStatus =
+type RsSeasonStatus = "draft" | "active" | "closed";
+type RsChallengeStatus =
   | "scheduled"
   | "open"
   | "voting"
   | "qualified"
   | "final"
   | "closed";
-export type RsEntryStatus =
+type RsEntryStatus =
   | "pending"
   | "active"
   | "disqualified"
@@ -26,7 +26,7 @@ export type RsEntryStatus =
   | "eliminated"
   | "withdrawn";
 
-export interface RsSeason {
+interface RsSeason {
   id: string;
   slug: string;
   title: string;
@@ -38,7 +38,7 @@ export interface RsSeason {
   created_at: string;
 }
 
-export interface RsCategory {
+interface RsCategory {
   id: string;
   season_id: string;
   slug: string;
@@ -47,7 +47,7 @@ export interface RsCategory {
   is_active: boolean;
 }
 
-export interface RsRegion {
+interface RsRegion {
   id: string;
   season_id: string;
   slug: string;
@@ -57,7 +57,7 @@ export interface RsRegion {
   is_active: boolean;
 }
 
-export interface RsChallenge {
+interface RsChallenge {
   id: string;
   season_id: string;
   category_id: string;
@@ -77,7 +77,7 @@ export interface RsChallenge {
   live_final_room_id: string | null;
 }
 
-export interface RsEntry {
+interface RsEntry {
   id: string;
   challenge_id: string;
   creator_user_id: string;
@@ -88,7 +88,7 @@ export interface RsEntry {
   created_at: string;
 }
 
-export interface RsTeam {
+interface RsTeam {
   id: string;
   season_id: string;
   region_id: string | null;

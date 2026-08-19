@@ -33,7 +33,7 @@ const SEAT_LOCK_TTL_MS = 5_000;
 const SEAT_LOCK_ATTEMPTS = 25;
 const SEAT_LOCK_RETRY_MS = 40;
 
-export type CohostSeatLayout = {
+type CohostSeatLayout = {
   hostUserId: string;
   layoutId: string | null;
   featuredUserId: string | null;
@@ -44,7 +44,7 @@ export type CohostSeatLayout = {
  * undefined keep whatever the room already had, so a seat change never resets
  * presentation state it was not asked to touch.
  */
-export type CohostSeatWrite = {
+type CohostSeatWrite = {
   slots: CohostSlot[];
   changed: boolean;
   full?: boolean;
@@ -53,12 +53,12 @@ export type CohostSeatWrite = {
 };
 
 /** Returning null rejects the mutation: nothing is written. */
-export type CohostSeatMutator = (
+type CohostSeatMutator = (
   seats: CohostSlot[],
   layout: CohostSeatLayout | null,
 ) => CohostSeatWrite | null;
 
-export type CohostSeatMutation =
+type CohostSeatMutation =
   | {
       status: "applied" | "unchanged" | "full";
       seats: CohostSlot[];

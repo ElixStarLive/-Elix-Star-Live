@@ -6,7 +6,7 @@ import type { MutableRefObject } from 'react';
 import { applyBattleSpeedChallengeUnlock } from './applyBattleSpeedChallengeUnlock';
 import { tryUnlockBattleSpeedChallenge } from './tryUnlockBattleSpeedChallenge';
 
-export type AttemptBattleSpeedChallengeUnlockOpts = {
+type AttemptBattleSpeedChallengeUnlockOpts = {
   totalScore: number;
   flowers: number;
   taps: number;

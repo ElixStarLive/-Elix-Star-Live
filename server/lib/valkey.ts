@@ -59,14 +59,14 @@ export function getValkey(): Redis | null {
   return client;
 }
 
-export function getValkeyPublisher(): Redis | null {
+function getValkeyPublisher(): Redis | null {
   if (!publisher && getUrl()) {
     publisher = createConnection("valkey-pub");
   }
   return publisher;
 }
 
-export function getValkeySubscriber(): Redis | null {
+function getValkeySubscriber(): Redis | null {
   if (!subscriber && getUrl()) {
     subscriber = createConnection("valkey-sub");
   }
@@ -394,19 +394,6 @@ export async function valkeyDel(key: string): Promise<void> {
     logger.warn({ err: err?.message, key }, "valkeyDel failed");
   }
 }
-
-export async function valkeyExists(key: string): Promise<boolean> {
-  const v = getValkey();
-  if (!v) return false;
-
-  try {
-    return (await v.exists(key)) === 1;
-  } catch (err) {
-    logger.warn({ err: err?.message, key }, "valkeyExists failed");
-    return false;
-  }
-}
-
 // ── Set operations (SADD / SREM / SCARD / SMEMBERS) ─────────────
 
 export async function valkeySadd(key: string, ...members: string[]): Promise<number> {
@@ -452,18 +439,6 @@ export async function valkeySrem(key: string, ...members: string[]): Promise<num
     return 0;
   }
 }
-
-export async function valkeyScard(key: string): Promise<number> {
-  const v = getValkey();
-  if (!v) return 0;
-  try {
-    return await v.scard(key);
-  } catch (err) {
-    logger.warn({ err: err?.message, key }, "valkeyScard failed");
-    return 0;
-  }
-}
-
 export async function valkeySmembers(key: string): Promise<string[]> {
   const v = getValkey();
   if (!v) return [];
@@ -474,18 +449,6 @@ export async function valkeySmembers(key: string): Promise<string[]> {
     throw err;
   }
 }
-
-export async function valkeySismember(key: string, member: string): Promise<boolean> {
-  const v = getValkey();
-  if (!v) return false;
-  try {
-    return (await v.sismember(key, member)) === 1;
-  } catch (err) {
-    logger.warn({ err: err?.message, key }, "valkeySismember failed");
-    return false;
-  }
-}
-
 // ── Hash operations (HSET / HGET / HDEL / HGETALL) ──────────────
 
 export async function valkeyHset(key: string, field: string, value: string): Promise<void> {

@@ -29,14 +29,14 @@ const VIDEO_TYPES = new Set([
   "application/octet-stream",
 ]);
 
-export function isAudioScanEnabled(): boolean {
+function isAudioScanEnabled(): boolean {
   // Opting out is explicit; otherwise the scan runs whenever a provider key is
   // configured, and production boot refuses a missing key (see envValidate).
   if (process.env.AUDIO_SCAN_ENABLED === "0") return false;
   return isAudioScanConfigured();
 }
 
-export function isAudioScanConfigured(): boolean {
+function isAudioScanConfigured(): boolean {
   // Only Pex is implemented. Audible Magic key alone must not mark scanning "configured"
   // (that previously allowed uploads while pretending a fingerprint gate existed).
   return Boolean(process.env.PEX_API_KEY?.trim());

@@ -12,13 +12,13 @@ import {
 } from '../../../lib/giftSend';
 import { useWalletStore } from '../../../store/useWalletStore';
 
-export type ApplyLiveGiftWalletArgs = {
+type ApplyLiveGiftWalletArgs = {
   result: SendGiftResult;
   /** Current gift source selection used for the send (fallback if result.giftSource is null). */
   giftSource: GiftSource;
 };
 
-export type ApplyLiveGiftWalletOutcome = {
+type ApplyLiveGiftWalletOutcome = {
   paid?: number;
   starter?: number;
   promo?: number;

@@ -89,7 +89,7 @@ export function exitToFromLocationState(state: unknown, fallback: string): strin
  * Named parent for hardware/edge back — never pop browser history / relative back.
  * Maps the current path to the correct parent surface.
  */
-export function namedExitForPath(pathname: string): string {
+function namedExitForPath(pathname: string): string {
   const path = pathname.split('?')[0] || '/';
   if (path === '/' || path === '/feed' || path === '/friends' || path === '/inbox' || path === '/profile' || path === '/login') {
     return path;

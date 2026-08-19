@@ -3,7 +3,7 @@
  * Never use floating-point after the catalog/string boundary conversion.
  */
 
-export type RevenueSplit = {
+type RevenueSplit = {
   creatorPence: number;
   platformPence: number;
   creatorPct: number;

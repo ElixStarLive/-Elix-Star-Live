@@ -10,9 +10,9 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type pg from "pg";
 
-export type DbRequestStats = { queryCount: number; dbMs: number };
+type DbRequestStats = { queryCount: number; dbMs: number };
 
-export const dbRequestAls = new AsyncLocalStorage<DbRequestStats>();
+const dbRequestAls = new AsyncLocalStorage<DbRequestStats>();
 
 const INSTRUMENTED_POOL = Symbol("elixPgPoolInstrumented");
 const INSTRUMENTED_CONNECT = Symbol("elixPgPoolConnectInstrumented");
@@ -51,7 +51,7 @@ function wrapQueryMethod(
   };
 }
 
-export function instrumentPoolClient(client: pg.PoolClient): void {
+function instrumentPoolClient(client: pg.PoolClient): void {
   const c = client as pg.PoolClient & { [INSTRUMENTED_CLIENT]?: boolean };
   if (c[INSTRUMENTED_CLIENT]) return;
   c[INSTRUMENTED_CLIENT] = true;

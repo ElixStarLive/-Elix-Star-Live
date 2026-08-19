@@ -12,7 +12,7 @@ import {
 import type { GloveBurst } from '../../../components/BattleVfxOverlays';
 import type { BattleScoreApplyResult } from './liveBattleScore';
 
-export type BattleScoreFeedbackHandlers = {
+type BattleScoreFeedbackHandlers = {
   triggerBattleVfx: (side: 'red' | 'blue', delta: number) => void;
   pushBattleTaunt: (burst: TauntBurst) => void;
 };

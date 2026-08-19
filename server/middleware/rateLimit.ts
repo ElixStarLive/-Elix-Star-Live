@@ -128,7 +128,7 @@ export function rateLimit(opts: {
 /**
  * Rate-limit by an authenticated subject (e.g. user id), not by shared IP.
  */
-export function rateLimitBySubject(opts: {
+function rateLimitBySubject(opts: {
   windowMs: number;
   max: number;
   keyPrefix: string;

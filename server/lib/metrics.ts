@@ -25,7 +25,7 @@ let status4xx = 0;
 let status5xx = 0;
 
 /** Normalized path for saturation debugging (caps cardinality). */
-export function routeMetricBucket(originalUrl: string): string {
+function routeMetricBucket(originalUrl: string): string {
   const path = (originalUrl || "/").split("?")[0] || "/";
   const segs = path.split("/").filter(Boolean);
   if (segs[0] === "api") {
@@ -82,7 +82,7 @@ export function recordHttpRequest(status: number, durationMs: number, originalUr
 }
 
 /** For /api/metrics — status class counts per route bucket (since process start, per worker). */
-export function getHttpStatusByRoute(): Record<string, RouteClass> {
+function getHttpStatusByRoute(): Record<string, RouteClass> {
   const out: Record<string, RouteClass> = {};
   for (const [k, v] of byRoute) out[k] = { ...v };
   return out;

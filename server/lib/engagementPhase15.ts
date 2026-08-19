@@ -12,7 +12,7 @@ import {
 import { creditPromoCoins, creditBattleEnergy, awardEngagementXp } from "./engagement";
 import { resolveStreamOwnerUserId } from "../routes/livestream";
 
-export type ChestRarity = "common" | "rare" | "epic" | "legendary" | "mythic";
+type ChestRarity = "common" | "rare" | "epic" | "legendary" | "mythic";
 
 const CHEST_CATALOG = [
   {
@@ -315,7 +315,7 @@ export async function listStickersForUser(userId: string) {
   return { sets, neon_ready };
 }
 
-export async function grantSticker(
+async function grantSticker(
   userId: string,
   stickerId: string,
 ): Promise<{ ok: boolean; error?: string; set_completed?: boolean }> {
@@ -434,7 +434,7 @@ export async function listCreatorCardsForUser(userId: string, creatorId?: string
   };
 }
 
-export async function unlockCreatorCard(
+async function unlockCreatorCard(
   userId: string,
   creatorId: string,
   tier: string,
@@ -484,7 +484,7 @@ async function evaluateCreatorTiers(
 }
 
 /** Add watch minutes toward creator collection cards for this host. */
-export async function recordCreatorWatchProgress(
+async function recordCreatorWatchProgress(
   userId: string,
   creatorId: string,
   minutes: number,

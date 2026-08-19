@@ -1,6 +1,6 @@
 import { api, request } from '../../lib/apiClient';
 
-export interface AdminDashboardSourceData {
+interface AdminDashboardSourceData {
   totalUsers: number;
   totalVideos: number;
   liveRooms: number;
@@ -67,7 +67,7 @@ export async function apiFetchAdminDashboardSourceData(): Promise<{
   };
 }
 
-export interface AdminEconomySourceData {
+interface AdminEconomySourceData {
   gifts: Record<string, unknown>[];
   boosters: Record<string, unknown>[];
   packages: Record<string, unknown>[];

@@ -6,7 +6,7 @@
 import { LIVE_WS_IN } from '../../../lib/live';
 import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
-export type LiveBattleWsHandlers = {
+type LiveBattleWsHandlers = {
   onStateSync?: (data: unknown) => void;
   onTick?: (data: { timeLeft?: number }) => void;
   onScore?: (data: unknown) => void;

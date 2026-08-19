@@ -10,7 +10,7 @@ import {
 } from '../../../components/GiftAnimationOverlay';
 import { resolveBattleGiftIconUrl } from '../../../lib/liveBattleGiftTarget';
 
-export type ApplyLocalGiftSendSideEffectsArgs = {
+type ApplyLocalGiftSendSideEffectsArgs = {
   pill: ElixGiftPillDetail;
   giftIcon: unknown;
   resolveGiftAssetUrl: (path: string) => string;

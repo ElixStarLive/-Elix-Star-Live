@@ -32,7 +32,7 @@ function getCdnHostname(): string {
     .trim();
 }
 
-export interface BunnyUploadResult {
+interface BunnyUploadResult {
   /** Storage path that was written (mirrors the input path). */
   path: string;
   /** Full https CDN URL ready to use in <video> / <img> src. */

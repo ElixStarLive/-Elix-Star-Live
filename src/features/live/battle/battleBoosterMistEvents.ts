@@ -5,7 +5,7 @@
 
 import type { Dispatch, SetStateAction } from 'react';
 
-export type BattleBoosterActivation = {
+type BattleBoosterActivation = {
   id: string;
   userId: string;
   multiplier: number;
@@ -13,14 +13,14 @@ export type BattleBoosterActivation = {
   expiresAt: number;
 };
 
-export type BattleBoosterCatch = {
+type BattleBoosterCatch = {
   id: string;
   multiplier: number;
   finalPoints: number;
   username: string;
 };
 
-export type BattleMistFog = {
+type BattleMistFog = {
   supportedUserId: string;
   supportedSide: 'host' | 'opponent';
   expiresAt: number;
@@ -30,13 +30,13 @@ type SetBoosterActivations = Dispatch<SetStateAction<BattleBoosterActivation[]>>
 type SetBoosterCatches = Dispatch<SetStateAction<BattleBoosterCatch[]>>;
 type SetMistFog = Dispatch<SetStateAction<BattleMistFog | null>>;
 
-export type BattleBoosterMistHandlers = {
+type BattleBoosterMistHandlers = {
   onBoosterActivated: (data: unknown) => void;
   onBoosterCaught: (data: unknown) => void;
   onMistActivated: (data: unknown) => void;
 };
 
-export type CreateBattleBoosterMistHandlersOpts = {
+type CreateBattleBoosterMistHandlersOpts = {
   setBoosterActivations: SetBoosterActivations;
   setBoosterCatches: SetBoosterCatches;
   setMistFog: SetMistFog;

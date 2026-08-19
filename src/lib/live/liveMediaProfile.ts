@@ -6,7 +6,7 @@ import { VideoPresets, type RoomOptions, type VideoCaptureOptions } from 'liveki
 
 export type ThermalTier = 'nominal' | 'fair' | 'serious' | 'critical';
 
-export type LiveMediaTierConfig = {
+type LiveMediaTierConfig = {
   tier: ThermalTier;
   capture: MediaTrackConstraints;
   publishPreset: (typeof VideoPresets)[keyof typeof VideoPresets];

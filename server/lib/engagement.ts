@@ -20,7 +20,7 @@ import {
 // keep the existing module load order, so this adds no runtime dependency.
 import type { MissionAudience } from "./engagementAdmin";
 
-export type FanTier =
+type FanTier =
   | "Bronze Fan"
   | "Silver Fan"
   | "Gold Fan"
@@ -38,7 +38,7 @@ export function fanTierForLevel(level: number): FanTier {
   return "Bronze Fan";
 }
 
-export function periodKey(scope: string, d = new Date()): string {
+function periodKey(scope: string, d = new Date()): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
@@ -719,7 +719,7 @@ type MissionProgressRow = {
 };
 
 /** One mission as served to the client by the missions/hub endpoints. */
-export type UserMissionView = MissionCatalogRow & {
+type UserMissionView = MissionCatalogRow & {
   period_key: string;
   progress: number;
   completed: boolean;
@@ -919,7 +919,7 @@ type AchievementProgressRow = {
 };
 
 /** One achievement as served to the client. */
-export type UserAchievementView = AchievementCatalogRow & {
+type UserAchievementView = AchievementCatalogRow & {
   progress: number;
   unlocked: boolean;
   unlocked_at: Date | null;

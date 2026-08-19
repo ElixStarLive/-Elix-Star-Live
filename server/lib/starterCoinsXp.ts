@@ -16,7 +16,7 @@ export const NEW_USER_STARTER_COINS = 50_000;
 
 export type GiftSource = "starter_coins" | "paid_coins";
 
-export interface ProgressionSnapshot {
+interface ProgressionSnapshot {
   starter_coin_balance: number;
   total_xp: number;
   current_level: number;
@@ -145,7 +145,7 @@ function xpSourceForGiftType(
   return `${prefix}_small`;
 }
 
-export type StarterGiftResult =
+type StarterGiftResult =
   | {
       ok: true;
       already_processed: boolean;

@@ -8,7 +8,7 @@ import { websocket } from '../../../lib/websocket';
 
 type LivePayload = Record<string, unknown>;
 
-export type TestCoinGiftAck = {
+type TestCoinGiftAck = {
   ok: boolean;
   status: string;
   /** Server test balance after the attempt; null when the server did not say. */

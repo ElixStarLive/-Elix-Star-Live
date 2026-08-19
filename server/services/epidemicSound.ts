@@ -38,7 +38,7 @@ function normalizeEnvSecret(raw: string | undefined): string {
 }
 
 /** Resolve Epidemic key from common Coolify / env variable names. */
-export function resolveEpidemicSoundApiKey(): string {
+function resolveEpidemicSoundApiKey(): string {
   for (const name of EPIDEMIC_KEY_ENV_NAMES) {
     const value = normalizeEnvSecret(process.env[name]);
     if (value) return value;
@@ -66,7 +66,7 @@ function apiKey(): string {
   return key;
 }
 
-export async function epidemicFetch<T>(
+async function epidemicFetch<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {

@@ -6,7 +6,7 @@
  * side effects (e.g. persisting live viewer counts) off the hot path without
  * dropping the final value.
  */
-export interface CoalescedWriter<T> {
+interface CoalescedWriter<T> {
   /** Queue the latest value for `key`; the write fires once the debounce elapses. */
   schedule(key: string, value: T): void;
   /** Write any pending value for `key` immediately (e.g. resource being torn down). */

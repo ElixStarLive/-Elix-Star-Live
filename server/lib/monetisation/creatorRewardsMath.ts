@@ -25,7 +25,7 @@ export const DEFAULT_MAX_REWARD_PENCE = 100_000; // £1,000
 export const DEFAULT_MIN_FOLLOWERS = 8_000;
 export const DEFAULT_MIN_PREV_30D_QUALIFIED = 100_000;
 
-export type RewardCalcResult = {
+type RewardCalcResult = {
   rewardPence: number;
   milestoneViews: number;
   nextMilestoneViews: number | null;
@@ -69,7 +69,7 @@ export function calculateCreatorRewardPence(
   };
 }
 
-export type EligibilityInput = {
+type EligibilityInput = {
   followers: number;
   prev30dQualifiedViews: number;
   accountInGoodStanding: boolean;
@@ -85,7 +85,7 @@ export type EligibilityInput = {
   minPrev30dQualifiedViews?: number;
 };
 
-export type EligibilityResult = { eligible: boolean; reason: string | null };
+type EligibilityResult = { eligible: boolean; reason: string | null };
 
 export function evaluateCreatorRewardsEligibility(input: EligibilityInput): EligibilityResult {
   const minFollowers = input.minFollowers ?? DEFAULT_MIN_FOLLOWERS;

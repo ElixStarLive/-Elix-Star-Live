@@ -24,7 +24,7 @@ function bunnyErrorDetail(text: string): string {
   return String(text || "").replace(/\s+/g, " ").trim().slice(0, 200);
 }
 
-export function getBunnyConfigError(): string {
+function getBunnyConfigError(): string {
   if (!STORAGE_ZONE_NAME) {
     return 'Bunny not configured. Set BUNNY_STORAGE_ZONE.';
   }

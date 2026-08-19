@@ -37,7 +37,7 @@ export const BATTLE_SEATS: readonly BattleSeat[] = [
 ];
 
 /** Seats a non-host creator can occupy, in allocation order. */
-export const BATTLE_RIVAL_SEATS: readonly BattleSeat[] = [
+const BATTLE_RIVAL_SEATS: readonly BattleSeat[] = [
   "opponent",
   "player3",
   "player4",
@@ -213,7 +213,7 @@ export function rivalParticipants(session: BattleSession): BattleParticipant[] {
   return session.participants.filter((p) => p.seat !== "host" && p.userId);
 }
 
-export function openRivalSeats(session: BattleSession): BattleSeat[] {
+function openRivalSeats(session: BattleSession): BattleSeat[] {
   return BATTLE_RIVAL_SEATS.filter((seat) => !participantAtSeat(session, seat));
 }
 
@@ -304,7 +304,7 @@ export function isBattleScorable(
   return session.status === "ACTIVE" && !!session.endsAt && now < session.endsAt;
 }
 
-export type BattleScoreTargetCheck =
+type BattleScoreTargetCheck =
   | { ok: true; participant: BattleParticipant }
   | {
       ok: false;

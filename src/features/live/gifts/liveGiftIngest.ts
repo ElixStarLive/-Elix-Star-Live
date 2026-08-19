@@ -123,7 +123,7 @@ export function appendGiftPlayback(
   return appendCapped(prev, item, LIVE_GIFT_QUEUE_CAP);
 }
 
-export type EnqueueGiftSentVideoArgs = {
+type EnqueueGiftSentVideoArgs = {
   data: Record<string, unknown>;
   catalogRef: { current: GiftUiItem[] };
   setGiftsCatalog: (gifts: GiftUiItem[]) => void;

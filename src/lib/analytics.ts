@@ -2,7 +2,7 @@ import { request } from './apiClient';
 
 // Analytics Event Tracking
 
-export type AnalyticsEvent =
+type AnalyticsEvent =
   // Video events
   | 'video_view_start'
   | 'video_view_stop'
@@ -105,7 +105,7 @@ export type AnalyticsEvent =
   | 'app_error'
   | 'screen_view';
 
-export interface AnalyticsProperties {
+interface AnalyticsProperties {
   [key: string]: string | number | boolean | null | undefined;
 }
 

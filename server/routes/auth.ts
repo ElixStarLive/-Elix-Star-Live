@@ -94,7 +94,7 @@ const RESEND_CONFIRM_COOLDOWN_MS = 60_000;
 // Binds a purpose-bound token (e.g. password reset) to the account's current
 // password hash. After a successful reset the hash changes, so an old token's
 // binding no longer matches — making reset links effectively single-use.
-export function passwordResetBinding(passwordHash: string): string {
+function passwordResetBinding(passwordHash: string): string {
   return crypto.createHash('sha256').update(String(passwordHash)).digest('base64url').slice(0, 22);
 }
 
@@ -302,7 +302,7 @@ async function writeCachedSessionState(tokenHash: string, state: SessionState): 
 }
 
 /** Invalidate one cached session by its token (logout). Best-effort. */
-export async function invalidateSessionCacheByToken(token: string): Promise<void> {
+async function invalidateSessionCacheByToken(token: string): Promise<void> {
   if (!isValkeyConfigured()) return;
   try {
     await valkeyDel(sessionCacheKey(hashSessionToken(token)));

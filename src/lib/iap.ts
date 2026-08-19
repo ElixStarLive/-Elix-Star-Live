@@ -54,7 +54,7 @@ export type PromoteProductId = PromoteIapProductId;
 /** Shared iOS subscription SKU for all creator memberships (App Store Connect). */
 const MEMBERSHIP_PRODUCT_ID = 'com.elixstarlive.membership';
 
-export interface MembershipStatus {
+interface MembershipStatus {
   active: boolean;
   productId: string;
   basePlanId: string;
@@ -76,7 +76,7 @@ export interface IAPProduct {
   coins: number;
 }
 
-export interface IAPPurchaseResult {
+interface IAPPurchaseResult {
   success: boolean;
   transactionId?: string;
   receipt?: string;

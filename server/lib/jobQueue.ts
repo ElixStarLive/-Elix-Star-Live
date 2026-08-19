@@ -78,7 +78,7 @@ export async function enqueueJob(job: JobPayload): Promise<boolean> {
   }
 }
 
-export type JobHandler = (job: JobPayload) => Promise<void>;
+type JobHandler = (job: JobPayload) => Promise<void>;
 
 let workerTimer: ReturnType<typeof setInterval> | null = null;
 

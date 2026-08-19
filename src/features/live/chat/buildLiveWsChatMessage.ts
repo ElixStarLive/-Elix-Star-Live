@@ -5,14 +5,14 @@
 
 import type { LiveMessage } from '../types';
 
-export type ParsedLiveWsChatText = {
+type ParsedLiveWsChatText = {
   parsedLevel: number;
   isLevelUp: boolean;
   isMembershipJoin: boolean;
   displayText: string;
 };
 
-export function parseLiveWsChatText(text: string): ParsedLiveWsChatText {
+function parseLiveWsChatText(text: string): ParsedLiveWsChatText {
   const levelUpMatch = /^reached Level (\d+)/i.exec(text);
   const parsedLevel = levelUpMatch ? Number(levelUpMatch[1]) : NaN;
   const isMembershipJoin = /joined the team/i.test(text);
@@ -24,7 +24,7 @@ export function parseLiveWsChatText(text: string): ParsedLiveWsChatText {
   };
 }
 
-export function resolveLiveChatDisplayLevel(
+function resolveLiveChatDisplayLevel(
   parsedLevel: number,
   dataLevel: unknown,
   cachedLevel?: number,

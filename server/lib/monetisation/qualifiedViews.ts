@@ -5,7 +5,7 @@ import { getPool } from "../postgres";
 import { logger } from "../logger";
 import { loadMonetisationConfig } from "./config";
 
-export type QualifyViewInput = {
+type QualifyViewInput = {
   videoId: string;
   viewerUserId: string;
   creatorUserId: string;
@@ -22,7 +22,7 @@ export type QualifyViewInput = {
     | null;
 };
 
-export type QualifyViewResult = {
+type QualifyViewResult = {
   accepted: boolean;
   qualified: boolean;
   reason:

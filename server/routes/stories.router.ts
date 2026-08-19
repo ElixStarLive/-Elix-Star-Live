@@ -12,7 +12,7 @@ import type { Pool } from "pg";
 const router = Router();
 const STORY_TTL_MS = 24 * 60 * 60 * 1000;
 
-export type StoryRow = {
+type StoryRow = {
   id: string;
   user_id: string;
   username: string;

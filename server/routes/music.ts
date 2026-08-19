@@ -19,9 +19,9 @@ import {
 export { isEpidemicSoundConfigured } from "../services/epidemicSound";
 
 /** TikTok-style licensed clip length — highlight segment only, never full song. */
-export const LICENSED_CLIP_MAX_SECONDS = 60;
+const LICENSED_CLIP_MAX_SECONDS = 60;
 
-export type ClientSoundTrack = {
+type ClientSoundTrack = {
   id: string;
   title: string;
   artist: string;
@@ -36,14 +36,14 @@ export type ClientSoundTrack = {
   isPreviewOnly?: boolean;
 };
 
-export type ClientMusicPlaylist = {
+type ClientMusicPlaylist = {
   id: string;
   name: string;
   coverUrl: string | null;
   tracks: ClientSoundTrack[];
 };
 
-export async function resolveLicensedClipWindow(
+async function resolveLicensedClipWindow(
   track: EpidemicTrack,
   clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
 ): Promise<{ clipStartSeconds: number; clipEndSeconds: number }> {
@@ -66,7 +66,7 @@ export async function resolveLicensedClipWindow(
   return { clipStartSeconds, clipEndSeconds };
 }
 
-export function epidemicTrackToClientSound(
+function epidemicTrackToClientSound(
   track: EpidemicTrack,
   clipStartSeconds = 0,
   clipEndSeconds?: number,
@@ -91,7 +91,7 @@ export function epidemicTrackToClientSound(
   };
 }
 
-export async function epidemicTrackToLicensedClientSound(
+async function epidemicTrackToLicensedClientSound(
   track: EpidemicTrack,
   clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
 ): Promise<ClientSoundTrack> {
@@ -114,7 +114,7 @@ async function mapTracksWithLicensedClips(
   return result;
 }
 
-export async function buildGlobalLicensedPlaylist(
+async function buildGlobalLicensedPlaylist(
   limit = 80,
   clipMaxSec = LICENSED_CLIP_MAX_SECONDS,
 ): Promise<ClientMusicPlaylist> {
@@ -134,7 +134,7 @@ export async function buildGlobalLicensedPlaylist(
   return playlist;
 }
 
-export async function buildMusicPlaylistsForClient(
+async function buildMusicPlaylistsForClient(
   playlistLimit = 10,
   tracksPerPlaylist = 30,
   clipMaxSec = LICENSED_CLIP_MAX_SECONDS,

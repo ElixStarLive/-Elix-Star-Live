@@ -41,7 +41,7 @@ function isPlayableGiftVideoUrl(url: string | null | undefined): url is string {
 }
 
 /** Absolute CDN URL for gift video animation, or null if not a playable video. */
-export function getGiftAnimationUrl(giftId: string): string | null {
+function getGiftAnimationUrl(giftId: string): string | null {
   if (!giftId) return null;
   const cached = giftAnimationCache[giftId] || null;
   return isPlayableGiftVideoUrl(cached) ? cached : null;

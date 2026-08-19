@@ -27,7 +27,7 @@ interface CreatorRanking {
   total_diamonds: number;
 }
 
-export type RankingPerson = {
+type RankingPerson = {
   id: string;
   name: string;
   avatar?: string | null;

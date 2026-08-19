@@ -6,7 +6,7 @@
 import { getPool } from "../postgres";
 import { logger } from "../logger";
 
-export type ReconcileMismatch = {
+type ReconcileMismatch = {
   scope: string;
   expected_pence: number;
   actual_pence: number;

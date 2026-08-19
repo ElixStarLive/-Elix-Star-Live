@@ -13,7 +13,7 @@ declare module "express-serve-static-core" {
   }
 }
 
-export interface ApiError {
+interface ApiError {
   error: string;
   code?: string;
   requestId?: string;
@@ -63,16 +63,3 @@ export function errorHandler(
 
   res.status(statusCode).json(body);
 }
-
-export class AppError extends Error {
-  statusCode: number;
-  code?: string;
-
-  constructor(message: string, statusCode = 400, code?: string) {
-    super(message);
-    this.statusCode = statusCode;
-    this.code = code;
-    this.name = "AppError";
-  }
-}
-

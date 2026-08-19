@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { getTokenFromRequest, verifyAuthToken } from "../routes/auth";
 
-export interface AuthPayload {
+interface AuthPayload {
   sub: string;
   email: string;
 }

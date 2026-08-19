@@ -10,15 +10,15 @@ import {
   isValkeyConfigured,
 } from "../lib/valkey";
 
-export const MILESTONES_MIN = [5, 10, 20, 30, 60] as const;
-export const MILESTONE_BONUS_XP: Record<number, number> = {
+const MILESTONES_MIN = [5, 10, 20, 30, 60] as const;
+const MILESTONE_BONUS_XP: Record<number, number> = {
   5: 5,
   10: 10,
   20: 20,
   30: 30,
   60: 60,
 };
-export const MILESTONE_TITLES: Record<number, string> = {
+const MILESTONE_TITLES: Record<number, string> = {
   5: "Warm-up Watcher",
   10: "Focused Fan",
   20: "Live Regular",
@@ -79,7 +79,7 @@ export type EngagementMystery = {
   triggered: boolean;
 };
 
-export type EngagementRoomState = {
+type EngagementRoomState = {
   roomId: string;
   features: EngagementFeatures;
   communityProgress: number;
@@ -253,7 +253,7 @@ function buildLeaderboard(state: EngagementRoomState) {
     }));
 }
 
-export function toPublicEngagementState(
+function toPublicEngagementState(
   state: EngagementRoomState,
   forUserId?: string | null,
 ): EngagementPublicState {
@@ -305,7 +305,7 @@ async function bumpCommunity(
   return { stageUnlocked: false, stage: state.communityStage };
 }
 
-export type WatchTickResult = {
+type WatchTickResult = {
   ok: boolean;
   reason?: string;
   state: EngagementPublicState;

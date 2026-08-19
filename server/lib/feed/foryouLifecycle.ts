@@ -8,7 +8,7 @@ import { loadForYouConfig } from "./foryouConfig";
 import { computeForYouRankingScore } from "./foryouRanking";
 import { bumpFeedForyouEpoch } from "../feedCacheValkey";
 
-export type ForYouStage =
+type ForYouStage =
   | "initial"
   | "promoted"
   | "removed"
@@ -177,7 +177,7 @@ export async function onQualifiedUniqueViewForFeed(input: {
   }
 }
 
-export async function rescoreVideo(videoId: string): Promise<number> {
+async function rescoreVideo(videoId: string): Promise<number> {
   const pool = getPool();
   if (!pool) return 0;
   try {

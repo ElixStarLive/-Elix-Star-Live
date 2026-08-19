@@ -6,7 +6,7 @@ import {
   getLevelAccentStyle,
 } from '../lib/levelColors';
 
-export interface LevelIconProps {
+interface LevelIconProps {
   level: number;
   size?: number;
   circleSize?: number;

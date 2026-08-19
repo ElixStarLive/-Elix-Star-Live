@@ -9,7 +9,7 @@ import { applyVerifiedProceedsAdjustment } from "./storeSettlement";
 import { postPromotePlatformRevenue } from "./settlements";
 import { gbpStringToPence } from "./moneyMath";
 
-export type ParsedReportLine = {
+type ParsedReportLine = {
   lineKey: string;
   externalTransactionId: string | null;
   productId: string | null;

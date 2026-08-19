@@ -2,7 +2,7 @@ import { dbGetStreamOwnerUserId, upsertLiveShareInbox } from "./postgres";
 import { notifyLiveShareRecipient } from "./liveShareNotify";
 import { logger } from "./logger";
 
-export type LiveSharePayload = {
+type LiveSharePayload = {
   sharerUserId: string;
   sharerName: string;
   sharerAvatar: string;

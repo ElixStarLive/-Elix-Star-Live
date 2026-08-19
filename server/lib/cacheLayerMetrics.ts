@@ -19,7 +19,7 @@ const cacheLayer = {
   profiles_list_builds: 0,
 };
 
-export type CacheLayerStat = keyof typeof cacheLayer;
+type CacheLayerStat = keyof typeof cacheLayer;
 
 export function bumpCacheLayer(stat: CacheLayerStat): void {
   cacheLayer[stat]++;

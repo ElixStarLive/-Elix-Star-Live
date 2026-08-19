@@ -93,7 +93,7 @@ export async function settlePaidCoinLot(input: {
   }
 }
 
-export type GiftNetAttribution = {
+type GiftNetAttribution = {
   netPence: number;
   grossPence: number;
   appStoreDeductionPence: number;

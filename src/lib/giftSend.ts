@@ -12,7 +12,7 @@ export type GiftSource = 'starter_coins' | 'paid_coins' | 'promotional_coins';
 /** Wire channel — host uses platform name; spectator uses `spectator`. */
 export type GiftChannel = 'spectator' | 'ios' | 'android' | 'web' | 'host';
 
-export interface SendGiftParams {
+interface SendGiftParams {
   streamKey: string;
   giftId: string;
   channel: GiftChannel;

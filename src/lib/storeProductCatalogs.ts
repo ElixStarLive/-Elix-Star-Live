@@ -105,7 +105,7 @@ export function assertNoCrossStoreProductIds(): {
   return { appleOnly, googleOnly };
 }
 
-export type ProviderProductGate =
+type ProviderProductGate =
   | { ok: true }
   | { ok: false; code: string; error: string };
 

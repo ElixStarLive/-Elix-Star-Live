@@ -3,7 +3,7 @@
  */
 import type { ForYouConfig } from "./foryouConfig";
 
-export type RankingSignals = {
+type RankingSignals = {
   qualifiedUniqueViews: number;
   watchTimeSeconds: number;
   completions: number;

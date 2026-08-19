@@ -1,7 +1,7 @@
 import type { SoundTrack } from './soundLibrary';
 
 /** In-memory handoff from Create compose → Upload (blob URL + optional caption/hashtags/sound). */
-export type CachedRecordedMedia = {
+type CachedRecordedMedia = {
   url: string;
   kind: 'video' | 'image';
   caption?: string;

@@ -6,7 +6,7 @@
 import { getValkey, isValkeyConfigured, valkeyGet } from "./valkey";
 import { logger } from "./logger";
 
-export const FEED_FORYOU_EPOCH_KEY = "elix:feed:foryou:epoch";
+const FEED_FORYOU_EPOCH_KEY = "elix:feed:foryou:epoch";
 /** Longer TTL reduces DB load when Valkey is shared across workers; bump epoch invalidates. */
 export const FEED_FORYOU_CACHE_TTL_MS = Math.min(
   600_000,

@@ -6,7 +6,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { apiLiveEngagementMissions } from './liveEngagementApi';
 import { reportFailure } from '../../../lib/reportFailure';
 
-export type LiveEngagementMissionsSetters = {
+type LiveEngagementMissionsSetters = {
   setMissionWatchMin: Dispatch<SetStateAction<number>>;
   setMissionWatchGoal: Dispatch<SetStateAction<number>>;
   setMissionGiftsSent: Dispatch<SetStateAction<number>>;

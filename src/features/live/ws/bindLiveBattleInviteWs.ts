@@ -4,7 +4,7 @@
 
 import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
-export type LiveBattleInviteWsHandlers = {
+type LiveBattleInviteWsHandlers = {
   onInvite?: (data: unknown) => void;
   onInviteAck?: (data: unknown) => void;
   onInviteDeclined?: (data: unknown) => void;

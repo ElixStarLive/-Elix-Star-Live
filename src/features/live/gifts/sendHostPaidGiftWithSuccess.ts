@@ -12,7 +12,7 @@ import {
   type LivePaidGiftWalletUiArgs,
 } from './applyLivePaidGiftSuccessEffects';
 
-export type SendHostPaidGiftWithSuccessArgs = LivePaidGiftWalletUiArgs & {
+type SendHostPaidGiftWithSuccessArgs = LivePaidGiftWalletUiArgs & {
   streamKey: string;
   giftId: string;
   giftVideo?: string | null;

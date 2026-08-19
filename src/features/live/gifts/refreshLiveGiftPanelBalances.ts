@@ -12,7 +12,7 @@ import { reportFailure } from '../../../lib/reportFailure';
 import { showToast } from '../../../lib/toast';
 import { engagementFlags } from '../../../config/engagementFlags';
 
-export type RefreshLiveGiftPanelBalancesArgs = {
+type RefreshLiveGiftPanelBalancesArgs = {
   /** Sync spend-check ref for paid coins (host/spectator controllers). */
   walletCoinBalanceRef?: { current: number };
 };

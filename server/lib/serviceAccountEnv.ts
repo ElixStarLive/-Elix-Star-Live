@@ -10,7 +10,7 @@
  */
 import { logger } from "./logger";
 
-export type ServiceAccountCreds = {
+type ServiceAccountCreds = {
   type?: string;
   project_id?: string;
   private_key_id?: string;

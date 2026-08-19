@@ -34,7 +34,7 @@ export type AppleTxPayload = {
   [key: string]: unknown;
 };
 
-export type AppleSubscriptionEntitlement = {
+type AppleSubscriptionEntitlement = {
   ok: true;
   entitled: true;
   productId: string;
@@ -48,7 +48,7 @@ export type AppleSubscriptionEntitlement = {
   rawTransaction: AppleTxPayload;
 };
 
-export type AppleSubscriptionRejection = {
+type AppleSubscriptionRejection = {
   ok: false;
   entitled: false;
   error: string;
@@ -269,7 +269,7 @@ async function appleApiGet(path: string): Promise<{ ok: boolean; status: number;
   return last;
 }
 
-export type AppleTransactionLookup =
+type AppleTransactionLookup =
   | { valid: true; productId: string; payload: AppleTxPayload; detail: string }
   | {
       valid: false;

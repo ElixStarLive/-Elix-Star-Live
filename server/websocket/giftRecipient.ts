@@ -37,13 +37,13 @@ export type GiftRecipient = {
   origin: "battle_seat" | "cohost" | "stream_owner";
 };
 
-export type GiftRecipientError =
+type GiftRecipientError =
   | "INVALID_BATTLE_TARGET"
   | "INVALID_COHOST_TARGET"
   | "BATTLE_STATE_UNAVAILABLE"
   | "NO_RECIPIENT";
 
-export type GiftRecipientResult =
+type GiftRecipientResult =
   | { ok: true; recipient: GiftRecipient }
   | { ok: false; error: GiftRecipientError };
 

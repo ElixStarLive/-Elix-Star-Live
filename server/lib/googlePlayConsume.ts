@@ -8,7 +8,7 @@ import { enqueueJob } from "./jobQueue";
 import { postAlertWebhook } from "./alerting";
 import { consumeGooglePlayProduct } from "./googlePlaySubscriptions";
 
-export async function markGooglePurchaseConsumed(externalPurchaseId: string): Promise<void> {
+async function markGooglePurchaseConsumed(externalPurchaseId: string): Promise<void> {
   const pool = getPool();
   if (!pool) return;
   await pool.query(

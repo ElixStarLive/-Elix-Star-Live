@@ -4,7 +4,7 @@
  */
 import type { PoolClient } from "pg";
 
-export type XpApplyResult = {
+type XpApplyResult = {
   xp_gained: number;
   total_xp: number;
   new_level: number;

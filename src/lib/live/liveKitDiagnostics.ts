@@ -14,7 +14,7 @@ type VideoGrant = {
   roomJoin?: unknown;
 };
 
-export type LiveKitTokenSummary = {
+type LiveKitTokenSummary = {
   issuer: string | null;
   identity: string | null;
   room: string | null;

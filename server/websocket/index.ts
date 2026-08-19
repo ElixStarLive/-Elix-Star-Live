@@ -542,7 +542,7 @@ export async function deleteCohostLayout(roomId: string): Promise<void> {
   await clearCohostPublishGrants(roomId);
 }
 
-export type CohostJoinRequest = {
+type CohostJoinRequest = {
   requesterUserId: string;
   requesterName: string;
   requesterAvatar: string;
@@ -610,7 +610,7 @@ export async function listCohostJoinRequests(roomId: string): Promise<CohostJoin
 // One authoritative counter per room so every client shows the same number.
 const LIVE_LIKES_TTL_SEC = 6 * 3600;
 
-export async function getRoomLiveLikes(roomId: string): Promise<number> {
+async function getRoomLiveLikes(roomId: string): Promise<number> {
   if (!roomId) return 0;
   if (!isValkeyConfigured()) return 0;
   if (isValkeyConfigured()) {
@@ -672,7 +672,7 @@ export async function hasCohostPublishGrant(roomId: string, userId: string): Pro
   return v === "1";
 }
 
-export async function revokeCohostPublish(roomId: string, userId: string): Promise<void> {
+async function revokeCohostPublish(roomId: string, userId: string): Promise<void> {
   if (!roomId || !userId) return;
   if (!isValkeyConfigured()) return;
   await valkeyDel(`cohost_grant:${roomId}:${userId}`);

@@ -14,7 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const MIGRATIONS_DIR = path.join(
+const MIGRATIONS_DIR = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
   "migrations",
@@ -55,7 +55,7 @@ const INLINE_TRANSACTION_STATEMENT = /(^|;)\s*(BEGIN|COMMIT|START\s+TRANSACTION|
  * and future — under that single guarantee instead of depending on how each file
  * happens to be written.
  */
-export function migrationSqlWithoutFileTransactions(filename: string, sql: string): string {
+function migrationSqlWithoutFileTransactions(filename: string, sql: string): string {
   const lines = sql.split(/\r?\n/);
   const kept: string[] = [];
   let inDollarQuoted = false;

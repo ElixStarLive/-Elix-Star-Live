@@ -5,7 +5,7 @@
 
 import { request } from '../../lib/apiClient';
 
-export interface ChatMessage {
+interface ChatMessage {
   id: string;
   sender_id: string;
   text?: string;

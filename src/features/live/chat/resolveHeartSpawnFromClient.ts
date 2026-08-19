@@ -2,7 +2,7 @@
  * Shared host↔spectator heart spawn position from a client tap on a chat heart layer.
  */
 
-export type HeartSpawnPoint = {
+type HeartSpawnPoint = {
   x: number;
   y: number;
   /** True when the tap was inside the layer bounds. */

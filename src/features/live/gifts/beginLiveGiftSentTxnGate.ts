@@ -2,7 +2,7 @@
  * Shared host↔spectator gift_sent transaction gate (seen + video-played).
  */
 
-export type LiveGiftSentTxnGate = {
+type LiveGiftSentTxnGate = {
   alreadySeen: boolean;
   /** True when this txn's video already played — skip entire handler. */
   shouldSkip: boolean;

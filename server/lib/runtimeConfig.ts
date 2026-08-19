@@ -31,29 +31,3 @@ export async function getRuntimeConfigValue(key: string): Promise<string | null>
     return null;
   }
 }
-
-export async function setRuntimeConfigValue(
-  key: string,
-  value: string,
-  updatedBy = "system",
-): Promise<boolean> {
-  const pool = getPool();
-  if (!pool) return false;
-  try {
-    await pool.query(
-      `INSERT INTO elix_runtime_config (key, value_ciphertext, updated_by, updated_at)
-       VALUES ($1,$2,$3,NOW())
-       ON CONFLICT (key) DO UPDATE SET
-         value_ciphertext = EXCLUDED.value_ciphertext,
-         updated_by = EXCLUDED.updated_by,
-         updated_at = NOW()`,
-      [key, value, updatedBy],
-    );
-    cache.set(key, { at: Date.now(), value });
-    return true;
-  } catch (err) {
-    logger.error({ err, key }, "setRuntimeConfigValue failed");
-    return false;
-  }
-}
-

@@ -8,7 +8,7 @@ import { loadMonetisationConfig } from "./config";
 import { postLedgerEntry } from "./ledger";
 import { recordFraudDecision } from "./fraud";
 
-export type WithdrawalStatus =
+type WithdrawalStatus =
   | "pending"
   | "approved"
   | "processing"

@@ -7,7 +7,7 @@ import { apiLiveEngagementProgress } from './liveEngagementApi';
 import { earnBattleEnergyQuiet } from '../../../components/BattleEnergyBoostControls';
 import { reportFailure } from '../../../lib/reportFailure';
 
-export type StartLiveEngagementWatchTickOpts = {
+type StartLiveEngagementWatchTickOpts = {
   roomId: string;
   missionWatchGoal: number;
   setMissionWatchMin: Dispatch<SetStateAction<number>>;

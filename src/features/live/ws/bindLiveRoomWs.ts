@@ -5,7 +5,7 @@
 import { LIVE_WS_IN } from '../../../lib/live';
 import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
-export type LiveRoomWsHandlers = {
+type LiveRoomWsHandlers = {
   onRoomState?: (data: unknown) => void;
   onUserJoined?: (data: unknown) => void;
   onUserLeft?: (data: unknown) => void;

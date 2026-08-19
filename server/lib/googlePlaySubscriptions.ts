@@ -15,14 +15,14 @@ const ANDROID_PUBLISHER_BASE = "https://androidpublisher.googleapis.com/androidp
 /** Play-supported regions catalog version required by monetization APIs. */
 const REGIONS_VERSION = "2022/02";
 
-export const CREATOR_MEMBERSHIP_PRODUCT_PREFIX = "elix.creator.";
+const CREATOR_MEMBERSHIP_PRODUCT_PREFIX = "elix.creator.";
 export const CREATOR_MEMBERSHIP_BASE_PLAN_ID = "monthly";
 
 export type MembershipProvisionStatus = "pending" | "active" | "error";
 
-export type MoneyParts = { currencyCode: string; units: string; nanos: number };
+type MoneyParts = { currencyCode: string; units: string; nanos: number };
 
-export type MembershipPriceConfig = {
+type MembershipPriceConfig = {
   regions: Array<{ regionCode: string; price: MoneyParts }>;
   otherUsd: MoneyParts;
   otherEur: MoneyParts;
@@ -51,7 +51,7 @@ export function creatorMembershipProductId(creatorId: string): string {
   return `${CREATOR_MEMBERSHIP_PRODUCT_PREFIX}${digest.slice(0, 24)}`;
 }
 
-export type GoogleSubscriptionEntitlement = {
+type GoogleSubscriptionEntitlement = {
   ok: true;
   entitled: true;
   productId: string;
@@ -70,7 +70,7 @@ export type GoogleSubscriptionEntitlement = {
   externalAccountId: string | null;
 };
 
-export type GoogleSubscriptionRejection = {
+type GoogleSubscriptionRejection = {
   ok: false;
   entitled: false;
   error:
@@ -94,7 +94,7 @@ export type GoogleSubscriptionRejection = {
   detail?: string;
 };
 
-export type GoogleSubscriptionResult = GoogleSubscriptionEntitlement | GoogleSubscriptionRejection;
+type GoogleSubscriptionResult = GoogleSubscriptionEntitlement | GoogleSubscriptionRejection;
 
 function normalizeEnum(value: unknown, prefix: string): string | null {
   if (typeof value !== "string" || !value) return null;
@@ -239,7 +239,7 @@ function googleApiFailureReason(status: number): "invalid" | "unavailable" {
  * purchaseType is present only for purchases nobody paid full price for
  * (0 test, 1 promo, 2 rewarded), so settlement must not derive GBP from them.
  */
-export type GooglePlayProductPurchase = {
+type GooglePlayProductPurchase = {
   valid: true;
   productId: string;
   orderId: string | null;
@@ -254,7 +254,7 @@ export type GooglePlayProductPurchase = {
   detail: string;
 };
 
-export type GooglePlayProductLookup =
+type GooglePlayProductLookup =
   | GooglePlayProductPurchase
   | {
       valid: false;

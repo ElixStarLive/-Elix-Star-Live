@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type CallStatus =
+type CallStatus =
   | 'idle'
   | 'outgoing'
   | 'incoming'

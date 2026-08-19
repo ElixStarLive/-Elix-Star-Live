@@ -34,7 +34,7 @@ import { resolveStreamOwnerUserId } from "../routes/livestream";
 import { addMvpPoints, bumpAchievement, bumpMission, fanEnergyGiftMultiplier } from "../lib/engagement";
 import { recordCreatorGiftProgress } from "../lib/engagementPhase15";
 
-export type DeliverGiftInput = {
+type DeliverGiftInput = {
   roomId: string;
   userId: string;
   username?: string;
@@ -57,7 +57,7 @@ export type DeliverGiftInput = {
   animationUrl?: string | null;
 };
 
-export type DeliverGiftResult =
+type DeliverGiftResult =
   | { delivered: true }
   | { delivered: false; reason: "duplicate" | "invalid" | "dedupe_unavailable" };
 

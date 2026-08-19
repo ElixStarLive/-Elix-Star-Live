@@ -186,7 +186,7 @@ export async function getBattleFromStore(
  * one screen and be gone on the next read, and the room the accepter is sent to
  * would have no record of them in it.
  */
-export async function saveBattleToStore(
+async function saveBattleToStore(
   roomId: string,
   session: BattleSession,
 ): Promise<"ok" | "unavailable"> {
@@ -214,7 +214,7 @@ type BattleSessionMutator = (
   session: BattleSession | null,
 ) => { session: BattleSession; changed: boolean } | null;
 
-export type BattleSessionMutation =
+type BattleSessionMutation =
   | { status: "applied" | "unchanged"; session: BattleSession }
   | { status: "rejected" }
   | { status: "contended" }
@@ -356,7 +356,7 @@ export async function setUserBattleRoom(
   await valkeySet("ubr:" + userId, roomId, ttlMs);
 }
 
-export async function clearUserBattleRoom(userId: string): Promise<void> {
+async function clearUserBattleRoom(userId: string): Promise<void> {
   if (!userId || !hasValkey()) return;
   await valkeyDel("ubr:" + userId);
 }
@@ -419,7 +419,7 @@ export async function hasBattleAcceptedGrant(
   return !!(await valkeyGet(`battle_accept:${roomId}:${userId}`));
 }
 
-export async function clearBattleAcceptedGrant(
+async function clearBattleAcceptedGrant(
   roomId: string,
   userId: string,
 ): Promise<void> {
@@ -511,7 +511,7 @@ export async function ensureBattleForHost(opts: {
  * own room all come from the server (socket identity + DB profile) — never
  * from a client-supplied roster.
  */
-export type BattleSeatClaim =
+type BattleSeatClaim =
   | { status: "seated"; session: BattleSession }
   | { status: "full" }
   | { status: "no_battle" }
@@ -654,7 +654,7 @@ export function battleStartBlockedReason(
   return null;
 }
 
-export type StartBattleResult =
+type StartBattleResult =
   | { ok: true; session: BattleSession }
   | {
       ok: false;
@@ -794,7 +794,7 @@ async function scoresForSessionState(
   return null;
 }
 
-export type AddBattleScoreResult =
+type AddBattleScoreResult =
   | {
       ok: true;
       seat: BattleSeat;
@@ -938,7 +938,7 @@ export async function broadcastBattleState(
 
 // ── Finalization (exactly once) ─────────────────────────────────────────────
 
-export type BattleFinalizeReason =
+type BattleFinalizeReason =
   | "timer"
   | "host_end"
   | "host_disconnect"

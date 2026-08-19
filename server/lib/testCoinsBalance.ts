@@ -33,15 +33,15 @@ import { logger } from "./logger";
 
 const BALANCE_KEY = "test_coins:balances";
 
-export type TestCoinsBalanceRead =
+type TestCoinsBalanceRead =
   | { status: "ok"; balance: number }
   | { status: "unavailable" };
 
-export type TestCoinsCreditResult =
+type TestCoinsCreditResult =
   | { status: "ok"; balance: number }
   | { status: "unavailable" };
 
-export type TestCoinsDebitResult =
+type TestCoinsDebitResult =
   | { ok: true; newBalance: number }
   | { ok: false; reason: "insufficient"; balance: number }
   | { ok: false; reason: "unavailable" };

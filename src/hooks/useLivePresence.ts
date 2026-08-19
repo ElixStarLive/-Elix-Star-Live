@@ -33,7 +33,7 @@ import {
   reconcileLivePresence,
 } from '../lib/live/liveCardReconcile';
 
-export type LivePresence = {
+type LivePresence = {
   /** Creator user ids currently on air. */
   creatorIds: Set<string>;
   /** Room names / stream keys currently on air. */

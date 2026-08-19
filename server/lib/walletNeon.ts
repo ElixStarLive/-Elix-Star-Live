@@ -818,7 +818,7 @@ export async function neonInsertPromotePurchase(row: {
 // Rows live in elix_membership_purchases keyed by purchase_token_hash
 // (sha256 hex — raw purchase tokens are never stored).
 
-export type MembershipEntitlement = {
+type MembershipEntitlement = {
   id: string;
   userId: string;
   creatorId: string | null;

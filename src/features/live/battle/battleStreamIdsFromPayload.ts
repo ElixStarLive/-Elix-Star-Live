@@ -2,7 +2,7 @@
  * Shared host↔spectator mapping of battle_state_sync / battle_score seat + room ids.
  */
 
-export type BattleStreamIds = {
+type BattleStreamIds = {
   hostRoomId: string;
   hostUserId: string;
   opponentRoomId: string;

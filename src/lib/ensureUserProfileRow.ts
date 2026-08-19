@@ -4,7 +4,7 @@
 
 import { request } from './apiClient';
 
-export type EnsureUserProfileRowInput = {
+type EnsureUserProfileRowInput = {
   userId: string;
   username: string;
   displayName: string;

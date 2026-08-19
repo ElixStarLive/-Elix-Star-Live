@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Clock, Crown, Target } from 'lucide-react';
 import { AvatarRing } from './AvatarRing';
 
-export type LiveSideSupporter = {
+type LiveSideSupporter = {
   id: string;
   name: string;
   avatar: string;
   points: number;
 };
 
-export type LiveSideMissionProgress = {
+type LiveSideMissionProgress = {
   watchMin: number;
   watchGoal: number;
   giftsSent: number;

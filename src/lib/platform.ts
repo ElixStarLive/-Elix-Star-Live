@@ -86,7 +86,7 @@ export async function nativeShareUrl(opts: { title?: string; text?: string; url:
   return result === 'shared' || result === 'copied';
 }
 
-export type NativeShareResult = 'shared' | 'copied' | 'cancelled' | 'unavailable';
+type NativeShareResult = 'shared' | 'copied' | 'cancelled' | 'unavailable';
 
 function isShareAbort(err: unknown): boolean {
   const e = err as { name?: string; message?: string } | null;

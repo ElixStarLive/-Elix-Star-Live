@@ -11,7 +11,7 @@ export const SHARE_PANEL_ACTION_DISC_PX = 40;
 export const SHARE_PANEL_ACTION_ICON_PX = 22;
 
 /** One row for the horizontal “Share to” avatar strip (Create + users). */
-export type SharePanelContact = {
+type SharePanelContact = {
   user_id: string;
   username: string;
   avatar_url: string | null;

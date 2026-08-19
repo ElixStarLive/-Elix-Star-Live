@@ -32,7 +32,7 @@ export type ForYouConfig = {
   };
 };
 
-export const DEFAULT_FORYOU_CONFIG: ForYouConfig = {
+const DEFAULT_FORYOU_CONFIG: ForYouConfig = {
   initialAudienceSize: 500,
   promotionQualifiedViews: 5000,
   removalWindowHours: 168,

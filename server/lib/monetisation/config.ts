@@ -58,7 +58,7 @@ const DEFAULT_CONFIG: MonetisationConfig = {
 let cache: { at: number; cfg: MonetisationConfig } | null = null;
 const CACHE_MS = 30_000;
 
-export function defaultMonetisationConfig(): MonetisationConfig {
+function defaultMonetisationConfig(): MonetisationConfig {
   return { ...DEFAULT_CONFIG, milestones: [...DEFAULT_CREATOR_REWARD_MILESTONES] };
 }
 

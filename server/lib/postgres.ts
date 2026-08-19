@@ -25,17 +25,6 @@ const ESTIMATED_WORKERS = Number(process.env.WEB_CONCURRENCY) || Math.min(os.cpu
 const DEFAULT_POOL_PER_WORKER = Math.max(4, Math.ceil(80 / ESTIMATED_WORKERS));
 
 let pool: pg.Pool | null = null;
-
-function firstNonEmptyString(
-  ...values: Array<unknown>
-): string {
-  for (const v of values) {
-    if (typeof v === "string" && v.trim().length > 0) return v;
-    if (v instanceof Date) return v.toISOString();
-  }
-  return "";
-}
-
 export function getPool(): pg.Pool | null {
   return pool;
 }
@@ -199,44 +188,6 @@ export async function connectPostgres(): Promise<void> {
     throw err;
   }
 }
-
-/** Single video by id — used when in-memory store misses (feed reads Postgres directly). */
-export async function loadVideoByIdFromDb(id: string): Promise<Video | null> {
-  if (!pool) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  const trimmed = String(id || "").trim();
-  if (!trimmed) return null;
-  try {
-    const res = await pool.query(`SELECT * FROM videos WHERE id = $1 LIMIT 1`, [trimmed]);
-    const row = res.rows?.[0] as Record<string, unknown> | undefined;
-    if (!row) return null;
-    return {
-      id: String(row.id),
-      url: firstNonEmptyString(row.url, row.video_url),
-      thumbnail: firstNonEmptyString(row.thumbnail, row.thumbnail_url),
-      duration: Number(row.duration ?? 0),
-      userId: String(row.userId ?? row.user_id ?? ""),
-      username: String(row.username ?? ""),
-      displayName: String(row.displayName ?? row.display_name ?? ""),
-      avatar: String(row.avatar ?? ""),
-      description: String(row.description ?? ""),
-      hashtags: Array.isArray(row.hashtags) ? row.hashtags : [],
-      music: row.music && typeof row.music === "object" ? (row.music as Video["music"]) : null,
-      views: Number(row.views ?? 0),
-      likes: Number(row.likes ?? 0),
-      comments: Number(row.comments ?? 0),
-      shares: Number(row.shares ?? 0),
-      saves: Number(row.saves ?? 0),
-      createdAt: firstNonEmptyString(row.createdAt, row.created_at),
-      privacy: String(row.privacy ?? "public"),
-    };
-  } catch (err) {
-    logger.error({ err, id: trimmed }, "loadVideoByIdFromDb failed");
-    throw err;
-  }
-}
-
 export async function saveVideoToDb(video: Video): Promise<void> {
   if (!pool) {
     throw new Error("Postgres pool is not initialized");
@@ -408,7 +359,7 @@ export async function dbGetStreamOwnerUserId(keyOrUser: string): Promise<string 
   }
 }
 
-export type LiveShareInboxRow = {
+type LiveShareInboxRow = {
   sharer_id: string;
   stream_key: string;
   host_user_id: string;
@@ -715,44 +666,7 @@ export async function dbHasSentDailyHeart(creatorUserId: string, memberUserId: s
     return false;
   }
 }
-
-// ── Gift Logs ──
-
-export async function dbLogGift(senderUserId: string, creatorUserId: string, roomId: string, giftId: string, coins: number): Promise<void> {
-  const p = getPool();
-  if (!p) return;
-  try {
-    await p.query(
-      `INSERT INTO gift_logs (sender_user_id, creator_user_id, room_id, gift_id, coins) VALUES ($1, $2, $3, $4, $5)`,
-      [senderUserId, creatorUserId, roomId, giftId, coins],
-    );
-  } catch (err) {
-    logger.error({ err, senderUserId, creatorUserId, giftId }, "dbLogGift failed");
-  }
-}
-
-export async function dbGetWeeklyRanking(): Promise<{ user_id: string; total_coins: number }[]> {
-  const p = getPool();
-  if (!p) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    const res = await p.query(`
-      SELECT creator_user_id AS user_id, SUM(coins) AS total_coins
-      FROM gift_logs
-      WHERE created_at >= NOW() - INTERVAL '7 days'
-      GROUP BY creator_user_id
-      ORDER BY total_coins DESC
-      LIMIT 50
-    `);
-    return res.rows.map(r => ({ user_id: r.user_id, total_coins: Number(r.total_coins) || 0 }));
-  } catch (err) {
-    logger.error({ err }, "dbGetWeeklyRanking failed");
-    throw err;
-  }
-}
-
-export type CreatorMembershipHeartMember = {
+type CreatorMembershipHeartMember = {
   user_id: string;
   username?: string;
   avatar_url?: string;
@@ -760,7 +674,7 @@ export type CreatorMembershipHeartMember = {
   heart_days: number;
 };
 
-export type CreatorMembershipTopGifter = {
+type CreatorMembershipTopGifter = {
   user_id: string;
   total_coins: number;
   username?: string;
@@ -862,7 +776,7 @@ export async function dbGetCreatorMembershipStats(creatorUserId: string): Promis
   }
 }
 
-export type DbChatThreadRow = {
+type DbChatThreadRow = {
   id: string;
   user1_id: string;
   user2_id: string;
@@ -871,7 +785,7 @@ export type DbChatThreadRow = {
   created_at: string;
 };
 
-export type DbChatMessageRow = {
+type DbChatMessageRow = {
   id: string;
   thread_id: string;
   sender_id: string;
@@ -1380,7 +1294,7 @@ export async function dbDeactivateShopItemOwned(
 
 // ── Gifts catalog (DB) — seed rows applied in migrations ──
 
-export type DbGiftRow = {
+type DbGiftRow = {
   gift_id: string;
   name: string;
   gift_type: string;
@@ -1462,28 +1376,9 @@ export async function dbLoadGifts(): Promise<DbGiftRow[]> {
     throw err;
   }
 }
-
-export async function dbGetGiftCost(giftId: string): Promise<number | null> {
-  const p = getPool();
-  if (!p) {
-    throw new Error("Postgres pool is not initialized");
-  }
-  try {
-    const res = await p.query(
-      `SELECT coin_cost FROM elix_gifts WHERE gift_id = $1 AND is_active = TRUE LIMIT 1`,
-      [giftId],
-    );
-    if (!res.rows[0]) return null;
-    return Number(res.rows[0].coin_cost);
-  } catch (err) {
-    logger.error({ err, giftId }, "dbGetGiftCost failed");
-    throw err;
-  }
-}
-
 // ── Coin packages (DB) — seed rows applied in migrations ──
 
-export type DbCoinPackageRow = {
+type DbCoinPackageRow = {
   id: string;
   coins: number;
   price: number;

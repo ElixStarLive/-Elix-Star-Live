@@ -199,7 +199,7 @@ export async function grantParticipantPublish(
   return upgraded ? 'granted' : 'absent';
 }
 
-export type RoomOccupancy = 'occupied' | 'empty' | 'unknown';
+type RoomOccupancy = 'occupied' | 'empty' | 'unknown';
 
 /**
  * Occupancy of a room, for authoritative live-state cleanup.

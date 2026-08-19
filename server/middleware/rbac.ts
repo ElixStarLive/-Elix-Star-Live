@@ -6,7 +6,7 @@ import { getTokenFromRequest, verifyAuthToken } from "../routes/auth";
 import { getPool } from "../lib/postgres";
 import { logger } from "../lib/logger";
 
-export interface AuthContext {
+interface AuthContext {
   userId: string;
   isAdmin: boolean;
   isCreator: boolean;

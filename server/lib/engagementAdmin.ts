@@ -8,7 +8,7 @@ import {
 const FEATURE_FLAGS_KEY = "feature_flags";
 const BATTLE_ENERGY_CAPS_KEY = "battle_energy_caps";
 
-export type BattleEnergyCaps = {
+type BattleEnergyCaps = {
   watch_amount: number;
   comment_amount: number;
   share_amount: number;
@@ -28,7 +28,7 @@ export type BattleEnergyCaps = {
   enabled: boolean;
 };
 
-export const DEFAULT_BATTLE_ENERGY_CAPS: BattleEnergyCaps = {
+const DEFAULT_BATTLE_ENERGY_CAPS: BattleEnergyCaps = {
   watch_amount: 5,
   comment_amount: 2,
   share_amount: 20,
@@ -541,7 +541,7 @@ async function loadFlagOverrides(): Promise<Partial<EngagementFlags>> {
 }
 
 /** Env baseline merged with DB overrides. Env kill-switch for Neon always wins when false. */
-export async function getEngagementFlagsMerged(): Promise<EngagementFlags> {
+async function getEngagementFlagsMerged(): Promise<EngagementFlags> {
   const envFlags = getEngagementFlagsFromEnv();
   const overrides = await loadFlagOverrides();
   const merged = { ...envFlags, ...overrides };
@@ -632,7 +632,7 @@ export async function updateFeatureFlagsAdmin(
   return next;
 }
 
-export type FeatureFlagAdminRow = {
+type FeatureFlagAdminRow = {
   key: keyof EngagementFlags;
   effective: boolean;
   default_value: boolean;

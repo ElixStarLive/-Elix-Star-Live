@@ -11,7 +11,7 @@ import {
 } from './refreshLiveGiftPanelBalances';
 import { applyLiveWalletBootstrapUi } from './applyLiveWalletBootstrapUi';
 
-export type UseLiveWalletBootstrapOnUserOpts = {
+type UseLiveWalletBootstrapOnUserOpts = {
   userId: string | undefined;
   userLevel: number | undefined | null;
   walletCoinBalanceRef?: MutableRefObject<number>;

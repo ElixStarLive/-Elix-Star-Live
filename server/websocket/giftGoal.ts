@@ -1,6 +1,6 @@
 import { valkeyDel, valkeyGet, valkeySet, isValkeyConfigured } from "../lib/valkey";
 
-export type StoredGiftGoal = {
+type StoredGiftGoal = {
   giftId: string;
   giftName: string;
   giftIcon: string;

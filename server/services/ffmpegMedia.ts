@@ -13,7 +13,7 @@ import { logger } from "../lib/logger";
 let ffmpegChecked = false;
 let ffmpegAvailable = false;
 
-export async function probeFfmpeg(): Promise<boolean> {
+async function probeFfmpeg(): Promise<boolean> {
   if (ffmpegChecked) return ffmpegAvailable;
   ffmpegChecked = true;
   ffmpegAvailable = await new Promise<boolean>((resolve) => {

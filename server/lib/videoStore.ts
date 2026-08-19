@@ -131,28 +131,3 @@ export async function getVideoCountAsync(): Promise<number> {
     throw err;
   }
 }
-
-/** Update stat in DB only. */
-export function incrementStat(
-  videoId: string,
-  stat: "views" | "likes" | "comments" | "shares" | "saves",
-): void {
-  const db = getPool();
-  if (db) {
-    db
-      .query(`UPDATE videos SET ${stat} = ${stat} + 1 WHERE id = $1`, [videoId])
-      .catch((e) => logger.warn({ err: e, videoId, stat }, "incrementStat DB update failed"));
-  }
-}
-
-export function decrementStat(
-  videoId: string,
-  stat: "views" | "likes" | "comments" | "shares" | "saves",
-): void {
-  const db = getPool();
-  if (db) {
-    db
-      .query(`UPDATE videos SET ${stat} = GREATEST(${stat} - 1, 0) WHERE id = $1`, [videoId])
-      .catch((e) => logger.warn({ err: e, videoId, stat }, "decrementStat DB update failed"));
-  }
-}

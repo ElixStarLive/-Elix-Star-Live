@@ -4,7 +4,7 @@
 
 import { resolveGridThumbnailUrl } from './bunnyStorage';
 
-export type ProfileGridVideoApiRow = {
+type ProfileGridVideoApiRow = {
   id: string;
   thumbnail?: string;
   thumbnail_url?: string;
@@ -12,7 +12,7 @@ export type ProfileGridVideoApiRow = {
   views?: number;
 };
 
-export type ProfileGridVideoCard = {
+type ProfileGridVideoCard = {
   id: string;
   thumbnail_url: string;
   url: string;
@@ -32,7 +32,7 @@ export function mapProfileGridVideoRows(
   }));
 }
 
-export type ProfileRepostApiItem = {
+type ProfileRepostApiItem = {
   target_type: string;
   target_id: string;
   is_live?: boolean;

@@ -11,7 +11,7 @@ import {
   type SendGiftResult,
 } from '../../../lib/giftSend';
 
-export type SendLiveGiftArgs = {
+type SendLiveGiftArgs = {
   giftId: string;
   streamKey: string;
   channel: GiftChannel;

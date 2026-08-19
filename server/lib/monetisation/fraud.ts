@@ -6,7 +6,7 @@ import { createHash } from "crypto";
 import { getPool } from "../postgres";
 import { logger } from "../logger";
 
-export type FraudReasonCode =
+type FraudReasonCode =
   | "self_view"
   | "logged_out"
   | "watch_time"
@@ -32,7 +32,7 @@ export type FraudReasonCode =
   | "community_guidelines"
   | "unresolved_fraud";
 
-export type FraudReviewStatus =
+type FraudReviewStatus =
   | "open"
   | "under_review"
   | "cleared"
@@ -134,7 +134,7 @@ export async function isAccountInGoodStanding(userId: string): Promise<boolean> 
   return !(await hasUnresolvedFraudFlag(userId));
 }
 
-export function deviceFingerprint(input: {
+function deviceFingerprint(input: {
   userId?: string;
   ipHash?: string;
   userAgent?: string;
@@ -371,7 +371,7 @@ export async function evaluateCreatorEligibilityFlags(userId: string): Promise<{
   };
 }
 
-export async function openFraudReview(input: {
+async function openFraudReview(input: {
   userId: string;
   subjectType: string;
   subjectId: string;

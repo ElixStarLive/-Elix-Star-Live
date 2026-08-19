@@ -4,7 +4,7 @@
 
 import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
-export type LiveModerationWsHandlers = {
+type LiveModerationWsHandlers = {
   onWarning?: (data: unknown) => void;
 };
 

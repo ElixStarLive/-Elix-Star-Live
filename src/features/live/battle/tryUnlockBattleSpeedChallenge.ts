@@ -3,7 +3,7 @@
  * Controllers own score/rose/tap sources; this owns thresholds + multiplier pick.
  */
 
-export type TryUnlockBattleSpeedChallengeOpts = {
+type TryUnlockBattleSpeedChallengeOpts = {
   totalScore: number;
   flowers: number;
   taps: number;

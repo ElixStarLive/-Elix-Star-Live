@@ -7,7 +7,7 @@ import { getPool } from "./postgres";
 import { logger } from "./logger";
 import { isValkeyConfigured, valkeyDel } from "./valkey";
 
-export type ProfileViewRegisterResult = {
+type ProfileViewRegisterResult = {
   uniqueViews: number;
   /** True when this request created a new unique viewer row. */
   isNewUniqueView: boolean;
@@ -123,23 +123,5 @@ export async function registerProfileView(
   } catch (err) {
     logger.error({ err, viewer, owner }, "profileViews: registerProfileView failed");
     return null;
-  }
-}
-
-/** Public unique view count for a profile (source of truth for UI). */
-export async function getUniqueProfileViews(profileOwnerUserId: string): Promise<number> {
-  const owner = String(profileOwnerUserId || "").trim();
-  if (!owner) return 0;
-  const db = getPool();
-  if (!db) return 0;
-  try {
-    const res = await db.query(
-      `SELECT COALESCE(unique_profile_views, 0)::int AS c FROM profiles WHERE user_id = $1`,
-      [owner],
-    );
-    return Number(res.rows?.[0]?.c ?? 0) || 0;
-  } catch (err) {
-    logger.warn({ err, owner }, "profileViews: getUniqueProfileViews failed");
-    return 0;
   }
 }

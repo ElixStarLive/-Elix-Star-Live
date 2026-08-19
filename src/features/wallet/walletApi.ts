@@ -5,7 +5,7 @@
 
 import { request } from '../../lib/apiClient';
 
-export interface WalletBalances {
+interface WalletBalances {
   paid: number;
   starter: number;
   promotional: number;

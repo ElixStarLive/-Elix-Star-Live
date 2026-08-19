@@ -5,7 +5,7 @@
 import { reportFailure } from '../../../lib/reportFailure';
 import { apiLiveGetDailyHearts, apiLiveSendDailyHeart } from '../engagement/liveEngagementApi';
 
-export type SendLiveDailyMembershipHeartOutcome =
+type SendLiveDailyMembershipHeartOutcome =
   | { status: 'already_sent' }
   | { status: 'failed'; message: string }
   | { status: 'ok'; already: boolean };

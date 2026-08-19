@@ -306,7 +306,7 @@ async function endStaleLiveRows(
   }
 }
 
-export async function invalidateLiveStreamsListCache(): Promise<void> {
+async function invalidateLiveStreamsListCache(): Promise<void> {
   streamsMemFallback = null;
   await valkeyDel(STREAMS_HTTP_CACHE_KEY);
 }

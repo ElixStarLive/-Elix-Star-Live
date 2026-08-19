@@ -20,7 +20,7 @@ function formatClip(start: number, end: number) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export type SoundLibraryViewProps = {
+type SoundLibraryViewProps = {
   /** Featured track id (e.g. route songId). */
   featuredTrackId?: string | null;
   onBack: () => void;

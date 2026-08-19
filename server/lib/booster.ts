@@ -71,7 +71,7 @@ function boosterKey(roomId: string, userId: string): string {
   return `${BOOSTER_KEY_PREFIX}${roomId}:${userId}`;
 }
 
-export interface ActiveBooster {
+interface ActiveBooster {
   multiplier: number;
   expiresAt: number;
   /** How many gifts this window has already caught. */
@@ -166,7 +166,7 @@ function rollCatch(catchRate: number): boolean {
   return u < rate;
 }
 
-export interface CatchResult {
+interface CatchResult {
   hadBooster: boolean;
   caught: boolean;
   multiplier: number;

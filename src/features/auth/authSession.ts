@@ -13,7 +13,7 @@ import type { NormalizedAuthUser } from '../../lib/authApiContract';
  * to the store's own user interface at each call site, so the parse result was
  * discarded and re-guessed four times over.
  */
-export type AuthLoginResult =
+type AuthLoginResult =
   | {
       ok: true;
       kind: 'session';
@@ -25,9 +25,9 @@ export type AuthLoginResult =
   | { ok: true; kind: 'email_confirm'; raw: unknown }
   | { ok: false; error: string };
 
-export type AuthSimpleResult = { ok: true } | { ok: false; error: string };
+type AuthSimpleResult = { ok: true } | { ok: false; error: string };
 
-export type AuthMeResult =
+type AuthMeResult =
   | {
       ok: true;
       accessToken: string;

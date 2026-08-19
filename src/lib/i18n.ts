@@ -10,7 +10,7 @@ import { useCallback } from 'react';
 import { languageShortCode, WORLD_LANGUAGES, type LanguageCode } from './languages';
 import { useSettingsStore, type AppLanguage } from '../store/useSettingsStore';
 
-export type Lang = AppLanguage;
+type Lang = AppLanguage;
 
 export const LANGUAGES = WORLD_LANGUAGES;
 

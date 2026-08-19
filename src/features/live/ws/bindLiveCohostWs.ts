@@ -5,7 +5,7 @@
 import { LIVE_WS_IN } from '../../../lib/live';
 import { bindLiveWsEventPairs, type LiveWsEventPair } from './bindLiveWsEventPairs';
 
-export type LiveCohostWsHandlers = {
+type LiveCohostWsHandlers = {
   onInvite?: (data: unknown) => void;
   onInviteAck?: (data: unknown) => void;
   onInviteAccepted?: (data: unknown) => void;

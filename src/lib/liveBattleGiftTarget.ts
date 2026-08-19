@@ -62,7 +62,7 @@ export function resolveServerBattleGiftTarget(
   return null;
 }
 
-export type BattleCreatorIds = {
+type BattleCreatorIds = {
   hostUserId?: string | null;
   opponentUserId?: string | null;
   player3UserId?: string | null;

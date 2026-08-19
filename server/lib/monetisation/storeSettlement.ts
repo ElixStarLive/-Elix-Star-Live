@@ -21,7 +21,7 @@ import { reverseLedgerEntry } from "./ledger";
 import { loadMembershipPriceConfig } from "../googlePlaySubscriptions";
 import { moneyPartsToGbpPence } from "./moneyMath";
 
-export type VerifiedPrice = {
+type VerifiedPrice = {
   grossPence: number;
   currency: string;
   source: "apple_jws_price" | "google_inapp_list_price" | "catalog_gbp" | "promote_catalog";
@@ -115,7 +115,7 @@ export async function resolveCoinPurchaseVerifiedPrice(input: {
   };
 }
 
-export function membershipGrossPenceFromConfig(): number {
+function membershipGrossPenceFromConfig(): number {
   const price = loadMembershipPriceConfig();
   const gbp = price.regions.find((r) => r.regionCode === "GB" || r.regionCode === "UK")?.price;
   if (!gbp) return gbpStringToPence(process.env.CREATOR_MEMBERSHIP_PRICE_GBP || "9.99");

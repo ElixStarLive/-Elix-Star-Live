@@ -24,7 +24,7 @@ export type LivePaidGiftWalletUiArgs = {
   showToast: (message: string) => void;
 };
 
-export type ApplyLivePaidGiftSuccessEffectsArgs = LivePaidGiftWalletUiArgs & {
+type ApplyLivePaidGiftSuccessEffectsArgs = LivePaidGiftWalletUiArgs & {
   result: SendGiftResult;
   /** Banner + optional liveChatSend — role-specific identity. */
   onLeveledUp?: (newLevel: number) => void;

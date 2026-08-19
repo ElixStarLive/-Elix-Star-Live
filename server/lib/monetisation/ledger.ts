@@ -8,7 +8,7 @@ import { getPool } from "../postgres";
 import { logger } from "../logger";
 import { assertNonNegInt } from "./moneyMath";
 
-export type RevenueSource =
+type RevenueSource =
   | "PAID_GIFT"
   | "CREATOR_SUBSCRIPTION"
   | "CREATOR_REWARD"
@@ -20,7 +20,7 @@ export type RevenueSource =
   | "PAYOUT_FAILURE"
   | "PAYOUT_REVERSAL";
 
-export type LedgerStatus =
+type LedgerStatus =
   | "pending"
   | "available"
   | "paid"
@@ -28,7 +28,7 @@ export type LedgerStatus =
   | "held"
   | "awaiting_settlement";
 
-export type LedgerPostInput = {
+type LedgerPostInput = {
   idempotencyKey: string;
   revenueSource: RevenueSource;
   creatorUserId?: string | null;

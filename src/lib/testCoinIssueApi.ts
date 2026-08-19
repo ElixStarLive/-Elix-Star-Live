@@ -6,7 +6,7 @@
 import { request } from "./apiClient";
 import { persistTestCoinsBalance } from "./testCoins";
 
-export type TestCoinIssueResult =
+type TestCoinIssueResult =
   | { ok: true; balance: number; minted: number }
   | { ok: false; status: number; error: string };
 

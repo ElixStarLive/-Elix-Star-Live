@@ -8,7 +8,7 @@ import { logger } from "./logger";
 
 export const GIFTS_CATALOG_KEY = "elix:http:gifts_catalog:v4";
 export const COIN_PACKAGES_KEY = "elix:http:coin_packages";
-export const PROFILES_LIST_EPOCH_KEY = "elix:profiles:list:epoch";
+const PROFILES_LIST_EPOCH_KEY = "elix:profiles:list:epoch";
 
 /** Gifts / coin packages JSON blobs — short TTL; reduces DB under concurrent GETs. */
 export const CATALOG_HTTP_CACHE_TTL_MS = Math.min(
