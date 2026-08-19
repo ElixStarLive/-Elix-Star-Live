@@ -27,6 +27,18 @@ const LOCALHOST_REVIEWED: Record<string, string> = {
   "store/useAuthStore.ts": "dev-only wording for an unreachable backend",
 };
 
+/**
+ * Reviewed `window.location.origin` readers. In the native shell that origin is
+ * `http://localhost` (Android) / `capacitor://localhost` (iOS), so a shareable
+ * link built from it is unopenable for whoever receives it. Everything that
+ * produces a link leaving the app must use `getPublicWebOrigin()` instead.
+ */
+const PAGE_ORIGIN_REVIEWED: Record<string, string> = {
+  "lib/api.ts": "getPublicWebOrigin itself — the browser branch",
+  "main.tsx": "resolves a bundled asset, which lives on the WebView origin",
+  "lib/notifications.ts": "same-origin check for internal action URLs",
+};
+
 const reviewedPath = (relative: string) => relative.split(sep).join("/");
 
 function collectSourceFiles(root: string): string[] {
@@ -97,6 +109,22 @@ describe("production source contains no debug instrumentation", () => {
       const source = readFileSync(join(SRC_ROOT, ...relative.split("/")), "utf8");
       return !source.includes("127.0.0.1") && !source.includes("//localhost");
     });
+    expect(stale).toEqual([]);
+  });
+
+  it("only reads the page origin in reviewed places", () => {
+    const offenders = clientFiles
+      .filter((file) => readFileSync(file, "utf8").includes("location.origin"))
+      .map((file) => reviewedPath(file.slice(SRC_ROOT.length + 1)))
+      .filter((relative) => !(relative in PAGE_ORIGIN_REVIEWED));
+    expect(offenders).toEqual([]);
+  });
+
+  it("keeps the page-origin reviewed list honest — no stale entries", () => {
+    const stale = Object.keys(PAGE_ORIGIN_REVIEWED).filter(
+      (relative) =>
+        !readFileSync(join(SRC_ROOT, ...relative.split("/")), "utf8").includes("location.origin"),
+    );
     expect(stale).toEqual([]);
   });
 

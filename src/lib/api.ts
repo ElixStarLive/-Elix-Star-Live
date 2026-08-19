@@ -60,6 +60,21 @@ export function getApiBase(): string {
   return "";
 }
 
+/**
+ * Public origin for links that leave the app: share sheets, DM'd links, copy link.
+ * The native WebView is served from http://localhost (Android) / capacitor://localhost
+ * (iOS), so window.location.origin there builds a link nobody off the phone can open.
+ * On the web the current origin is already the public one.
+ */
+export function getPublicWebOrigin(): string {
+  if (Capacitor.isNativePlatform()) {
+    // Native getApiBase() always resolves to an absolute production origin.
+    return getApiBase();
+  }
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return origin || APP_PRODUCTION_ORIGIN;
+}
+
 export function getLiveKitUrl(): string {
   const raw = (import.meta.env.VITE_LIVEKIT_URL ?? env?.VITE_LIVEKIT_URL ?? '').toString().trim();
   return normalizeLiveKitSignalUrl(raw);

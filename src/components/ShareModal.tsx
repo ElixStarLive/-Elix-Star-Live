@@ -26,6 +26,7 @@ import {
   SHARE_PANEL_ITEM_WIDTH_PX,
 } from '../lib/sharePanelContacts';
 import { openExternalLink, nativeShareUrl } from '../lib/platform';
+import { getPublicWebOrigin } from '../lib/api';
 import { showToast } from '../lib/toast';
 import { trackShare } from '../features/feed/feedApi';
 import { sendDmToUser } from '../lib/chatMessages';
@@ -92,7 +93,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
 
   const sendShareTo = async (targetUserId: string) => {
     if (!user?.id || sentTo.has(targetUserId)) return;
-    const shareUrl = `${window.location.origin}/video/${video.id}`;
+    const shareUrl = `${getPublicWebOrigin()}/video/${video.id}`;
     const msgText = `Check out this video by @${video.user.username}: ${shareUrl}`;
     const { message, error } = await sendDmToUser(targetUserId, msgText);
     if (!message) {
@@ -103,7 +104,7 @@ export default function ShareModal({ isOpen, onClose, video, onReport, onJoin: _
     void trackShare(video.id, 'direct');
   };
 
-  const videoUrl = `${window.location.origin}/video/${video.id}`;
+  const videoUrl = `${getPublicWebOrigin()}/video/${video.id}`;
   const shareText = `Check out this amazing video by @${video.user.username}: ${video.description}`;
 
   const handleCopyLink = async () => {

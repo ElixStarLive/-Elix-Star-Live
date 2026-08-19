@@ -38,6 +38,7 @@ import { resolveLiveProfileReturnPath } from '../lib/live/liveProfileNav';
 import { getVideoPosterUrl, resolveGridThumbnailUrl, resolveVideoPlaybackUrl } from '../lib/bunnyStorage';
 import { mapProfileGridVideoRows, mapProfileRepostItemsToGrid } from '../lib/mapProfileGridVideoRows';
 import { openExternalLink } from '../lib/platform';
+import { getPublicWebOrigin } from '../lib/api';
 import { fetchActiveStories, type StoryUserGroup } from '../lib/storiesApi';
 import { subscribeVideoCollection } from '../lib/videoCollectionEvents';
 import { apiRisingStarsUserBadges } from '../features/risingStars/risingStarsApi';
@@ -265,7 +266,7 @@ export default function Profile() {
 
   const sendShareTo = async (targetUserId: string) => {
     if (!user?.id || shareSent.has(targetUserId)) return;
-    const profileUrl = `${window.location.origin}/profile/${effectiveUserId}`;
+    const profileUrl = `${getPublicWebOrigin()}/profile/${effectiveUserId}`;
     const msgText = `Check out this profile: ${displayName} ${profileUrl}`;
     const { message, error } = await sendDmToUser(targetUserId, msgText);
     if (!message) {
@@ -953,10 +954,10 @@ export default function Profile() {
 
               <div className="grid grid-cols-5 gap-y-3 gap-x-1.5 px-1">
                 {[
-                  { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${window.location.origin}/profile/${displayUserId}`)}`) },
-                  { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
-                  { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${window.location.origin}/profile/${displayUserId}`)}`) },
-                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${window.location.origin}/profile/${displayUserId}`).then(() => showToast('Profile link copied!')).catch(() => showToast('Could not copy link')); } },
+                  { name: 'WhatsApp', icon: <MessageCircle size={22} className="text-white" />, action: () => openExternalLink(`https://wa.me/?text=${encodeURIComponent(`Check out ${displayName}'s profile on Elix! ${getPublicWebOrigin()}/profile/${displayUserId}`)}`) },
+                  { name: 'Facebook', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${getPublicWebOrigin()}/profile/${displayUserId}`)}`) },
+                  { name: 'Twitter', icon: <Share2 size={22} className="text-white" />, action: () => openExternalLink(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${displayName} on Elix!`)}&url=${encodeURIComponent(`${getPublicWebOrigin()}/profile/${displayUserId}`)}`) },
+                  { name: 'Copy Link', icon: <Copy size={22} className="text-white" />, action: () => { navigator.clipboard.writeText(`${getPublicWebOrigin()}/profile/${displayUserId}`).then(() => showToast('Profile link copied!')).catch(() => showToast('Could not copy link')); } },
                   { name: 'Promote', icon: <TrendingUp size={22} className="text-white" />, action: () => { setShowSharePanel(false); setShowPromotePanel(true); } },
                   { name: 'Report', icon: <Flag size={22} className="text-white/60" />, isRed: true, action: () => { setShowSharePanel(false); setShowReportModal(true); } },
                 ].map((item) => (
@@ -1065,7 +1066,7 @@ export default function Profile() {
                   return;
                 }
                 void navigator.clipboard
-                  .writeText(`${window.location.origin}/profile/${id}`)
+                  .writeText(`${getPublicWebOrigin()}/profile/${id}`)
                   .then(() => showToast('Profile link copied!'))
                   .catch(() => showToast('Could not copy link'));
               }}

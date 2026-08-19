@@ -59,7 +59,7 @@ import { LIVE_MVP_PROFILE_RING_PX } from '../../../lib/profileFrame';
 import { resolveUiAvatarUrl, ELIX_LOGO } from '../../../lib/royceAssets';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { useVideoStore } from '../../../store/useVideoStore';
-import { apiUrl, getLiveKitUrl } from '../../../lib/api';
+import { apiUrl, getLiveKitUrl, getPublicWebOrigin } from '../../../lib/api';
 import { useLiveCamera } from '../hooks/useLiveCamera';
 import {
   apiLiveEnd,
@@ -4856,19 +4856,19 @@ export function useLiveHostController() {
   }, [effectiveStreamId]);
 
   const shareWhatsApp = useCallback(() => {
-    openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${window.location.origin}/live/${effectiveStreamId}`)}`);
+    openExternalLink(`https://wa.me/?text=${encodeURIComponent('Watch my LIVE on Elix! ' + `${getPublicWebOrigin()}/live/${effectiveStreamId}`)}`);
     recordLiveShareProgress();
     setShowSharePanel(false);
   }, [effectiveStreamId, recordLiveShareProgress]);
 
   const shareFacebook = useCallback(() => {
-    openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${window.location.origin}/live/${effectiveStreamId}`)}`);
+    openExternalLink(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(`${getPublicWebOrigin()}/live/${effectiveStreamId}`)}`);
     recordLiveShareProgress();
     setShowSharePanel(false);
   }, [effectiveStreamId, recordLiveShareProgress]);
 
   const shareCopyLink = useCallback(() => {
-    navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk'}/live/${effectiveStreamId}`);
+    navigator.clipboard.writeText(`${getPublicWebOrigin()}/live/${effectiveStreamId}`);
     recordLiveShareProgress();
     showToast('Link copied!');
     setShowSharePanel(false);
@@ -5379,8 +5379,7 @@ export function useLiveHostController() {
       showToast('Could not share profile. Try again.');
       return;
     }
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.elixstarlive.co.uk';
-    const profileUrl = `${origin}/profile/${encodeURIComponent(profileSlug)}`;
+    const profileUrl = `${getPublicWebOrigin()}/profile/${encodeURIComponent(profileSlug)}`;
     const bioSnippet = miniProfile.bio ? ` - ${miniProfile.bio}` : '';
     const ok = await nativeShareUrl({
       title: `Check out ${username}'s profile`,
