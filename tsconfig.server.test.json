@@ -1,0 +1,17 @@
+{
+  // Server test files were excluded from tsconfig.server.json and matched by no
+  // other project, so nothing compiled them: vitest transpiles without checking
+  // types. Contract drift then sat there silently — tests asserting fields the
+  // result type does not have, and a call passing an argument the function no
+  // longer takes. Same compiler options as the server, plus vitest's globals.
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "types": ["node", "vitest/globals"]
+  },
+  // The whole server tree, not just the test files: `req.auth` and `req.authContext`
+  // come from `declare global` blocks in the middleware, and a test-only program
+  // picks those up only when something imports them. Checking tests against the
+  // same program the server uses is what makes the result meaningful.
+  "include": ["server/**/*.ts"],
+  "exclude": ["node_modules"]
+}

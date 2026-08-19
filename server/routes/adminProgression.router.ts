@@ -314,7 +314,7 @@ router.patch(
         adminUserId,
       });
       if (!mission) return res.status(404).json({ error: "MISSION_NOT_FOUND" });
-      let meta = null;
+      let meta: Awaited<ReturnType<typeof upsertMissionAdminMeta>> = null;
       if (
         audience !== undefined ||
         starts_at !== undefined ||

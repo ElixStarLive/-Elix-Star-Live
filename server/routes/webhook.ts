@@ -10,9 +10,21 @@ if (!stripeSecretKey) {
   logger.warn("[stripe-webhook] STRIPE_SECRET_KEY is not set in server environment");
 }
 
-const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as unknown as Stripe.LatestApiVersion })
-  : (null as unknown as Stripe);
+/**
+ * Null when STRIPE_SECRET_KEY is absent — typed that way so a caller cannot reach
+ * the client without checking, which the previous `null as unknown as Stripe` cast
+ * allowed while claiming the client always existed.
+ *
+ * The apiVersion cast stays: this integration is deliberately pinned to the account's
+ * `2025-01-27.acacia` version, while the installed SDK's `LatestApiVersion` type only
+ * admits the version it ships for. Pinning an older version is supported by Stripe;
+ * only the literal type is too narrow to say so.
+ */
+const stripe: Stripe | null = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: "2025-01-27.acacia" as unknown as Stripe.LatestApiVersion,
+    })
+  : null;
 
 /** Prefer dedicated test webhook secret when Connect/test mode is forced; otherwise live. */
 function resolveStripeWebhookSecret(): string {
@@ -63,7 +75,9 @@ export async function handleStripeWebhook(req: Request, res: Response) {
   const sig = req.headers["stripe-signature"] as string | undefined;
   const secrets = await webhookSecretsToTry();
 
-  let event: Stripe.Event;
+  // Starts unset instead of a null cast pretending to be a verified event, so a
+  // path that failed to produce one cannot be processed as though it had.
+  let event: Stripe.Event | null = null;
 
   try {
     if (!stripe) {
@@ -78,7 +92,6 @@ export async function handleStripeWebhook(req: Request, res: Response) {
         return res.status(400).json({ error: "Missing signature or webhook secret" });
       }
       let lastErr: unknown;
-      event = null as unknown as Stripe.Event;
       for (const webhookSecret of secrets) {
         try {
           event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
@@ -94,7 +107,6 @@ export async function handleStripeWebhook(req: Request, res: Response) {
     } else {
       if (sig && secrets.length > 0) {
         let lastErr: unknown;
-        event = null as unknown as Stripe.Event;
         for (const webhookSecret of secrets) {
           try {
             event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
@@ -117,6 +129,13 @@ export async function handleStripeWebhook(req: Request, res: Response) {
     }
   } catch (err) {
     logger.error({ err }, "Webhook signature verification failed");
+    return res.status(400).json({ error: "Invalid signature" });
+  }
+
+  if (!event) {
+    // Every branch above either assigns a verified event or throws into the catch.
+    // Refusing here keeps that guarantee enforced rather than assumed.
+    logger.error("[stripe-webhook] no event produced by verification");
     return res.status(400).json({ error: "Invalid signature" });
   }
 

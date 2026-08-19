@@ -107,7 +107,10 @@ type FeedVideo = {
     shares: number;
     saves: number;
   };
-  createdAt: string | Date;
+  /** `videos.created_at` is nullable (TIMESTAMPTZ DEFAULT NOW(), no NOT NULL), and the
+   *  feed queries order it `NULLS LAST`, so a row genuinely can carry no timestamp.
+   *  The client already treats it as optional and substitutes its own value. */
+  createdAt: string | Date | null;
   location: string;
   isLiked: boolean;
   isSaved: boolean;
@@ -253,7 +256,7 @@ function formatVideoForClient(
       : null;
   return {
     id: v.id,
-    url: v.url || v.video_url,
+    url: v.url || v.video_url || "",
     thumbnail: v.thumbnail || v.thumbnail_url || v.thumb_url || "",
     duration: formatDurationSeconds(v.duration_seconds ?? v.duration),
     user: {
@@ -278,7 +281,7 @@ function formatVideoForClient(
       shares: v.shares ?? v.shares_count ?? 0,
       saves: v.saves ?? 0,
     },
-    createdAt: v.created_at,
+    createdAt: v.created_at ?? null,
     location: locationLabel,
     isLiked: likedSet.has(v.id),
     isSaved: false,

@@ -414,15 +414,18 @@ async function getOrCreateProfileAsync(userId: string, seed?: Partial<Profile>):
       const realAvatar = (authUser.avatar_url?.trim()) || "";
 
       if (profile) {
-        if (realUsername && isFallbackName(profile.username)) profile.username = realUsername;
-        if (realDisplayName && isFallbackName(profile.displayName)) profile.displayName = realDisplayName;
-        if (realAvatar && profile.avatarUrl.includes("ui-avatars")) profile.avatarUrl = realAvatar;
-        profile.updatedAt = new Date().toISOString();
-        saveProfileToDb(profile).catch((err) => {
-          logger.warn({ err, userId: profile.userId }, "getOrCreateProfileAsync: saveProfileToDb failed");
+        // Bound once so the async logger below reads the profile this block proved
+        // exists, rather than whatever the outer `let` holds by the time it runs.
+        const existing = profile;
+        if (realUsername && isFallbackName(existing.username)) existing.username = realUsername;
+        if (realDisplayName && isFallbackName(existing.displayName)) existing.displayName = realDisplayName;
+        if (realAvatar && existing.avatarUrl.includes("ui-avatars")) existing.avatarUrl = realAvatar;
+        existing.updatedAt = new Date().toISOString();
+        saveProfileToDb(existing).catch((err) => {
+          logger.warn({ err, userId: existing.userId }, "getOrCreateProfileAsync: saveProfileToDb failed");
         });
-        await setCachedProfile(profile);
-        return profile;
+        await setCachedProfile(existing);
+        return existing;
       }
 
       profile = await getOrCreateProfile(userId, {
@@ -866,13 +869,15 @@ export async function handlePatchProfile(req: Request, res: Response): Promise<v
     }
   }
 
-  const allowed = ["username", "displayName", "avatarUrl", "bio", "website"] as const;
-  for (const key of allowed) {
-    const val = body[key];
-    if (val !== undefined) {
-      (profile as unknown as Record<string, unknown>)[key] = val;
-    }
-  }
+  // Assigned field by field against the Profile type. Writing through an untyped
+  // record let anything the validation above did not type-check land in a string
+  // column — `avatarUrl` is only inspected when it is a string, so a numeric one
+  // used to be stored and persisted as-is.
+  if (typeof body["username"] === "string") profile.username = body["username"];
+  if (typeof body["displayName"] === "string") profile.displayName = body["displayName"];
+  if (typeof body["avatarUrl"] === "string") profile.avatarUrl = body["avatarUrl"];
+  if (typeof body["bio"] === "string") profile.bio = body["bio"];
+  if (typeof body["website"] === "string") profile.website = body["website"];
   profile.updatedAt = new Date().toISOString();
 
   try {

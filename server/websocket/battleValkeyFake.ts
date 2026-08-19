@@ -101,9 +101,12 @@ export const valkeyFake = {
     strings.set(key, value);
     return true;
   },
+  // The TTL arguments are accepted because production passes them; this store does
+  // not model expiry, and no battle test depends on a key ageing out.
   valkeyTrySet: async (
     key: string,
     value: string,
+    _ttlMs?: number,
   ): Promise<"ok" | "unavailable"> => {
     if (!stringsWritable) return "unavailable";
     strings.set(key, value);
@@ -112,6 +115,7 @@ export const valkeyFake = {
   valkeyTrySetNx: async (
     key: string,
     value: string,
+    _ttlMs?: number,
   ): Promise<"set" | "exists" | "unavailable"> => {
     if (!locksAvailable) return "unavailable";
     if (strings.has(key)) return "exists";
@@ -121,10 +125,16 @@ export const valkeyFake = {
   valkeyReleaseLock: async (key: string, token: string): Promise<void> => {
     if (strings.get(key) === token) strings.delete(key);
   },
-  valkeySadd: async (key: string, member: string): Promise<void> => {
+  // SADD/SREM report how many members actually changed, as the real helpers do.
+  valkeySadd: async (key: string, ...members: string[]): Promise<number> => {
     const set = sets.get(key) ?? new Set<string>();
-    set.add(member);
+    let added = 0;
+    for (const member of members) {
+      if (!set.has(member)) added += 1;
+      set.add(member);
+    }
     sets.set(key, set);
+    return added;
   },
   valkeyTrySadd: async (
     key: string,
@@ -136,8 +146,14 @@ export const valkeyFake = {
     sets.set(key, set);
     return "ok";
   },
-  valkeySrem: async (key: string, member: string): Promise<void> => {
-    sets.get(key)?.delete(member);
+  valkeySrem: async (key: string, ...members: string[]): Promise<number> => {
+    const set = sets.get(key);
+    if (!set) return 0;
+    let removed = 0;
+    for (const member of members) {
+      if (set.delete(member)) removed += 1;
+    }
+    return removed;
   },
   valkeySmembers: async (key: string): Promise<string[]> => [
     ...(sets.get(key) ?? []),
@@ -208,4 +224,7 @@ export const valkeyFake = {
     return { status: "ok", value };
   },
   valkeyExpire: async (): Promise<void> => {},
-};
+  // Checked against the module this stands in for: a helper whose real signature or
+  // result union changes can no longer leave the double behind, which is how the
+  // outbox TTL argument came to be silently dropped here.
+} satisfies Partial<typeof import("../lib/valkey")>;

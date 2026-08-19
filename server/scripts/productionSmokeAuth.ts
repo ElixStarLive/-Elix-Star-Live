@@ -19,7 +19,7 @@
  *   SMOKE_BASE_URL (default https://www.elixstarlive.co.uk)
  *   SMOKE_EXPECT_COMMIT (optional prefix; empty = any non-empty commit)
  */
-import "../config.ts";
+import "../config";
 
 const BASE = (process.env.SMOKE_BASE_URL || "https://www.elixstarlive.co.uk").replace(
   /\/$/,

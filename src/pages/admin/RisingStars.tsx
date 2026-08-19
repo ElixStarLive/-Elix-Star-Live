@@ -102,9 +102,7 @@ export default function AdminRisingStars() {
   const createSeason = async () => {
     setBusy(true);
     try {
-      const { error } = await apiAdminRisingStarsCreateSeason(
-        seasonForm as unknown as Record<string, unknown>,
-      );
+      const { error } = await apiAdminRisingStarsCreateSeason(seasonForm);
       if (error) {
         showToast(error);
         return;

@@ -214,7 +214,10 @@ async function seatCohostPublish(
       seats: withdrawn.status === "applied" ? withdrawn.seats : [],
       featuredUserId:
         withdrawn.status === "applied" ? withdrawn.featuredUserId : null,
-      layoutId: withdrawn.status === "applied" ? withdrawn.layoutId : undefined,
+      // The seat store carries "no layout" as null; the wire contract omits the
+      // field instead, so normalize here rather than leaking null into `string?`.
+      layoutId:
+        withdrawn.status === "applied" ? (withdrawn.layoutId ?? undefined) : undefined,
     },
   };
 }

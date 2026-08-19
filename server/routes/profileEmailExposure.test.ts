@@ -12,8 +12,17 @@ import type { Request, Response } from "express";
  * own full address.
  */
 
+/** What the route reads back off a query — declared so the per-test
+ *  implementations below are checked against the same shape. */
+type QueryResultLike = { rows: Record<string, unknown>[]; rowCount: number };
+
 const pool = {
-  query: vi.fn(async () => ({ rows: [{ c: 0 }], rowCount: 1 })),
+  query: vi.fn(
+    async (_sql: string, _params?: unknown[]): Promise<QueryResultLike> => ({
+      rows: [{ c: 0 }],
+      rowCount: 1,
+    }),
+  ),
 };
 
 vi.mock("../lib/postgres", () => ({

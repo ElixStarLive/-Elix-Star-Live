@@ -8,13 +8,48 @@ import { useCallStore } from "../store/useCallStore";
 import type { CallParticipant } from "../store/useCallStore";
 
 /**
- * Call events are dynamic and not part of the typed WebSocketEvent union,
- * so we access on/off through this narrow generic emitter shape.
+ * What the server actually relays for 1:1 call signalling
+ * (`call_invite` / `call_accepted` / `call_rejected` / `call_ended` in
+ * server/websocket/handlers.ts). Every one of them carries `callId`; only the
+ * invite carries the caller's identity, and `call_rejected` arrives in two forms —
+ * the relayed decline, and a `{ callId, reason: "blocked" }` refusal from the
+ * server itself — so only `callId` may be relied on there.
+ *
+ * These arrive off a socket, so they are read as `unknown` and narrowed below
+ * rather than asserted: a malformed frame must not reach the call store.
  */
-type DynamicEmitter = {
-  on<T>(event: string, handler: (data: T) => void): void;
-  off<T>(event: string, handler: (data: T) => void): void;
+type CallSignal = { callId: string };
+
+type CallInviteSignal = CallSignal & {
+  callerId: string;
+  callerUsername: string;
+  callerAvatar: string;
 };
+
+function readCallSignal(data: unknown): CallSignal | null {
+  if (!data || typeof data !== "object") return null;
+  const { callId } = data as { callId?: unknown };
+  return typeof callId === "string" && callId ? { callId } : null;
+}
+
+function readCallInvite(data: unknown): CallInviteSignal | null {
+  const base = readCallSignal(data);
+  if (!base) return null;
+  const raw = data as {
+    callerId?: unknown;
+    callerUsername?: unknown;
+    callerAvatar?: unknown;
+  };
+  if (typeof raw.callerId !== "string" || !raw.callerId) return null;
+  return {
+    callId: base.callId,
+    callerId: raw.callerId,
+    // The server substitutes its own values for these before relaying, so an
+    // absent one means a malformed frame, not a nameless caller.
+    callerUsername: typeof raw.callerUsername === "string" ? raw.callerUsername : "",
+    callerAvatar: typeof raw.callerAvatar === "string" ? raw.callerAvatar : "",
+  };
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -131,59 +166,59 @@ export function subscribeToIncomingCalls(userId: string): () => void {
   // Guard: only subscribe if WS is connected for this user
   if (!userId) return () => {};
 
-  const handleInvite = (data: {
-    callId: string;
-    callerId: string;
-    callerUsername: string;
-    callerAvatar: string;
-  }) => {
+  const handleInvite = (data: unknown) => {
+    const invite = readCallInvite(data);
+    if (!invite) return;
+
     // Ignore calls not addressed to this user (server should filter, but double-check)
     const currentUser = getCurrentUser();
     if (!currentUser || currentUser.id !== userId) return;
 
     const caller: CallParticipant = {
-      id: data.callerId,
-      username: data.callerUsername,
-      avatar: data.callerAvatar,
+      id: invite.callerId,
+      username: invite.callerUsername,
+      avatar: invite.callerAvatar,
     };
 
-    useCallStore.getState().receiveIncomingCall(data.callId, caller);
+    useCallStore.getState().receiveIncomingCall(invite.callId, caller);
   };
 
-  const handleRemoteAccepted = (data: { callId: string }) => {
+  const handleRemoteAccepted = (data: unknown) => {
+    const signal = readCallSignal(data);
     const store = useCallStore.getState();
-    if (store.callId === data.callId) {
+    if (signal && store.callId === signal.callId) {
       store.setStatus("connected");
     }
   };
 
-  const handleRemoteRejected = (data: { callId: string }) => {
+  const handleRemoteRejected = (data: unknown) => {
+    const signal = readCallSignal(data);
     const store = useCallStore.getState();
-    if (store.callId === data.callId) {
+    if (signal && store.callId === signal.callId) {
       store.reset();
     }
   };
 
-  const handleRemoteEnded = (data: { callId: string }) => {
+  const handleRemoteEnded = (data: unknown) => {
+    const signal = readCallSignal(data);
     const store = useCallStore.getState();
-    if (store.callId === data.callId) {
+    if (signal && store.callId === signal.callId) {
       store.reset();
     }
   };
 
-  // Register WebSocket event listeners
-  // These events are defined in websocket.ts WebSocketEvent union — cast as any
-  // since call events are dynamic and handled here directly.
-  (websocket as unknown as DynamicEmitter).on("call_invite", handleInvite);
-  (websocket as unknown as DynamicEmitter).on("call_accepted", handleRemoteAccepted);
-  (websocket as unknown as DynamicEmitter).on("call_rejected", handleRemoteRejected);
-  (websocket as unknown as DynamicEmitter).on("call_ended", handleRemoteEnded);
+  // Register WebSocket event listeners. `on`/`off` already accept these names, so
+  // the handlers take the frame as it arrives and narrow it themselves.
+  websocket.on("call_invite", handleInvite);
+  websocket.on("call_accepted", handleRemoteAccepted);
+  websocket.on("call_rejected", handleRemoteRejected);
+  websocket.on("call_ended", handleRemoteEnded);
 
   // Return cleanup function
   return () => {
-    (websocket as unknown as DynamicEmitter).off("call_invite", handleInvite);
-    (websocket as unknown as DynamicEmitter).off("call_accepted", handleRemoteAccepted);
-    (websocket as unknown as DynamicEmitter).off("call_rejected", handleRemoteRejected);
-    (websocket as unknown as DynamicEmitter).off("call_ended", handleRemoteEnded);
+    websocket.off("call_invite", handleInvite);
+    websocket.off("call_accepted", handleRemoteAccepted);
+    websocket.off("call_rejected", handleRemoteRejected);
+    websocket.off("call_ended", handleRemoteEnded);
   };
 }

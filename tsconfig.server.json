@@ -8,6 +8,12 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": false,
+    // Without this, TypeScript cannot narrow the `{ ok: true } | { ok: false; error }`
+    // result unions the money, Google and Apple verification paths are built on — a
+    // caller that checked `if (!r.ok)` still could not read `r.error`, and `null`
+    // flowed freely into fields declared non-null. On it is what makes those unions
+    // mean anything.
+    "strictNullChecks": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
@@ -17,7 +23,10 @@
   "include": ["server/**/*.ts"],
   "exclude": [
     "node_modules",
-    "server/**/*.test.ts",
-    "server/scripts/**"
+    // Test files are checked by tsconfig.server.test.json, which adds vitest's
+    // globals. `server/scripts/**` used to sit here too: those scripts are release
+    // tooling (`npm run migrate:status`, `npm run smoke:prod:auth`, both run in the
+    // production container), and excluding them meant nothing ever compiled them.
+    "server/**/*.test.ts"
   ]
 }

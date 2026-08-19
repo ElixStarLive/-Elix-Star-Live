@@ -1,6 +1,6 @@
-import "../config.ts";
+import "../config";
 import pg from "pg";
-import { normalizeDatabaseUrl } from "../lib/databaseUrl.ts";
+import { normalizeDatabaseUrl } from "../lib/databaseUrl";
 
 const url = normalizeDatabaseUrl((process.env.DATABASE_URL || "").trim());
 const needsSsl = url.includes("neon.tech") || url.includes("sslmode=require");

@@ -5,13 +5,20 @@
 
 import { request } from '../../lib/apiClient';
 import { parseAuthLoginRegisterResponse } from '../../lib/authApiContract';
+import type { NormalizedAuthUser } from '../../lib/authApiContract';
 
+/**
+ * `user` carries the type `parseAuthLoginRegisterResponse` already validated it
+ * into. It used to be widened to `Record<string, unknown>` here and asserted back
+ * to the store's own user interface at each call site, so the parse result was
+ * discarded and re-guessed four times over.
+ */
 export type AuthLoginResult =
   | {
       ok: true;
       kind: 'session';
       accessToken: string;
-      user: Record<string, unknown>;
+      user: NormalizedAuthUser;
       profileMeta?: unknown;
       raw: unknown;
     }
@@ -24,7 +31,7 @@ export type AuthMeResult =
   | {
       ok: true;
       accessToken: string;
-      user: Record<string, unknown>;
+      user: NormalizedAuthUser;
       profileMeta?: unknown;
       raw: unknown;
     }
@@ -48,7 +55,7 @@ function sessionFromParsedAuthData(
     ok: true,
     kind: 'session',
     accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
+    user: parsed.user,
     ...(includeProfileMeta
       ? { profileMeta: (data as { profile_meta?: unknown })?.profile_meta }
       : {}),
@@ -133,7 +140,7 @@ export async function authGetMe(): Promise<AuthMeResult> {
   return {
     ok: true,
     accessToken: parsed.accessToken,
-    user: parsed.user as Record<string, unknown>,
+    user: parsed.user,
     profileMeta: (data as { profile_meta?: unknown })?.profile_meta,
     raw: data,
   };

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Request, Response } from "express";
+import type { CreateTokenOptions } from "../services/livekit";
 
 /**
  * Who may publish is decided by the server, on the token.
@@ -21,8 +22,11 @@ const livekit = {
   roomHasActivePublisher: vi.fn(async () => true),
   isUserPublishingInRoom: vi.fn(async () => true),
   // The route rejects anything too short to be a real JWT, so this stands in for
-  // one at plausible length.
-  createLiveToken: vi.fn(async () => `signed.${"x".repeat(80)}.jwt`),
+  // one at plausible length. Typed with the real options so the assertions below
+  // read the grants the route actually asked for.
+  createLiveToken: vi.fn(
+    async (_options: CreateTokenOptions) => `signed.${"x".repeat(80)}.jwt`,
+  ),
   getLiveKitUrl: vi.fn(() => "wss://example.livekit.cloud"),
 };
 
@@ -114,9 +118,8 @@ function fakeRes() {
 }
 
 /** The grants the JWT would actually carry. */
-function mintedToken() {
-  const call = livekit.createLiveToken.mock.calls.at(-1);
-  return call?.[0] as { userId: string; roomName: string; canPublish: boolean } | undefined;
+function mintedToken(): CreateTokenOptions | undefined {
+  return livekit.createLiveToken.mock.calls.at(-1)?.[0];
 }
 
 async function requestToken(as: string, query: Record<string, string>) {

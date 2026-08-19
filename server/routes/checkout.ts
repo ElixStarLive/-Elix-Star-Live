@@ -8,9 +8,18 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
   logger.warn("[shop-checkout] STRIPE_SECRET_KEY is not set in server environment");
 }
-const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey, { apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion })
-  : (null as unknown as Stripe);
+/**
+ * Null when STRIPE_SECRET_KEY is absent. Both handlers below already check it; the
+ * type now says so too, instead of casting null into a non-nullable client.
+ *
+ * The apiVersion cast stays: the shop is pinned to `2025-01-27.acacia`, and the
+ * installed SDK's `LatestApiVersion` literal only admits its own shipped version.
+ */
+const stripe: Stripe | null = stripeSecretKey
+  ? new Stripe(stripeSecretKey, {
+      apiVersion: "2025-01-27.acacia" as Stripe.LatestApiVersion,
+    })
+  : null;
 
 function getAuthenticatedUserId(req: Request): string | null {
   const token = getTokenFromRequest(req);

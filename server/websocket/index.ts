@@ -1413,6 +1413,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
 
     ws.on("close", async () => {
       if (!client) return;
+      // `client` is an outer `let`, so the guard above does not narrow it inside the
+      // callbacks below. Bind the connection this close belongs to once, instead of
+      // asserting non-null at each nested use.
+      const self = client;
 
       try {
         const uc = userClients.get(client.userId);
@@ -1438,7 +1442,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           room.delete(client);
 
           const userStillInRoom = Array.from(room).some(
-            (c) => c.userId === (client as NonNullable<typeof client>).userId,
+            (c) => c.userId === self.userId,
           );
 
           if (!userStillInRoom && isValkeyConfigured()) {
@@ -1465,10 +1469,10 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           }
 
           updateViewerCount(client.roomId).catch((err) => {
-            logger.warn({ err, roomId: client.roomId }, "updateViewerCount failed on client disconnect");
+            logger.warn({ err, roomId: self.roomId }, "updateViewerCount failed on client disconnect");
           });
           checkAndBroadcastStreamEnd(client.roomId, client.userId).catch((err) => {
-            logger.error({ err, roomId: client.roomId, userId: client.userId }, "checkAndBroadcastStreamEnd unhandled rejection");
+            logger.error({ err, roomId: self.roomId, userId: self.userId }, "checkAndBroadcastStreamEnd unhandled rejection");
           });
 
           if (room.size === 0) {
@@ -1487,9 +1491,7 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
           const stillConnectedToBattleRoom = (() => {
             const battleRoom = rooms.get(battleRoomId);
             if (!battleRoom) return false;
-            return Array.from(battleRoom).some(
-              (c) => c.userId === (client as NonNullable<typeof client>).userId,
-            );
+            return Array.from(battleRoom).some((c) => c.userId === self.userId);
           })();
           if (!stillConnectedToBattleRoom) {
             const battle = await getBattleFromStore(battleRoomId);
@@ -1753,10 +1755,13 @@ export function attachWebSocket(server: HttpServer): WebSocketServer {
         logger.warn({ err: queueErr, roomId, userId }, "ws: cohost request queue replay failed");
       }
 
+      // Bound for the predicate below: `client` is an outer `let`, so it is not
+      // narrowed inside a callback even though it was assigned above.
+      const joined = client;
       const userAlreadyPresent = Array.from(rooms.get(roomId) || []).some(
         (c) =>
-          c.userId === client.userId &&
-          c.ws !== client.ws &&
+          c.userId === joined.userId &&
+          c.ws !== joined.ws &&
           c.ws.readyState === WebSocket.OPEN,
       );
       if (!userAlreadyPresent) {

@@ -236,7 +236,12 @@ export async function apiAdminProgressionLoadConfig(): Promise<{
   };
 }
 
-export async function apiAdminProgressionSaveConfig(row: Record<string, unknown>): Promise<{ error: string | null }> {
+/**
+ * Request payloads below are typed `object` rather than `Record<string, unknown>`
+ * because they are only serialised as the JSON body. Requiring an index signature
+ * meant every caller had to double-cast its own typed row to get it through.
+ */
+export async function apiAdminProgressionSaveConfig(row: object): Promise<{ error: string | null }> {
   const { error } = await request('/api/admin/progression/config', {
     method: 'PATCH',
     body: JSON.stringify(row),
@@ -244,7 +249,7 @@ export async function apiAdminProgressionSaveConfig(row: Record<string, unknown>
   return { error: error?.message ?? null };
 }
 
-export async function apiAdminProgressionSaveLevel(row: Record<string, unknown>): Promise<{ error: string | null }> {
+export async function apiAdminProgressionSaveLevel(row: object): Promise<{ error: string | null }> {
   const { error } = await request('/api/admin/progression/levels', {
     method: 'PUT',
     body: JSON.stringify(row),
@@ -301,7 +306,7 @@ export async function apiAdminProgressionToggleFeatureFlag(payload: Record<strin
 
 export async function apiAdminProgressionSaveMission(
   missionId: string,
-  payload: Record<string, unknown>,
+  payload: object,
 ): Promise<{ error: string | null }> {
   const { error } = await request(
     `/api/admin/progression/missions/${encodeURIComponent(missionId)}`,
@@ -321,7 +326,7 @@ export async function apiAdminProgressionArchiveMission(missionId: string): Prom
   return { error: error?.message ?? null };
 }
 
-export async function apiAdminProgressionSaveDailyReward(payload: Record<string, unknown>): Promise<{ error: string | null }> {
+export async function apiAdminProgressionSaveDailyReward(payload: object): Promise<{ error: string | null }> {
   const { error } = await request('/api/admin/progression/daily-rewards', {
     method: 'PUT',
     body: JSON.stringify(payload),
@@ -337,7 +342,7 @@ export async function apiAdminProgressionSaveDailyPolicy(payload: Record<string,
   return { error: error?.message ?? null };
 }
 
-export async function apiAdminProgressionSaveBattleEnergyCaps(payload: Record<string, unknown>): Promise<{
+export async function apiAdminProgressionSaveBattleEnergyCaps(payload: object): Promise<{
   caps: Record<string, unknown> | null;
   error: string | null;
 }> {
@@ -380,7 +385,7 @@ export async function apiAdminRisingStarsLoadChallenges(seasonId: string): Promi
   };
 }
 
-export async function apiAdminRisingStarsCreateSeason(payload: Record<string, unknown>): Promise<{ error: string | null }> {
+export async function apiAdminRisingStarsCreateSeason(payload: object): Promise<{ error: string | null }> {
   const { error } = await request('/api/admin/rising-stars/seasons', {
     method: 'POST',
     body: JSON.stringify(payload),

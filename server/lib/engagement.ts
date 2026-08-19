@@ -16,6 +16,9 @@ import {
   canWriteEngagementWallets,
   getEngagementFlags,
 } from "./engagementFlags";
+// Type-only: the value side of engagementAdmin is imported dynamically below to
+// keep the existing module load order, so this adds no runtime dependency.
+import type { MissionAudience } from "./engagementAdmin";
 
 export type FanTier =
   | "Bronze Fan"
@@ -695,7 +698,36 @@ export async function awardEngagementXp(
   }
 }
 
-export async function listMissionsForUser(userId: string) {
+/** `engagement_missions` — every selected column is NOT NULL in the schema. */
+type MissionCatalogRow = {
+  id: string;
+  scope: string;
+  title: string;
+  description: string;
+  goal_count: number;
+  reward_xp: number;
+  reward_promo_coins: number;
+  reward_energy: number;
+  metric_key: string;
+};
+
+/** `user_mission_progress` — NOT NULL columns, but the row itself may not exist. */
+type MissionProgressRow = {
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+};
+
+/** One mission as served to the client by the missions/hub endpoints. */
+export type UserMissionView = MissionCatalogRow & {
+  period_key: string;
+  progress: number;
+  completed: boolean;
+  claimed: boolean;
+  audience: MissionAudience;
+};
+
+export async function listMissionsForUser(userId: string): Promise<UserMissionView[]> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
@@ -724,10 +756,10 @@ export async function listMissionsForUser(userId: string) {
       }
     })();
 
-    const missions = await db.query(
+    const missions = await db.query<MissionCatalogRow>(
       `SELECT * FROM engagement_missions WHERE enabled = TRUE ORDER BY scope, sort_order`,
     );
-    const out = [];
+    const out: UserMissionView[] = [];
     const now = Date.now();
     for (const m of missions.rows) {
       const mm = meta[m.id];
@@ -746,7 +778,7 @@ export async function listMissionsForUser(userId: string) {
       if (audience === "new_users" && accountAgeDays > 14) continue;
 
       const pk = periodKey(String(m.scope));
-      const p = await db.query(
+      const p = await db.query<MissionProgressRow>(
         `SELECT progress, completed, claimed FROM user_mission_progress
           WHERE user_id = $1 AND mission_id = $2 AND period_key = $3`,
         [userId, m.id, pk],
@@ -866,16 +898,46 @@ export async function claimMission(
   return { ok: true };
 }
 
-export async function listAchievementsForUser(userId: string) {
+/** `engagement_achievements` — every selected column is NOT NULL in the schema. */
+type AchievementCatalogRow = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  goal_count: number;
+  reward_xp: number;
+  reward_promo_coins: number;
+  rarity: string;
+};
+
+/** `user_achievements` — `unlocked_at` is the one nullable column. */
+type AchievementProgressRow = {
+  progress: number;
+  unlocked: boolean;
+  unlocked_at: Date | null;
+  claimed: boolean;
+};
+
+/** One achievement as served to the client. */
+export type UserAchievementView = AchievementCatalogRow & {
+  progress: number;
+  unlocked: boolean;
+  unlocked_at: Date | null;
+  claimed: boolean;
+};
+
+export async function listAchievementsForUser(
+  userId: string,
+): Promise<UserAchievementView[]> {
   const db = getPool();
   if (!db) throw new Error("DATABASE_UNAVAILABLE");
   try {
-    const a = await db.query(
+    const a = await db.query<AchievementCatalogRow>(
       `SELECT * FROM engagement_achievements WHERE enabled = TRUE ORDER BY rarity, id`,
     );
-    const out = [];
+    const out: UserAchievementView[] = [];
     for (const row of a.rows) {
-      const u = await db.query(
+      const u = await db.query<AchievementProgressRow>(
         `SELECT progress, unlocked, unlocked_at, claimed FROM user_achievements
           WHERE user_id = $1 AND achievement_id = $2`,
         [userId, row.id],

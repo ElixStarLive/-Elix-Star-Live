@@ -3,6 +3,7 @@ import { createJSONStorage, persist, type StateStorage } from "zustand/middlewar
 import { Capacitor } from "@capacitor/core";
 import { Preferences } from "@capacitor/preferences";
 import { request } from "../lib/apiClient";
+import type { NormalizedAuthUser } from "../lib/authApiContract";
 import { ensureUserProfileRow } from "../lib/ensureUserProfileRow";
 import { notificationService } from "../lib/notifications";
 import {
@@ -28,13 +29,12 @@ interface User {
   joinedDate: string;
 }
 
-interface AuthUser {
-  id: string;
-  email?: string;
-  user_metadata?: Record<string, unknown>;
-  email_confirmed_at?: string;
-  created_at?: string;
-}
+/**
+ * The user shape the auth endpoints return, as validated by
+ * `parseAuthLoginRegisterResponse`. This was a second, identical declaration of the
+ * same wire contract, which forced every session result to be asserted back into it.
+ */
+type AuthUser = NormalizedAuthUser;
 
 /** Minimal type for auth session returned by the Hetzner backend. */
 interface AuthSession {
@@ -366,7 +366,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return { error: "Please verify your email address before logging in." };
       }
 
-      const backendUser = result.user as unknown as AuthUser;
+      const backendUser = result.user;
       const accessToken = result.accessToken;
       const mapped = mapAuthenticatedUser(
         backendUser,
@@ -421,7 +421,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       }
 
       const data = result.raw as { welcome_message?: string } | null;
-      const backendUser = result.user as unknown as AuthUser;
+      const backendUser = result.user;
       const accessToken = result.accessToken;
       const mapped = mapAuthenticatedUser(
         backendUser,
@@ -512,7 +512,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
       if (authResult.kind !== "session") {
         return { error: "Apple sign-in returned an invalid session." };
       }
-      const backendUser = authResult.user as unknown as AuthUser;
+      const backendUser = authResult.user;
       const mappedBase = mapUserToUser(backendUser);
       if (!mappedBase) return { error: "Apple account could not be loaded." };
       const mapped = applyProfileMeta(
@@ -616,7 +616,7 @@ export const useAuthStore = create<AuthStore>()(persist((set, get) => ({
         return;
       }
 
-      const backendUser = meResult.user as unknown as AuthUser;
+      const backendUser = meResult.user;
       const accessToken = meResult.accessToken;
 
       const mappedBase = mapUserToUser(backendUser);

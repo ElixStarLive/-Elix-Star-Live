@@ -173,9 +173,7 @@ export default function AdminProgression() {
   const saveConfig = async (row: XpConfig) => {
     setBusy(true);
     try {
-      const { error } = await apiAdminProgressionSaveConfig(
-        row as unknown as Record<string, unknown>,
-      );
+      const { error } = await apiAdminProgressionSaveConfig(row);
       if (error) {
         showToast(error);
         return;
@@ -190,9 +188,7 @@ export default function AdminProgression() {
   const saveLevel = async (row: LevelRequirement) => {
     setBusy(true);
     try {
-      const { error } = await apiAdminProgressionSaveLevel(
-        row as unknown as Record<string, unknown>,
-      );
+      const { error } = await apiAdminProgressionSaveLevel(row);
       if (error) {
         showToast(error);
         return;
@@ -597,9 +593,7 @@ export default function AdminProgression() {
                   onClick={() => {
                     void (async () => {
                       setBusy(true);
-                      const { error } = await apiAdminProgressionSaveDailyReward(
-                        r as unknown as Record<string, unknown>,
-                      );
+                      const { error } = await apiAdminProgressionSaveDailyReward(r);
                       setBusy(false);
                       if (error) showToast(error);
                       else showToast("Daily reward saved");
@@ -766,9 +760,7 @@ export default function AdminProgression() {
               void (async () => {
                 setBusy(true);
                 const { caps, error } =
-                  await apiAdminProgressionSaveBattleEnergyCaps(
-                    energyCaps as unknown as Record<string, unknown>,
-                  );
+                  await apiAdminProgressionSaveBattleEnergyCaps(energyCaps);
                 setBusy(false);
                 if (error) showToast(error);
                 else {
