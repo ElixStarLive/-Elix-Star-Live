@@ -353,14 +353,21 @@ export default function InlineLiveViewer({
       websocket.disconnectIfOwner(wsOwnerIdRef.current);
     };
 
-    const timeoutId = setTimeout(() => {
-      if (!isCurrentAttempt() || gotVideo) return;
-      // Do not synthesize "stream ended" from a local timeout. Keep the card
-      // joinable and wait for authoritative server lifecycle events.
-      if (mounted && connectGenerationRef.current === attemptId) {
-        setConnecting(false);
-      }
-    }, 10000);
+    // Re-armable so a host that drops mid-watch gets a fresh deadline instead of
+    // spinning forever on the one-shot initial timer.
+    let connectDeadlineId: ReturnType<typeof setTimeout> | null = null;
+    const armConnectDeadline = () => {
+      if (connectDeadlineId) clearTimeout(connectDeadlineId);
+      connectDeadlineId = setTimeout(() => {
+        if (!isCurrentAttempt() || gotVideo) return;
+        // Do not synthesize "stream ended" from a local timeout. Keep the card
+        // joinable and wait for authoritative server lifecycle events.
+        if (mounted && connectGenerationRef.current === attemptId) {
+          setConnecting(false);
+        }
+      }, 10000);
+    };
+    armConnectDeadline();
 
     const onStreamEnded = (raw: unknown) => {
       if (!isCurrentAttempt()) return;
@@ -495,6 +502,11 @@ export default function InlineLiveViewer({
               const room = lifecycle.liveKit?.raw;
               if (room) syncCohostTilesFromRoomRef.current(room);
               routeVideoTrackRef.current(track, participant?.identity || "");
+              // A subscribed video track is the authoritative end of connecting.
+              // Tracks can arrive after connect() resolves, and again after a
+              // host reconnect, so this is the only place that always knows.
+              setHasStream(true);
+              setConnecting(false);
             },
             onParticipantConnected: () => {
               if (!isCurrentAttempt()) return;
@@ -537,8 +549,11 @@ export default function InlineLiveViewer({
               }
               // Host participant can briefly drop/reconnect during network churn.
               // Do not mark ended locally; only server lifecycle events own end.
+              gotVideo = false;
               setHasStream(false);
               setConnecting(true);
+              // Bound the wait: if the host never republishes, stop spinning.
+              armConnectDeadline();
             },
             onDisconnected: () => {
               if (!isCurrentAttempt()) return;
@@ -593,7 +608,7 @@ export default function InlineLiveViewer({
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
+      if (connectDeadlineId) clearTimeout(connectDeadlineId);
       connectedKeyRef.current = "";
       disposeAttempt();
       setHasStream(false);

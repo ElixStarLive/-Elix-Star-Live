@@ -70,8 +70,14 @@ export const LIVE_BATTLE_CHAT_SHIFT_Y = '0mm' as const;
 export const LEVEL_BADGE_PILL_PX = 22;
 export const CHAT_LEVEL_PILL_SIZE_PX = LEVEL_BADGE_PILL_PX;
 
-/** Live bottom action row — sit on the writing/labels, safe-area inset only. */
-export const LIVE_BOTTOM_ACTION_PADDING = 'max(2px, env(safe-area-inset-bottom, 0px))' as const;
+/**
+ * Live bottom action row — sit on the writing/labels, safe-area inset only.
+ * `--live-bottom-action-drop` is 0 except on Android, where the inset is the
+ * whole system navigation-bar strip (see index.css). Solo chat top and the gift
+ * capsule keep their own anchors below, so this moves the action row alone.
+ */
+export const LIVE_BOTTOM_ACTION_PADDING =
+  'max(2px, calc(env(safe-area-inset-bottom, 0px) - var(--live-bottom-action-drop, 0mm)))' as const;
 
 /** Chat scroll area clears the bottom icon + label row. */
 export const LIVE_BOTTOM_ACTION_RESERVE =
