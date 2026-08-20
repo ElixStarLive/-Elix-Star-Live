@@ -7,7 +7,6 @@ import { Track } from 'livekit-client';
 import { ElixThermal, type ElixThermalState } from './elixThermalPlugin';
 import {
   applyCaptureTierToVideoTrack,
-  getLiveMediaTierConfig,
   setActiveThermalTier,
   type ThermalTier,
 } from './liveMediaProfile';
@@ -21,6 +20,11 @@ type Registration = {
   publishesCamera: boolean;
   /** Remote publishers currently rendered (e.g. 3 in 4-creator Battle). */
   getBattleRemoteCount?: () => number;
+  /**
+   * The publish owner's idempotent re-publish. Called only to recover a camera
+   * publication that was lost while the broadcast is still connected.
+   */
+  republishCamera?: () => Promise<void>;
 };
 
 let managerRefCount = 0;
@@ -50,7 +54,6 @@ async function applyTier(tier: ThermalTier): Promise<void> {
   if (tier === lastAppliedTier) return;
   lastAppliedTier = tier;
   setActiveThermalTier(tier);
-  const cfg = getLiveMediaTierConfig(tier);
 
   for (const reg of registrations) {
     if (reg.publishesCamera) {
@@ -65,39 +68,59 @@ async function applyTier(tier: ThermalTier): Promise<void> {
       battleRemoteCount: reg.getBattleRemoteCount?.() ?? 0,
     });
 
+  }
+}
+
+/**
+ * A camera publication can be lost at any time (camera reclaimed by another app,
+ * OS interruption, a failed publish), not only when the thermal tier moves, and
+ * applyTier is a no-op while the tier holds. The poll therefore owns the sweep so
+ * a broadcast cannot sit publishing audio only until the next tier change.
+ */
+async function sweepDroppedCameraPublications(): Promise<void> {
+  for (const reg of registrations) {
     if (!reg.publishesCamera) continue;
-    const pub =
-      room.localParticipant.getTrackPublication(Track.Source.Camera) ??
-      room.localParticipant.getTrackPublicationByName('camera');
-    const localVideo = pub?.track;
-    if (localVideo && 'restartTrack' in localVideo && tier !== 'nominal') {
-      try {
-        await (
-          localVideo as {
-            restartTrack: (opts?: {
-              resolution?: { width: number; height: number; frameRate?: number };
-            }) => Promise<void>;
-          }
-        ).restartTrack({
-          resolution: {
-            width: cfg.publishPreset.width,
-            height: cfg.publishPreset.height,
-            frameRate:
-              typeof cfg.publishPreset.encoding.maxFramerate === 'number'
-                ? cfg.publishPreset.encoding.maxFramerate
-                : 30,
-          },
-        });
-      } catch {
-        /* keep publishing at current capture if restart unsupported */
-      }
-    }
+    const room = reg.getRoom();
+    if (!room) continue;
+    await recoverDroppedCameraPublication(reg, room);
+  }
+}
+
+/**
+ * Restore the camera publication when it has lost its track while the room is
+ * still connected and a live camera is available.
+ *
+ * Down-tiering used to call LiveKit's restartTrack here, which stops the camera
+ * and re-acquires it. When that re-acquire failed the failure was swallowed and
+ * the broadcast carried on publishing microphone audio with no video, which
+ * strands every spectator on "Connecting to stream" forever — the spectator only
+ * reveals a stream once a remote *video* track arrives. Capture is already
+ * lowered by applyCaptureTierToVideoTrack above, which constrains the existing
+ * track instead of replacing it, so the publication no longer has to be torn
+ * down to shed encode cost.
+ *
+ * A muted publication is the creator's own camera-off and must stay off.
+ */
+async function recoverDroppedCameraPublication(reg: Registration, room: Room): Promise<void> {
+  if (!reg.republishCamera) return;
+  const camera = reg.getCameraVideoTrack();
+  if (!camera || camera.readyState !== 'live') return;
+  const pub =
+    room.localParticipant.getTrackPublication(Track.Source.Camera) ??
+    room.localParticipant.getTrackPublicationByName('camera');
+  if (pub?.isMuted) return;
+  if (pub?.track?.mediaStreamTrack?.readyState === 'live') return;
+  try {
+    await reg.republishCamera();
+  } catch {
+    /* the publish owner surfaces its own failures */
   }
 }
 
 async function refreshTier(): Promise<void> {
   const tier = await readThermalState();
   await applyTier(tier);
+  await sweepDroppedCameraPublications();
 }
 
 export function registerLiveThermalTarget(reg: Registration): () => void {
@@ -113,7 +136,10 @@ export function retainThermalQualityManager(): void {
   if (managerRefCount === 0) {
     void refreshTier();
     void ElixThermal.addListener('thermalStateChange', (state) => {
-      void applyTier(mapRawToTier(state.tier || state.raw || 'nominal'));
+      void (async () => {
+        await applyTier(mapRawToTier(state.tier || state.raw || 'nominal'));
+        await sweepDroppedCameraPublications();
+      })();
     }).then((handle) => {
       listenerRemove = () => handle.remove();
     });

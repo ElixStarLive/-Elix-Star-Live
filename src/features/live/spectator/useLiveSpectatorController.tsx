@@ -1385,6 +1385,12 @@ export function useLiveSpectatorController() {
     if (b.player4UserId || b.player4Name) n += 1;
     return n;
   }, []);
+  const spectatorPublishFromStream = spectatorSession.publishFromStream;
+  const republishSpectatorCamera = useCallback(async () => {
+    const stream = coHostPublishStreamRef.current;
+    if (!stream) return;
+    await spectatorPublishFromStream(stream);
+  }, [coHostPublishStreamRef, spectatorPublishFromStream]);
   useLiveThermalQuality({
     enabled: streamIsLive === true && !!effectiveStreamId && !!user?.id,
     getRoom: getSpectatorThermalRoom,
@@ -1392,6 +1398,7 @@ export function useLiveSpectatorController() {
     getCameraFacing: getSpectatorThermalFacing,
     publishesCamera: isCoHosting,
     getBattleRemoteCount: getSpectatorBattleRemoteCount,
+    republishCamera: republishSpectatorCamera,
   });
 
   // Background → foreground: retry LiveKit when WS reconnects globally in App.tsx.

@@ -17,6 +17,7 @@ export function useLiveThermalQuality(opts: {
   getCameraFacing: () => 'user' | 'environment';
   publishesCamera: boolean;
   getBattleRemoteCount?: () => number;
+  republishCamera?: () => Promise<void>;
 }): void {
   const {
     enabled,
@@ -25,6 +26,7 @@ export function useLiveThermalQuality(opts: {
     getCameraFacing,
     publishesCamera,
     getBattleRemoteCount,
+    republishCamera,
   } = opts;
 
   useEffect(() => {
@@ -36,6 +38,7 @@ export function useLiveThermalQuality(opts: {
       getCameraFacing,
       publishesCamera,
       getBattleRemoteCount,
+      republishCamera,
     });
     return () => {
       unregister();
@@ -48,5 +51,6 @@ export function useLiveThermalQuality(opts: {
     getCameraFacing,
     publishesCamera,
     getBattleRemoteCount,
+    republishCamera,
   ]);
 }

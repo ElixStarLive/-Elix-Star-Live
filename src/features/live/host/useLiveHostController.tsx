@@ -1340,6 +1340,7 @@ export function useLiveHostController() {
     getCameraFacing: getThermalFacing,
     publishesCamera: true,
     getBattleRemoteCount,
+    republishCamera: publishHostLiveKitTracks,
   });
 
   /* Read once when the battle join starts. acquireCamera is keyed on the camera
