@@ -27,12 +27,20 @@ const TIER_CONFIG: Record<ThermalTier, Omit<LiveMediaTierConfig, 'tier'>> = {
     publishPreset: VideoPresets.h720,
     reduceDecorativeMotion: false,
   },
+  // Android reports MODERATE (status 2) as this tier, so it is the first tier
+  // that has to shed real encode cost: publishing h720/30 here meant nothing
+  // dropped until SEVERE, by which point the SoC is already throttling and the
+  // handset keeps climbing. Halving the pixels cuts encode work ~44% while
+  // holding 30fps, because choppy motion is more visible to viewers than a
+  // resolution step on a phone-sized tile.
   fair: {
     capture: {
-      ...BASE_VIDEO_CAPTURE,
+      facingMode: 'user',
+      width: { ideal: 960, max: 960 },
+      height: { ideal: 540, max: 540 },
       frameRate: { ideal: 30, max: 30 },
     },
-    publishPreset: VideoPresets.h720,
+    publishPreset: VideoPresets.h540,
     reduceDecorativeMotion: true,
   },
   serious: {
