@@ -31,7 +31,7 @@ const TEST_P8 = [
 
 function stubFetch(byHost: Record<string, { status: number; body?: unknown }>) {
   const calls: string[] = [];
-  globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+  globalThis.fetch = vi.fn(async (input: Parameters<typeof globalThis.fetch>[0]) => {
     const url = String(input);
     calls.push(url);
     const host = Object.keys(byHost).find((h) => url.includes(h));
