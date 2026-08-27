@@ -50,6 +50,32 @@ export async function fetchAdminEconomy(): Promise<ApiResult<EconomyStats>> {
   return request<EconomyStats>('/api/admin/economy');
 }
 
+export interface AdminChallenge {
+  id: string;
+  title: string;
+  description: string;
+  hashtag: string;
+  startAt: string;
+  endAt: string;
+  isActive: boolean;
+}
+
+export async function fetchAdminChallenges(): Promise<ApiResult<{ challenges: AdminChallenge[] }>> {
+  return request<{ challenges: AdminChallenge[] }>('/api/admin/rising-stars');
+}
+
+export async function createAdminChallenge(body: {
+  title: string;
+  description?: string;
+  hashtag?: string;
+  days?: number;
+}): Promise<ApiResult<{ id: string }>> {
+  return request<{ id: string }>('/api/admin/rising-stars', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function fetchAdminProgression(): Promise<ApiResult<{ users: ProgressionUser[] }>> {
   return request<{ users: ProgressionUser[] }>('/api/admin/progression');
 }

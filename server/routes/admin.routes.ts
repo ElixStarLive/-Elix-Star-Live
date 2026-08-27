@@ -1,4 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from 'express';
+import { z } from 'zod';
 import { query } from '../lib/postgres.js';
 import { authMiddleware } from '../http/authMiddleware.js';
 
@@ -137,4 +138,60 @@ adminRouter.get('/progression', authMiddleware, requireAdmin, async (_req: Reque
   }));
 
   return res.json({ users });
+});
+
+adminRouter.get('/rising-stars', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    title: string;
+    description: string;
+    hashtag: string;
+    start_at: Date;
+    end_at: Date;
+    is_active: boolean;
+  }>(
+    `SELECT id, title, description, hashtag, start_at, end_at, is_active
+       FROM challenges
+      ORDER BY is_active DESC, end_at DESC
+      LIMIT 100`,
+  );
+
+  const challenges = rows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    hashtag: row.hashtag,
+    startAt: row.start_at.toISOString(),
+    endAt: row.end_at.toISOString(),
+    isActive: row.is_active,
+  }));
+
+  return res.json({ challenges });
+});
+
+const createChallengeSchema = z.object({
+  title: z.string().min(1).max(120),
+  description: z.string().max(500).optional(),
+  hashtag: z.string().max(60).optional(),
+  days: z.coerce.number().int().min(1).max(30).optional(),
+});
+
+adminRouter.post('/rising-stars', authMiddleware, requireAdmin, async (req: Request, res: Response) => {
+  const parsed = createChallengeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid challenge.' });
+  }
+
+  const { title, description = '', hashtag = '', days = 7 } = parsed.data;
+  const { rows } = await query<{ id: string }>(
+    `INSERT INTO challenges (title, description, hashtag, end_at)
+     VALUES ($1, $2, $3, NOW() + ($4 || ' days')::INTERVAL)
+     RETURNING id`,
+    [title, description, hashtag, days],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not create challenge.' });
+  return res.status(201).json({ id: row.id });
 });
