@@ -98,3 +98,20 @@ liveRouter.post('/live', authMiddleware, async (req: Request, res: Response) => 
   if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not start stream.' });
   return res.status(201).json({ id: row.id, streamKey: row.stream_key });
 });
+
+liveRouter.post('/live/:streamId/cohost', authMiddleware, async (req: Request, res: Response) => {
+  const cohostId = String(req.body.cohostId);
+  const { rows } = await query<{ user_id: string }>(
+    `SELECT user_id FROM live_streams WHERE id = $1 AND is_live = TRUE LIMIT 1`,
+    [req.params.streamId],
+  );
+
+  const stream = rows[0];
+  if (!stream) return res.status(404).json({ code: 'not_found', message: 'Stream not found.' });
+  if (stream.user_id !== req.userId) {
+    return res.status(403).json({ code: 'forbidden', message: 'Only the stream owner can invite a co-host.' });
+  }
+
+  await query(`UPDATE live_streams SET cohost_id = $1 WHERE id = $2`, [cohostId, req.params.streamId]);
+  return res.json({ success: true });
+});

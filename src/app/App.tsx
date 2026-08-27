@@ -46,6 +46,7 @@ import SongDetail from '../pages/SongDetail';
 import Engagement from '../pages/Engagement';
 import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
+import CoHost from '../pages/CoHost';
 import LiveBroadcast from '../pages/LiveBroadcast';
 import Watch from '../pages/Watch';
 import VideoCall from '../pages/VideoCall';
@@ -266,6 +267,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <LiveBroadcast />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/live/:streamId/cohost"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CoHost />
             </AppShell>
           </RequireAuth>
         }

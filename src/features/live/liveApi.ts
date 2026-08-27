@@ -14,6 +14,13 @@ export async function fetchLiveStreams(): Promise<ApiResult<{ streams: LiveStrea
   return request<{ streams: LiveStream[] }>('/api/live');
 }
 
+export async function inviteCoHost(streamId: string, cohostId: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/live/${encodeURIComponent(streamId)}/cohost`, {
+    method: 'POST',
+    body: JSON.stringify({ cohostId }),
+  });
+}
+
 export async function fetchLiveStream(streamId: string): Promise<ApiResult<{ stream: LiveStream & { streamKey: string } }>> {
   return request<{ stream: LiveStream & { streamKey: string } }>(`/api/live/${encodeURIComponent(streamId)}`);
 }
