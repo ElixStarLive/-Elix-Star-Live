@@ -46,6 +46,7 @@ import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
 import LiveBroadcast from '../pages/LiveBroadcast';
 import Watch from '../pages/Watch';
+import AIStudio from '../pages/AIStudio';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import Shop from '../pages/Shop';
 import PurchaseCoins from '../pages/PurchaseCoins';
@@ -281,6 +282,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Watch />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/ai-studio"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AIStudio />
             </AppShell>
           </RequireAuth>
         }
