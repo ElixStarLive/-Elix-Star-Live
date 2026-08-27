@@ -33,3 +33,20 @@ export async function fetchFollowing(): Promise<ApiResult<{ videos: FeedVideo[];
 export async function fetchFriends(): Promise<ApiResult<{ videos: FeedVideo[]; hasMore: boolean }>> {
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/friends');
 }
+
+export async function fetchVideo(videoId: string): Promise<ApiResult<{ video: FeedVideo }>> {
+  return request<{ video: FeedVideo }>(`/api/videos/${encodeURIComponent(videoId)}`);
+}
+
+export async function createVideo(body: {
+  url: string;
+  thumbnail?: string;
+  description?: string;
+  hashtags?: string[];
+  privacy?: 'public' | 'private' | 'friends';
+}): Promise<ApiResult<{ id: string }>> {
+  return request<{ id: string }>('/api/videos', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}

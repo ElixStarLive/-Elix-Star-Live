@@ -17,6 +17,8 @@ import Inbox from '../pages/Inbox';
 import SearchPage from '../pages/SearchPage';
 import FollowingFeed from '../pages/FollowingFeed';
 import FriendsFeed from '../pages/FriendsFeed';
+import Upload from '../pages/Upload';
+import VideoView from '../pages/VideoView';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -169,6 +171,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <AlertsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/upload"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Upload />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/video/:videoId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VideoView />
             </AppShell>
           </RequireAuth>
         }
