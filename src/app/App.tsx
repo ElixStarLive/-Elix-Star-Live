@@ -45,6 +45,7 @@ import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
 import Watch from '../pages/Watch';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
+import Shop from '../pages/Shop';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -267,6 +268,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Watch />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/shop"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Shop />
             </AppShell>
           </RequireAuth>
         }
