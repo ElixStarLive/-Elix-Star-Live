@@ -1,5 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { SignJWT } from 'jose';
+import { config } from '../config.js';
 import { query } from '../lib/postgres.js';
 import { authMiddleware } from '../http/authMiddleware.js';
 
@@ -114,4 +116,41 @@ liveRouter.post('/live/:streamId/cohost', authMiddleware, async (req: Request, r
 
   await query(`UPDATE live_streams SET cohost_id = $1 WHERE id = $2`, [cohostId, req.params.streamId]);
   return res.json({ success: true });
+});
+
+liveRouter.post('/live/:streamId/token', authMiddleware, async (req: Request, res: Response) => {
+  if (!config.LIVEKIT_API_KEY || !config.LIVEKIT_SECRET || !config.LIVEKIT_URL) {
+    return res.status(503).json({ code: 'not_configured', message: 'LiveKit is not configured.' });
+  }
+
+  const { rows } = await query<{ user_id: string }>(
+    `SELECT user_id FROM live_streams WHERE id = $1 AND is_live = TRUE LIMIT 1`,
+    [req.params.streamId],
+  );
+
+  const stream = rows[0];
+  if (!stream) return res.status(404).json({ code: 'not_found', message: 'Stream not found.' });
+
+  const isPublisher = stream.user_id === req.userId;
+  const grant = {
+    room: req.params.streamId,
+    roomCreate: true,
+    roomJoin: true,
+    canPublish: isPublisher,
+    canSubscribe: true,
+    canPublishData: true,
+    hidden: false,
+    recorder: false,
+  };
+
+  const token = await new SignJWT({ video: grant })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuer(config.LIVEKIT_API_KEY as string)
+    .setSubject(req.userId as string)
+    .setIssuedAt()
+    .setNotBefore(Math.floor(Date.now() / 1000))
+    .setExpirationTime('6h')
+    .sign(new TextEncoder().encode(config.LIVEKIT_SECRET as string));
+
+  return res.json({ token, url: config.LIVEKIT_URL });
 });

@@ -24,3 +24,7 @@ export async function inviteCoHost(streamId: string, cohostId: string): Promise<
 export async function fetchLiveStream(streamId: string): Promise<ApiResult<{ stream: LiveStream & { streamKey: string } }>> {
   return request<{ stream: LiveStream & { streamKey: string } }>(`/api/live/${encodeURIComponent(streamId)}`);
 }
+
+export async function fetchLiveToken(streamId: string): Promise<ApiResult<{ token: string; url: string }>> {
+  return request<{ token: string; url: string }>(`/api/live/${encodeURIComponent(streamId)}/token`, { method: 'POST' });
+}

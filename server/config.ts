@@ -47,6 +47,16 @@ const schema = z.object({
    */
   SMTP_URL: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+
+  /** LiveKit credentials for live streaming. Optional until live is configured. */
+  LIVEKIT_API_KEY: z.string().optional(),
+  LIVEKIT_SECRET: z.string().optional(),
+  LIVEKIT_URL: z.string().url().optional(),
+
+  /** Bunny Storage credentials for media uploads. Optional until storage is configured. */
+  BUNNY_API_KEY: z.string().optional(),
+  BUNNY_STORAGE_ZONE: z.string().optional(),
+  BUNNY_REGION: z.string().optional(),
 });
 
 /**

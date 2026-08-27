@@ -1,13 +1,27 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Radio, X } from 'lucide-react';
+import { ArrowLeft, Key, Radio, X } from 'lucide-react';
 import { request, type ApiResult } from '../lib/apiClient';
+import { fetchLiveToken } from '../features/live/liveApi';
 
 export default function LiveBroadcast() {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
   const [stream, setStream] = useState<{ id: string; streamKey: string } | null>(null);
+  const [liveToken, setLiveToken] = useState<string | null>(null);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+
+  const fetchToken = async (id: string) => {
+    setTokenLoading(true);
+    const { data } = await fetchLiveToken(id);
+    setTokenLoading(false);
+    if (data) {
+      setLiveToken(data.token);
+      setLiveUrl(data.url);
+    }
+  };
 
   const exit = () => {
     navigate('/live', { replace: true });
@@ -23,6 +37,7 @@ export default function LiveBroadcast() {
     setLoading(false);
     if (error) return;
     setStream(data ?? null);
+    if (data) await fetchToken(data.id);
   };
 
   return (
@@ -49,8 +64,19 @@ export default function LiveBroadcast() {
               <div className="flex h-full flex-col items-center justify-center gap-2 text-white/50">
                 <Radio className="h-10 w-10" />
                 <p className="text-fluid-sm">LiveKit broadcaster integration will connect here.</p>
+                <p className="text-fluid-xs">URL: {liveUrl ?? '—'}</p>
+                {liveToken && <p className="max-w-full truncate text-fluid-xs">Token: {liveToken.slice(0, 24)}…</p>}
               </div>
             </div>
+            <button
+              type="button"
+              onClick={() => stream && fetchToken(stream.id)}
+              disabled={tokenLoading}
+              className="flex items-center justify-center gap-2 rounded-xl border border-white/40 px-6 py-3 text-fluid-sm font-bold disabled:opacity-60"
+            >
+              <Key className="h-4 w-4" />
+              {tokenLoading ? 'Refreshing…' : 'Refresh Token'}
+            </button>
             <button
               type="button"
               onClick={exit}
