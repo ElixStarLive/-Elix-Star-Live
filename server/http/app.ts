@@ -1,6 +1,8 @@
 import cors from 'cors';
 import express, { type Express, type NextFunction, type Request, type Response } from 'express';
 import helmet from 'helmet';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { config } from '../config.js';
 import { logger } from '../lib/logger.js';
 import { isDatabaseHealthy } from '../lib/postgres.js';
@@ -66,8 +68,21 @@ export function createApp(): Express {
   app.use('/api', giftsRouter);
   app.use('/api', uploadsRouter);
 
-  app.use((_req: Request, res: Response) => {
-    res.status(404).json(apiError('invalid_request', 'Not found.'));
+  const distDir = resolve(import.meta.dirname, '..', '..', 'dist');
+  const indexPath = resolve(distDir, 'index.html');
+
+  app.use(express.static(distDir, { maxAge: '1d' }));
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api')) {
+      res.status(404).json(apiError('invalid_request', 'Not found.'));
+      return;
+    }
+    if (req.method === 'GET' && existsSync(indexPath)) {
+      res.sendFile(indexPath);
+      return;
+    }
+    next();
   });
 
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
