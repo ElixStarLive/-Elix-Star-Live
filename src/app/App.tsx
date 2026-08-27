@@ -28,6 +28,7 @@ import STEMFeed from '../pages/STEMFeed';
 import Hashtag from '../pages/Hashtag';
 import Report from '../pages/Report';
 import FollowList from '../pages/FollowList';
+import CreatorLoginDetails from '../pages/CreatorLoginDetails';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -210,6 +211,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/creator/login-details"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <CreatorLoginDetails />
             </AppShell>
           </RequireAuth>
         }
