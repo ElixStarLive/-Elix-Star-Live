@@ -39,6 +39,7 @@ interface AuthState {
   restore: () => Promise<void>;
   signIn: (identifier: string, password: string) => Promise<LoginFailure | null>;
   signUp: (input: { email: string; password: string; username: string | undefined }) => Promise<RegisterOutcome>;
+  updateUser: (user: AuthUser) => void;
   signOut: () => Promise<void>;
 }
 
@@ -117,6 +118,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
     return { success: true, needsVerification: true };
   },
+
+  updateUser: (user: AuthUser) => set({ user, status: 'authenticated' }),
 
   signOut: async () => {
     // Local state is cleared whatever the server says: refusing to sign out

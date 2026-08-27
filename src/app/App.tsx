@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
+import AuthCallback from '../pages/AuthCallback';
+import ForgotPassword from '../pages/ForgotPassword';
+import ResetPassword from '../pages/ResetPassword';
 import { useAuthStore } from '../features/auth/authStore';
 import { SessionSummary } from './SessionSummary';
 
@@ -51,6 +54,23 @@ export default function App() {
         element={
           <RedirectIfAuthenticated>
             <Register />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ForgotPassword />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ResetPassword />
           </RedirectIfAuthenticated>
         }
       />

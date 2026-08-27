@@ -82,10 +82,35 @@ export async function findAccountByIdentifier(identifier: string): Promise<Accou
   return row ? toAccount(row) : null;
 }
 
+export async function findAccountByEmail(email: string): Promise<AccountRow | null> {
+  const { rows } = await query<RawAccount>(
+    `${SELECT_ACCOUNT} WHERE u.email = $1::citext LIMIT 1`,
+    [email],
+  );
+  const row = rows[0];
+  return row ? toAccount(row) : null;
+}
+
 export async function findAccountById(userId: string): Promise<AccountRow | null> {
   const { rows } = await query<RawAccount>(`${SELECT_ACCOUNT} WHERE u.id = $1 LIMIT 1`, [userId]);
   const row = rows[0];
   return row ? toAccount(row) : null;
+}
+
+export async function confirmUserEmail(userId: string): Promise<string | null> {
+  const { rows } = await query<{ email_confirmed_at: Date }>(
+    `UPDATE users
+        SET email_confirmed_at = COALESCE(email_confirmed_at, NOW())
+      WHERE id = $1
+      RETURNING email_confirmed_at`,
+    [userId],
+  );
+  const row = rows[0];
+  return row ? row.email_confirmed_at.toISOString() : null;
+}
+
+export async function updateUserPassword(userId: string, passwordHash: string): Promise<void> {
+  await query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [userId, passwordHash]);
 }
 
 export function isSuspended(account: AccountRow, now: Date = new Date()): boolean {

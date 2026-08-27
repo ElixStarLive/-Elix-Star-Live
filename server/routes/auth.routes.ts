@@ -10,13 +10,26 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { logger } from '../lib/logger.js';
 import { apiError, authSuccessBody, toAuthUserBody } from '../auth/contract.js';
-import { decoyHash, verifyPassword } from '../auth/password.js';
+import { decoyHash, hashPassword, verifyPassword } from '../auth/password.js';
 import { clearFailures, isLockedOut, recordFailure } from '../auth/loginLockout.js';
-import { createSession, resolveSession, revokeSession } from '../auth/sessions.js';
-import { findAccountById, findAccountByIdentifier, isSuspended } from '../auth/users.repository.js';
+import { createSession, resolveSession, revokeAllSessions, revokeSession } from '../auth/sessions.js';
+import {
+  confirmUserEmail,
+  findAccountById,
+  findAccountByIdentifier,
+  isSuspended,
+  updateUserPassword,
+} from '../auth/users.repository.js';
+import { verifyToken } from '../auth/tokens.js';
 import { clearSessionCookie, readBearerToken, setSessionCookie } from '../http/sessionCookie.js';
 import { registerAccount } from '../auth/registration.js';
-import { sendVerificationEmail } from '../auth/emailVerification.js';
+import {
+  passwordResetBinding,
+  resendVerificationEmail,
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  verificationBinding,
+} from '../auth/mail.js';
 import { isEmailConfigured } from '../lib/email.js';
 
 const loginSchema = z.object({
@@ -165,6 +178,126 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, 'registration failed');
     return res.status(500).json(apiError('server_error', 'Could not create account. Please try again.'));
+  }
+});
+
+authRouter.post('/verify-email', async (req: Request, res: Response) => {
+  const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+  if (!token) {
+    return res.status(400).json(apiError('invalid_request', 'Verification token is required.'));
+  }
+
+  const payload = await verifyToken(token, 'email_verify');
+  if (!payload) {
+    return res.status(401).json(apiError('invalid_request', 'Invalid or expired confirmation link.'));
+  }
+
+  try {
+    const account = await findAccountById(payload.userId);
+    if (!account) {
+      return res.status(404).json(apiError('invalid_request', 'User not found.'));
+    }
+
+    if (isSuspended(account)) {
+      return res.status(403).json(apiError('account_suspended', 'This account is suspended.'));
+    }
+
+    if (!payload.binding || payload.binding !== verificationBinding(account)) {
+      return res.status(401).json(apiError('invalid_request', 'This confirmation link is no longer valid.'));
+    }
+
+    const confirmedAt = account.emailConfirmedAt === null ? await confirmUserEmail(account.id) : account.emailConfirmedAt.toISOString();
+    if (!confirmedAt) {
+      return res.status(500).json(apiError('server_error', 'Could not confirm email. Please try again.'));
+    }
+
+    const { token: sessionToken, expiresAt } = await createSession(account.id, String(req.headers['user-agent'] ?? ''));
+    setSessionCookie(res, sessionToken, expiresAt);
+    return res.status(200).json({
+      ...authSuccessBody(account, sessionToken, expiresAt),
+      alreadyConfirmed: account.emailConfirmedAt !== null,
+    });
+  } catch (err) {
+    logger.error({ err }, 'verify-email failed');
+    return res.status(500).json(apiError('server_error', 'Email confirmation failed. Please try again.'));
+  }
+});
+
+authRouter.post('/resend-confirmation', async (req: Request, res: Response) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!email) {
+    return res.status(400).json(apiError('invalid_request', 'Email is required.'));
+  }
+  if (!isEmailConfigured()) {
+    return res.status(501).json(apiError('server_error', 'Email service is not configured. Please contact support.'));
+  }
+
+  try {
+    const sent = await resendVerificationEmail(email);
+    if (!sent.ok) {
+      return res.status(429).json(apiError('too_many_attempts', 'Please wait before requesting another email.'));
+    }
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'resend-confirmation failed');
+    // Return 200 for unknown addresses to avoid account enumeration, but only when email is up.
+    return res.status(200).json({ success: false });
+  }
+});
+
+authRouter.post('/forgot-password', async (req: Request, res: Response) => {
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+  if (!email) {
+    return res.status(400).json(apiError('invalid_request', 'Email is required.'));
+  }
+  if (!isEmailConfigured()) {
+    return res.status(501).json(apiError('server_error', 'Email service is not configured. Please contact support.'));
+  }
+
+  try {
+    await sendPasswordResetEmail(email);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'forgot-password failed');
+    return res.status(200).json({ success: true });
+  }
+});
+
+authRouter.post('/reset-password', async (req: Request, res: Response) => {
+  const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+  if (!password || password.length < 8) {
+    return res.status(400).json(apiError('weak_password', 'Password must be at least 8 characters.'));
+  }
+  if (!token) {
+    return res.status(401).json(apiError('unauthenticated', 'Reset token is required.'));
+  }
+
+  const payload = await verifyToken(token, 'password_reset');
+  if (!payload) {
+    return res.status(401).json(apiError('unauthenticated', 'Invalid or expired reset link.'));
+  }
+
+  try {
+    const account = await findAccountById(payload.userId);
+    if (!account) {
+      return res.status(404).json(apiError('invalid_request', 'User not found.'));
+    }
+    if (account.passwordHash === null) {
+      return res.status(401).json(apiError('unauthenticated', 'This account does not use a password.'));
+    }
+    if (!payload.binding || payload.binding !== passwordResetBinding(account.passwordHash)) {
+      return res.status(401).json(apiError('unauthenticated', 'This reset link has already been used or is no longer valid.'));
+    }
+
+    await updateUserPassword(account.id, await hashPassword(password));
+    await revokeAllSessions(account.id);
+    clearSessionCookie(res);
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    logger.error({ err }, 'reset-password failed');
+    return res.status(500).json(apiError('server_error', 'Password reset failed. Please try again.'));
   }
 });
 

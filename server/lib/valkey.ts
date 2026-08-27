@@ -74,6 +74,22 @@ export function valkeyGet(key: string): Promise<ValkeyRead<string | null>> {
   return read(() => client.get(key), 'get');
 }
 
+/** Sets only if the key does not already exist. `set` is true when this call claimed it. */
+export async function valkeySetNx(
+  key: string,
+  value: string,
+  ttlSeconds: number,
+): Promise<{ status: 'ok'; set: boolean } | { status: 'unavailable' }> {
+  if (!(await ready())) return { status: 'unavailable' };
+  try {
+    const result = await client.set(key, value, 'EX', ttlSeconds, 'NX');
+    return { status: 'ok', set: result === 'OK' };
+  } catch (err) {
+    logger.error({ err, key }, 'valkey setnx failed');
+    return { status: 'unavailable' };
+  }
+}
+
 export function valkeySet(key: string, value: string, ttlSeconds?: number): Promise<ValkeyWrite> {
   return write(
     () => (ttlSeconds ? client.set(key, value, 'EX', ttlSeconds) : client.set(key, value)),

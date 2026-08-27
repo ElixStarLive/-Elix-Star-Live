@@ -153,6 +153,42 @@ export async function fetchCurrentSession(): Promise<ApiResult<AuthSuccess>> {
   return validated(await request<unknown>('/api/auth/me'));
 }
 
+export async function verifyEmail(token: string): Promise<ApiResult<AuthSuccess>> {
+  return validated(
+    await request<unknown>('/api/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  );
+}
+
+export async function resendConfirmation(email: string): Promise<ApiResult<void>> {
+  return request<void>('/api/auth/resend-confirmation', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function forgotPassword(email: string): Promise<ApiResult<void>> {
+  return request<void>('/api/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export async function resetPassword(token: string, password: string): Promise<ApiResult<{ success: boolean }>> {
+  const result = await request<unknown>('/api/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+  if (result.error) return { data: null, error: result.error };
+  const data = result.data as { success?: boolean } | null;
+  if (data === null || typeof data !== 'object' || data.success !== true) {
+    return { data: null, error: { code: 'invalid_response', message: 'Unexpected response.', status: 0 } };
+  }
+  return { data: data as { success: boolean }, error: null };
+}
+
 export async function logout(): Promise<ApiResult<void>> {
   return request<void>('/api/auth/logout', { method: 'POST' });
 }
