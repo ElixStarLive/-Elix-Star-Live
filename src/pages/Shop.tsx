@@ -29,7 +29,11 @@ export default function Shop() {
       setMessage(error.message);
       return;
     }
-    setMessage(`Order #${data?.id.slice(0, 8)} created for ${product.name}. Stripe checkout will be added next.`);
+    if (data?.checkoutUrl) {
+      window.location.href = data.checkoutUrl;
+    } else {
+      setMessage('Order created. Redirect to checkout unavailable.');
+    }
   };
 
   return (

@@ -36,6 +36,8 @@ export function createApp(): Express {
       credentials: true,
     }),
   );
+  // Stripe webhook needs the raw body to verify the signature.
+  app.use('/api/shop/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json({ limit: '100kb' }));
 
   /**

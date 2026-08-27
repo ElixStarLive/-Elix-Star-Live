@@ -57,6 +57,10 @@ const schema = z.object({
   BUNNY_API_KEY: z.string().optional(),
   BUNNY_STORAGE_ZONE: z.string().optional(),
   BUNNY_REGION: z.string().optional(),
+
+  /** Stripe credentials for shop checkout. Optional until payments are configured. */
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
 });
 
 /**
