@@ -43,6 +43,7 @@ import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
 import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
+import Watch from '../pages/Watch';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
@@ -256,6 +257,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <LiveWatch />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/watch/:id"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Watch />
             </AppShell>
           </RequireAuth>
         }
