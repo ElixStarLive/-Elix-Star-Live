@@ -31,6 +31,8 @@ import FollowList from '../pages/FollowList';
 import CreatorLoginDetails from '../pages/CreatorLoginDetails';
 import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
+import Live from '../pages/Live';
+import LiveWatch from '../pages/LiveWatch';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -223,6 +225,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <SongDetail />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/live"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Live />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/live/:streamId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LiveWatch />
             </AppShell>
           </RequireAuth>
         }
