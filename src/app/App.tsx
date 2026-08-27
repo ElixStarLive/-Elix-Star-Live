@@ -25,6 +25,7 @@ import SavedVideos from '../pages/SavedVideos';
 import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
 import STEMFeed from '../pages/STEMFeed';
+import Hashtag from '../pages/Hashtag';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -207,6 +208,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/hashtag/:tag"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Hashtag />
             </AppShell>
           </RequireAuth>
         }

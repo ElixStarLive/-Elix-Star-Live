@@ -166,6 +166,29 @@ feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, 
   return res.json({ success: true });
 });
 
+feedRouter.get('/hashtag/:tag', authMiddleware, async (req: Request, res: Response) => {
+  const tag = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
+  if (!tag) return res.status(400).json({ code: 'invalid_request', message: 'Hashtag required.' });
+  const lower = tag.toLowerCase();
+  const { limit, offset } = parsePagination(req);
+
+  const { rows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM videos v
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE v.privacy = 'public'
+        AND v.hashtags @> $3::jsonb
+      ORDER BY v.created_at DESC
+      LIMIT $1 OFFSET $2`,
+    [limit, offset, JSON.stringify([lower])],
+  );
+
+  const videos = rows.map((row) => toVideo(row));
+  return res.json({ tag: lower, videos, hasMore: videos.length === limit });
+});
+
 feedRouter.get('/stem', authMiddleware, async (req: Request, res: Response) => {
   const { limit, offset } = parsePagination(req);
 

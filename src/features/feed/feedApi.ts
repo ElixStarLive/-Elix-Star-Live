@@ -34,6 +34,10 @@ export async function fetchDiscover(): Promise<ApiResult<{ videos: FeedVideo[]; 
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/discover');
 }
 
+export async function fetchHashtag(tag: string): Promise<ApiResult<{ tag: string; videos: FeedVideo[]; hasMore: boolean }>> {
+  return request<{ tag: string; videos: FeedVideo[]; hasMore: boolean }>(`/api/hashtag/${encodeURIComponent(tag)}`);
+}
+
 export async function fetchRisingStars(): Promise<ApiResult<{ videos: FeedVideo[]; hasMore: boolean }>> {
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/rising-stars');
 }
