@@ -38,7 +38,28 @@ const schema = z.object({
    * Empty means same-origin only.
    */
   CORS_ORIGINS: z.string().default(''),
+
+  /**
+   * SMTP connection string for transactional email. Optional only outside
+   * production — see the refinement below, which makes it mandatory once
+   * NODE_ENV is production so a release can never ship unable to send a
+   * verification or password-reset message.
+   */
+  SMTP_URL: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
 });
+
+/**
+ * Email is optional in development so the app can be run without a mail
+ * provider, and mandatory in production. Expressing that as a refinement rather
+ * than a runtime branch means the rule is enforced at startup, and a production
+ * deploy missing SMTP fails immediately instead of silently skipping address
+ * verification for every account it creates.
+ */
+const configSchema = schema.refine(
+  (value) => value.NODE_ENV !== 'production' || (Boolean(value.SMTP_URL) && Boolean(value.EMAIL_FROM)),
+  { message: 'SMTP_URL and EMAIL_FROM are required when NODE_ENV=production', path: ['SMTP_URL'] },
+);
 
 export type ServerConfig = Readonly<
   Omit<z.infer<typeof schema>, 'CORS_ORIGINS'> & {
@@ -48,7 +69,7 @@ export type ServerConfig = Readonly<
 >;
 
 function load(): ServerConfig {
-  const parsed = schema.safeParse(process.env);
+  const parsed = configSchema.safeParse(process.env);
   if (!parsed.success) {
     const details = parsed.error.issues
       .map((issue) => `  - ${issue.path.join('.') || '(root)'}: ${issue.message}`)

@@ -32,6 +32,16 @@ export interface AuthSuccessBody {
   session: AuthSessionBody;
 }
 
+/**
+ * Registration has two distinct outcomes and they are told apart by `status`
+ * rather than by whether `session` happens to be null. `verificationEmailSent`
+ * reports what actually happened: the account exists either way, but the client
+ * must not promise an email that failed to send.
+ */
+export type RegisterResultBody =
+  | { status: 'signed_in'; user: AuthUserBody; session: AuthSessionBody }
+  | { status: 'verification_required'; user: AuthUserBody; verificationEmailSent: boolean };
+
 /** Machine-readable failure codes. The client maps these to copy; it never matches on message text. */
 export type AuthErrorCode =
   | 'invalid_request'
@@ -40,6 +50,10 @@ export type AuthErrorCode =
   | 'account_suspended'
   | 'too_many_attempts'
   | 'unauthenticated'
+  | 'email_taken'
+  | 'username_taken'
+  | 'weak_password'
+  | 'consent_required'
   | 'server_error';
 
 export interface ApiErrorBody {
