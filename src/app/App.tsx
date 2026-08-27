@@ -27,6 +27,7 @@ import RisingStars from '../pages/RisingStars';
 import STEMFeed from '../pages/STEMFeed';
 import Hashtag from '../pages/Hashtag';
 import Report from '../pages/Report';
+import FollowList from '../pages/FollowList';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -219,6 +220,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Report />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile/:userId/:type"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <FollowList />
             </AppShell>
           </RequireAuth>
         }

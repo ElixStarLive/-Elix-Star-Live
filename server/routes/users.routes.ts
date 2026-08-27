@@ -77,6 +77,64 @@ usersRouter.get('/users/me', authMiddleware, async (req: Request, res: Response)
   return res.json(profileFromRow(row));
 });
 
+usersRouter.get('/users/:userId/followers', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const { rows } = await query<
+    {
+      user_id: string;
+      username: string;
+      display_name: string;
+      avatar_url: string;
+    }
+  >(
+    `SELECT p.user_id, u.username, p.display_name, p.avatar_url
+       FROM follows f
+       JOIN users u ON u.id = f.follower_id
+       JOIN profiles p ON p.user_id = f.follower_id
+      WHERE f.following_id = $1
+      ORDER BY f.created_at DESC`,
+    [userId],
+  );
+
+  const users = rows.map((row) => ({
+    id: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+  }));
+
+  return res.json({ users });
+});
+
+usersRouter.get('/users/:userId/following', authMiddleware, async (req: Request, res: Response) => {
+  const userId = req.params.userId;
+  const { rows } = await query<
+    {
+      user_id: string;
+      username: string;
+      display_name: string;
+      avatar_url: string;
+    }
+  >(
+    `SELECT p.user_id, u.username, p.display_name, p.avatar_url
+       FROM follows f
+       JOIN users u ON u.id = f.following_id
+       JOIN profiles p ON p.user_id = f.following_id
+      WHERE f.follower_id = $1
+      ORDER BY f.created_at DESC`,
+    [userId],
+  );
+
+  const users = rows.map((row) => ({
+    id: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+  }));
+
+  return res.json({ users });
+});
+
 usersRouter.get('/users', authMiddleware, async (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').trim().toLowerCase();
   if (!q || q.length < 2) {

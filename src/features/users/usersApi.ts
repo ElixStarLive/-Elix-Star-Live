@@ -59,6 +59,14 @@ export interface UserPreview {
   isVerified: boolean;
 }
 
+export async function fetchFollowers(userId: string): Promise<ApiResult<{ users: UserPreview[] }>> {
+  return request<{ users: UserPreview[] }>(`/api/users/${encodeURIComponent(userId)}/followers`);
+}
+
+export async function fetchFollowing(userId: string): Promise<ApiResult<{ users: UserPreview[] }>> {
+  return request<{ users: UserPreview[] }>(`/api/users/${encodeURIComponent(userId)}/following`);
+}
+
 export async function searchUsers(query: string): Promise<ApiResult<{ users: UserPreview[] }>> {
   return request<{ users: UserPreview[] }>(`/api/users?q=${encodeURIComponent(query)}`);
 }
