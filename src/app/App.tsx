@@ -14,6 +14,7 @@ import Profile from '../pages/Profile';
 import Settings from '../pages/Settings';
 import EditProfile from '../pages/EditProfile';
 import Inbox from '../pages/Inbox';
+import SearchPage from '../pages/SearchPage';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -146,6 +147,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <AlertsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/search"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SearchPage />
             </AppShell>
           </RequireAuth>
         }

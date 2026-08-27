@@ -77,6 +77,41 @@ usersRouter.get('/users/me', authMiddleware, async (req: Request, res: Response)
   return res.json(profileFromRow(row));
 });
 
+usersRouter.get('/users', authMiddleware, async (req: Request, res: Response) => {
+  const q = String(req.query.q ?? '').trim().toLowerCase();
+  if (!q || q.length < 2) {
+    return res.status(400).json({ code: 'invalid_request', message: 'Search query must be at least 2 characters.' });
+  }
+
+  const { rows } = await query<
+    {
+      user_id: string;
+      username: string;
+      display_name: string;
+      avatar_url: string;
+      is_verified: boolean;
+    }
+  >(
+    `SELECT p.user_id, u.username, p.display_name, p.avatar_url, p.is_verified
+       FROM profiles p
+       JOIN users u ON u.id = p.user_id
+      WHERE u.username ILIKE $1 || '%' OR p.display_name ILIKE '%' || $1 || '%'
+      ORDER BY p.is_verified DESC, p.display_name ASC
+      LIMIT 20`,
+    [q],
+  );
+
+  const users = rows.map((row) => ({
+    id: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+    isVerified: row.is_verified,
+  }));
+
+  return res.json({ users });
+});
+
 usersRouter.patch('/users/me', authMiddleware, async (req: Request, res: Response) => {
   const parsed = profileUpdateSchema.safeParse(req.body);
   if (!parsed.success) {

@@ -51,6 +51,18 @@ export async function patchProfile(body: {
   return { data: data as { success: boolean }, error: null };
 }
 
+export interface UserPreview {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string;
+  isVerified: boolean;
+}
+
+export async function searchUsers(query: string): Promise<ApiResult<{ users: UserPreview[] }>> {
+  return request<{ users: UserPreview[] }>(`/api/users?q=${encodeURIComponent(query)}`);
+}
+
 export async function fetchProfile(userId: string): Promise<ApiResult<PublicProfile>> {
   const result = await request<unknown>(`/api/users/${encodeURIComponent(userId)}`);
   if (result.error) return { data: null, error: result.error };
