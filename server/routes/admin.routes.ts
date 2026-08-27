@@ -291,6 +291,41 @@ adminRouter.post('/products', authMiddleware, requireAdmin, async (req: Request,
   return res.status(201).json({ id: row.id });
 });
 
+adminRouter.get('/coin-purchases', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    user_id: string;
+    username: string;
+    package_id: string;
+    platform: string;
+    platform_product_id: string;
+    status: string;
+    coins: number;
+    created_at: Date;
+  }>(
+    `SELECT cp.id, cp.user_id, u.username, cp.package_id, cp.platform,
+            cp.platform_product_id, cp.status, cp.coins, cp.created_at
+       FROM coin_purchases cp
+       JOIN users u ON u.id = cp.user_id
+      ORDER BY cp.created_at DESC
+      LIMIT 200`,
+  );
+
+  const purchases = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    packageId: row.package_id,
+    platform: row.platform,
+    platformProductId: row.platform_product_id,
+    status: row.status,
+    coins: row.coins,
+    createdAt: row.created_at.toISOString(),
+  }));
+
+  return res.json({ purchases });
+});
+
 adminRouter.get('/monetisation', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
   const { rows } = await query<{
     paid_gifts: number;

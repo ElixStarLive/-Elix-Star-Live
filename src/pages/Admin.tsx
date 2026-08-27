@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, DollarSign, Flag, Package, Star, TrendingUp, Users, Wallet } from 'lucide-react';
+import { ArrowLeft, BarChart3, Coins, DollarSign, Flag, Package, Star, TrendingUp, Users, Wallet } from 'lucide-react';
 
 const ITEMS = [
   { label: 'Users', to: '/admin/users', icon: Users },
@@ -9,6 +9,7 @@ const ITEMS = [
   { label: 'Rising Stars', to: '/admin/rising-stars', icon: Star },
   { label: 'Payouts', to: '/admin/payouts', icon: Wallet },
   { label: 'Shop', to: '/admin/shop', icon: Package },
+  { label: 'Purchases', to: '/admin/purchases', icon: Coins },
   { label: 'Monetisation', to: '/admin/monetisation', icon: DollarSign },
 ];
 

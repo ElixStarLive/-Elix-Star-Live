@@ -127,6 +127,22 @@ export async function createAdminProduct(body: {
   });
 }
 
+export interface AdminCoinPurchase {
+  id: string;
+  userId: string;
+  username: string;
+  packageId: string;
+  platform: string;
+  platformProductId: string;
+  status: string;
+  coins: number;
+  createdAt: string;
+}
+
+export async function fetchAdminCoinPurchases(): Promise<ApiResult<{ purchases: AdminCoinPurchase[] }>> {
+  return request<{ purchases: AdminCoinPurchase[] }>('/api/admin/coin-purchases');
+}
+
 export interface MonetisationStats {
   paidGiftsGbp: number;
   paidCoinsCount: number;
