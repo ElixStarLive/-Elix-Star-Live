@@ -21,6 +21,7 @@ import Upload from '../pages/Upload';
 import VideoView from '../pages/VideoView';
 import Admin from '../pages/Admin';
 import AdminUsers from '../pages/AdminUsers';
+import AdminReports from '../pages/AdminReports';
 import SavedVideos from '../pages/SavedVideos';
 import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
@@ -345,6 +346,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <SavedVideos />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/reports"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AdminReports />
             </AppShell>
           </RequireAuth>
         }

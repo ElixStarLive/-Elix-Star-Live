@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Users } from 'lucide-react';
+import { ArrowLeft, Flag, Users } from 'lucide-react';
 
 const ITEMS = [
   { label: 'Users', to: '/admin/users', icon: Users },
+  { label: 'Reports', to: '/admin/reports', icon: Flag },
 ];
 
 export default function Admin() {

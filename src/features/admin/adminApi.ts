@@ -10,6 +10,20 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface AdminReport {
+  id: string;
+  reporterId: string;
+  targetId: string;
+  targetType: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+}
+
 export async function fetchAdminUsers(): Promise<ApiResult<{ users: AdminUser[] }>> {
   return request<{ users: AdminUser[] }>('/api/admin/users');
+}
+
+export async function fetchAdminReports(): Promise<ApiResult<{ reports: AdminReport[] }>> {
+  return request<{ reports: AdminReport[] }>('/api/admin/reports');
 }

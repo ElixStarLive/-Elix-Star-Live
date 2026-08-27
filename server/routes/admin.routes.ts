@@ -48,3 +48,32 @@ adminRouter.get('/admin/users', authMiddleware, requireAdmin, async (_req: Reque
 
   return res.json({ users });
 });
+
+adminRouter.get('/reports', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    reporter_id: string;
+    target_id: string;
+    target_type: string;
+    reason: string;
+    status: string;
+    created_at: Date;
+  }>(
+    `SELECT id, reporter_id, target_id, target_type, reason, status, created_at
+       FROM reports
+      ORDER BY created_at DESC
+      LIMIT 200`,
+  );
+
+  const reports = rows.map((row) => ({
+    id: row.id,
+    reporterId: row.reporter_id,
+    targetId: row.target_id,
+    targetType: row.target_type,
+    reason: row.reason,
+    status: row.status,
+    createdAt: row.created_at.toISOString(),
+  }));
+
+  return res.json({ reports });
+});
