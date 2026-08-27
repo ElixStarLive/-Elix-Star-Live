@@ -93,6 +93,30 @@ export async function unblockUser(userId: string): Promise<ApiResult<{ success: 
   return request<{ success: boolean }>(`/api/users/${encodeURIComponent(userId)}/block`, { method: 'DELETE' });
 }
 
+export interface PayoutSettings {
+  method: string;
+  identifier: string;
+  country: string;
+}
+
+export async function fetchPayoutSettings(): Promise<ApiResult<PayoutSettings>> {
+  return request<PayoutSettings>('/api/users/me/payout');
+}
+
+export async function patchPayoutSettings(body: PayoutSettings): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>('/api/users/me/payout', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function requestPayout(amountGbp: number): Promise<ApiResult<{ id: string }>> {
+  return request<{ id: string }>('/api/users/me/payout/requests', {
+    method: 'POST',
+    body: JSON.stringify({ amountGbp }),
+  });
+}
+
 export async function changePassword(body: { currentPassword: string; newPassword: string }): Promise<ApiResult<{ success: boolean }>> {
   return request<{ success: boolean }>('/api/users/me/password', {
     method: 'POST',

@@ -365,3 +365,66 @@ usersRouter.delete('/users/:userId/block', authMiddleware, async (req: Request, 
   await query(`DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2`, [req.userId, req.params.userId]);
   return res.json({ success: true });
 });
+
+const payoutSettingsSchema = z.object({
+  method: z.string().max(60),
+  identifier: z.string().max(120),
+  country: z.string().max(60),
+});
+
+usersRouter.get('/users/me/payout', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<{
+    method: string;
+    identifier: string;
+    country: string;
+  }>(
+    `INSERT INTO payout_settings (user_id) VALUES ($1)
+     ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW()
+     RETURNING method, identifier, country`,
+    [req.userId],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not load payout settings.' });
+  return res.json({ method: row.method, identifier: row.identifier, country: row.country });
+});
+
+usersRouter.patch('/users/me/payout', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = payoutSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid payout settings.' });
+  }
+
+  const { method, identifier, country } = parsed.data;
+  await query(
+    `INSERT INTO payout_settings (user_id, method, identifier, country)
+     VALUES ($1, $2, $3, $4)
+     ON CONFLICT (user_id) DO UPDATE SET method = $2, identifier = $3, country = $4, updated_at = NOW()`,
+    [req.userId, method, identifier, country],
+  );
+
+  return res.json({ success: true });
+});
+
+const payoutRequestSchema = z.object({
+  amountGbp: z.coerce.number().positive().max(100000),
+});
+
+usersRouter.post('/users/me/payout/requests', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = payoutRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid payout request.' });
+  }
+
+  const { amountGbp } = parsed.data;
+  const { rows } = await query<{ id: string }>(
+    `INSERT INTO payout_requests (user_id, amount_gbp) VALUES ($1, $2) RETURNING id`,
+    [req.userId, amountGbp],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not create payout request.' });
+  return res.status(201).json({ id: row.id });
+});
