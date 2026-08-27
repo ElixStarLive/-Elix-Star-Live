@@ -33,7 +33,7 @@ interface RegistrationInput {
   email: string;
   password: string;
   /** Absent when the person did not choose one; a name is then derived. */
-  username?: string;
+  username: string | undefined;
   /** True when the address must be proven before the account can sign in. */
   requireEmailConfirmation: boolean;
   /**

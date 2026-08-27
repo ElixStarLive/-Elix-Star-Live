@@ -9,12 +9,15 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { logger } from '../lib/logger.js';
-import { apiError, authSuccessBody } from '../auth/contract.js';
+import { apiError, authSuccessBody, toAuthUserBody } from '../auth/contract.js';
 import { decoyHash, verifyPassword } from '../auth/password.js';
 import { clearFailures, isLockedOut, recordFailure } from '../auth/loginLockout.js';
 import { createSession, resolveSession, revokeSession } from '../auth/sessions.js';
 import { findAccountById, findAccountByIdentifier, isSuspended } from '../auth/users.repository.js';
 import { clearSessionCookie, readBearerToken, setSessionCookie } from '../http/sessionCookie.js';
+import { registerAccount } from '../auth/registration.js';
+import { sendVerificationEmail } from '../auth/emailVerification.js';
+import { isEmailConfigured } from '../lib/email.js';
 
 const loginSchema = z.object({
   // One field accepts an email address or a username; the repository decides
@@ -92,6 +95,76 @@ authRouter.post('/logout', async (req: Request, res: Response) => {
   } catch (err) {
     logger.error({ err }, 'logout failed');
     return res.status(500).json(apiError('server_error', 'Sign-out failed. Please try again.'));
+  }
+});
+
+const registerSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, 'Email is required.')
+    .email('Enter a valid email address.')
+    .transform((value) => value.toLowerCase()),
+  password: z.string().min(8, 'Password must be at least 8 characters.'),
+  username: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined)),
+});
+
+authRouter.post('/register', async (req: Request, res: Response) => {
+  const parsed = registerSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json(apiError('invalid_request', first?.message ?? 'Invalid registration details.'));
+  }
+  const { email, password, username } = parsed.data;
+
+  try {
+    const emailConfigured = isEmailConfigured();
+    const userAgent = String(req.headers['user-agent'] ?? '');
+    const ipAddress = (req.ip as string | undefined) ?? null;
+
+    const result = await registerAccount({
+      email,
+      password,
+      username: username ?? undefined,
+      requireEmailConfirmation: emailConfigured,
+      consent: {
+        type: 'terms_privacy_and_age_13_plus',
+        version: '2026-07-21',
+        ipAddress,
+        userAgent: userAgent.slice(0, 400),
+      },
+    });
+
+    if (result.status === 'email_taken') {
+      return res.status(409).json(apiError('email_taken', 'An account with this email already exists.'));
+    }
+    if (result.status === 'username_taken') {
+      return res.status(409).json(apiError('username_taken', 'This username is already taken.'));
+    }
+
+    if (emailConfigured) {
+      const emailResult = await sendVerificationEmail(result.account);
+      return res.status(201).json({
+        status: 'verification_required',
+        user: toAuthUserBody(result.account),
+        verificationEmailSent: emailResult.ok,
+      });
+    }
+
+    const { token, expiresAt } = await createSession(result.account.id, userAgent);
+    setSessionCookie(res, token, expiresAt);
+    return res.status(201).json({
+      status: 'signed_in',
+      user: toAuthUserBody(result.account),
+      session: { accessToken: token, expiresAt: expiresAt.toISOString() },
+    });
+  } catch (err) {
+    logger.error({ err }, 'registration failed');
+    return res.status(500).json(apiError('server_error', 'Could not create account. Please try again.'));
   }
 });
 

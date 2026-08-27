@@ -11,7 +11,7 @@
 
 import { create } from 'zustand';
 import { setBearerToken } from '../../lib/apiClient';
-import { fetchCurrentSession, login, logout, type AuthUser } from './authApi';
+import { fetchCurrentSession, login, logout, register, type AuthUser } from './authApi';
 
 export type AuthStatus = 'restoring' | 'authenticated' | 'anonymous';
 
@@ -20,6 +20,17 @@ export interface LoginFailure {
   message: string;
 }
 
+export type RegisterOutcome =
+  | {
+      success: true;
+      /** True when a confirmation email was sent; the person must verify before login. */
+      needsVerification: boolean;
+    }
+  | {
+      success: false;
+      error: LoginFailure;
+    };
+
 interface AuthState {
   status: AuthStatus;
   user: AuthUser | null;
@@ -27,6 +38,7 @@ interface AuthState {
   /** Resolves the persisted session on app start. Safe to call more than once. */
   restore: () => Promise<void>;
   signIn: (identifier: string, password: string) => Promise<LoginFailure | null>;
+  signUp: (input: { email: string; password: string; username: string | undefined }) => Promise<RegisterOutcome>;
   signOut: () => Promise<void>;
 }
 
@@ -41,6 +53,14 @@ const LOGIN_MESSAGES: Record<string, string> = {
   too_many_attempts: 'Too many failed sign-in attempts. Please try again later.',
   invalid_request: 'Please enter both your email or username and your password.',
   network_error: 'Cannot reach the server. Check your connection and try again.',
+  email_taken: 'An account with this email already exists.',
+  username_taken: 'This username is already taken.',
+  weak_password: 'Password must be at least 8 characters.',
+};
+
+const REGISTER_MESSAGES: Record<string, string> = {
+  ...LOGIN_MESSAGES,
+  invalid_request: 'Please enter a valid email and a password of at least 8 characters.',
 };
 
 function loginFailure(code: string, fallback: string): LoginFailure {
@@ -77,6 +97,25 @@ export const useAuthStore = create<AuthState>()((set) => ({
     setBearerToken(data.session.accessToken);
     set({ status: 'authenticated', user: data.user });
     return null;
+  },
+
+  signUp: async ({ email, password, username }: { email: string; password: string; username: string | undefined }) => {
+    const { data, error } = await register({ email, password, username });
+
+    if (error) {
+      return {
+        success: false,
+        error: { code: error.code, message: REGISTER_MESSAGES[error.code] ?? error.message },
+      };
+    }
+
+    if (data.status === 'signed_in') {
+      setBearerToken(data.session?.accessToken ?? '');
+      set({ status: 'authenticated', user: data.user });
+      return { success: true, needsVerification: false };
+    }
+
+    return { success: true, needsVerification: true };
   },
 
   signOut: async () => {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Login from '../pages/Login';
+import Register from '../pages/Register';
 import { useAuthStore } from '../features/auth/authStore';
 import { SessionSummary } from './SessionSummary';
 
@@ -42,6 +43,14 @@ export default function App() {
         element={
           <RedirectIfAuthenticated>
             <Login />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <RedirectIfAuthenticated>
+            <Register />
           </RedirectIfAuthenticated>
         }
       />
