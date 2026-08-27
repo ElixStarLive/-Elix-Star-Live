@@ -30,6 +30,27 @@ function isProfile(value: unknown): value is PublicProfile {
   );
 }
 
+export async function fetchMyProfile(): Promise<ApiResult<PublicProfile>> {
+  return fetchProfile('me');
+}
+
+export async function patchProfile(body: {
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+}): Promise<ApiResult<{ success: boolean }>> {
+  const result = await request<unknown>('/api/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (result.error) return { data: null, error: result.error };
+  const data = result.data as { success?: boolean } | null;
+  if (data === null || typeof data !== 'object' || data.success !== true) {
+    return { data: null, error: { code: 'invalid_response', message: 'Unexpected response.', status: 0 } };
+  }
+  return { data: data as { success: boolean }, error: null };
+}
+
 export async function fetchProfile(userId: string): Promise<ApiResult<PublicProfile>> {
   const result = await request<unknown>(`/api/users/${encodeURIComponent(userId)}`);
   if (result.error) return { data: null, error: result.error };

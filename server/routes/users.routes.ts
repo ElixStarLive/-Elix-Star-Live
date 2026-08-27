@@ -1,42 +1,27 @@
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { query } from '../lib/postgres.js';
 import { authMiddleware } from '../http/authMiddleware.js';
 
-export const usersRouter = Router();
+const profileUpdateSchema = z.object({
+  displayName: z.string().trim().min(1).max(60).optional(),
+  bio: z.string().max(500).optional(),
+  avatarUrl: z.string().max(500).optional(),
+});
 
-usersRouter.get('/users/:userId', authMiddleware, async (req: Request, res: Response) => {
-  const userId = req.params.userId;
-  const { rows } = await query<
-    {
-      user_id: string;
-      username: string;
-      display_name: string;
-      avatar_url: string;
-      bio: string;
-      is_verified: boolean;
-      is_admin: boolean;
-      followers: number;
-      following: number;
-      video_count: number;
-    }
-  >(
-    `SELECT p.user_id, u.username, p.display_name, p.avatar_url, p.bio,
-            p.is_verified, p.is_admin,
-            (SELECT COUNT(*) FROM follows WHERE following_id = p.user_id) AS followers,
-            (SELECT COUNT(*) FROM follows WHERE follower_id = p.user_id) AS following,
-            (SELECT COUNT(*) FROM videos WHERE user_id = p.user_id AND privacy = 'public') AS video_count
-       FROM profiles p
-       JOIN users u ON u.id = p.user_id
-      WHERE p.user_id = $1
-      LIMIT 1`,
-    [userId],
-  );
-
-  const row = rows[0];
-  if (!row) {
-    return res.status(404).json({ code: 'not_found', message: 'Profile not found.' });
-  }
-  return res.json({
+function profileFromRow(row: {
+  user_id: string;
+  username: string;
+  display_name: string;
+  avatar_url: string;
+  bio: string;
+  is_verified: boolean;
+  is_admin: boolean;
+  followers: number;
+  following: number;
+  video_count: number;
+}) {
+  return {
     id: row.user_id,
     username: row.username,
     displayName: row.display_name,
@@ -47,5 +32,80 @@ usersRouter.get('/users/:userId', authMiddleware, async (req: Request, res: Resp
     followers: Number(row.followers),
     following: Number(row.following),
     videoCount: Number(row.video_count),
-  });
+  };
+}
+
+export const usersRouter = Router();
+
+usersRouter.get('/users/:userId', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<
+    Parameters<typeof profileFromRow>[0]
+  >(
+    `SELECT p.user_id, u.username, p.display_name, p.avatar_url, p.bio,
+            p.is_verified, p.is_admin,
+            (SELECT COUNT(*) FROM follows WHERE following_id = p.user_id) AS followers,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = p.user_id) AS following,
+            (SELECT COUNT(*) FROM videos WHERE user_id = p.user_id AND privacy = 'public') AS video_count
+       FROM profiles p
+       JOIN users u ON u.id = p.user_id
+      WHERE p.user_id = $1
+      LIMIT 1`,
+    [req.params.userId],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(404).json({ code: 'not_found', message: 'Profile not found.' });
+  return res.json(profileFromRow(row));
+});
+
+usersRouter.get('/users/me', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<Parameters<typeof profileFromRow>[0]>(
+    `SELECT p.user_id, u.username, p.display_name, p.avatar_url, p.bio,
+            p.is_verified, p.is_admin,
+            (SELECT COUNT(*) FROM follows WHERE following_id = p.user_id) AS followers,
+            (SELECT COUNT(*) FROM follows WHERE follower_id = p.user_id) AS following,
+            (SELECT COUNT(*) FROM videos WHERE user_id = p.user_id AND privacy = 'public') AS video_count
+       FROM profiles p
+       JOIN users u ON u.id = p.user_id
+      WHERE p.user_id = $1
+      LIMIT 1`,
+    [req.userId],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(404).json({ code: 'not_found', message: 'Profile not found.' });
+  return res.json(profileFromRow(row));
+});
+
+usersRouter.patch('/users/me', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = profileUpdateSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid profile data.' });
+  }
+
+  const { displayName, bio, avatarUrl } = parsed.data;
+  const sets: string[] = [];
+  const values: (string | undefined)[] = [];
+
+  if (displayName !== undefined) {
+    sets.push(`display_name = $${sets.length + 1}`);
+    values.push(displayName);
+  }
+  if (bio !== undefined) {
+    sets.push(`bio = $${sets.length + 1}`);
+    values.push(bio);
+  }
+  if (avatarUrl !== undefined) {
+    sets.push(`avatar_url = $${sets.length + 1}`);
+    values.push(avatarUrl);
+  }
+
+  if (sets.length === 0) {
+    return res.status(400).json({ code: 'invalid_request', message: 'No fields to update.' });
+  }
+
+  values.push(req.userId!);
+  await query(`UPDATE profiles SET ${sets.join(', ')}, updated_at = NOW() WHERE user_id = $${values.length}`, values);
+  return res.json({ success: true });
 });

@@ -12,6 +12,7 @@ import LegalDoc from '../pages/LegalDoc';
 import VideoFeed from '../pages/VideoFeed';
 import Profile from '../pages/Profile';
 import Settings from '../pages/Settings';
+import EditProfile from '../pages/EditProfile';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -112,6 +113,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Settings />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/edit-profile"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <EditProfile />
             </AppShell>
           </RequireAuth>
         }
