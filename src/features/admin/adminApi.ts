@@ -76,6 +76,27 @@ export async function createAdminChallenge(body: {
   });
 }
 
+export interface PayoutRequest {
+  id: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  amountGbp: number;
+  status: string;
+  createdAt: string;
+}
+
+export async function fetchAdminPayouts(): Promise<ApiResult<{ requests: PayoutRequest[] }>> {
+  return request<{ requests: PayoutRequest[] }>('/api/admin/payouts');
+}
+
+export async function updateAdminPayout(requestId: string, status: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/admin/payouts/${encodeURIComponent(requestId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function fetchAdminProgression(): Promise<ApiResult<{ users: ProgressionUser[] }>> {
   return request<{ users: ProgressionUser[] }>('/api/admin/progression');
 }

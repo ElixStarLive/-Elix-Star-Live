@@ -195,3 +195,44 @@ adminRouter.post('/rising-stars', authMiddleware, requireAdmin, async (req: Requ
   if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not create challenge.' });
   return res.status(201).json({ id: row.id });
 });
+
+adminRouter.get('/payouts', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    user_id: string;
+    username: string;
+    display_name: string;
+    amount_gbp: number;
+    status: string;
+    created_at: Date;
+  }>(
+    `SELECT pr.id, pr.user_id, u.username, p.display_name, pr.amount_gbp, pr.status, pr.created_at
+       FROM payout_requests pr
+       JOIN users u ON u.id = pr.user_id
+       JOIN profiles p ON p.user_id = pr.user_id
+      ORDER BY pr.created_at DESC
+      LIMIT 200`,
+  );
+
+  const requests = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    amountGbp: Number(row.amount_gbp),
+    status: row.status,
+    createdAt: row.created_at.toISOString(),
+  }));
+
+  return res.json({ requests });
+});
+
+adminRouter.patch('/payouts/:requestId', authMiddleware, requireAdmin, async (req: Request, res: Response) => {
+  const status = String(req.body.status);
+  if (!['pending', 'approved', 'rejected'].includes(status)) {
+    return res.status(400).json({ code: 'invalid_request', message: 'Invalid status.' });
+  }
+
+  await query(`UPDATE payout_requests SET status = $1 WHERE id = $2`, [status, req.params.requestId]);
+  return res.json({ success: true });
+});

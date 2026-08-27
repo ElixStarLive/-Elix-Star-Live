@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Flag, Star, TrendingUp, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Flag, Star, TrendingUp, Users, Wallet } from 'lucide-react';
 
 const ITEMS = [
   { label: 'Users', to: '/admin/users', icon: Users },
@@ -7,6 +7,7 @@ const ITEMS = [
   { label: 'Economy', to: '/admin/economy', icon: BarChart3 },
   { label: 'Progression', to: '/admin/progression', icon: TrendingUp },
   { label: 'Rising Stars', to: '/admin/rising-stars', icon: Star },
+  { label: 'Payouts', to: '/admin/payouts', icon: Wallet },
 ];
 
 export default function Admin() {
