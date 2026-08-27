@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { query } from '../lib/postgres.js';
+import { verifyPassword, hashPassword } from '../auth/password.js';
 import { authMiddleware } from '../http/authMiddleware.js';
 
 const profileUpdateSchema = z.object({
@@ -282,5 +283,40 @@ usersRouter.patch('/users/me', authMiddleware, async (req: Request, res: Respons
 
   values.push(req.userId!);
   await query(`UPDATE profiles SET ${sets.join(', ')}, updated_at = NOW() WHERE user_id = $${values.length}`, values);
+  return res.json({ success: true });
+});
+
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8).max(128),
+});
+
+usersRouter.post('/users/me/password', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = changePasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid password data.' });
+  }
+
+  const { currentPassword, newPassword } = parsed.data;
+  const { rows } = await query<{ password_hash: string }>(
+    `SELECT password_hash FROM users WHERE id = $1 LIMIT 1`,
+    [req.userId],
+  );
+
+  const user = rows[0];
+  if (!user?.password_hash) {
+    return res.status(400).json({ code: 'invalid_request', message: 'No password set for this account.' });
+  }
+
+  const valid = await verifyPassword(currentPassword, user.password_hash);
+  if (!valid) {
+    return res.status(401).json({ code: 'invalid_credentials', message: 'Current password is incorrect.' });
+  }
+
+  const newHash = await hashPassword(newPassword);
+  await query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [newHash, req.userId]);
+  await query(`DELETE FROM auth_sessions WHERE user_id = $1`, [req.userId]);
+
   return res.json({ success: true });
 });

@@ -81,6 +81,13 @@ export async function fetchNotificationSettings(): Promise<ApiResult<Notificatio
   return request<NotificationSettings>('/api/users/me/notifications');
 }
 
+export async function changePassword(body: { currentPassword: string; newPassword: string }): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>('/api/users/me/password', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function patchNotificationSettings(body: Partial<NotificationSettings>): Promise<ApiResult<{ success: boolean }>> {
   return request<{ success: boolean }>('/api/users/me/notifications', {
     method: 'PATCH',
