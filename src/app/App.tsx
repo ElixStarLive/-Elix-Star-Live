@@ -26,6 +26,7 @@ import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
 import STEMFeed from '../pages/STEMFeed';
 import Hashtag from '../pages/Hashtag';
+import Report from '../pages/Report';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -208,6 +209,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/report/:targetType/:targetId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Report />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Report />
             </AppShell>
           </RequireAuth>
         }
