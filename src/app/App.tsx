@@ -30,6 +30,7 @@ import Report from '../pages/Report';
 import FollowList from '../pages/FollowList';
 import CreatorLoginDetails from '../pages/CreatorLoginDetails';
 import Music from '../pages/Music';
+import SongDetail from '../pages/SongDetail';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -212,6 +213,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/music/:songId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SongDetail />
             </AppShell>
           </RequireAuth>
         }

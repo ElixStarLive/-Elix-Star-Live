@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Music as MusicIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { fetchSounds, type Sound } from '../features/music/musicApi';
 
 export default function Music() {
@@ -31,8 +32,9 @@ export default function Music() {
       ) : (
         <div className="space-y-2">
           {sounds.map((sound) => (
-            <div
+            <Link
               key={sound.id}
+              to={`/music/${sound.id}`}
               className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3"
             >
               {sound.thumbnail ? (
@@ -47,7 +49,7 @@ export default function Music() {
                 <p className="text-fluid-sm text-white/60">{sound.artist}</p>
               </div>
               <p className="text-fluid-xs text-white/50">{sound.useCount} uses</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}

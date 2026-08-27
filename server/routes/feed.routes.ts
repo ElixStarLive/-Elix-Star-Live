@@ -11,7 +11,7 @@ const createVideoSchema = z.object({
   privacy: z.enum(['public', 'private', 'friends']).optional(),
 });
 
-interface FeedRow {
+export interface FeedRow {
   id: string;
   url: string;
   thumbnail: string;
@@ -27,7 +27,7 @@ interface FeedRow {
   created_at: Date;
 }
 
-function toVideo(row: FeedRow, likedByMe = false, savedByMe = false) {
+export function toVideo(row: FeedRow, likedByMe = false, savedByMe = false) {
   return {
     id: row.id,
     url: row.url,
