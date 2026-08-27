@@ -12,6 +12,7 @@ import { usersRouter } from '../routes/users.routes.js';
 import { inboxRouter } from '../routes/inbox.routes.js';
 import { adminRouter } from '../routes/admin.routes.js';
 import { reportsRouter } from '../routes/reports.routes.js';
+import { musicRouter } from '../routes/music.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -49,6 +50,7 @@ export function createApp(): Express {
   app.use('/api', inboxRouter);
   app.use('/api/admin', adminRouter);
   app.use('/api', reportsRouter);
+  app.use('/api', musicRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json(apiError('invalid_request', 'Not found.'));
