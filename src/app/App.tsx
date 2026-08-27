@@ -41,6 +41,7 @@ import SettingsPayout from '../pages/SettingsPayout';
 import SettingsSafety from '../pages/SettingsSafety';
 import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
+import Engagement from '../pages/Engagement';
 import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
 import Watch from '../pages/Watch';
@@ -419,6 +420,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Discover />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/engagement"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Engagement />
             </AppShell>
           </RequireAuth>
         }

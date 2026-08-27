@@ -166,6 +166,46 @@ feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, 
   return res.json({ success: true });
 });
 
+feedRouter.get('/engagement', authMiddleware, async (req: Request, res: Response) => {
+  const { rows: userRows } = await query<{
+    current_level: number;
+    total_xp: number;
+  }>(
+    `INSERT INTO user_progression (user_id) VALUES ($1)
+     ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW()
+     RETURNING current_level, total_xp`,
+    [req.userId],
+  );
+
+  const user = userRows[0];
+  if (!user) return res.status(500).json({ code: 'server_error', message: 'Could not load engagement.' });
+
+  const { rows: challengeRows } = await query<{
+    id: string;
+    title: string;
+    hashtag: string;
+    end_at: Date;
+  }>(
+    `SELECT id, title, hashtag, end_at
+       FROM challenges
+      WHERE is_active = TRUE AND end_at > NOW()
+      ORDER BY end_at ASC
+      LIMIT 5`,
+  );
+
+  return res.json({
+    level: user.current_level,
+    xp: Number(user.total_xp),
+    nextLevelXp: user.current_level * 1000,
+    activeChallenges: challengeRows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      hashtag: row.hashtag,
+      endAt: row.end_at.toISOString(),
+    })),
+  });
+});
+
 feedRouter.get('/challenges/:challengeId', async (req: Request, res: Response) => {
   const { rows: challengeRows } = await query<{
     id: string;

@@ -47,6 +47,17 @@ export interface Challenge {
   isActive: boolean;
 }
 
+export interface EngagementStats {
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+  activeChallenges: { id: string; title: string; hashtag: string; endAt: string }[];
+}
+
+export async function fetchEngagement(): Promise<ApiResult<EngagementStats>> {
+  return request<EngagementStats>('/api/engagement');
+}
+
 export async function fetchChallenge(challengeId: string): Promise<ApiResult<{ challenge: Challenge; videos: FeedVideo[] }>> {
   return request<{ challenge: Challenge; videos: FeedVideo[] }>(`/api/challenges/${encodeURIComponent(challengeId)}`);
 }
