@@ -90,6 +90,47 @@ export async function fetchAdminPayouts(): Promise<ApiResult<{ requests: PayoutR
   return request<{ requests: PayoutRequest[] }>('/api/admin/payouts');
 }
 
+export interface AdminProduct {
+  id: string;
+  name: string;
+  description: string;
+  priceGbp: number;
+  imageUrl: string;
+  stock: number;
+  isActive: boolean;
+}
+
+export interface AdminShopOrder {
+  id: string;
+  userId: string;
+  username: string;
+  productName: string;
+  quantity: number;
+  status: string;
+  createdAt: string;
+}
+
+export async function fetchAdminProducts(): Promise<ApiResult<{ products: AdminProduct[] }>> {
+  return request<{ products: AdminProduct[] }>('/api/admin/products');
+}
+
+export async function createAdminProduct(body: {
+  name: string;
+  description?: string;
+  priceGbp: number;
+  imageUrl?: string;
+  stock: number;
+}): Promise<ApiResult<{ id: string }>> {
+  return request<{ id: string }>('/api/admin/products', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchAdminShopOrders(): Promise<ApiResult<{ orders: AdminShopOrder[] }>> {
+  return request<{ orders: AdminShopOrder[] }>('/api/admin/shop-orders');
+}
+
 export async function updateAdminPayout(requestId: string, status: string): Promise<ApiResult<{ success: boolean }>> {
   return request<{ success: boolean }>(`/api/admin/payouts/${encodeURIComponent(requestId)}`, {
     method: 'PATCH',

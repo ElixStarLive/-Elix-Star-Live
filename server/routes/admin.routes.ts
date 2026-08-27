@@ -236,3 +236,88 @@ adminRouter.patch('/payouts/:requestId', authMiddleware, requireAdmin, async (re
   await query(`UPDATE payout_requests SET status = $1 WHERE id = $2`, [status, req.params.requestId]);
   return res.json({ success: true });
 });
+
+adminRouter.get('/products', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    name: string;
+    description: string;
+    price_gbp: number;
+    image_url: string;
+    stock: number;
+    is_active: boolean;
+  }>(
+    `SELECT id, name, description, price_gbp, image_url, stock, is_active
+       FROM products
+      ORDER BY created_at DESC`,
+  );
+
+  const products = rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    priceGbp: Number(row.price_gbp),
+    imageUrl: row.image_url,
+    stock: row.stock,
+    isActive: row.is_active,
+  }));
+
+  return res.json({ products });
+});
+
+const productSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().max(500).optional(),
+  priceGbp: z.coerce.number().positive(),
+  imageUrl: z.string().max(500).optional(),
+  stock: z.coerce.number().int().min(0),
+});
+
+adminRouter.post('/products', authMiddleware, requireAdmin, async (req: Request, res: Response) => {
+  const parsed = productSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid product.' });
+  }
+
+  const { name, description = '', priceGbp, imageUrl = '', stock } = parsed.data;
+  const { rows } = await query<{ id: string }>(
+    `INSERT INTO products (name, description, price_gbp, image_url, stock) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [name, description, priceGbp, imageUrl, stock],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not create product.' });
+  return res.status(201).json({ id: row.id });
+});
+
+adminRouter.get('/shop-orders', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    id: string;
+    user_id: string;
+    username: string;
+    product_name: string;
+    quantity: number;
+    status: string;
+    created_at: Date;
+  }>(
+    `SELECT so.id, so.user_id, u.username, p.name AS product_name, so.quantity, so.status, so.created_at
+       FROM shop_orders so
+       JOIN users u ON u.id = so.user_id
+       JOIN products p ON p.id = so.product_id
+      ORDER BY so.created_at DESC
+      LIMIT 200`,
+  );
+
+  const orders = rows.map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    username: row.username,
+    productName: row.product_name,
+    quantity: row.quantity,
+    status: row.status,
+    createdAt: row.created_at.toISOString(),
+  }));
+
+  return res.json({ orders });
+});

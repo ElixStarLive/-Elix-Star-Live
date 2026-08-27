@@ -26,6 +26,7 @@ import AdminEconomy from '../pages/AdminEconomy';
 import AdminProgression from '../pages/AdminProgression';
 import AdminRisingStars from '../pages/AdminRisingStars';
 import AdminPayouts from '../pages/AdminPayouts';
+import AdminShop from '../pages/AdminShop';
 import SavedVideos from '../pages/SavedVideos';
 import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
@@ -524,6 +525,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <AdminPayouts />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/shop"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AdminShop />
             </AppShell>
           </RequireAuth>
         }
