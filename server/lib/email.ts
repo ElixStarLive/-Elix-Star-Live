@@ -26,7 +26,11 @@ export function isEmailConfigured(): boolean {
 
 function getTransporter(url: string): Transporter {
   // Pooled: registration bursts otherwise open a new SMTP connection per message.
-  transporter ??= nodemailer.createTransport(url, { pool: true, maxConnections: 3 });
+  transporter ??= nodemailer.createTransport({
+    url,
+    pool: true,
+    maxConnections: 3,
+  });
   return transporter;
 }
 
