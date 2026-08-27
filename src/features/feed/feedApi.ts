@@ -26,6 +26,10 @@ export async function fetchForYou(): Promise<ApiResult<{ videos: FeedVideo[]; ha
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/feed');
 }
 
+export async function fetchSTEM(): Promise<ApiResult<{ videos: FeedVideo[]; hasMore: boolean }>> {
+  return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/stem');
+}
+
 export async function fetchDiscover(): Promise<ApiResult<{ videos: FeedVideo[]; hasMore: boolean }>> {
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/discover');
 }

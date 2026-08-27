@@ -166,6 +166,26 @@ feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, 
   return res.json({ success: true });
 });
 
+feedRouter.get('/stem', authMiddleware, async (req: Request, res: Response) => {
+  const { limit, offset } = parsePagination(req);
+
+  const { rows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM videos v
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE v.privacy = 'public'
+        AND v.hashtags @> '["stem"]'
+      ORDER BY v.created_at DESC
+      LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  );
+
+  const videos = rows.map((row) => toVideo(row));
+  return res.json({ videos, hasMore: videos.length === limit });
+});
+
 feedRouter.get('/discover', authMiddleware, async (req: Request, res: Response) => {
   const { limit, offset } = parsePagination(req);
 
