@@ -33,6 +33,7 @@ import Hashtag from '../pages/Hashtag';
 import Report from '../pages/Report';
 import FollowList from '../pages/FollowList';
 import CreatorLoginDetails from '../pages/CreatorLoginDetails';
+import SettingsNotifications from '../pages/SettingsNotifications';
 import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
 import Live from '../pages/Live';
@@ -259,6 +260,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Music />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/notifications"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettingsNotifications />
             </AppShell>
           </RequireAuth>
         }

@@ -67,6 +67,27 @@ export async function fetchFollowing(userId: string): Promise<ApiResult<{ users:
   return request<{ users: UserPreview[] }>(`/api/users/${encodeURIComponent(userId)}/following`);
 }
 
+export interface NotificationSettings {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  likesEnabled: boolean;
+  commentsEnabled: boolean;
+  followsEnabled: boolean;
+  liveEnabled: boolean;
+  marketingEnabled: boolean;
+}
+
+export async function fetchNotificationSettings(): Promise<ApiResult<NotificationSettings>> {
+  return request<NotificationSettings>('/api/users/me/notifications');
+}
+
+export async function patchNotificationSettings(body: Partial<NotificationSettings>): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>('/api/users/me/notifications', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+}
+
 export async function searchUsers(query: string): Promise<ApiResult<{ users: UserPreview[] }>> {
   return request<{ users: UserPreview[] }>(`/api/users?q=${encodeURIComponent(query)}`);
 }

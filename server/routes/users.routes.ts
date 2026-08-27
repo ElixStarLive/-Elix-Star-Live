@@ -135,6 +135,88 @@ usersRouter.get('/users/:userId/following', authMiddleware, async (req: Request,
   return res.json({ users });
 });
 
+const notificationSettingsSchema = z.object({
+  pushEnabled: z.boolean().optional(),
+  emailEnabled: z.boolean().optional(),
+  likesEnabled: z.boolean().optional(),
+  commentsEnabled: z.boolean().optional(),
+  followsEnabled: z.boolean().optional(),
+  liveEnabled: z.boolean().optional(),
+  marketingEnabled: z.boolean().optional(),
+});
+
+usersRouter.get('/users/me/notifications', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<{
+    push_enabled: boolean;
+    email_enabled: boolean;
+    likes_enabled: boolean;
+    comments_enabled: boolean;
+    follows_enabled: boolean;
+    live_enabled: boolean;
+    marketing_enabled: boolean;
+  }>(
+    `INSERT INTO user_notification_settings (user_id)
+     VALUES ($1)
+     ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW()
+     RETURNING push_enabled, email_enabled, likes_enabled, comments_enabled, follows_enabled, live_enabled, marketing_enabled`,
+    [req.userId],
+  );
+
+  const row = rows[0];
+  if (!row) return res.status(500).json({ code: 'server_error', message: 'Could not load settings.' });
+
+  return res.json({
+    pushEnabled: row.push_enabled,
+    emailEnabled: row.email_enabled,
+    likesEnabled: row.likes_enabled,
+    commentsEnabled: row.comments_enabled,
+    followsEnabled: row.follows_enabled,
+    liveEnabled: row.live_enabled,
+    marketingEnabled: row.marketing_enabled,
+  });
+});
+
+usersRouter.patch('/users/me/notifications', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = notificationSettingsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return res.status(400).json({ code: 'invalid_request', message: first?.message ?? 'Invalid settings.' });
+  }
+
+  const sets: string[] = [];
+  const values: (boolean | string)[] = [];
+  const map: Record<string, string> = {
+    pushEnabled: 'push_enabled',
+    emailEnabled: 'email_enabled',
+    likesEnabled: 'likes_enabled',
+    commentsEnabled: 'comments_enabled',
+    followsEnabled: 'follows_enabled',
+    liveEnabled: 'live_enabled',
+    marketingEnabled: 'marketing_enabled',
+  };
+
+  for (const [key, col] of Object.entries(map)) {
+    const v = parsed.data[key as keyof typeof parsed.data];
+    if (v !== undefined) {
+      sets.push(`${col} = $${sets.length + 1}`);
+      values.push(v);
+    }
+  }
+
+  if (sets.length === 0) {
+    return res.status(400).json({ code: 'invalid_request', message: 'No settings to update.' });
+  }
+
+  values.push(req.userId!);
+  await query(
+    `INSERT INTO user_notification_settings (user_id) VALUES ($${values.length})
+     ON CONFLICT (user_id) DO UPDATE SET ${sets.join(', ')}, updated_at = NOW()`,
+    values,
+  );
+
+  return res.json({ success: true });
+});
+
 usersRouter.get('/users', authMiddleware, async (req: Request, res: Response) => {
   const q = String(req.query.q ?? '').trim().toLowerCase();
   if (!q || q.length < 2) {
