@@ -147,6 +147,42 @@ feedRouter.post('/videos', authMiddleware, async (req: Request, res: Response) =
   return res.status(201).json({ id });
 });
 
+feedRouter.post('/videos/:videoId/save', authMiddleware, async (req: Request, res: Response) => {
+  const videoId = req.params.videoId;
+  try {
+    await query(
+      `INSERT INTO saves (user_id, video_id) VALUES ($1, $2) ON CONFLICT (user_id, video_id) DO NOTHING`,
+      [req.userId, videoId],
+    );
+    return res.json({ success: true });
+  } catch {
+    return res.status(500).json({ code: 'server_error', message: 'Could not save video.' });
+  }
+});
+
+feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, res: Response) => {
+  const videoId = req.params.videoId;
+  await query(`DELETE FROM saves WHERE user_id = $1 AND video_id = $2`, [req.userId, videoId]);
+  return res.json({ success: true });
+});
+
+feedRouter.get('/saved', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM saves s
+       JOIN videos v ON v.id = s.video_id
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE s.user_id = $1 AND v.privacy = 'public'
+      ORDER BY s.created_at DESC`,
+    [req.userId],
+  );
+
+  const videos = rows.map((row) => toVideo(row));
+  return res.json({ videos });
+});
+
 feedRouter.get('/videos/:videoId', async (req: Request, res: Response) => {
   const { rows } = await query<FeedRow>(
     `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,

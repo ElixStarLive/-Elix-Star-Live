@@ -50,3 +50,15 @@ export async function createVideo(body: {
     body: JSON.stringify(body),
   });
 }
+
+export async function fetchSaved(): Promise<ApiResult<{ videos: FeedVideo[] }>> {
+  return request<{ videos: FeedVideo[] }>('/api/saved');
+}
+
+export async function saveVideo(videoId: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/videos/${encodeURIComponent(videoId)}/save`, { method: 'POST' });
+}
+
+export async function unsaveVideo(videoId: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/videos/${encodeURIComponent(videoId)}/save`, { method: 'DELETE' });
+}
