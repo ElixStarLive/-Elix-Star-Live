@@ -43,6 +43,7 @@ import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
 import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
+import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -395,6 +396,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <RisingStars />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/rising-stars/:challengeId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RisingStarsChallenge />
             </AppShell>
           </RequireAuth>
         }

@@ -38,6 +38,19 @@ export async function fetchHashtag(tag: string): Promise<ApiResult<{ tag: string
   return request<{ tag: string; videos: FeedVideo[]; hasMore: boolean }>(`/api/hashtag/${encodeURIComponent(tag)}`);
 }
 
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  hashtag: string;
+  endAt: string;
+  isActive: boolean;
+}
+
+export async function fetchChallenge(challengeId: string): Promise<ApiResult<{ challenge: Challenge; videos: FeedVideo[] }>> {
+  return request<{ challenge: Challenge; videos: FeedVideo[] }>(`/api/challenges/${encodeURIComponent(challengeId)}`);
+}
+
 export async function fetchRisingStars(): Promise<ApiResult<{ videos: FeedVideo[]; hasMore: boolean }>> {
   return request<{ videos: FeedVideo[]; hasMore: boolean }>('/api/rising-stars');
 }

@@ -166,6 +166,49 @@ feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, 
   return res.json({ success: true });
 });
 
+feedRouter.get('/challenges/:challengeId', async (req: Request, res: Response) => {
+  const { rows: challengeRows } = await query<{
+    id: string;
+    title: string;
+    description: string;
+    hashtag: string;
+    end_at: Date;
+    is_active: boolean;
+  }>(
+    `SELECT id, title, description, hashtag, end_at, is_active
+       FROM challenges WHERE id = $1 LIMIT 1`,
+    [req.params.challengeId],
+  );
+
+  const challenge = challengeRows[0];
+  if (!challenge) return res.status(404).json({ code: 'not_found', message: 'Challenge not found.' });
+
+  const { rows: videoRows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM videos v
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE v.privacy = 'public'
+        AND ($1 = '' OR v.hashtags @> $2::jsonb)
+      ORDER BY v.created_at DESC
+      LIMIT 50`,
+    [challenge.hashtag, JSON.stringify([challenge.hashtag])],
+  );
+
+  return res.json({
+    challenge: {
+      id: challenge.id,
+      title: challenge.title,
+      description: challenge.description,
+      hashtag: challenge.hashtag,
+      endAt: challenge.end_at.toISOString(),
+      isActive: challenge.is_active,
+    },
+    videos: videoRows.map((row) => toVideo(row)),
+  });
+});
+
 feedRouter.get('/hashtag/:tag', authMiddleware, async (req: Request, res: Response) => {
   const tag = Array.isArray(req.params.tag) ? req.params.tag[0] : req.params.tag;
   if (!tag) return res.status(400).json({ code: 'invalid_request', message: 'Hashtag required.' });
