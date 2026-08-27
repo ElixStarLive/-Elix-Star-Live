@@ -127,6 +127,17 @@ export async function createAdminProduct(body: {
   });
 }
 
+export interface MonetisationStats {
+  paidGiftsGbp: number;
+  paidCoinsCount: number;
+  shopOrdersGbp: number;
+  approvedPayoutsGbp: number;
+}
+
+export async function fetchAdminMonetisation(): Promise<ApiResult<MonetisationStats>> {
+  return request<MonetisationStats>('/api/admin/monetisation');
+}
+
 export async function fetchAdminShopOrders(): Promise<ApiResult<{ orders: AdminShopOrder[] }>> {
   return request<{ orders: AdminShopOrder[] }>('/api/admin/shop-orders');
 }

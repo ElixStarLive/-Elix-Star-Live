@@ -291,6 +291,34 @@ adminRouter.post('/products', authMiddleware, requireAdmin, async (req: Request,
   return res.status(201).json({ id: row.id });
 });
 
+adminRouter.get('/monetisation', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    paid_gifts: number;
+    paid_coins: number;
+    shop_orders: number;
+    approved_payouts: number;
+  }>(
+    `SELECT
+       (SELECT COALESCE(SUM(financial_value_gbp), 0) FROM live_gifts WHERE source = 'paid') AS paid_gifts,
+       (SELECT COALESCE(SUM(amount_gbp), 0) FROM payout_requests WHERE status = 'approved') AS approved_payouts,
+       (SELECT COUNT(*) FROM coin_purchases WHERE status = 'completed') AS paid_coins,
+       (SELECT COALESCE(SUM(p.price_gbp * so.quantity), 0)
+          FROM shop_orders so
+          JOIN products p ON p.id = so.product_id
+         WHERE so.status = 'pending' OR so.status = 'completed') AS shop_orders`,
+  );
+
+  const row = rows[0];
+  if (!row) return res.json({});
+
+  return res.json({
+    paidGiftsGbp: Number(row.paid_gifts),
+    paidCoinsCount: Number(row.paid_coins),
+    shopOrdersGbp: Number(row.shop_orders),
+    approvedPayoutsGbp: Number(row.approved_payouts),
+  });
+});
+
 adminRouter.get('/shop-orders', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
   const { rows } = await query<{
     id: string;
