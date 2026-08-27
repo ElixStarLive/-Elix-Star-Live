@@ -77,3 +77,37 @@ adminRouter.get('/reports', authMiddleware, requireAdmin, async (_req: Request, 
 
   return res.json({ reports });
 });
+
+adminRouter.get('/economy', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    videos: number;
+    users: number;
+    follows: number;
+    likes: number;
+    comments: number;
+    live_streams: number;
+    reports: number;
+  }>(
+    `SELECT
+       (SELECT COUNT(*) FROM videos) AS videos,
+       (SELECT COUNT(*) FROM users) AS users,
+       (SELECT COUNT(*) FROM follows) AS follows,
+       (SELECT COUNT(*) FROM likes) AS likes,
+       (SELECT COUNT(*) FROM comments) AS comments,
+       (SELECT COUNT(*) FROM live_streams WHERE is_live = TRUE) AS live_streams,
+       (SELECT COUNT(*) FROM reports) AS reports`,
+  );
+
+  const row = rows[0];
+  if (!row) return res.json({});
+
+  return res.json({
+    videos: Number(row.videos),
+    users: Number(row.users),
+    follows: Number(row.follows),
+    likes: Number(row.likes),
+    comments: Number(row.comments),
+    liveStreams: Number(row.live_streams),
+    reports: Number(row.reports),
+  });
+});

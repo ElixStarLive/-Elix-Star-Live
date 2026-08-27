@@ -22,6 +22,7 @@ import VideoView from '../pages/VideoView';
 import Admin from '../pages/Admin';
 import AdminUsers from '../pages/AdminUsers';
 import AdminReports from '../pages/AdminReports';
+import AdminEconomy from '../pages/AdminEconomy';
 import SavedVideos from '../pages/SavedVideos';
 import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
@@ -346,6 +347,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <SavedVideos />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/economy"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AdminEconomy />
             </AppShell>
           </RequireAuth>
         }
