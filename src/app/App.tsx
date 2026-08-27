@@ -9,6 +9,7 @@ import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import LegalHub from '../pages/LegalHub';
 import LegalDoc from '../pages/LegalDoc';
+import VideoFeed from '../pages/VideoFeed';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -73,13 +74,22 @@ export default function App() {
       />
 
       <Route
+        path="/feed"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VideoFeed />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+
+      <Route
         path="/"
         element={
           <RequireAuth>
             <AppShell>
-              <div className="flex min-h-[100dvh] items-center justify-center text-white/60">
-                Home feed is not yet built
-              </div>
+              <VideoFeed />
             </AppShell>
           </RequireAuth>
         }
