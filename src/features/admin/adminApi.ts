@@ -38,6 +38,18 @@ export async function fetchAdminReports(): Promise<ApiResult<{ reports: AdminRep
   return request<{ reports: AdminReport[] }>('/api/admin/reports');
 }
 
+export interface ProgressionUser {
+  id: string;
+  username: string;
+  displayName: string;
+  level: number;
+  xp: number;
+}
+
 export async function fetchAdminEconomy(): Promise<ApiResult<EconomyStats>> {
   return request<EconomyStats>('/api/admin/economy');
+}
+
+export async function fetchAdminProgression(): Promise<ApiResult<{ users: ProgressionUser[] }>> {
+  return request<{ users: ProgressionUser[] }>('/api/admin/progression');
 }

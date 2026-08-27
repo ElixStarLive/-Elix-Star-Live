@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, BarChart3, Flag, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Flag, TrendingUp, Users } from 'lucide-react';
 
 const ITEMS = [
   { label: 'Users', to: '/admin/users', icon: Users },
   { label: 'Reports', to: '/admin/reports', icon: Flag },
   { label: 'Economy', to: '/admin/economy', icon: BarChart3 },
+  { label: 'Progression', to: '/admin/progression', icon: TrendingUp },
 ];
 
 export default function Admin() {

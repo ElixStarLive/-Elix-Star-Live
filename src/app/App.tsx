@@ -23,6 +23,7 @@ import Admin from '../pages/Admin';
 import AdminUsers from '../pages/AdminUsers';
 import AdminReports from '../pages/AdminReports';
 import AdminEconomy from '../pages/AdminEconomy';
+import AdminProgression from '../pages/AdminProgression';
 import SavedVideos from '../pages/SavedVideos';
 import Discover from '../pages/Discover';
 import RisingStars from '../pages/RisingStars';
@@ -347,6 +348,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <SavedVideos />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/progression"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AdminProgression />
             </AppShell>
           </RequireAuth>
         }

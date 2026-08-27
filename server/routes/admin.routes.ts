@@ -111,3 +111,30 @@ adminRouter.get('/economy', authMiddleware, requireAdmin, async (_req: Request, 
     reports: Number(row.reports),
   });
 });
+
+adminRouter.get('/progression', authMiddleware, requireAdmin, async (_req: Request, res: Response) => {
+  const { rows } = await query<{
+    user_id: string;
+    username: string;
+    display_name: string;
+    current_level: number;
+    total_xp: number;
+  }>(
+    `SELECT p.user_id, u.username, p.display_name, up.current_level, up.total_xp
+       FROM user_progression up
+       JOIN profiles p ON p.user_id = up.user_id
+       JOIN users u ON u.id = up.user_id
+      ORDER BY up.total_xp DESC
+      LIMIT 100`,
+  );
+
+  const users = rows.map((row) => ({
+    id: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    level: row.current_level,
+    xp: Number(row.total_xp),
+  }));
+
+  return res.json({ users });
+});
