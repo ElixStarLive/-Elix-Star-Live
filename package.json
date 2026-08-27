@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "migrate": "tsx server/scripts/migrate.cli.ts",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "start:prod": "tsx server/index.ts"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.0",
