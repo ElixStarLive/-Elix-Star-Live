@@ -10,6 +10,7 @@
     "dev": "vite",
     "dev:server": "tsx watch server/index.ts",
     "build": "vite build",
+    "build:android": "npm run build && npx cap sync android",
     "check": "tsc -b --noEmit",
     "check:server": "tsc -p tsconfig.server.json --noEmit",
     "check:all": "npm run check && npm run check:server",
@@ -19,6 +20,9 @@
     "start": "tsx server/index.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
     "cookie": "1.0.2",
     "cors": "2.8.5",
     "dotenv": "17.2.3",
