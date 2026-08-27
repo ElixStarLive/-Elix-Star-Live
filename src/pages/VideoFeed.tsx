@@ -25,7 +25,7 @@ export default function VideoFeed() {
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-fluid-xl font-bold">For You</h1>
         <Link
-          to="/create"
+          to="/upload"
           className="inline-flex items-center gap-1 rounded-xl border border-white/40 px-3 py-2 text-fluid-sm font-bold"
         >
           <Plus className="h-4 w-4" />
