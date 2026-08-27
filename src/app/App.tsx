@@ -10,6 +10,7 @@ import Privacy from '../pages/Privacy';
 import LegalHub from '../pages/LegalHub';
 import LegalDoc from '../pages/LegalDoc';
 import VideoFeed from '../pages/VideoFeed';
+import Profile from '../pages/Profile';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -79,6 +80,27 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <VideoFeed />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+
+      <Route
+        path="/profile/:userId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Profile />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Profile />
             </AppShell>
           </RequireAuth>
         }

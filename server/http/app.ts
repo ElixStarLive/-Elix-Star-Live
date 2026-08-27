@@ -8,6 +8,7 @@ import { isValkeyHealthy } from '../lib/valkey.js';
 import { apiError } from '../auth/contract.js';
 import { authRouter } from '../routes/auth.routes.js';
 import { feedRouter } from '../routes/feed.routes.js';
+import { usersRouter } from '../routes/users.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -41,6 +42,7 @@ export function createApp(): Express {
 
   app.use('/api/auth', authRouter);
   app.use('/api', feedRouter);
+  app.use('/api', usersRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json(apiError('invalid_request', 'Not found.'));
