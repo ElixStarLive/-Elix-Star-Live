@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Gift, Radio, User } from 'lucide-react';
-import { fetchLiveStream, type LiveStream } from '../features/live/liveApi';
+import { ArrowLeft, Gift, Key, Radio, User } from 'lucide-react';
+import { fetchLiveStream, fetchLiveToken, type LiveStream } from '../features/live/liveApi';
 import { fetchGifts, sendGift, type GiftPackage } from '../features/gifts/giftsApi';
 
 export default function LiveWatch() {
@@ -11,6 +11,20 @@ export default function LiveWatch() {
   const [gifts, setGifts] = useState<GiftPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [liveToken, setLiveToken] = useState<string | null>(null);
+  const [liveUrl, setLiveUrl] = useState<string | null>(null);
+
+  const fetchToken = async () => {
+    if (!streamId) return;
+    setTokenLoading(true);
+    const { data } = await fetchLiveToken(streamId);
+    setTokenLoading(false);
+    if (data) {
+      setLiveToken(data.token);
+      setLiveUrl(data.url);
+    }
+  };
 
   useEffect(() => {
     if (!streamId) return;
@@ -72,6 +86,17 @@ export default function LiveWatch() {
                 <Radio className="h-10 w-10" />
                 <p className="text-fluid-sm">LiveKit playback will connect here.</p>
                 <p className="text-fluid-xs">Stream key: {stream.streamKey}</p>
+                <button
+                  type="button"
+                  onClick={fetchToken}
+                  disabled={tokenLoading}
+                  className="mt-2 flex items-center gap-2 rounded-xl border border-white/40 px-4 py-2 text-fluid-sm font-bold disabled:opacity-60"
+                >
+                  <Key className="h-4 w-4" />
+                  {tokenLoading ? '…' : 'Get Token'}
+                </button>
+                {liveToken && <p className="max-w-full truncate text-fluid-xs">Token: {liveToken.slice(0, 24)}…</p>}
+                {liveUrl && <p className="text-fluid-xs">{liveUrl}</p>}
               </div>
             </div>
 
