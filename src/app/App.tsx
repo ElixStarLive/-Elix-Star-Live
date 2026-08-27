@@ -13,6 +13,9 @@ import VideoFeed from '../pages/VideoFeed';
 import Profile from '../pages/Profile';
 import Settings from '../pages/Settings';
 import EditProfile from '../pages/EditProfile';
+import Inbox from '../pages/Inbox';
+import AlertsPage from '../pages/AlertsPage';
+import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -123,6 +126,36 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <EditProfile />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inbox"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Inbox />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/alerts"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AlertsPage />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/inbox/:threadId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <ChatThread />
             </AppShell>
           </RequireAuth>
         }
