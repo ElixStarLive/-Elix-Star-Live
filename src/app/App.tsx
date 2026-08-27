@@ -7,6 +7,8 @@ import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
+import LegalHub from '../pages/LegalHub';
+import LegalDoc from '../pages/LegalDoc';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -47,6 +49,12 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/legal" element={<LegalHub />} />
+      <Route path="/copyright" element={<LegalDoc docKey="copyright" />} />
+      <Route path="/guidelines" element={<LegalDoc docKey="guidelines" />} />
+      <Route path="/how-it-works" element={<LegalDoc docKey="how-it-works" />} />
+      <Route path="/support" element={<LegalDoc docKey="support" />} />
+      <Route path="/legal/:docId" element={<LegalDoc />} />
       <Route
         path="/forgot-password"
         element={
