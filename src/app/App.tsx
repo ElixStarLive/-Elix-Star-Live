@@ -5,6 +5,7 @@ import Register from '../pages/Register';
 import AuthCallback from '../pages/AuthCallback';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
+import Terms from '../pages/Terms';
 import { useAuthStore } from '../features/auth/authStore';
 import { AppShell } from './AppShell';
 import { RequireAuth } from './RequireAuth';
@@ -43,6 +44,7 @@ export default function App() {
         }
       />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/terms" element={<Terms />} />
       <Route
         path="/forgot-password"
         element={
