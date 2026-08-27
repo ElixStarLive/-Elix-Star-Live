@@ -18,6 +18,7 @@ import { shopRouter } from '../routes/shop.routes.js';
 import { coinsRouter } from '../routes/coins.routes.js';
 import { battleRouter } from '../routes/battle.routes.js';
 import { giftsRouter } from '../routes/gifts.routes.js';
+import { uploadsRouter } from '../routes/uploads.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -61,6 +62,7 @@ export function createApp(): Express {
   app.use('/api', coinsRouter);
   app.use('/api', battleRouter);
   app.use('/api', giftsRouter);
+  app.use('/api', uploadsRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json(apiError('invalid_request', 'Not found.'));

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowLeft, X, Upload as UploadIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createVideo } from '../features/feed/feedApi';
+import { uploadFile } from '../features/uploads/uploadsApi';
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function Upload() {
   const [description, setDescription] = useState('');
   const [hashtags, setHashtags] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const exit = () => {
@@ -47,6 +49,20 @@ export default function Upload() {
     navigate(`/video/${data?.id}`, { replace: true });
   };
 
+  const onFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    const { data, error: uploadError } = await uploadFile(file);
+    setUploading(false);
+    if (uploadError) {
+      setError(uploadError.message);
+      return;
+    }
+    if (data) setUrl(data.url);
+  };
+
   return (
     <div className="relative flex min-h-[100dvh] flex-col bg-black text-white">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-black/90 px-4 py-3 backdrop-blur-md">
@@ -61,6 +77,17 @@ export default function Upload() {
       </header>
 
       <form onSubmit={onSubmit} className="flex-1 space-y-4 p-4">
+        <div className="space-y-2">
+          <label className="text-fluid-sm text-white/70">Video File</label>
+          <input
+            type="file"
+            accept="video/*"
+            onChange={onFile}
+            disabled={uploading}
+            className="w-full rounded-xl border border-white/10 bg-white/10 p-3 text-fluid-sm text-white outline-none file:text-white file:bg-white/10 file:rounded-md file:px-3 file:py-1 file:border-0 disabled:opacity-60"
+          />
+        </div>
+
         <div className="space-y-2">
           <label className="text-fluid-sm text-white/70">Video URL</label>
           <input
