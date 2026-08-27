@@ -48,6 +48,7 @@ import LiveBroadcast from '../pages/LiveBroadcast';
 import Watch from '../pages/Watch';
 import VideoCall from '../pages/VideoCall';
 import AIStudio from '../pages/AIStudio';
+import Battle from '../pages/Battle';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import Shop from '../pages/Shop';
 import PurchaseCoins from '../pages/PurchaseCoins';
@@ -293,6 +294,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <VideoCall />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/battle"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Battle />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/battle/:battleId"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Battle />
             </AppShell>
           </RequireAuth>
         }
