@@ -44,6 +44,7 @@ import SongDetail from '../pages/SongDetail';
 import Engagement from '../pages/Engagement';
 import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
+import LiveBroadcast from '../pages/LiveBroadcast';
 import Watch from '../pages/Watch';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import Shop from '../pages/Shop';
@@ -250,6 +251,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Live />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/live/start"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <LiveBroadcast />
             </AppShell>
           </RequireAuth>
         }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Radio, User } from 'lucide-react';
+import { Plus, Radio, User } from 'lucide-react';
 import { fetchLiveStreams, type LiveStream } from '../features/live/liveApi';
 
 export default function Live() {
@@ -21,7 +21,15 @@ export default function Live() {
 
   return (
     <div className="min-h-[100dvh] bg-black p-4 text-white">
-      <h1 className="mb-4 text-fluid-xl font-bold">Live</h1>
+      <header className="mb-4 flex items-center justify-between">
+        <h1 className="text-fluid-xl font-bold">Live</h1>
+        <Link
+          to="/live/start"
+          className="flex items-center gap-1 rounded-xl border border-white/40 px-3 py-2 text-fluid-sm font-bold"
+        >
+          <Plus className="h-4 w-4" /> Go Live
+        </Link>
+      </header>
       {loading ? (
         <p className="text-white/60">Loading…</p>
       ) : streams.length === 0 ? (
