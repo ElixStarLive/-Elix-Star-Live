@@ -38,6 +38,7 @@ import SettingsNotifications from '../pages/SettingsNotifications';
 import SettingsSecurity from '../pages/SettingsSecurity';
 import SettingsBlocked from '../pages/SettingsBlocked';
 import SettingsPayout from '../pages/SettingsPayout';
+import SettingsSafety from '../pages/SettingsSafety';
 import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
 import Live from '../pages/Live';
@@ -274,6 +275,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <SettingsPayout />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/safety"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettingsSafety />
             </AppShell>
           </RequireAuth>
         }
