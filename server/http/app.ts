@@ -15,6 +15,7 @@ import { reportsRouter } from '../routes/reports.routes.js';
 import { musicRouter } from '../routes/music.routes.js';
 import { liveRouter } from '../routes/live.routes.js';
 import { shopRouter } from '../routes/shop.routes.js';
+import { coinsRouter } from '../routes/coins.routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -55,6 +56,7 @@ export function createApp(): Express {
   app.use('/api', musicRouter);
   app.use('/api', liveRouter);
   app.use('/api', shopRouter);
+  app.use('/api', coinsRouter);
 
   app.use((_req: Request, res: Response) => {
     res.status(404).json(apiError('invalid_request', 'Not found.'));
