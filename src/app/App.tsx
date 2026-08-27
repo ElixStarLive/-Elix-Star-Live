@@ -35,6 +35,7 @@ import FollowList from '../pages/FollowList';
 import CreatorLoginDetails from '../pages/CreatorLoginDetails';
 import SettingsNotifications from '../pages/SettingsNotifications';
 import SettingsSecurity from '../pages/SettingsSecurity';
+import SettingsBlocked from '../pages/SettingsBlocked';
 import Music from '../pages/Music';
 import SongDetail from '../pages/SongDetail';
 import Live from '../pages/Live';
@@ -261,6 +262,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Music />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/settings/blocked"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <SettingsBlocked />
             </AppShell>
           </RequireAuth>
         }

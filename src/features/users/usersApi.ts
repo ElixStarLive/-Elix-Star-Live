@@ -81,6 +81,18 @@ export async function fetchNotificationSettings(): Promise<ApiResult<Notificatio
   return request<NotificationSettings>('/api/users/me/notifications');
 }
 
+export async function fetchBlocked(): Promise<ApiResult<{ users: UserPreview[] }>> {
+  return request<{ users: UserPreview[] }>('/api/users/me/blocks');
+}
+
+export async function blockUser(userId: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/users/${encodeURIComponent(userId)}/block`, { method: 'POST' });
+}
+
+export async function unblockUser(userId: string): Promise<ApiResult<{ success: boolean }>> {
+  return request<{ success: boolean }>(`/api/users/${encodeURIComponent(userId)}/block`, { method: 'DELETE' });
+}
+
 export async function changePassword(body: { currentPassword: string; newPassword: string }): Promise<ApiResult<{ success: boolean }>> {
   return request<{ success: boolean }>('/api/users/me/password', {
     method: 'POST',

@@ -320,3 +320,48 @@ usersRouter.post('/users/me/password', authMiddleware, async (req: Request, res:
 
   return res.json({ success: true });
 });
+
+usersRouter.get('/users/me/blocks', authMiddleware, async (req: Request, res: Response) => {
+  const { rows } = await query<{
+    user_id: string;
+    username: string;
+    display_name: string;
+    avatar_url: string;
+  }>(
+    `SELECT u.id AS user_id, u.username, p.display_name, p.avatar_url
+       FROM blocks b
+       JOIN users u ON u.id = b.blocked_id
+       JOIN profiles p ON p.user_id = u.id
+      WHERE b.blocker_id = $1
+      ORDER BY b.created_at DESC`,
+    [req.userId],
+  );
+
+  const users = rows.map((row) => ({
+    id: row.user_id,
+    username: row.username,
+    displayName: row.display_name,
+    avatarUrl: row.avatar_url,
+  }));
+
+  return res.json({ users });
+});
+
+usersRouter.post('/users/:userId/block', authMiddleware, async (req: Request, res: Response) => {
+  const blockedId = req.params.userId;
+  if (blockedId === req.userId) {
+    return res.status(400).json({ code: 'invalid_request', message: 'Cannot block yourself.' });
+  }
+
+  await query(
+    `INSERT INTO blocks (blocker_id, blocked_id) VALUES ($1, $2) ON CONFLICT (blocker_id, blocked_id) DO NOTHING`,
+    [req.userId, blockedId],
+  );
+
+  return res.json({ success: true });
+});
+
+usersRouter.delete('/users/:userId/block', authMiddleware, async (req: Request, res: Response) => {
+  await query(`DELETE FROM blocks WHERE blocker_id = $1 AND blocked_id = $2`, [req.userId, req.params.userId]);
+  return res.json({ success: true });
+});
