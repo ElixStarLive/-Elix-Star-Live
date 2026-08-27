@@ -19,6 +19,8 @@ import FollowingFeed from '../pages/FollowingFeed';
 import FriendsFeed from '../pages/FriendsFeed';
 import Upload from '../pages/Upload';
 import VideoView from '../pages/VideoView';
+import Admin from '../pages/Admin';
+import AdminUsers from '../pages/AdminUsers';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -191,6 +193,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <VideoView />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <AdminUsers />
             </AppShell>
           </RequireAuth>
         }
