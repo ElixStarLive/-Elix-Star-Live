@@ -1,32 +1,17 @@
 import { useEffect } from 'react';
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
 import AuthCallback from '../pages/AuthCallback';
 import ForgotPassword from '../pages/ForgotPassword';
 import ResetPassword from '../pages/ResetPassword';
 import { useAuthStore } from '../features/auth/authStore';
-import { SessionSummary } from './SessionSummary';
+import { AppShell } from './AppShell';
+import { RequireAuth } from './RequireAuth';
 
-/**
- * Blocks a protected route until the persisted session has been resolved, so a
- * signed-in person is never bounced to the form during the boot round trip.
- */
-function RequireAuth({ children }: { children: React.ReactNode }) {
-  const status = useAuthStore((state) => state.status);
-  const location = useLocation();
-
-  if (status === 'restoring') return null;
-  if (status === 'anonymous') {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  }
-  return <>{children}</>;
-}
-
-/** Keeps a signed-in person off the sign-in form. */
+/** Public pages redirect an already-authenticated user to the authenticated root. */
 function RedirectIfAuthenticated({ children }: { children: React.ReactNode }) {
   const status = useAuthStore((state) => state.status);
-
   if (status === 'restoring') return null;
   if (status === 'authenticated') return <Navigate to="/" replace />;
   return <>{children}</>;
@@ -74,19 +59,20 @@ export default function App() {
           </RedirectIfAuthenticated>
         }
       />
-      {/*
-        PAGE-006 (App Shell) takes ownership of "/" and of global navigation.
-        Until it lands, the root shows the resolved session so authentication can
-        be exercised end to end. It is not a feature and has no other callers.
-      */}
+
       <Route
         path="/"
         element={
           <RequireAuth>
-            <SessionSummary />
+            <AppShell>
+              <div className="flex min-h-[100dvh] items-center justify-center text-white/60">
+                Home feed is not yet built
+              </div>
+            </AppShell>
           </RequireAuth>
         }
       />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
