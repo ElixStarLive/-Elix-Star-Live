@@ -46,6 +46,7 @@ import Live from '../pages/Live';
 import LiveWatch from '../pages/LiveWatch';
 import LiveBroadcast from '../pages/LiveBroadcast';
 import Watch from '../pages/Watch';
+import VideoCall from '../pages/VideoCall';
 import AIStudio from '../pages/AIStudio';
 import RisingStarsChallenge from '../pages/RisingStarsChallenge';
 import Shop from '../pages/Shop';
@@ -282,6 +283,16 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Watch />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/call"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <VideoCall />
             </AppShell>
           </RequireAuth>
         }
