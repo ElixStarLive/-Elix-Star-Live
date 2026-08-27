@@ -166,6 +166,44 @@ feedRouter.delete('/videos/:videoId/save', authMiddleware, async (req: Request, 
   return res.json({ success: true });
 });
 
+feedRouter.get('/discover', authMiddleware, async (req: Request, res: Response) => {
+  const { limit, offset } = parsePagination(req);
+
+  const { rows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM videos v
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE v.privacy = 'public'
+      ORDER BY (v.likes + v.comments) DESC, v.created_at DESC
+      LIMIT $1 OFFSET $2`,
+    [limit, offset],
+  );
+
+  const videos = rows.map((row) => toVideo(row));
+  return res.json({ videos, hasMore: videos.length === limit });
+});
+
+feedRouter.get('/rising-stars', authMiddleware, async (req: Request, res: Response) => {
+  const limit = Math.min(parseInt(req.query.limit as string, 10) || 20, 100);
+
+  const { rows } = await query<FeedRow>(
+    `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,
+            p.display_name, p.avatar_url, v.description, v.hashtags,
+            v.views, v.likes, v.comments, v.created_at
+       FROM videos v
+       JOIN profiles p ON p.user_id = v.user_id
+      WHERE v.privacy = 'public' AND v.created_at > NOW() - INTERVAL '7 days'
+      ORDER BY (v.likes + v.views) DESC
+      LIMIT $1`,
+    [limit],
+  );
+
+  const videos = rows.map((row) => toVideo(row));
+  return res.json({ videos, hasMore: videos.length === limit });
+});
+
 feedRouter.get('/saved', authMiddleware, async (req: Request, res: Response) => {
   const { rows } = await query<FeedRow>(
     `SELECT v.id, v.url, v.thumbnail, v.duration, v.user_id,

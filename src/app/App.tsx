@@ -22,6 +22,8 @@ import VideoView from '../pages/VideoView';
 import Admin from '../pages/Admin';
 import AdminUsers from '../pages/AdminUsers';
 import SavedVideos from '../pages/SavedVideos';
+import Discover from '../pages/Discover';
+import RisingStars from '../pages/RisingStars';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -204,6 +206,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <Admin />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/discover"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <Discover />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/rising-stars"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <RisingStars />
             </AppShell>
           </RequireAuth>
         }
