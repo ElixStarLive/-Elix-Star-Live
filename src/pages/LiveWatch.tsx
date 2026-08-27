@@ -1,13 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Radio, User } from 'lucide-react';
+import { ArrowLeft, Gift, Radio, User } from 'lucide-react';
 import { fetchLiveStream, type LiveStream } from '../features/live/liveApi';
+import { fetchGifts, sendGift, type GiftPackage } from '../features/gifts/giftsApi';
 
 export default function LiveWatch() {
   const { streamId } = useParams<{ streamId: string }>();
   const navigate = useNavigate();
   const [stream, setStream] = useState<(LiveStream & { streamKey: string }) | null>(null);
+  const [gifts, setGifts] = useState<GiftPackage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState<string | null>(null);
 
   useEffect(() => {
     if (!streamId) return;
@@ -17,10 +20,21 @@ export default function LiveWatch() {
       if (data) setStream(data.stream);
       setLoading(false);
     });
+    fetchGifts().then(({ data }) => {
+      if (cancelled) return;
+      if (data) setGifts(data.gifts);
+    });
     return () => {
       cancelled = true;
     };
   }, [streamId]);
+
+  const onGift = async (gift: GiftPackage) => {
+    if (!streamId) return;
+    setSending(gift.id);
+    await sendGift(streamId, gift.id, 'test');
+    setSending(null);
+  };
 
   return (
     <div className="relative min-h-[100dvh] bg-black text-white">
@@ -59,6 +73,32 @@ export default function LiveWatch() {
                 <p className="text-fluid-sm">LiveKit playback will connect here.</p>
                 <p className="text-fluid-xs">Stream key: {stream.streamKey}</p>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <Gift className="h-5 w-5 text-yellow-300" />
+                <h2 className="text-fluid-base font-bold">Gifts</h2>
+              </div>
+              {gifts.length === 0 ? (
+                <p className="text-white/60">No gifts available.</p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {gifts.map((gift) => (
+                    <button
+                      key={gift.id}
+                      type="button"
+                      onClick={() => onGift(gift)}
+                      disabled={sending === gift.id}
+                      className="rounded-xl border border-white/10 bg-white/5 p-2 text-fluid-xs font-semibold disabled:opacity-60"
+                    >
+                      <span className="block text-2xl">{gift.animation || '🎁'}</span>
+                      <span className="block mt-1">{gift.name}</span>
+                      <span className="block text-white/50">+{gift.battlePoints}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
