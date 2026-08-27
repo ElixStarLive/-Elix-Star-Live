@@ -15,6 +15,8 @@ import Settings from '../pages/Settings';
 import EditProfile from '../pages/EditProfile';
 import Inbox from '../pages/Inbox';
 import SearchPage from '../pages/SearchPage';
+import FollowingFeed from '../pages/FollowingFeed';
+import FriendsFeed from '../pages/FriendsFeed';
 import AlertsPage from '../pages/AlertsPage';
 import ChatThread from '../pages/ChatThread';
 import { useAuthStore } from '../features/auth/authStore';
@@ -86,6 +88,26 @@ export default function App() {
           <RequireAuth>
             <AppShell>
               <VideoFeed />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/following"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <FollowingFeed />
+            </AppShell>
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/friends"
+        element={
+          <RequireAuth>
+            <AppShell>
+              <FriendsFeed />
             </AppShell>
           </RequireAuth>
         }
